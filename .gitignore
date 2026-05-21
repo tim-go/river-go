@@ -3,3 +3,5 @@ dist/
 .vite/
 tmp/
 *.tsbuildinfo
+.config/
+platform/.config/

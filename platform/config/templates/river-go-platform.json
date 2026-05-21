@@ -1,0 +1,89 @@
+{
+  "project": {
+    "displayName": "River Go",
+    "slug": "river-go",
+    "githubRepo": "tim-go/river-go",
+    "billingAccount": "",
+    "defaultRegion": "europe-west2",
+    "resourceParent": {
+      "type": "",
+      "id": ""
+    }
+  },
+  "environments": {
+    "staging": {
+      "gcpProject": "river-go-staging",
+      "firebaseProject": "river-go-staging",
+      "region": "europe-west2",
+      "domains": {
+        "web": "staging.river-go.app",
+        "api": "staging.river-go.app/api"
+      },
+      "firebaseHostingSite": "river-go-staging",
+      "cloudRunService": "river-go-api-staging",
+      "artifactRegistryRepository": "river-go",
+      "githubEnvironment": "staging",
+      "serviceAccounts": {
+        "ci": "github-actions",
+        "server": "river-go-server"
+      },
+      "files": {
+        "gcpSaKeyFile": ".config/gcp-sa-staging.json",
+        "firebaseAdminSaKeyFile": ".config/firebase-admin-sa-staging.json",
+        "firebaseSdkFile": ".config/firebase-sdk-staging.json"
+      },
+      "database": {
+        "instance": "river-go-db-staging",
+        "database": "river_go",
+        "appUser": "river_go_app",
+        "migrationUser": "github_ci",
+        "postgis": true
+      },
+      "storage": {
+        "bucket": "river-go-staging.firebasestorage.app"
+      },
+      "secrets": [
+        "DATABASE_URL",
+        "FIREBASE_ADMIN_CREDENTIALS",
+        "SESSION_SECRET"
+      ]
+    },
+    "prod": {
+      "gcpProject": "river-go-prod",
+      "firebaseProject": "river-go-prod",
+      "region": "europe-west2",
+      "domains": {
+        "web": "river-go.app",
+        "api": "river-go.app/api"
+      },
+      "firebaseHostingSite": "river-go",
+      "cloudRunService": "river-go-api-prod",
+      "artifactRegistryRepository": "river-go",
+      "githubEnvironment": "production",
+      "serviceAccounts": {
+        "ci": "github-actions",
+        "server": "river-go-server"
+      },
+      "files": {
+        "gcpSaKeyFile": ".config/gcp-sa-prod.json",
+        "firebaseAdminSaKeyFile": ".config/firebase-admin-sa-prod.json",
+        "firebaseSdkFile": ".config/firebase-sdk-prod.json"
+      },
+      "database": {
+        "instance": "river-go-db-prod",
+        "database": "river_go",
+        "appUser": "river_go_app",
+        "migrationUser": "github_ci",
+        "postgis": true
+      },
+      "storage": {
+        "bucket": "river-go-prod.firebasestorage.app"
+      },
+      "secrets": [
+        "DATABASE_URL",
+        "FIREBASE_ADMIN_CREDENTIALS",
+        "SESSION_SECRET"
+      ]
+    }
+  }
+}

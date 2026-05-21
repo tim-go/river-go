@@ -1,0 +1,30 @@
+{
+  "local": {
+    "webUrl": "http://127.0.0.1:5173",
+    "apiUrl": "http://127.0.0.1:8080"
+  },
+  "staging": {
+    "webUrl": "https://staging.river-go.app",
+    "apiUrl": "https://staging.river-go.app/api",
+    "firebaseClient": {
+      "apiKey": "",
+      "authDomain": "river-go-staging.firebaseapp.com",
+      "projectId": "river-go-staging",
+      "storageBucket": "river-go-staging.firebasestorage.app",
+      "messagingSenderId": "",
+      "appId": ""
+    }
+  },
+  "prod": {
+    "webUrl": "https://river-go.app",
+    "apiUrl": "https://river-go.app/api",
+    "firebaseClient": {
+      "apiKey": "",
+      "authDomain": "river-go-prod.firebaseapp.com",
+      "projectId": "river-go-prod",
+      "storageBucket": "river-go-prod.firebasestorage.app",
+      "messagingSenderId": "",
+      "appId": ""
+    }
+  }
+}

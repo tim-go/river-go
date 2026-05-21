@@ -32,6 +32,7 @@ The demo is not yet a production app. It uses seeded data and local browser pers
 - `/docs/product/demo-feedback-plan.md`
 - `/docs/specs/core/river-section-map.md`
 - `/docs/specs/community/community-contributions.md`
+- `/docs/specs/ops/platform-configuration.md`
 - `/src/App.tsx`
 
 ## Requirements
@@ -90,7 +91,7 @@ The prototype should remain lightweight until Wye feedback confirms the contribu
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
-| DEMO-B1 | decision | Decide backend timing | Open | post-feedback | Supabase/Postgres is likely, but should wait until Wye feedback. |
+| DEMO-B1 | decision | Decide backend timing | Open | post-feedback | Cloud Run plus Cloud SQL/PostGIS is the preferred backend path, but should wait until Wye feedback. |
 | DEMO-B2 | enhancement | Add feedback capture UI/export | Open | prototype | Could support structured demo sessions. |
 | DEMO-B3 | dependency | Verify Wye section data | Open | prototype | Needed before serious external demo claims. |
 

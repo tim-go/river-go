@@ -1,0 +1,13 @@
+{
+  "name": "river-go-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check-config.mjs",
+    "plan:staging": "node scripts/print-plan.mjs staging",
+    "plan:prod": "node scripts/print-plan.mjs prod",
+    "setup:staging": "scripts/infra/setup.sh staging",
+    "setup:prod": "scripts/infra/setup.sh prod"
+  }
+}
