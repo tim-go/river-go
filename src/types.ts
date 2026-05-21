@@ -6,7 +6,18 @@ export type AccessType = "put-in" | "take-out" | "portage" | "parking";
 
 export type HazardSeverity = "info" | "caution" | "significant" | "serious";
 
-export type ContributionType = "hazard" | "report" | "photo" | "feature";
+export type ContributionType =
+  | "hazard"
+  | "report"
+  | "photo"
+  | "feature"
+  | "access";
+
+export type ContributionStatus =
+  | "active"
+  | "needs-confirmation"
+  | "confirmed"
+  | "resolved";
 
 export interface Gauge {
   id: string;
@@ -91,6 +102,18 @@ export interface Contribution {
   detail: string;
   category: string;
   severity?: HazardSeverity;
+  status: ContributionStatus;
+  author: string;
+  dateObserved: string;
+  craftType?: string;
+  confirmations: number;
+  lastConfirmed?: string;
   createdAt: string;
   location?: LatLngTuple;
+}
+
+export interface HazardReview {
+  status: ContributionStatus;
+  confirmations: number;
+  lastConfirmed: string;
 }
