@@ -8,7 +8,7 @@ maturity: Draft
 
 # Offline Mode
 
-**Work state:** Queued
+**Work state:** Active
 **Last updated:** 2026-05-22
 **Scope:** Offline-first behaviour for reading river intelligence, capturing contributions, and syncing safely when connectivity returns.
 
@@ -250,7 +250,7 @@ The product should frame offline data as planning and community context, not a s
 | OFF-F1 | Offline product requirement | Product/spec | Landed | v0.3 | — | Defines offline use as a core requirement rather than a mobile-only future feature. |
 | OFF-F2 | App-shell cache | PWA | Queued | MVP | — | Cache the app shell so the PWA can reopen without connectivity. |
 | OFF-F3 | Offline river data pack | Map/data | Queued | MVP | — | Save selected river/section geometry and River Go features for offline reading. |
-| OFF-F4 | Offline contribution outbox | Community | Queued | MVP | — | Store draft/queued observations locally and sync when online. |
+| OFF-F4 | Offline contribution outbox | Community | Active | MVP | — | IndexedDB/localStorage outbox service exists; contribution UI wiring and sync trigger remain next. |
 | OFF-F5 | Offline photo queue | Media | Queued | MVP | — | Queue media locally and upload separately when connectivity returns. |
 | OFF-F6 | Sync API model | Backend | Queued | MVP | — | Add idempotent pull/push contracts and client-generated IDs. |
 | OFF-F7 | Native offline architecture | Mobile | Parked | Mobile | — | Use this spec to guide the later native app storage/sync design. |
@@ -261,7 +261,7 @@ The product should frame offline data as planning and community context, not a s
 | --- | --- | --- | --- | --- | --- |
 | OFF-B1 | decision | Offline map provider/licensing | Open | MVP | Need legal and technical path for offline basemap/vector data. |
 | OFF-B2 | decision | Automatic vs explicit offline packs | Open | MVP | Explicit `Save offline` is safer for storage and user expectations. |
-| OFF-B3 | dependency | IndexedDB storage model | Open | MVP | Needed for PWA app shell/data/outbox support. |
+| OFF-B3 | dependency | IndexedDB storage model | Active | MVP | First contribution outbox service uses IndexedDB with localStorage fallback. |
 | OFF-B4 | dependency | Idempotent sync contracts | Open | MVP | Backend schema/API must accept client IDs and retries. |
 | OFF-B5 | risk | Stale data safety | Open | MVP | Cached levels and hazards must be labelled clearly. |
 | OFF-B6 | question | Anonymous offline contributions | Open | MVP | Decide whether offline drafts require prior sign-in before sync. |
@@ -271,3 +271,4 @@ The product should frame offline data as planning and community context, not a s
 | Date | Change |
 | --- | --- |
 | 2026-05-22 | Created offline mode spec and architecture implications. |
+| 2026-05-22 | Added first contribution outbox storage service. |

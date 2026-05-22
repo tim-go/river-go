@@ -13,7 +13,7 @@ This document gives a clear view of the feature set we want to deliver and the c
 | Data source strategy | `/docs/strategy/data-sources-and-gaps.md` | Landed | UK provider landscape and community-only gaps are documented. |
 | Demo app shell | `/docs/specs/release/demo-prototype.md` | Landed | React/Vite/Leaflet prototype exists. |
 | River section map | `/docs/specs/core/river-section-map.md` | Landed | Section list, map, section panel, route lines, and markers exist. |
-| Offline mode | `/docs/specs/core/offline-mode.md` | Queued | Offline use is now a core requirement; PWA app-shell/data cache, contribution outbox, and sync API are not implemented yet. |
+| Offline mode | `/docs/specs/core/offline-mode.md` | Active | Offline use is a core requirement; initial contribution outbox storage exists, but UI wiring, app-shell cache, and full sync are not complete. |
 | River Wye pilot dataset | `/docs/specs/data/river-wye-seed-data.md` | Active | Seven Wye sections are seeded with OSM-derived route traces and source/confidence metadata; access/hazard data remains unverified. |
 | Community add mode | `/docs/specs/community/community-contributions.md` | Active | Add mode, map placement, saved markers, popups, and clearer contribution-type prompts exist in localStorage demo form. |
 | Hazard confirmation/resolution | `/docs/specs/community/trust-and-moderation.md` | Active | Demo supports confirm/resolve for seeded and user-added hazards; no real moderation backend yet. |

@@ -137,6 +137,49 @@ export interface Contribution {
   location?: LatLngTuple;
 }
 
+export type ContributionSyncStatus =
+  | "draft"
+  | "queued"
+  | "syncing"
+  | "synced"
+  | "failed";
+
+export interface ContributionSyncOperation {
+  operationId: string;
+  operationType: "contribution.create";
+  entityType: "contribution";
+  entityId: string;
+  createdAt: string;
+  baseRevision: number | null;
+  payload: {
+    id: string;
+    type: ContributionType;
+    sectionId: string;
+    geometry?: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+    observedAt: string;
+    payload: Record<string, unknown>;
+    client: {
+      deviceId: string;
+      createdOffline: boolean;
+      appVersion: string;
+    };
+  };
+}
+
+export interface ContributionOutboxRecord {
+  id: string;
+  contribution: Contribution;
+  operation: ContributionSyncOperation;
+  syncStatus: ContributionSyncStatus;
+  createdAt: string;
+  updatedAt: string;
+  lastSyncError?: string;
+  serverRevision?: number;
+}
+
 export interface HazardReview {
   status: ContributionStatus;
   confirmations: number;

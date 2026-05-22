@@ -112,7 +112,7 @@ Offline requirements:
 | CON-F8 | Separate contribution flows | UX | Landed | v0.2 | — | Panel actions and form prompts now separate condition, hazard, access, photo, and feature contributions. |
 | CON-F9 | Authenticated contributors | Backend/auth | Queued | MVP | — | Needed before real community data collection. |
 | CON-F10 | Photo upload | Media | Queued | MVP | — | Requires storage and moderation. |
-| CON-F11 | Offline contribution outbox | PWA/mobile | Queued | MVP | — | Capture observations offline and sync idempotently when connectivity returns. |
+| CON-F11 | Offline contribution outbox | PWA/mobile | Active | MVP | — | Local outbox service can store queued contribution sync operations; form save wiring remains next. |
 
 ### Backlog
 
@@ -129,4 +129,5 @@ Offline requirements:
 | --- | --- |
 | 2026-05-21 | Added clearer contribution type actions and prompts for Wye pilot readiness. |
 | 2026-05-22 | Added offline contribution outbox requirements. |
+| 2026-05-22 | Added initial local contribution outbox storage service. |
 | 2026-05-21 | Migrated to spec schema v4. |
