@@ -17,6 +17,7 @@ This map helps locate the owning spec for River Go work. If a durable change doe
 | River level providers | `/docs/specs/data/river-level-providers.md` | EA-first provider model and future backend ingestion. |
 | Platform configuration | `/docs/specs/ops/platform-configuration.md` | In-repo Firebase/GCP configuration, publishing targets, and operational scripts. |
 | Backend service API | `/docs/specs/backend/service-api.md` | Cloud Run API, Firebase Auth, PostGIS persistence, media, and moderation boundaries. |
+| Backend data and sync model | `/docs/specs/backend/data-and-sync-model.md` | Hybrid relational/JSONB schema, offline sync envelope, idempotency, and initial contribution persistence. |
 
 ## Strategy References
 

@@ -30,6 +30,7 @@ The backend should preserve the current prototype's section-first map and contri
 - `/docs/specs/community/community-contributions.md`
 - `/docs/specs/community/trust-and-moderation.md`
 - `/docs/specs/core/offline-mode.md`
+- `/docs/specs/backend/data-and-sync-model.md`
 - `/docs/specs/data/river-level-providers.md`
 - `/docs/specs/ops/platform-configuration.md`
 - `/docs/strategy/community-data-strategy.md`
@@ -113,13 +114,14 @@ Moderation:
 | API-F5 | Moderation queue | Backend/admin | Queued | MVP | — | Review and promote community data. |
 | API-F6 | Provider ingestion cache | Backend/data | Queued | MVP | — | Move live river-level ingestion server-side. |
 | API-F7 | Offline sync contracts | Backend/sync | Queued | MVP | — | Support client-generated IDs, idempotent pushes, pull tokens, and offline pack downloads. |
+| API-F8 | Initial sync push implementation | Backend/sync | Landed | v0.3 | — | First backend slice proves `GET /api/health` and idempotent `POST /api/sync/push`. |
 
 ### Backlog
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
-| API-B1 | decision | Backend package shape | Open | v0.3 | Decide single package vs `api/` package before implementation. |
-| API-B2 | decision | Migration/ORM tool | Open | v0.3 | Needs PostGIS support. |
+| API-B1 | decision | Backend package shape | Resolved | v0.3 | Use a separate in-repo `api/` package. |
+| API-B2 | decision | Migration/ORM tool | Resolved | v0.3 | Use SQL migrations and `pg` first; avoid a heavy ORM until schema stabilises. |
 | API-B3 | risk | Trust and liability wording | Open | MVP | Public API responses must avoid safety guarantees. |
 | API-B4 | task | Define initial schema | Open | v0.3 | Create DB schema spec before migrations. |
 | API-B5 | decision | Offline-friendly IDs and revisions | Open | v0.3 | Decide UUID/idempotency/revision model before first contribution persistence implementation. |
@@ -130,3 +132,4 @@ Moderation:
 | --- | --- |
 | 2026-05-21 | Created backend service API spec. |
 | 2026-05-22 | Added offline sync API and persistence implications. |
+| 2026-05-22 | Linked initial data/sync model and backend package decisions. |

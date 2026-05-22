@@ -22,6 +22,7 @@ This document gives a clear view of the feature set we want to deliver and the c
 | Source/confidence metadata | `/docs/specs/data/river-wye-seed-data.md` | Queued | Needed before serious external feedback. |
 | Feedback capture workflow | `/docs/product/wye-pilot-feedback-template.md` | Active | Structured Wye pilot feedback template exists; real sessions still needed. |
 | Backend persistence | `/docs/specs/backend/service-api.md` | Queued | Cloud Run, Firebase Auth, Firebase Storage, PostgreSQL/PostGIS, and moderation API boundaries are specced. |
+| Backend data and sync model | `/docs/specs/backend/data-and-sync-model.md` | Landed | Hybrid relational/JSONB contribution model and idempotent offline sync push are implemented locally against PostGIS. |
 | Auth and contributor identity | `/docs/specs/community/community-contributions.md` | Queued | Needed before real community data collection. |
 | Photo uploads | `/docs/specs/community/community-contributions.md` | Queued | Currently represented as placeholder/photo contribution metadata only. |
 | Moderation dashboard | `/docs/specs/community/trust-and-moderation.md` | Queued | Needed before public community launch. |
