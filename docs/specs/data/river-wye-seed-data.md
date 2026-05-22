@@ -64,6 +64,8 @@ Each section should include:
 - features
 - placeholder photos
 - seed reports
+- source metadata
+- confidence metadata
 
 Wye route traces are generated from OpenStreetMap River Wye waterway geometry via Overpass. The resulting route traces are stored as TypeScript fixture data for the prototype.
 
@@ -98,20 +100,22 @@ Before public use, validate:
 | WYE-F1 | Seven Wye seed sections | Data/map | Landed | prototype | — | Draft seed sections are in fixture data. |
 | WYE-F2 | OSM-derived route traces | Data/map | Landed | prototype | — | Generated traces replace straight route lines. |
 | WYE-F3 | Marker snapping | Data/map | Landed | prototype | — | Seeded markers snap to nearest route point for demo display. |
-| WYE-F4 | Source metadata | Data | Queued | v0.2 | — | Add source/confidence fields before serious external validation. |
+| WYE-F4 | Source metadata | Data | Landed | v0.2 | — | Wye seed sections and nested seed items carry source/confidence metadata. |
 | WYE-F5 | Local verification pass | Research/data | Queued | v0.2 | — | Validate with Wye paddlers/clubs/operators. |
-| WYE-F6 | Photo-needed markers | Community/data | Queued | v0.2 | — | Turn placeholder photo needs into contribution prompts. |
+| WYE-F6 | Photo-needed markers | Community/data | Active | v0.2 | — | Photo contribution flow is clearer; seeded photo prompts still need specific map prompts. |
 
 ### Backlog
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
 | WYE-B1 | dependency | OSM licence review | Open | v0.2 | Required before production use of derived route geometry. |
-| WYE-B2 | decision | Field-level confidence model | Open | v0.2 | Needed for seed data and community data. |
+| WYE-B2 | decision | Field-level confidence model | Resolved | v0.2 | Use source metadata with low/medium/high plus seed confidence for prototype. |
 | WYE-B3 | dependency | Local contributor review | Open | v0.2 | Needed before treating seed data as credible. |
+| WYE-B4 | validation | Run first structured Wye feedback sessions | Open | v0.2 | Use `/docs/product/wye-pilot-feedback-template.md`. |
 
 ## Change Log
 
 | Date | Change |
 | --- | --- |
+| 2026-05-21 | Added source/confidence metadata requirement and tracking updates. |
 | 2026-05-21 | Migrated to spec schema v4. |

@@ -134,6 +134,7 @@ Supported maturity values:
 
 - `/docs/specs/core/` - app/product features and shared domain behaviour
 - `/docs/specs/data/` - external data providers, seed data, and normalisation
+- `/docs/specs/backend/` - backend API, auth, storage, persistence, and server-side integration design
 - `/docs/specs/community/` - contribution, trust, moderation, and contributor workflows
 - `/docs/specs/release/` - prototype/MVP/release-level delivery specs
 - `/docs/specs/ops/` - operational processes when needed

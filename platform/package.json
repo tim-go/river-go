@@ -8,6 +8,8 @@
     "plan:staging": "node scripts/print-plan.mjs staging",
     "plan:prod": "node scripts/print-plan.mjs prod",
     "setup:staging": "scripts/infra/setup.sh staging",
-    "setup:prod": "scripts/infra/setup.sh prod"
+    "setup:prod": "scripts/infra/setup.sh prod",
+    "health:staging": "scripts/infra/check-health.sh staging",
+    "health:prod": "scripts/infra/check-health.sh prod"
   }
 }

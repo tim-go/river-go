@@ -1,4 +1,4 @@
-import type { LatLngTuple, RiverSection } from "../types";
+import type { LatLngTuple, RiverSection, SourceMetadata } from "../types";
 import { wyeRouteTraces } from "./wyeRouteTraces";
 
 export const riverWyePilotNotes = {
@@ -76,6 +76,25 @@ function snapLocationToRoute(location: LatLngTuple, route: LatLngTuple[]) {
     Number(bestPoint[1].toFixed(6)),
   ] satisfies LatLngTuple;
 }
+
+const seedSource: SourceMetadata = {
+  kind: "seed",
+  label: "River Go Wye seed dataset",
+  confidence: "low",
+  updatedAt: "2026-05-21",
+  notes:
+    "Draft prototype data requiring local contributor verification before publication.",
+};
+
+const routeSource: SourceMetadata = {
+  kind: "derived",
+  label: "OpenStreetMap-derived River Wye route trace",
+  confidence: "medium",
+  updatedAt: "2026-05-21",
+  notes:
+    "Generated from OSM waterway geometry for prototype route display; production licence and geometry review required.",
+  url: "https://www.openstreetmap.org/copyright",
+};
 
 const riverWyeSectionSeeds: RiverSection[] = [
   {
@@ -711,24 +730,38 @@ export const riverWyeSections: RiverSection[] = riverWyeSectionSeeds.map(
 
     return {
       ...section,
+      source: seedSource,
       route,
       centre: routeCentre(route),
       gauge: {
         ...section.gauge,
         location: snapLocationToRoute(section.gauge.location, route),
+        source: seedSource,
       },
       accessPoints: section.accessPoints.map((accessPoint) => ({
         ...accessPoint,
         location: snapLocationToRoute(accessPoint.location, route),
+        source: seedSource,
       })),
       hazards: section.hazards.map((hazard) => ({
         ...hazard,
         location: snapLocationToRoute(hazard.location, route),
+        source: seedSource,
       })),
       features: section.features.map((feature) => ({
         ...feature,
         location: snapLocationToRoute(feature.location, route),
+        source: seedSource,
       })),
+      photos: section.photos.map((photo) => ({
+        ...photo,
+        source: seedSource,
+      })),
+      reports: section.reports.map((report) => ({
+        ...report,
+        source: seedSource,
+      })),
+      routeSource,
     };
   },
 );

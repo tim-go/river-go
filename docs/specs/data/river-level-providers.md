@@ -8,7 +8,7 @@ maturity: Buildable
 
 # River Level Providers
 
-**Work state:** Queued
+**Work state:** Active
 **Last updated:** 2026-05-21
 **Scope:** Provider integration model for live river level data, starting with Environment Agency data for Wye gauge candidates.
 
@@ -30,6 +30,8 @@ Provider data should be normalised into River Go's section/gauge model.
 - `/docs/strategy/data-sources-and-gaps.md`
 - `/docs/specs/data/river-wye-seed-data.md`
 - `/docs/specs/core/river-section-map.md`
+- `/src/services/riverLevels.ts`
+- `/src/data/wyeGaugeMappings.ts`
 - Environment Agency Flood Monitoring API: `https://environment.data.gov.uk/flood-monitoring/doc/reference`
 
 ## Requirements
@@ -107,10 +109,10 @@ Target frontend shape:
 
 | Key | Feature | Surface | Status | Target | Delivered | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| LEVEL-F1 | Provider abstraction | Data/service | Queued | v0.2 | — | Define normalised provider interface before fetching live data. |
-| LEVEL-F2 | Environment Agency client adapter | Data/service | Queued | v0.2 | — | Temporary client-side adapter for prototype. |
-| LEVEL-F3 | Wye gauge mapping | Data/service | Queued | v0.2 | — | Map Wye seed sections to EA station/measure IDs. |
-| LEVEL-F4 | Gauge display replacement | UI | Queued | v0.2 | — | Replace fixture values with live/latest values where available. |
+| LEVEL-F1 | Provider abstraction | Data/service | Landed | v0.2 | — | Normalised live gauge shape added for prototype and future backend. |
+| LEVEL-F2 | Environment Agency client adapter | Data/service | Landed | v0.2 | — | Temporary client-side EA adapter fetches latest mapped readings and falls back gracefully. |
+| LEVEL-F3 | Wye gauge mapping | Data/service | Active | v0.2 | — | Lower Wye sections map to a candidate EA Lydbrook level measure; other Wye sections remain unmapped. |
+| LEVEL-F4 | Gauge display replacement | UI | Landed | v0.2 | — | Gauge card prefers live EA reading when available and shows fallback state otherwise. |
 | LEVEL-F5 | Backend ingestion design | Backend | Queued | MVP | — | Move provider logic server-side before production. |
 
 ### Backlog
@@ -118,7 +120,7 @@ Target frontend shape:
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
 | LEVEL-B1 | decision | Client prototype vs backend first | Resolved | v0.2 | Prototype client-side adapter is acceptable if interface remains backend-shaped. |
-| LEVEL-B2 | dependency | Identify EA station IDs | Open | v0.2 | Need real Wye station/measure IDs. |
+| LEVEL-B2 | dependency | Identify EA station IDs | Active | v0.2 | EA API exposes lower Wye candidates; upstream Wye likely needs NRW or local mapping. |
 | LEVEL-B3 | enhancement | Trend calculation | Open | v0.2 | Could compare latest readings if provider trend unavailable. |
 | LEVEL-B4 | enhancement | NRW/SEPA/DfI providers | Parked | Europe/UK expansion | Add after EA adapter model is proven. |
 
@@ -126,4 +128,5 @@ Target frontend shape:
 
 | Date | Change |
 | --- | --- |
+| 2026-05-21 | Added temporary EA live-level adapter and lower Wye candidate mapping. |
 | 2026-05-21 | Migrated to spec schema v4. |

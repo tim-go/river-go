@@ -15,6 +15,7 @@ This map helps locate the owning spec for River Go work. If a durable change doe
 | River Wye seed data | `/docs/specs/data/river-wye-seed-data.md` | Wye pilot sections, seed geometry, and validation status. |
 | River level providers | `/docs/specs/data/river-level-providers.md` | EA-first provider model and future backend ingestion. |
 | Platform configuration | `/docs/specs/ops/platform-configuration.md` | In-repo Firebase/GCP configuration, publishing targets, and operational scripts. |
+| Backend service API | `/docs/specs/backend/service-api.md` | Cloud Run API, Firebase Auth, PostGIS persistence, media, and moderation boundaries. |
 
 ## Strategy References
 
@@ -29,6 +30,7 @@ This map helps locate the owning spec for River Go work. If a durable change doe
 | Wye seed dataset | `/docs/strategy/river-wye-seed-dataset.md` |
 | Roadmap | `/docs/strategy/roadmap.md` |
 | Delivery plan | `/docs/strategy/delivery-plan.md` |
+| Wye feedback template | `/docs/product/wye-pilot-feedback-template.md` |
 
 ## When To Add A New Spec
 

@@ -126,6 +126,13 @@ platform/scripts/infra/setup.sh all --dry-run
 platform/scripts/infra/setup.sh all --create-resources
 ```
 
+Check current platform state without changing cloud resources:
+
+```bash
+npm run platform:health:staging
+npm run platform:health:prod
+```
+
 The setup script handles:
 
 - GCP project verification or creation

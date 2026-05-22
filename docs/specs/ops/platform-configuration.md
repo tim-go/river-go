@@ -52,6 +52,8 @@ The platform configuration must:
 - support Secret Manager and GitHub environment secrets
 - provide read-only validation/planning before provisioning
 - provide idempotent setup scripts for GCP/Firebase resource creation
+- provide build-only CI and deploy configuration without publishing while billing is blocked
+- provide read-only health checks that make billing/API/deployment blockers visible
 
 The first implementation should include:
 
@@ -88,7 +90,9 @@ Billing must be verified before enabling paid or billing-gated APIs. If billing 
 | PLATFORM-F3 | Config validation script | Ops/tooling | Landed | v0.2 | — | Validates structural config shape without provisioning. |
 | PLATFORM-F4 | Resource plan script | Ops/tooling | Landed | v0.2 | — | Prints staging/prod target resources for review. |
 | PLATFORM-F5 | Provisioning scripts | Ops/tooling | Landed | v0.3 | — | Adds idempotent GCP/Firebase setup script with dry-run support. |
-| PLATFORM-F6 | Deployment workflow | Ops/CI | Queued | v0.3 | — | Add GitHub Actions once hosting/API target is chosen. |
+| PLATFORM-F6 | Deployment workflow | Ops/CI | Active | v0.3 | — | Build-only GitHub Actions workflow exists; deploy remains blocked until billing is linked. |
+| PLATFORM-F7 | Firebase Hosting config | Ops/config | Landed | v0.3 | — | Adds Firebase Hosting targets and future `/api` Cloud Run rewrites without deploying. |
+| PLATFORM-F8 | Platform health check | Ops/tooling | Landed | v0.3 | — | Read-only health check reports billing/API/resource state. |
 
 ### Backlog
 
@@ -98,7 +102,7 @@ Billing must be verified before enabling paid or billing-gated APIs. If billing 
 | PLATFORM-B2 | decision | Confirm GCP region | Open | v0.2 | Template uses `europe-west2`; can switch before provisioning. |
 | PLATFORM-B3 | decision | Choose first publish shape | Open | v0.2 | Firebase Hosting-only is fastest; Hosting plus Cloud Run is closer to MVP architecture. |
 | PLATFORM-B4 | dependency | Create or select GCP/Firebase projects | Active | v0.3 | Setup script can create projects with `--create-resources` once billing config is set. |
-| PLATFORM-B5 | task | Add health checks | Open | v0.3 | Check Hosting, Cloud Run, Auth, Storage, and database reachability. |
+| PLATFORM-B5 | task | Add health checks | Active | v0.3 | Read-only first pass checks billing, APIs, Firebase visibility, Cloud Run, Artifact Registry, and Cloud SQL. |
 | PLATFORM-B6 | task | Add secret sync script | Open | v0.3 | Sync `DATABASE_URL`, Firebase Admin credentials, and deploy secrets to Secret Manager/GitHub. |
 | PLATFORM-B7 | validation | Detect service-account project creation failure | Resolved | v0.3 | Setup script now reports the active account and required parent/account fix before calling project creation. |
 | PLATFORM-B8 | validation | Retry project creation rate limits | Resolved | v0.3 | Setup script retries transient Cloud Resource Manager 429s with backoff. |
@@ -108,6 +112,7 @@ Billing must be verified before enabling paid or billing-gated APIs. If billing 
 
 | Date | Change |
 | --- | --- |
+| 2026-05-21 | Added build-only CI, Firebase Hosting config, and platform health check. |
 | 2026-05-21 | Added hard billing verification before API enablement. |
 | 2026-05-21 | Added retry/backoff for Cloud Resource Manager project creation rate limits. |
 | 2026-05-21 | Added service-account project creation guard and optional resource parent support. |

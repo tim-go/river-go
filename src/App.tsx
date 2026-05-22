@@ -20,12 +20,14 @@ import {
 import L from "leaflet";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { riverSections } from "./data/demoData";
+import { fetchEnvironmentAgencyGaugeReading } from "./services/riverLevels";
 import type {
   Contribution,
   ContributionType,
   HazardSeverity,
   HazardReview,
   LatLngTuple,
+  LiveGaugeReading,
   RiverSection,
 } from "./types";
 
@@ -43,13 +45,63 @@ const contributionOptions: Array<{
   type: ContributionType;
   label: string;
   icon: typeof AlertTriangle;
+  titlePlaceholder: string;
+  detailPlaceholder: string;
+  locationRequired: boolean;
 }> = [
-  { type: "hazard", label: "Hazard", icon: AlertTriangle },
-  { type: "report", label: "Report", icon: MessageSquare },
-  { type: "photo", label: "Photo", icon: Camera },
-  { type: "feature", label: "Feature", icon: MapPin },
-  { type: "access", label: "Access", icon: MapPinned },
+  {
+    type: "report",
+    label: "Condition",
+    icon: MessageSquare,
+    titlePlaceholder: "Good level for open canoes",
+    detailPlaceholder: "What did you paddle, when, and how did the level feel?",
+    locationRequired: false,
+  },
+  {
+    type: "hazard",
+    label: "Hazard",
+    icon: AlertTriangle,
+    titlePlaceholder: "Fallen tree below bridge",
+    detailPlaceholder: "Describe the hazard, line, level, and when you saw it.",
+    locationRequired: true,
+  },
+  {
+    type: "access",
+    label: "Access",
+    icon: MapPinned,
+    titlePlaceholder: "Take-out gate locked",
+    detailPlaceholder: "Describe the access point, parking, fees, or restriction.",
+    locationRequired: true,
+  },
+  {
+    type: "photo",
+    label: "Photo",
+    icon: Camera,
+    titlePlaceholder: "Photo of launch steps",
+    detailPlaceholder: "Describe what the photo shows and where it was taken.",
+    locationRequired: true,
+  },
+  {
+    type: "feature",
+    label: "Feature",
+    icon: MapPin,
+    titlePlaceholder: "Useful lunch beach",
+    detailPlaceholder: "Describe the feature and when it is useful.",
+    locationRequired: true,
+  },
 ];
+
+const categoryOptions: Record<ContributionType, string[]> = {
+  report: ["level", "recent paddle", "crowding", "weather", "other"],
+  hazard: ["weir", "strainer", "bridge", "shallow water", "navigation conflict"],
+  access: ["put-in", "take-out", "parking", "portage", "restriction"],
+  photo: ["access photo", "hazard photo", "river view", "level reference"],
+  feature: ["landing", "facility", "bridge", "rest stop", "navigation"],
+};
+
+function optionForType(type: ContributionType) {
+  return contributionOptions.find((option) => option.type === type)!;
+}
 
 function loadContributions(): Contribution[] {
   try {
@@ -75,11 +127,6 @@ function markerHtml(kind: string, label: string) {
 
 function midpoint(route: LatLngTuple[]): LatLngTuple {
   return route[Math.floor(route.length / 2)];
-}
-
-function jitterLocation(base: LatLngTuple, count: number): LatLngTuple {
-  const offset = (count % 5) * 0.004;
-  return [base[0] + offset, base[1] + offset];
 }
 
 function formatLocation(location: LatLngTuple) {
@@ -115,6 +162,8 @@ function App() {
     "Selected map location",
   );
   const [isAddMode, setIsAddMode] = useState(false);
+  const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
+  const [isGaugeLoading, setIsGaugeLoading] = useState(false);
 
   const activeSection = useMemo(
     () =>
@@ -127,6 +176,8 @@ function App() {
     (contribution) => contribution.sectionId === activeSection.id,
   );
 
+  const currentContributionOption = optionForType(contributionType);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(contributions));
   }, [contributions]);
@@ -138,6 +189,28 @@ function App() {
     );
   }, [hazardReviews]);
 
+  useEffect(() => {
+    let isMounted = true;
+    setIsGaugeLoading(true);
+    setLiveGauge(null);
+
+    fetchEnvironmentAgencyGaugeReading(activeSection)
+      .then((reading) => {
+        if (isMounted) {
+          setLiveGauge(reading);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsGaugeLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeSection]);
+
   function submitContribution(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const safeTitle = title.trim();
@@ -148,12 +221,14 @@ function App() {
       return;
     }
 
-    const base = midpoint(activeSection.route);
-    const location =
-      contributionType === "report"
-        ? undefined
-        : (selectedLocation ??
-          jitterLocation(base, sectionContributions.length + 1));
+    if (currentContributionOption.locationRequired && !selectedLocation) {
+      setFormError("Pick a map location for this contribution before saving.");
+      return;
+    }
+
+    const location = currentContributionOption.locationRequired
+      ? selectedLocation!
+      : (selectedLocation ?? undefined);
 
     const nextContribution: Contribution = {
       id: crypto.randomUUID(),
@@ -250,19 +325,30 @@ function App() {
     setSelectedTargetLabel(label);
     setFormError("");
     if (nextType) {
-      setContributionType(nextType);
-      setCategory(nextType === "hazard" ? "weir" : nextType);
+      chooseContributionType(nextType);
     }
     setIsPanelOpen(true);
     setIsFormOpen(true);
     setIsAddMode(false);
   }
 
-  function startAddMode() {
-    setIsAddMode(true);
-    setIsFormOpen(false);
+  function chooseContributionType(nextType: ContributionType) {
+    setContributionType(nextType);
+    setCategory(categoryOptions[nextType][0]);
+    setFormError("");
+  }
+
+  function startAddMode(nextType: ContributionType = contributionType) {
+    const requiresLocation = optionForType(nextType).locationRequired;
+    chooseContributionType(nextType);
+    setIsAddMode(requiresLocation);
+    setIsFormOpen(!requiresLocation);
     setSelectedLocation(null);
-    setSelectedTargetLabel("Choose a map location");
+    setSelectedTargetLabel(
+      optionForType(nextType).locationRequired
+        ? "Choose a map location"
+        : "Section-level condition report",
+    );
     setFormError("");
   }
 
@@ -299,7 +385,7 @@ function App() {
           <button
             className="primary-action"
             type="button"
-            onClick={startAddMode}
+            onClick={() => startAddMode()}
           >
             <Plus size={18} />
             Add local knowledge
@@ -377,16 +463,7 @@ function App() {
                       type="button"
                       title={`Add ${option.label.toLowerCase()}`}
                       onClick={() => {
-                        setContributionType(option.type);
-                        setCategory(
-                          option.type === "hazard"
-                            ? "weir"
-                            : option.type === "photo"
-                              ? "river view"
-                              : option.type === "access"
-                                ? "take-out"
-                                : option.type,
-                        );
+                        chooseContributionType(option.type);
                       }}
                     >
                       <Icon size={16} />
@@ -401,7 +478,7 @@ function App() {
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Fallen tree below bridge"
+                  placeholder={currentContributionOption.titlePlaceholder}
                   required
                 />
               </label>
@@ -413,17 +490,11 @@ function App() {
                     value={category}
                     onChange={(event) => setCategory(event.target.value)}
                   >
-                    <option value="weir">Weir</option>
-                    <option value="strainer">Strainer</option>
-                    <option value="access">Access</option>
-                    <option value="portage">Portage</option>
-                    <option value="level">Level</option>
-                    <option value="river view">River view</option>
-                    <option value="feature">Feature</option>
-                    <option value="put-in">Put-in</option>
-                    <option value="take-out">Take-out</option>
-                    <option value="parking">Parking</option>
-                    <option value="crowding">Crowding</option>
+                    {categoryOptions[contributionType].map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
@@ -491,7 +562,7 @@ function App() {
                 <textarea
                   value={detail}
                   onChange={(event) => setDetail(event.target.value)}
-                  placeholder="Add a short, factual note with when you observed it."
+                  placeholder={currentContributionOption.detailPlaceholder}
                   rows={3}
                   required
                 />
@@ -504,7 +575,9 @@ function App() {
                 <span>
                   {selectedLocation
                     ? `Placed at ${formatLocation(selectedLocation)}`
-                    : "No map point selected. This will attach to the current section."}
+                    : currentContributionOption.locationRequired
+                      ? "Pick a point on the map before saving this contribution."
+                      : "No map point selected. This condition report will attach to the current section."}
                 </span>
               </div>
 
@@ -601,32 +674,65 @@ function App() {
             </div>
 
             <section className="contribution-box contribution-box--prominent">
-              <button
-                className="primary-action primary-action--full"
-                type="button"
-                onClick={startAddMode}
-              >
-                <Plus size={18} />
-                Add local knowledge
-              </button>
-              <p>
-                This starts add mode. Then click the river map or an existing
-                marker to place the contribution.
-              </p>
+              <div className="block-title">
+                <h3>Add local knowledge</h3>
+                <span>{sectionContributions.length} demo updates</span>
+              </div>
+              <div className="contribution-actions">
+                {contributionOptions.slice(0, 4).map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <button
+                      className="ghost-button"
+                      key={option.type}
+                      type="button"
+                      onClick={() => startAddMode(option.type)}
+                    >
+                      <Icon size={16} />
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </section>
 
             <section className="info-block">
               <h3>Gauge</h3>
               <div className="gauge-card">
                 <div>
-                  <strong>{activeSection.gauge.name}</strong>
-                  <span>{activeSection.gauge.observedAt}</span>
+                  <strong>{liveGauge?.gauge.name ?? activeSection.gauge.name}</strong>
+                  <span>
+                    {isGaugeLoading
+                      ? "Checking Environment Agency"
+                      : liveGauge?.gauge.observedAt
+                        ? new Date(liveGauge.gauge.observedAt).toLocaleString()
+                        : activeSection.gauge.observedAt}
+                  </span>
                 </div>
                 <div>
-                  <strong>{activeSection.gauge.value}</strong>
-                  <span>{activeSection.gauge.trend}</span>
+                  <strong>
+                    {liveGauge?.gauge.latestValue != null
+                      ? `${liveGauge.gauge.latestValue.toFixed(2)} ${liveGauge.gauge.unit}`
+                      : activeSection.gauge.value}
+                  </strong>
+                  <span>{liveGauge?.state ?? activeSection.gauge.trend}</span>
                 </div>
               </div>
+              <p className="source-note">
+                {liveGauge?.message ??
+                  "Seed gauge context only. Provider mapping is still being verified."}
+              </p>
+            </section>
+
+            <section className="info-block">
+              <div className="block-title">
+                <h3>Source confidence</h3>
+                <span>{activeSection.source?.confidence ?? "demo"}</span>
+              </div>
+              <p>
+                {activeSection.source?.notes ??
+                  "Demo fixture data. Verify before using for public trip planning."}
+              </p>
             </section>
 
             <section className="info-block">

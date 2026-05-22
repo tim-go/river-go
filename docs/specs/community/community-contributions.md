@@ -42,7 +42,7 @@ The prototype must support:
 - map click to place a contribution
 - marker click to update an existing map object
 - floating contribution form
-- contribution type selection
+- contribution type selection with distinct prompts for condition, hazard, access, photo, and feature contributions
 - title
 - category
 - date observed
@@ -99,7 +99,7 @@ Map location is required for all contribution types except section-level reports
 | CON-F5 | Saved contribution markers | Map | Landed | prototype | — | Saved demo items persist in localStorage and render on map. |
 | CON-F6 | Saved marker popups | Map | Landed | prototype | — | Saved markers show saved detail on click. |
 | CON-F7 | Validation feedback | Form | Landed | prototype | — | Required fields and inline error avoid silent save failure. |
-| CON-F8 | Separate contribution flows | UX | Queued | v0.2 | — | Split hazard, access update, photo, and condition report into simpler forms. |
+| CON-F8 | Separate contribution flows | UX | Landed | v0.2 | — | Panel actions and form prompts now separate condition, hazard, access, photo, and feature contributions. |
 | CON-F9 | Authenticated contributors | Backend/auth | Queued | MVP | — | Needed before real community data collection. |
 | CON-F10 | Photo upload | Media | Queued | MVP | — | Requires storage and moderation. |
 
@@ -115,4 +115,5 @@ Map location is required for all contribution types except section-level reports
 
 | Date | Change |
 | --- | --- |
+| 2026-05-21 | Added clearer contribution type actions and prompts for Wye pilot readiness. |
 | 2026-05-21 | Migrated to spec schema v4. |

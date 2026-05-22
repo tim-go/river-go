@@ -19,6 +19,24 @@ export type ContributionStatus =
   | "confirmed"
   | "resolved";
 
+export type SourceConfidence = "seed" | "low" | "medium" | "high";
+
+export type SourceKind =
+  | "seed"
+  | "open-data"
+  | "community"
+  | "provider"
+  | "derived";
+
+export interface SourceMetadata {
+  kind: SourceKind;
+  label: string;
+  confidence: SourceConfidence;
+  updatedAt: string;
+  notes: string;
+  url?: string;
+}
+
 export interface Gauge {
   id: string;
   name: string;
@@ -26,6 +44,7 @@ export interface Gauge {
   value: string;
   trend: "rising" | "falling" | "steady";
   observedAt: string;
+  source?: SourceMetadata;
 }
 
 export interface AccessPoint {
@@ -34,6 +53,7 @@ export interface AccessPoint {
   name: string;
   location: LatLngTuple;
   notes: string;
+  source?: SourceMetadata;
 }
 
 export interface Hazard {
@@ -45,6 +65,7 @@ export interface Hazard {
   location: LatLngTuple;
   lastConfirmed: string;
   description: string;
+  source?: SourceMetadata;
 }
 
 export interface Feature {
@@ -53,6 +74,7 @@ export interface Feature {
   type: string;
   location: LatLngTuple;
   description: string;
+  source?: SourceMetadata;
 }
 
 export interface Photo {
@@ -61,6 +83,7 @@ export interface Photo {
   url: string;
   caption: string;
   dateTaken: string;
+  source?: SourceMetadata;
 }
 
 export interface ConditionReport {
@@ -69,6 +92,7 @@ export interface ConditionReport {
   dateObserved: string;
   type: string;
   text: string;
+  source?: SourceMetadata;
 }
 
 export interface RiverSection {
@@ -92,6 +116,7 @@ export interface RiverSection {
   features: Feature[];
   photos: Photo[];
   reports: ConditionReport[];
+  source?: SourceMetadata;
 }
 
 export interface Contribution {
@@ -116,4 +141,25 @@ export interface HazardReview {
   status: ContributionStatus;
   confirmations: number;
   lastConfirmed: string;
+}
+
+export interface LiveGaugeReading {
+  sectionId: string;
+  gauge: {
+    provider: "environment-agency";
+    providerStationId: string;
+    providerMeasureId: string;
+    name: string;
+    latestValue: number | null;
+    unit: string;
+    trend: "rising" | "falling" | "steady" | "unknown";
+    observedAt: string | null;
+    sourceUrl: string;
+  };
+  interpretation: {
+    band: LevelBand;
+    confidence: string;
+  };
+  state: "live" | "fallback" | "unmapped" | "error";
+  message: string;
 }

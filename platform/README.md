@@ -83,6 +83,16 @@ The setup script is idempotent. It verifies or creates the GCP project, adds Fir
 
 Cloud SQL passwords, PostGIS extension setup, custom domains, and deployment secrets remain explicit follow-up steps.
 
+## Health Checks
+
+While publishing is blocked, use the read-only health check to see what is ready:
+
+```bash
+npm run platform:health:staging
+```
+
+The health check reports project, billing, API, Firebase, Artifact Registry, Cloud SQL, and Cloud Run state. It does not create or mutate resources.
+
 ## Preferred Stack
 
 River Go should use the same service family as the Kinetiq platform pattern, but contained in this repo:

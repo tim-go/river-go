@@ -11,7 +11,9 @@
     "platform:plan:staging": "npm --prefix platform run plan:staging",
     "platform:plan:prod": "npm --prefix platform run plan:prod",
     "platform:setup:staging": "npm --prefix platform run setup:staging --",
-    "platform:setup:prod": "npm --prefix platform run setup:prod --"
+    "platform:setup:prod": "npm --prefix platform run setup:prod --",
+    "platform:health:staging": "npm --prefix platform run health:staging",
+    "platform:health:prod": "npm --prefix platform run health:prod"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

@@ -1,0 +1,22 @@
+{
+  "projects": {
+    "staging": "river-go-staging",
+    "production": "river-go-prod"
+  },
+  "targets": {
+    "river-go-staging": {
+      "hosting": {
+        "river-go-staging": [
+          "river-go-staging"
+        ]
+      }
+    },
+    "river-go-prod": {
+      "hosting": {
+        "river-go-prod": [
+          "river-go"
+        ]
+      }
+    }
+  }
+}

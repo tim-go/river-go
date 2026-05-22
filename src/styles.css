@@ -796,6 +796,17 @@ figcaption span {
   line-height: 1.42;
 }
 
+.contribution-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.contribution-actions .ghost-button {
+  justify-content: flex-start;
+}
+
 .contribution-form {
   display: grid;
   gap: 12px;
@@ -897,6 +908,12 @@ textarea {
 
 .form-actions button {
   flex: 1;
+}
+
+.source-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
 }
 
 @media (max-width: 980px) {
