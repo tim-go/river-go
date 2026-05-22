@@ -1,30 +1,103 @@
 {
+  "app": {
+    "displayName": "River Go",
+    "slug": "river-go"
+  },
   "local": {
-    "webUrl": "http://127.0.0.1:5173",
-    "apiUrl": "http://127.0.0.1:8080"
+    "ports": {
+      "web": 5173,
+      "api": 8080,
+      "database": 5435,
+      "cloudSqlProxy": 5434
+    },
+    "urls": {
+      "web": "http://127.0.0.1:5173",
+      "api": "http://127.0.0.1:8080"
+    },
+    "database": {
+      "url": "postgresql://river_go_app:river_go@localhost:5435/river_go",
+      "migrationsUrl": "postgresql://github_ci:river_go@localhost:5435/river_go",
+      "adminUrl": "postgresql://river_go_admin:river_go@localhost:5435/river_go"
+    },
+    "firebase": {
+      "projectId": "river-go-staging",
+      "projectDomain": "river-go-staging.firebaseapp.com",
+      "client": {
+        "apiKey": "",
+        "authDomain": "river-go-staging.firebaseapp.com",
+        "projectId": "river-go-staging",
+        "storageBucket": "river-go-staging.firebasestorage.app",
+        "messagingSenderId": "",
+        "appId": ""
+      },
+      "adminServiceAccount": {}
+    },
+    "auth": {
+      "sessionSecret": "",
+      "allowedSignupEmails": ""
+    },
+    "storage": {
+      "bucket": "river-go-staging.firebasestorage.app"
+    }
   },
   "staging": {
-    "webUrl": "https://staging.river-go.app",
-    "apiUrl": "https://staging.river-go.app/api",
-    "firebaseClient": {
-      "apiKey": "",
-      "authDomain": "river-go-staging.firebaseapp.com",
+    "urls": {
+      "web": "https://staging.river-go.app",
+      "api": "https://staging.river-go.app/api"
+    },
+    "database": {
+      "url": "postgresql://river_go_app:<app-password>@localhost/river_go",
+      "migrationsUrl": "postgresql://github_ci:<migration-password>@localhost:5434/river_go"
+    },
+    "firebase": {
       "projectId": "river-go-staging",
-      "storageBucket": "river-go-staging.firebasestorage.app",
-      "messagingSenderId": "",
-      "appId": ""
+      "projectDomain": "river-go-staging.firebaseapp.com",
+      "client": {
+        "apiKey": "",
+        "authDomain": "river-go-staging.firebaseapp.com",
+        "projectId": "river-go-staging",
+        "storageBucket": "river-go-staging.firebasestorage.app",
+        "messagingSenderId": "",
+        "appId": ""
+      },
+      "adminServiceAccount": {}
+    },
+    "auth": {
+      "sessionSecret": "",
+      "allowedSignupEmails": ""
+    },
+    "storage": {
+      "bucket": "river-go-staging.firebasestorage.app"
     }
   },
   "prod": {
-    "webUrl": "https://river-go.app",
-    "apiUrl": "https://river-go.app/api",
-    "firebaseClient": {
-      "apiKey": "",
-      "authDomain": "river-go-prod.firebaseapp.com",
+    "urls": {
+      "web": "https://river-go.app",
+      "api": "https://river-go.app/api"
+    },
+    "database": {
+      "url": "postgresql://river_go_app:<app-password>@localhost/river_go",
+      "migrationsUrl": "postgresql://github_ci:<migration-password>@localhost:5432/river_go"
+    },
+    "firebase": {
       "projectId": "river-go-prod",
-      "storageBucket": "river-go-prod.firebasestorage.app",
-      "messagingSenderId": "",
-      "appId": ""
+      "projectDomain": "river-go-prod.firebaseapp.com",
+      "client": {
+        "apiKey": "",
+        "authDomain": "river-go-prod.firebaseapp.com",
+        "projectId": "river-go-prod",
+        "storageBucket": "river-go-prod.firebasestorage.app",
+        "messagingSenderId": "",
+        "appId": ""
+      },
+      "adminServiceAccount": {}
+    },
+    "auth": {
+      "sessionSecret": "",
+      "allowedSignupEmails": ""
+    },
+    "storage": {
+      "bucket": "river-go-prod.firebasestorage.app"
     }
   }
 }

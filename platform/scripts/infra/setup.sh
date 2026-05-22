@@ -133,6 +133,8 @@ load_config() {
   CLOUD_RUN_SERVICE="$(json_value ".environments.$env.cloudRunService")"
   ARTIFACT_REPO="$(json_value ".environments.$env.artifactRegistryRepository")"
   GITHUB_ENVIRONMENT="$(json_value ".environments.$env.githubEnvironment")"
+  SERVICE_ACCOUNT_KEYS_ENABLED="$(json_value ".environments.$env.auth.serviceAccountKeys")"
+  WORKLOAD_IDENTITY_ENABLED="$(json_value ".environments.$env.auth.workloadIdentityFederation")"
   CI_SA_NAME="$(json_value ".environments.$env.serviceAccounts.ci")"
   SERVER_SA_NAME="$(json_value ".environments.$env.serviceAccounts.server")"
   GCP_SA_KEY_FILE="$(json_value ".environments.$env.files.gcpSaKeyFile")"
@@ -150,6 +152,8 @@ load_config() {
   GCP_SA_KEY_FILE="${GCP_SA_KEY_FILE:-.config/gcp-sa-$env.json}"
   FIREBASE_ADMIN_SA_KEY_FILE="${FIREBASE_ADMIN_SA_KEY_FILE:-.config/firebase-admin-sa-$env.json}"
   FIREBASE_SDK_FILE="${FIREBASE_SDK_FILE:-.config/firebase-sdk-$env.json}"
+  SERVICE_ACCOUNT_KEYS_ENABLED="${SERVICE_ACCOUNT_KEYS_ENABLED:-false}"
+  WORKLOAD_IDENTITY_ENABLED="${WORKLOAD_IDENTITY_ENABLED:-true}"
 
   CI_SA_EMAIL="$CI_SA_NAME@$GCP_PROJECT.iam.gserviceaccount.com"
   SERVER_SA_EMAIL="$SERVER_SA_NAME@$GCP_PROJECT.iam.gserviceaccount.com"
@@ -432,9 +436,7 @@ ensure_hosting() {
   section "Firebase Hosting - $FIREBASE_HOSTING_SITE"
 
   local site
-  site="$(firebase hosting:sites:list --project="$FIREBASE_PROJECT" --json 2>/dev/null \
-    | jq -r --arg site "$FIREBASE_HOSTING_SITE" '.result[]? | select(.name | endswith("/sites/" + $site)) | .name' \
-    | head -1)"
+  site="$(find_hosting_site)"
 
   if [[ -n "$site" ]]; then
     pass "Firebase Hosting site exists: $FIREBASE_HOSTING_SITE"
@@ -442,9 +444,35 @@ ensure_hosting() {
   fi
 
   info "Creating Firebase Hosting site"
-  run firebase hosting:sites:create "$FIREBASE_HOSTING_SITE" --project="$FIREBASE_PROJECT" \
-    && pass "Firebase Hosting site created: $FIREBASE_HOSTING_SITE" \
-    || warn "Could not create Firebase Hosting site; verify site id availability or create it in Firebase Console"
+  if run firebase hosting:sites:create "$FIREBASE_HOSTING_SITE" --project="$FIREBASE_PROJECT"; then
+    pass "Firebase Hosting site created: $FIREBASE_HOSTING_SITE"
+    return 0
+  fi
+
+  site="$(find_hosting_site)"
+  if [[ -n "$site" ]]; then
+    pass "Firebase Hosting site already exists: $FIREBASE_HOSTING_SITE"
+  else
+    warn "Could not create Firebase Hosting site; verify site id availability or create it in Firebase Console"
+  fi
+}
+
+find_hosting_site() {
+  firebase hosting:sites:list --project="$FIREBASE_PROJECT" --json 2>/dev/null \
+    | jq -r --arg site "$FIREBASE_HOSTING_SITE" '
+        (
+          if (.result | type) == "object" then
+            (.result.sites // [])
+          elif (.result | type) == "array" then
+            .result
+          else
+            []
+          end
+        )[]
+        | select((.name // "") | endswith("/sites/" + $site))
+        | .name
+      ' \
+    | head -1
 }
 
 configure_auth() {
@@ -615,8 +643,16 @@ ensure_service_accounts() {
     roles/secretmanager.secretAccessor \
     roles/storage.objectAdmin
 
-  ensure_service_account_key "$CI_SA_EMAIL" "$GCP_SA_KEY_FILE" "CI/CD"
-  ensure_service_account_key "$SERVER_SA_EMAIL" "$FIREBASE_ADMIN_SA_KEY_FILE" "server/Firebase Admin"
+  if [[ "$SERVICE_ACCOUNT_KEYS_ENABLED" == "true" ]]; then
+    ensure_service_account_key "$CI_SA_EMAIL" "$GCP_SA_KEY_FILE" "CI/CD"
+    ensure_service_account_key "$SERVER_SA_EMAIL" "$FIREBASE_ADMIN_SA_KEY_FILE" "server/Firebase Admin"
+  else
+    pass "Service account key creation disabled by config"
+    if [[ "$WORKLOAD_IDENTITY_ENABLED" == "true" ]]; then
+      manual_step "Configure GitHub Workload Identity Federation for $CI_SA_EMAIL before deployment."
+    fi
+    manual_step "Use Application Default Credentials or runtime service identity for Firebase Admin access; no JSON key was created for $SERVER_SA_EMAIL."
+  fi
 }
 
 ensure_service_account() {
@@ -665,14 +701,30 @@ ensure_service_account_key() {
 
   mkdir -p "$(dirname "$key_path")"
   info "Creating $label service account key"
-  run gcloud iam service-accounts keys create "$key_path" \
+  local key_output
+  if $DRY_RUN; then
+    echo -e "  ${CYAN}[dry-run]${NC} gcloud iam service-accounts keys create $key_path --iam-account=$email --project=$GCP_PROJECT"
+    return 0
+  fi
+
+  key_output="$(gcloud iam service-accounts keys create "$key_path" \
     --iam-account="$email" \
-    --project="$GCP_PROJECT" \
-    && pass "$label service account key written: platform/$key_file" \
-    || {
-      warn "Could not create $label service account key"
-      manual_step "If org policy blocks service account keys, use Workload Identity Federation for GitHub Actions instead."
-    }
+    --project="$GCP_PROJECT" 2>&1)"
+  local key_status=$?
+
+  if [[ "$key_status" -eq 0 ]]; then
+    pass "$label service account key written: platform/$key_file"
+    return 0
+  fi
+
+  if grep -q "disableServiceAccountKeyCreation\\|Key creation is not allowed" <<<"$key_output"; then
+    warn "$label service account key creation is blocked by organisation policy"
+    manual_step "Use Workload Identity Federation or runtime service identity for $email; do not create a JSON key."
+    return 0
+  fi
+
+  warn "Could not create $label service account key"
+  echo "$key_output"
 }
 
 ensure_github_environment() {
@@ -683,9 +735,28 @@ ensure_github_environment() {
     return 0
   fi
 
-  run gh api -X PUT "repos/$GITHUB_REPO/environments/$GITHUB_ENVIRONMENT" >/dev/null \
-    && pass "GitHub environment exists: $GITHUB_REPO / $GITHUB_ENVIRONMENT" \
-    || warn "Could not create or verify GitHub environment"
+  if $DRY_RUN; then
+    echo -e "  ${CYAN}[dry-run]${NC} gh api -X PUT repos/$GITHUB_REPO/environments/$GITHUB_ENVIRONMENT"
+    return 0
+  fi
+
+  local gh_output
+  gh_output="$(gh api -X PUT "repos/$GITHUB_REPO/environments/$GITHUB_ENVIRONMENT" 2>&1)"
+  local gh_status=$?
+
+  if [[ "$gh_status" -eq 0 ]]; then
+    pass "GitHub environment exists: $GITHUB_REPO / $GITHUB_ENVIRONMENT"
+    return 0
+  fi
+
+  if grep -q "HTTP 403" <<<"$gh_output"; then
+    warn "GitHub token cannot create or verify environment: $GITHUB_REPO / $GITHUB_ENVIRONMENT"
+    manual_step "Create GitHub environment '$GITHUB_ENVIRONMENT' manually in $GITHUB_REPO, or rerun after authenticating gh with repository admin rights."
+    return 0
+  fi
+
+  warn "Could not create or verify GitHub environment"
+  echo "$gh_output"
 }
 
 setup_environment() {

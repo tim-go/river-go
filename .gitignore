@@ -5,3 +5,5 @@ tmp/
 *.tsbuildinfo
 .config/
 platform/.config/
+firebase-debug.log
+.firebase/

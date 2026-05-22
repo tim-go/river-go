@@ -1,0 +1,24 @@
+name: river-go-local
+
+services:
+  db:
+    image: postgis/postgis:16-3.5-alpine
+    container_name: river-go-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: river_go_admin
+      POSTGRES_PASSWORD: river_go
+      POSTGRES_DB: river_go
+    ports:
+      - "127.0.0.1:5435:5432"
+    volumes:
+      - river-go-db-data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U river_go_admin -d river_go"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  river-go-db-data:

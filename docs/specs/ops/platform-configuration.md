@@ -10,7 +10,7 @@ maturity: Draft
 # Platform Configuration
 
 **Work state:** Active
-**Last updated:** 2026-05-21
+**Last updated:** 2026-05-22
 **Scope:** In-repository platform configuration for publishing River Go with Firebase and GCP.
 
 ## Purpose
@@ -48,17 +48,21 @@ The platform configuration must:
 - support Firebase Storage for uploaded photos
 - support Cloud Run for the backend API and future ingestion services
 - support Cloud SQL PostgreSQL with PostGIS for durable river/community data
+- support an isolated local PostGIS database for backend development without modifying the shared Kinetiq local database
 - support Artifact Registry for Cloud Run images
 - support Secret Manager and GitHub environment secrets
 - provide read-only validation/planning before provisioning
 - provide idempotent setup scripts for GCP/Firebase resource creation
 - provide build-only CI and deploy configuration without publishing while billing is blocked
 - provide read-only health checks that make billing/API/deployment blockers visible
+- prefer keyless GCP authentication over downloaded service account keys
+- use a Kinetiq-style two-file local config split: platform config for provisioning facts, runtime config for execution values and deployable secrets
 
 The first implementation should include:
 
 - committed templates
 - ignored local config location
+- ignored local runtime config for URLs, DB URLs, Firebase runtime config, auth/session values, and storage targets
 - validation script
 - resource-plan script
 - setup and architecture notes
@@ -86,13 +90,14 @@ Billing must be verified before enabling paid or billing-gated APIs. If billing 
 | Key | Feature | Surface | Status | Target | Delivered | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | PLATFORM-F1 | In-repo platform subproject | Ops | Landed | v0.2 | — | Adds `/platform` as the operational configuration boundary. |
-| PLATFORM-F2 | Platform config templates | Ops/config | Landed | v0.2 | — | Adds staging/prod Firebase and GCP target templates. |
+| PLATFORM-F2 | Platform/runtime config templates | Ops/config | Landed | v0.2 | — | Adds Kinetiq-style platform and runtime templates for provisioning facts and execution/secrets values. |
 | PLATFORM-F3 | Config validation script | Ops/tooling | Landed | v0.2 | — | Validates structural config shape without provisioning. |
 | PLATFORM-F4 | Resource plan script | Ops/tooling | Landed | v0.2 | — | Prints staging/prod target resources for review. |
 | PLATFORM-F5 | Provisioning scripts | Ops/tooling | Landed | v0.3 | — | Adds idempotent GCP/Firebase setup script with dry-run support. |
 | PLATFORM-F6 | Deployment workflow | Ops/CI | Active | v0.3 | — | Build-only GitHub Actions workflow exists; deploy remains blocked until billing is linked. |
-| PLATFORM-F7 | Firebase Hosting config | Ops/config | Landed | v0.3 | — | Adds Firebase Hosting targets and future `/api` Cloud Run rewrites without deploying. |
+| PLATFORM-F7 | Firebase Hosting config | Ops/config | Landed | v0.3 | — | Adds static Firebase Hosting targets; `/api` Cloud Run rewrites wait until the API service exists. |
 | PLATFORM-F8 | Platform health check | Ops/tooling | Landed | v0.3 | — | Read-only health check reports billing/API/resource state. |
+| PLATFORM-F9 | Local PostGIS database | Ops/local-dev | Landed | v0.3 | — | Adds isolated River Go PostGIS container on `127.0.0.1:5435` with local app and migration users. |
 
 ### Backlog
 
@@ -103,10 +108,13 @@ Billing must be verified before enabling paid or billing-gated APIs. If billing 
 | PLATFORM-B3 | decision | Choose first publish shape | Open | v0.2 | Firebase Hosting-only is fastest; Hosting plus Cloud Run is closer to MVP architecture. |
 | PLATFORM-B4 | dependency | Create or select GCP/Firebase projects | Active | v0.3 | Setup script can create projects with `--create-resources` once billing config is set. |
 | PLATFORM-B5 | task | Add health checks | Active | v0.3 | Read-only first pass checks billing, APIs, Firebase visibility, Cloud Run, Artifact Registry, and Cloud SQL. |
-| PLATFORM-B6 | task | Add secret sync script | Open | v0.3 | Sync `DATABASE_URL`, Firebase Admin credentials, and deploy secrets to Secret Manager/GitHub. |
+| PLATFORM-B6 | task | Add secret sync script | Open | v0.3 | Sync values from ignored runtime config into Secret Manager/GitHub without making the repo-local file the source of truth. |
 | PLATFORM-B7 | validation | Detect service-account project creation failure | Resolved | v0.3 | Setup script now reports the active account and required parent/account fix before calling project creation. |
 | PLATFORM-B8 | validation | Retry project creation rate limits | Resolved | v0.3 | Setup script retries transient Cloud Resource Manager 429s with backoff. |
 | PLATFORM-B9 | validation | Stop on missing or failed billing link | Resolved | v0.3 | Setup script now verifies billing and stops before API enablement when billing cannot be linked. |
+| PLATFORM-B10 | validation | Treat GitHub environment 403 as manual setup | Resolved | v0.3 | Setup script now reports missing repo admin rights as a manual step instead of an operational failure. |
+| PLATFORM-B11 | validation | Handle disabled service account key creation | Resolved | v0.3 | Setup defaults to keyless auth and reports Workload Identity Federation follow-up when org policy blocks keys. |
+| PLATFORM-B12 | validation | Keep Hosting deployable before API exists | Resolved | v0.3 | Removed active `/api` Cloud Run rewrite until the staging API service is deployed. |
 
 ## Change Log
 
@@ -116,5 +124,10 @@ Billing must be verified before enabling paid or billing-gated APIs. If billing 
 | 2026-05-21 | Added hard billing verification before API enablement. |
 | 2026-05-21 | Added retry/backoff for Cloud Resource Manager project creation rate limits. |
 | 2026-05-21 | Added service-account project creation guard and optional resource parent support. |
+| 2026-05-22 | Improved GitHub environment permission handling. |
+| 2026-05-22 | Defaulted platform auth to keyless Workload Identity Federation. |
+| 2026-05-22 | Made Firebase Hosting config static-only until Cloud Run API exists. |
+| 2026-05-22 | Expanded runtime config template to follow the Kinetiq platform/runtime split. |
+| 2026-05-22 | Added isolated local PostGIS database configuration for backend development. |
 | 2026-05-21 | Added initial GCP/Firebase provisioning script. |
 | 2026-05-21 | Added initial in-repo platform configuration spec. |

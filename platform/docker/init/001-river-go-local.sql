@@ -1,0 +1,31 @@
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'river_go_app') THEN
+    CREATE ROLE river_go_app LOGIN PASSWORD 'river_go';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'github_ci') THEN
+    CREATE ROLE github_ci LOGIN PASSWORD 'river_go';
+  END IF;
+END
+$$;
+
+GRANT CONNECT ON DATABASE river_go TO river_go_app;
+GRANT CONNECT ON DATABASE river_go TO github_ci;
+
+GRANT CREATE ON SCHEMA public TO github_ci;
+GRANT USAGE ON SCHEMA public TO github_ci;
+GRANT USAGE ON SCHEMA public TO river_go_app;
+
+REVOKE CREATE ON SCHEMA public FROM river_go_app;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO river_go_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO river_go_app;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE github_ci IN SCHEMA public
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO river_go_app;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE github_ci IN SCHEMA public
+GRANT USAGE, SELECT ON SEQUENCES TO river_go_app;

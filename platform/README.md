@@ -83,6 +83,36 @@ The setup script is idempotent. It verifies or creates the GCP project, adds Fir
 
 Cloud SQL passwords, PostGIS extension setup, custom domains, and deployment secrets remain explicit follow-up steps.
 
+## Local Database
+
+River Go uses a separate local PostGIS database so it does not disturb the shared Kinetiq `kinetiq-db` container on `localhost:5432`.
+
+Start the local River Go database:
+
+```bash
+npm run db:local:up
+```
+
+Check PostGIS:
+
+```bash
+npm run db:local:check
+```
+
+Open `psql` as the local admin user:
+
+```bash
+npm run db:local:psql
+```
+
+Local connection defaults:
+
+- admin URL: `postgresql://river_go_admin:river_go@localhost:5435/river_go`
+- app URL: `postgresql://river_go_app:river_go@localhost:5435/river_go`
+- migrations URL: `postgresql://github_ci:river_go@localhost:5435/river_go`
+
+PostGIS is PostgreSQL's geospatial extension. River Go needs it to store and query river routes, sections, hazards, access points, and nearby map contributions as real geometry rather than plain latitude/longitude text.
+
 ## Health Checks
 
 While publishing is blocked, use the read-only health check to see what is ready:
@@ -117,5 +147,12 @@ Private local files:
 
 - `platform/.config/river-go-platform.json`
 - `platform/.config/river-go-runtime.json`
+
+Use the same split as the Kinetiq platform:
+
+- `river-go-platform.json` is for provisioning and naming cloud resources.
+- `river-go-runtime.json` is for runtime execution values and secrets that need to be synced to Secret Manager or GitHub environments.
+
+The runtime file is a local convenience copy. Keep the durable secret source in your vault and copy values into `platform/.config/river-go-runtime.json` only when local scripts need them.
 
 Do not commit files under `platform/.config/`.

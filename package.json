@@ -13,7 +13,12 @@
     "platform:setup:staging": "npm --prefix platform run setup:staging --",
     "platform:setup:prod": "npm --prefix platform run setup:prod --",
     "platform:health:staging": "npm --prefix platform run health:staging",
-    "platform:health:prod": "npm --prefix platform run health:prod"
+    "platform:health:prod": "npm --prefix platform run health:prod",
+    "db:local:up": "npm --prefix platform run db:local:up",
+    "db:local:down": "npm --prefix platform run db:local:down",
+    "db:local:logs": "npm --prefix platform run db:local:logs",
+    "db:local:check": "npm --prefix platform run db:local:check",
+    "db:local:psql": "npm --prefix platform run db:local:psql"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

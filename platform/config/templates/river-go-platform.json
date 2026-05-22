@@ -23,6 +23,10 @@
       "cloudRunService": "river-go-api-staging",
       "artifactRegistryRepository": "river-go",
       "githubEnvironment": "staging",
+      "auth": {
+        "serviceAccountKeys": false,
+        "workloadIdentityFederation": true
+      },
       "serviceAccounts": {
         "ci": "github-actions",
         "server": "river-go-server"
@@ -60,6 +64,10 @@
       "cloudRunService": "river-go-api-prod",
       "artifactRegistryRepository": "river-go",
       "githubEnvironment": "production",
+      "auth": {
+        "serviceAccountKeys": false,
+        "workloadIdentityFederation": true
+      },
       "serviceAccounts": {
         "ci": "github-actions",
         "server": "river-go-server"

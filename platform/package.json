@@ -10,6 +10,11 @@
     "setup:staging": "scripts/infra/setup.sh staging",
     "setup:prod": "scripts/infra/setup.sh prod",
     "health:staging": "scripts/infra/check-health.sh staging",
-    "health:prod": "scripts/infra/check-health.sh prod"
+    "health:prod": "scripts/infra/check-health.sh prod",
+    "db:local:up": "docker compose -f docker/docker-compose.yml up -d",
+    "db:local:down": "docker compose -f docker/docker-compose.yml down",
+    "db:local:logs": "docker compose -f docker/docker-compose.yml logs -f db",
+    "db:local:check": "psql \"postgresql://river_go_admin:river_go@127.0.0.1:5435/river_go\" -c \"SELECT PostGIS_Version();\"",
+    "db:local:psql": "psql \"postgresql://river_go_admin:river_go@127.0.0.1:5435/river_go\""
   }
 }

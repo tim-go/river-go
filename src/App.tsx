@@ -12,6 +12,7 @@ import {
   Navigation,
   Plus,
   RefreshCw,
+  Route,
   ShieldAlert,
   Star,
   Waves,
@@ -145,7 +146,9 @@ function App() {
   const [hazardReviews, setHazardReviews] = useState<
     Record<string, HazardReview>
   >(() => loadHazardReviews());
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isPanelOpen, setIsPanelOpen] = useState(
+    () => !window.matchMedia("(max-width: 720px)").matches,
+  );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [contributionType, setContributionType] =
     useState<ContributionType>("hazard");
@@ -164,6 +167,7 @@ function App() {
   const [isAddMode, setIsAddMode] = useState(false);
   const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
   const [isGaugeLoading, setIsGaugeLoading] = useState(false);
+  const [isSectionListOpen, setIsSectionListOpen] = useState(false);
 
   const activeSection = useMemo(
     () =>
@@ -352,6 +356,12 @@ function App() {
     setFormError("");
   }
 
+  function selectSection(section: RiverSection) {
+    setActiveSectionId(section.id);
+    setIsPanelOpen(true);
+    setIsSectionListOpen(false);
+  }
+
   return (
     <main className="app-shell">
       <section className="topbar" aria-label="River Go navigation">
@@ -394,7 +404,31 @@ function App() {
       </section>
 
       <section className="workspace">
-        <aside className="section-list" aria-label="River sections">
+        <div className="mobile-map-controls" aria-label="Map panels">
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => setIsSectionListOpen((current) => !current)}
+          >
+            <Route size={16} />
+            Sections
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => setIsPanelOpen((current) => !current)}
+          >
+            <MapPinned size={16} />
+            Details
+          </button>
+        </div>
+
+        <aside
+          className={`section-list ${
+            isSectionListOpen ? "section-list--mobile-open" : ""
+          }`}
+          aria-label="River sections"
+        >
           <div className="section-list__header">
             <span>Sections</span>
             <ChevronDown size={16} />
@@ -406,10 +440,7 @@ function App() {
               }`}
               key={section.id}
               type="button"
-              onClick={() => {
-                setActiveSectionId(section.id);
-                setIsPanelOpen(true);
-              }}
+              onClick={() => selectSection(section)}
             >
               <span>
                 <strong>{section.riverName}</strong>
@@ -428,10 +459,7 @@ function App() {
           selectedLocation={selectedLocation}
           isAddMode={isAddMode}
           onMapClick={handleMapClick}
-          onSelectSection={(section) => {
-            setActiveSectionId(section.id);
-            setIsPanelOpen(true);
-          }}
+          onSelectSection={selectSection}
         />
 
         {isFormOpen ? (

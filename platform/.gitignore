@@ -2,3 +2,4 @@
 *.local.json
 *.key.json
 *.secret.json
+firebase-debug.log
