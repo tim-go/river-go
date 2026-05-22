@@ -13,6 +13,7 @@ This document gives a clear view of the feature set we want to deliver and the c
 | Data source strategy | `/docs/strategy/data-sources-and-gaps.md` | Landed | UK provider landscape and community-only gaps are documented. |
 | Demo app shell | `/docs/specs/release/demo-prototype.md` | Landed | React/Vite/Leaflet prototype exists. |
 | River section map | `/docs/specs/core/river-section-map.md` | Landed | Section list, map, section panel, route lines, and markers exist. |
+| Offline mode | `/docs/specs/core/offline-mode.md` | Queued | Offline use is now a core requirement; PWA app-shell/data cache, contribution outbox, and sync API are not implemented yet. |
 | River Wye pilot dataset | `/docs/specs/data/river-wye-seed-data.md` | Active | Seven Wye sections are seeded with OSM-derived route traces and source/confidence metadata; access/hazard data remains unverified. |
 | Community add mode | `/docs/specs/community/community-contributions.md` | Active | Add mode, map placement, saved markers, popups, and clearer contribution-type prompts exist in localStorage demo form. |
 | Hazard confirmation/resolution | `/docs/specs/community/trust-and-moderation.md` | Active | Demo supports confirm/resolve for seeded and user-added hazards; no real moderation backend yet. |
@@ -30,8 +31,9 @@ This document gives a clear view of the feature set we want to deliver and the c
 1. Resolve GCP billing account project-link quota so staging can finish setup.
 2. Run first Wye feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
 3. Verify upstream Wye gauge/provider mappings, likely including NRW for Wales.
-4. Decide backend package shape and migration tooling before writing API code.
-5. Add deploy workflow only after billing is linked and staging health check is green.
+4. Decide backend package shape, migration tooling, and offline sync-friendly IDs before writing API code.
+5. Design the first local/offline contribution outbox before replacing localStorage with API-only persistence.
+6. Add deploy workflow only after billing is linked and staging health check is green.
 
 ## Release Interpretation
 

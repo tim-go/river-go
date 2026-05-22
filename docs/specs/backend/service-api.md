@@ -9,7 +9,7 @@ maturity: Draft
 # Service API
 
 **Work state:** Queued
-**Last updated:** 2026-05-21
+**Last updated:** 2026-05-22
 **Scope:** Backend API, auth, storage, and persistence design for River Go's community river intelligence service.
 
 ## Purpose
@@ -29,6 +29,7 @@ The backend should preserve the current prototype's section-first map and contri
 
 - `/docs/specs/community/community-contributions.md`
 - `/docs/specs/community/trust-and-moderation.md`
+- `/docs/specs/core/offline-mode.md`
 - `/docs/specs/data/river-level-providers.md`
 - `/docs/specs/ops/platform-configuration.md`
 - `/docs/strategy/community-data-strategy.md`
@@ -53,6 +54,15 @@ Initial endpoints:
 | `GET` | `/api/moderation/queue` | Moderator review queue. |
 | `POST` | `/api/moderation/:id/decision` | Approve, reject, merge, or request clarification. |
 
+Offline-aware endpoints should be added before the first serious mobile/offline release:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/offline/packs/:riverId` | Download compact river/section data for offline reading. |
+| `GET` | `/api/sync/pull?since=...` | Pull changed public/community records since the client last synced. |
+| `POST` | `/api/sync/push` | Push queued offline contribution operations idempotently. |
+| `POST` | `/api/photos/:id/complete` | Complete a queued photo upload and attach it to a contribution. |
+
 Auth:
 
 - Firebase Auth verifies signed-in contributors.
@@ -64,6 +74,7 @@ Storage:
 
 - PostgreSQL stores rivers, sections, route geometries, access points, hazards, features, reports, moderation state, provider readings, and audit history.
 - PostGIS stores and queries route and point geometry.
+- Contribution tables should support client-generated IDs, idempotency keys, sync status, and revision/version metadata so offline retries do not create duplicate records.
 - Firebase Storage stores uploaded photos.
 - Photo metadata and moderation status live in PostgreSQL.
 
@@ -72,6 +83,7 @@ Provider ingestion:
 - Environment Agency lookup can remain client-side for prototype only.
 - Production provider adapters run server-side and cache latest readings.
 - Provider records keep source URL, observed time, provider station/measure IDs, and fetch status.
+- Cached provider records must expose observed/fetched timestamps and freshness state so offline clients never present stale river levels as live readings.
 
 Moderation:
 
@@ -86,6 +98,7 @@ Moderation:
 - Which ORM or migration tool should be used for PostgreSQL/PostGIS?
 - Should read endpoints serve only approved data, or include unverified data with explicit confidence labels?
 - How should Firebase custom claims be managed for moderators?
+- What is the first sync API slice: contribution outbox only, or full offline pack pull/push?
 
 ## Tracking
 
@@ -99,6 +112,7 @@ Moderation:
 | API-F4 | Firebase Storage photo flow | Backend/media | Queued | MVP | — | Controlled upload intent and photo moderation. |
 | API-F5 | Moderation queue | Backend/admin | Queued | MVP | — | Review and promote community data. |
 | API-F6 | Provider ingestion cache | Backend/data | Queued | MVP | — | Move live river-level ingestion server-side. |
+| API-F7 | Offline sync contracts | Backend/sync | Queued | MVP | — | Support client-generated IDs, idempotent pushes, pull tokens, and offline pack downloads. |
 
 ### Backlog
 
@@ -108,9 +122,11 @@ Moderation:
 | API-B2 | decision | Migration/ORM tool | Open | v0.3 | Needs PostGIS support. |
 | API-B3 | risk | Trust and liability wording | Open | MVP | Public API responses must avoid safety guarantees. |
 | API-B4 | task | Define initial schema | Open | v0.3 | Create DB schema spec before migrations. |
+| API-B5 | decision | Offline-friendly IDs and revisions | Open | v0.3 | Decide UUID/idempotency/revision model before first contribution persistence implementation. |
 
 ## Change Log
 
 | Date | Change |
 | --- | --- |
 | 2026-05-21 | Created backend service API spec. |
+| 2026-05-22 | Added offline sync API and persistence implications. |

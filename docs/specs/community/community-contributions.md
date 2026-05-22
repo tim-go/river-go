@@ -9,7 +9,7 @@ maturity: Trial
 # Community Contributions
 
 **Work state:** Active
-**Last updated:** 2026-05-21
+**Last updated:** 2026-05-22
 **Scope:** The user workflow for adding first-party community river knowledge to a section or map location.
 
 ## Purpose
@@ -31,6 +31,7 @@ The contribution model should collect structured data, not loose comments.
 - `/docs/strategy/community-model.md`
 - `/docs/specs/community/trust-and-moderation.md`
 - `/docs/specs/core/river-section-map.md`
+- `/docs/specs/core/offline-mode.md`
 - `/src/App.tsx`
 - `/src/types.ts`
 
@@ -79,6 +80,15 @@ Required fields:
 
 Map location is required for all contribution types except section-level reports. The prototype currently allows a section midpoint fallback for demo convenience.
 
+Offline requirements:
+
+- users should be able to create contribution drafts without network access
+- offline drafts should be visible on the map with a local/queued status
+- contribution IDs should be generated client-side before sync
+- sync should be retryable without duplicating the contribution
+- photos should be queued separately from contribution metadata
+- saved local observations should not be lost if the browser/app closes before sync
+
 ## Open Questions
 
 - Should reports require a map location, or can they remain section-level?
@@ -102,6 +112,7 @@ Map location is required for all contribution types except section-level reports
 | CON-F8 | Separate contribution flows | UX | Landed | v0.2 | — | Panel actions and form prompts now separate condition, hazard, access, photo, and feature contributions. |
 | CON-F9 | Authenticated contributors | Backend/auth | Queued | MVP | — | Needed before real community data collection. |
 | CON-F10 | Photo upload | Media | Queued | MVP | — | Requires storage and moderation. |
+| CON-F11 | Offline contribution outbox | PWA/mobile | Queued | MVP | — | Capture observations offline and sync idempotently when connectivity returns. |
 
 ### Backlog
 
@@ -110,10 +121,12 @@ Map location is required for all contribution types except section-level reports
 | CON-B1 | decision | Require map location for reports? | Open | v0.2 | Some reports are section-level; hazards/features/access should be map-specific. |
 | CON-B2 | decision | Contributor agreement | Open | MVP | Need terms for first-party community data. |
 | CON-B3 | enhancement | Prompt after viewing/watching a section | Open | v0.2 | Could ask users to confirm hazards or report recent conditions. |
+| CON-B4 | decision | Offline sign-in requirement | Open | MVP | Decide whether users must sign in before going offline to submit later. |
 
 ## Change Log
 
 | Date | Change |
 | --- | --- |
 | 2026-05-21 | Added clearer contribution type actions and prompts for Wye pilot readiness. |
+| 2026-05-22 | Added offline contribution outbox requirements. |
 | 2026-05-21 | Migrated to spec schema v4. |
