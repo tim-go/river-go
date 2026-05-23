@@ -27,6 +27,20 @@ Specs live in this repository under `/docs/specs`.
 5. Run the relevant validation command, currently `npm run build` for app changes.
 6. Report the local spec path and any remaining divergence.
 
+## Spec Change Logs
+
+Do not update a spec `Change Log` for every small request.
+
+Use the `Change Log` only for significant spec-level changes, such as:
+
+- creating a new spec
+- changing the feature contract or acceptance criteria
+- adding or removing a meaningful feature/backlog item
+- changing work state, maturity, roadmap phase, or release interpretation
+- recording a notable architecture, data, or product decision
+
+For small implementation fixes, copy tweaks, minor UI adjustments, or routine alignment edits, update the relevant requirements/tracking text if needed, but leave the spec `Change Log` alone.
+
 ## Search
 
 ```bash

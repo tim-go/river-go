@@ -29,6 +29,9 @@ Do not require a separate external spec repository before implementation work in
 5. **Do not stamp release history during normal work.**
    `Delivered` fields are immutable release history. Do not add, remove, or alter `Delivered` values unless the task is explicitly a release-cut/stamping task.
 
+6. **Keep spec change logs meaningful.**
+   Do not add a `Change Log` entry for every small request. Use spec change logs only for significant spec-level changes, such as new specs, feature contract changes, meaningful feature/backlog changes, work-state or maturity changes, release interpretation, or notable architecture/data/product decisions.
+
 ## How To Find The Owning Spec
 
 Start at:

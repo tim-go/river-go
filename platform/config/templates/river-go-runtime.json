@@ -1,6 +1,6 @@
 {
   "app": {
-    "displayName": "River Go",
+    "displayName": "RiffleMap",
     "slug": "river-go"
   },
   "local": {
@@ -42,8 +42,8 @@
   },
   "staging": {
     "urls": {
-      "web": "https://staging.river-go.app",
-      "api": "https://staging.river-go.app/api"
+      "web": "https://staging.rifflemap.com",
+      "api": "https://staging.rifflemap.com/api"
     },
     "database": {
       "url": "postgresql://river_go_app:<app-password>@localhost/river_go",
@@ -72,8 +72,8 @@
   },
   "prod": {
     "urls": {
-      "web": "https://river-go.app",
-      "api": "https://river-go.app/api"
+      "web": "https://rifflemap.com",
+      "api": "https://rifflemap.com/api"
     },
     "database": {
       "url": "postgresql://river_go_app:<app-password>@localhost/river_go",

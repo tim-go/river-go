@@ -1,4 +1,4 @@
-# River Go Platform Setup
+# RiffleMap Platform Setup
 
 ## Current State
 
@@ -49,7 +49,7 @@ Important values:
 
 Edit `platform/.config/river-go-runtime.json` once Firebase apps and API URLs exist.
 
-River Go follows the Kinetiq two-file config split:
+RiffleMap follows the Kinetiq two-file config split while keeping internal repository and cloud IDs as `river-go`:
 
 - `river-go-platform.json` contains provisioning facts: GCP project IDs, billing/resource parent, Firebase project IDs, Cloud SQL instance/database/user names, service accounts, domains, and GitHub environment names.
 - `river-go-runtime.json` contains execution facts and deployable secrets: URLs, `DATABASE_URL`, migration database URL, Firebase web SDK config, Firebase Admin credentials when needed, session/auth settings, and storage buckets.
@@ -199,7 +199,7 @@ The setup script handles:
 - service account key export into `platform/.config`
 - GitHub environment creation when `gh` is authenticated
 
-`firebase.json` is static-hosting-only until the Cloud Run API exists. Add `/api/**` Hosting rewrites to `river-go-api-<env>` after the Cloud Run service has been deployed; otherwise Firebase Hosting deploy fails validation.
+`firebase.json` includes the staging `/api/**` rewrite to `river-go-api-staging`. Deploy Hosting to a preview channel first, and only deploy live after the Cloud Run API exists and the preview passes smoke tests.
 
 The template defaults to keyless auth:
 
@@ -226,11 +226,66 @@ Manual follow-up remains required for:
 - production custom domains and DNS
 - Secret Manager and GitHub secret values
 
+## End-To-End Staging Deployment
+
+The safe staging deployment order is backend-first and preview-first. This avoids disrupting the current live Firebase Hosting site while the Cloud Run API and Cloud SQL connection are being tested.
+
+1. Refresh local authentication if needed:
+
+```bash
+gcloud auth login
+gcloud config set project river-go-staging
+firebase login
+```
+
+2. Ensure `platform/.config/river-go-runtime.json` contains real staging database URLs:
+
+```text
+staging.database.url
+staging.database.migrationsUrl
+```
+
+Do not commit this file.
+
+3. Run migrations through Cloud SQL Auth Proxy:
+
+```bash
+npm run platform:migrate:staging
+```
+
+4. Build and deploy the API to Cloud Run:
+
+```bash
+npm run platform:deploy-api:staging
+```
+
+This builds `api/Dockerfile`, pushes the image to Artifact Registry, stores `DATABASE_URL` in Secret Manager, deploys `river-go-api-staging`, attaches `river-go-staging:europe-west2:river-go-db-staging`, enables Cloud Run public access with `--no-invoker-iam-check`, and checks `/api/health` on the Cloud Run URL.
+
+5. Deploy Firebase Hosting to a preview channel:
+
+```bash
+npm run platform:deploy-web-preview:staging
+```
+
+6. Smoke-test the preview channel:
+
+```bash
+platform/scripts/infra/check-e2e.sh https://<preview-url>
+```
+
+7. Deploy live only after the preview passes:
+
+```bash
+npm run platform:deploy-web:staging
+```
+
+If live Hosting needs to be rolled back, use the Firebase Console Hosting release history and select the previous release rollback action.
+
 ## Provisioning Roadmap
 
 Future platform scripts should be added in this order:
 
-1. Firebase Hosting config and deploy script.
-2. Cloud Run API deployment script.
+1. GitHub Actions deployment using Workload Identity Federation.
+2. One-off Cloud Run migration job.
 3. Secret Manager and GitHub environment secret sync.
 4. Health checks for Hosting, Cloud Run, Auth, Storage, and database connectivity.

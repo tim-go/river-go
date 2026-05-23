@@ -9,7 +9,7 @@ maturity: Draft
 # Service API
 
 **Work state:** Queued
-**Last updated:** 2026-05-22
+**Last updated:** 2026-05-23
 **Scope:** Backend API, auth, storage, and persistence design for River Go's community river intelligence service.
 
 ## Purpose
@@ -39,6 +39,8 @@ The backend should preserve the current prototype's section-first map and contri
 ## Requirements
 
 The backend should run on Cloud Run and expose a versioned HTTP API under `/api`.
+
+The first deployable API slice is packaged by `/api/Dockerfile`, deployed to Cloud Run by `/platform/scripts/infra/deploy-api.sh`, and connected to Cloud SQL through `CLOUD_SQL_CONNECTION_NAME` plus a Secret Manager-backed `DATABASE_URL`.
 
 Initial endpoints:
 
@@ -115,6 +117,7 @@ Moderation:
 | API-F6 | Provider ingestion cache | Backend/data | Queued | MVP | — | Move live river-level ingestion server-side. |
 | API-F7 | Offline sync contracts | Backend/sync | Queued | MVP | — | Support client-generated IDs, idempotent pushes, pull tokens, and offline pack downloads. |
 | API-F8 | Initial sync push implementation | Backend/sync | Landed | v0.3 | — | First backend slice proves `GET /api/health` and idempotent `POST /api/sync/push`. |
+| API-F9 | Cloud Run deploy package | Backend/ops | Active | v0.3 | — | Adds Dockerfile and deployment support for Cloud Run plus Cloud SQL. |
 
 ### Backlog
 
@@ -125,6 +128,7 @@ Moderation:
 | API-B3 | risk | Trust and liability wording | Open | MVP | Public API responses must avoid safety guarantees. |
 | API-B4 | task | Define initial schema | Open | v0.3 | Create DB schema spec before migrations. |
 | API-B5 | decision | Offline-friendly IDs and revisions | Open | v0.3 | Decide UUID/idempotency/revision model before first contribution persistence implementation. |
+| API-B6 | task | Deploy staging API | Active | v0.3 | Blocked in current shell until `gcloud auth login` is refreshed and staging runtime DB URLs are populated. |
 
 ## Change Log
 
@@ -133,3 +137,4 @@ Moderation:
 | 2026-05-21 | Created backend service API spec. |
 | 2026-05-22 | Added offline sync API and persistence implications. |
 | 2026-05-22 | Linked initial data/sync model and backend package decisions. |
+| 2026-05-23 | Added Cloud Run packaging and deployment path for the first API slice. |

@@ -1,8 +1,29 @@
+import type { PoolConfig } from "pg";
+
 export const DEFAULT_DATABASE_URL =
   "postgresql://river_go_admin:river_go@127.0.0.1:5435/river_go";
 
 export function getDatabaseUrl(): string {
   return process.env.DATABASE_URL || DEFAULT_DATABASE_URL;
+}
+
+export function getDatabaseConfig(): PoolConfig {
+  const databaseUrl = new URL(getDatabaseUrl());
+  const cloudSqlConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
+
+  if (!cloudSqlConnectionName) {
+    return {
+      connectionString: databaseUrl.toString(),
+    };
+  }
+
+  return {
+    database: databaseUrl.pathname.replace(/^\//, ""),
+    host: `/cloudsql/${cloudSqlConnectionName}`,
+    password: decodeURIComponent(databaseUrl.password),
+    port: Number.parseInt(databaseUrl.port || "5432", 10),
+    user: decodeURIComponent(databaseUrl.username),
+  };
 }
 
 export function getPort(): number {

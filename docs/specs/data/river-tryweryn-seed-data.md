@@ -48,6 +48,7 @@ The seed dataset must provide a Tryweryn-focused sample map with:
 - hazards for release-dependent flow, technical rapids, bridge warnings, natural obstructions, and lower-section portage decisions
 - source metadata and confidence metadata on seeded items
 - photo-needed prompts for community validation
+- user-provided Tryweryn river photography for the active section hero and photo grid, with location/caption verification still required
 
 The active demo must make the near-dam section visible by default through the normal section list and map selection behaviour.
 
@@ -77,7 +78,8 @@ Before public use, validate:
 | TRYWERYN-F2 | Lower Tryweryn sample section | Data/map | Active | prototype | — | Provides Bala/portage context below the centre. |
 | TRYWERYN-F3 | OSM-derived Tryweryn route traces | Data/map | Active | prototype | — | Route traces follow the river geometry for demo use. |
 | TRYWERYN-F4 | Release-aware seed metadata | Data/levels | Active | prototype | — | Release checks are represented as provider-backed seed metadata, not live integration. |
-| TRYWERYN-F5 | Local verification pass | Research/data | Queued | v0.2 | — | Needs local paddler, centre, and NRW/source validation. |
+| TRYWERYN-F5 | User-provided river photo | Data/media | Active | prototype | — | Demo uses `/images/river-tryweryn.jpeg` for Tryweryn section imagery. |
+| TRYWERYN-F6 | Local verification pass | Research/data | Queued | v0.2 | — | Needs local paddler, centre, and NRW/source validation. |
 
 ### Backlog
 
@@ -92,4 +94,5 @@ Before public use, validate:
 
 | Date | Change |
 | --- | --- |
+| 2026-05-23 | Added user-provided Tryweryn photo as active section imagery. |
 | 2026-05-23 | Added Tryweryn seed-data spec for dam-release sample map. |

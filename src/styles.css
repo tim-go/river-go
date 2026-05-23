@@ -289,25 +289,6 @@ h1 {
   background: #dfe9dd;
 }
 
-.map-instruction {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  z-index: 410;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  max-width: 260px;
-  padding: 9px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.68);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 10px 30px rgba(23, 33, 43, 0.12);
-  color: #304050;
-  font-size: 0.78rem;
-  font-weight: 850;
-}
-
 .map-legend {
   position: absolute;
   right: 430px;
@@ -1034,10 +1015,6 @@ textarea {
     transform: translateY(0);
   }
 
-  .map-instruction {
-    top: 62px;
-  }
-
   .map-legend {
     right: 16px;
     max-width: calc(100% - 32px);
@@ -1123,14 +1100,6 @@ textarea {
 
   .detail-panel--open {
     transform: translateY(0);
-  }
-
-  .map-instruction {
-    top: 62px;
-    right: 8px;
-    left: 8px;
-    max-width: none;
-    justify-content: center;
   }
 
   .quick-add-panel {

@@ -10,7 +10,7 @@ maturity: Draft
 # Platform Configuration
 
 **Work state:** Active
-**Last updated:** 2026-05-22
+**Last updated:** 2026-05-23
 **Scope:** In-repository platform configuration for publishing River Go with Firebase and GCP.
 
 ## Purpose
@@ -57,6 +57,8 @@ The platform configuration must:
 - provide read-only health checks that make billing/API/deployment blockers visible
 - prefer keyless GCP authentication over downloaded service account keys
 - use a Kinetiq-style two-file local config split: platform config for provisioning facts, runtime config for execution values and deployable secrets
+- deploy staging end-to-end using a backend-first, Firebase Hosting preview-channel-first workflow so the live staging site remains available until the final cutover
+- support Cloud Run public access through `--no-invoker-iam-check` when organisation policy blocks `allUsers` IAM bindings
 
 The first implementation should include:
 
@@ -67,6 +69,10 @@ The first implementation should include:
 - resource-plan script
 - setup and architecture notes
 - setup script for staging/prod GCP and Firebase resources
+- Cloud Run API deployment script
+- Cloud SQL migration script using Cloud SQL Auth Proxy
+- Firebase Hosting preview/live deployment script
+- end-to-end HTTP smoke script for `/api/health` and idempotent sync push
 
 The setup script should support `--dry-run` and require `--create-resources` before creating missing GCP projects or paid resources.
 
@@ -76,12 +82,20 @@ Project creation should tolerate transient Cloud Resource Manager write-rate lim
 
 Billing must be verified before enabling paid or billing-gated APIs. If billing is missing or cannot be linked, setup should stop with an actionable billing-link message rather than continuing into API enablement.
 
+Staging rollout order:
+
+1. Run migrations through Cloud SQL Auth Proxy.
+2. Deploy `river-go-api-staging` to Cloud Run.
+3. Check the Cloud Run `/api/health` endpoint directly.
+4. Deploy Firebase Hosting to a preview channel.
+5. Smoke-test the preview URL.
+6. Deploy live Firebase Hosting only after preview passes.
+
 ## Open Questions
 
-- What final public domain should River Go use?
+- Should the public brand remain RiffleMap while keeping repo/project IDs as `river-go`?
 - Should production use `europe-west2` for UK locality or match Kinetiq's existing `europe-west1` convention?
-- Should the first public publish be Firebase Hosting-only, or Cloud Run-backed from the start?
-- Will the backend live in the same Node package as the frontend or as a separate `api/` package in this repo?
+- What production domain cutover sequence should be used for `rifflemap.com`?
 
 ## Tracking
 
@@ -95,17 +109,20 @@ Billing must be verified before enabling paid or billing-gated APIs. If billing 
 | PLATFORM-F4 | Resource plan script | Ops/tooling | Landed | v0.2 | — | Prints staging/prod target resources for review. |
 | PLATFORM-F5 | Provisioning scripts | Ops/tooling | Landed | v0.3 | — | Adds idempotent GCP/Firebase setup script with dry-run support. |
 | PLATFORM-F6 | Deployment workflow | Ops/CI | Active | v0.3 | — | Build-only GitHub Actions workflow exists; deploy remains blocked until billing is linked. |
-| PLATFORM-F7 | Firebase Hosting config | Ops/config | Landed | v0.3 | — | Adds static Firebase Hosting targets; `/api` Cloud Run rewrites wait until the API service exists. |
+| PLATFORM-F7 | Firebase Hosting config | Ops/config | Landed | v0.3 | — | Staging Hosting includes `/api/**` Cloud Run rewrite; live deploy waits until API preview passes. |
 | PLATFORM-F8 | Platform health check | Ops/tooling | Landed | v0.3 | — | Read-only health check reports billing/API/resource state. |
 | PLATFORM-F9 | Local PostGIS database | Ops/local-dev | Landed | v0.3 | — | Adds isolated River Go PostGIS container on `127.0.0.1:5435` with local app and migration users. |
+| PLATFORM-F10 | Cloud Run API deployment script | Ops/deploy | Active | v0.3 | — | Builds API Docker image, writes `DATABASE_URL` to Secret Manager, deploys Cloud Run with invoker IAM check disabled for public staging access, and checks health. |
+| PLATFORM-F11 | Preview-first Hosting deployment | Ops/deploy | Active | v0.3 | — | Deploys API rewrite to a Firebase preview channel before live Hosting cutover. |
+| PLATFORM-F12 | Cloud SQL migration script | Ops/deploy | Active | v0.3 | — | Runs SQL migrations through Cloud SQL Auth Proxy using the migration DB URL. |
 
 ### Backlog
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
-| PLATFORM-B1 | decision | Confirm domains | Open | v0.2 | Templates use placeholder domains. |
+| PLATFORM-B1 | decision | Confirm domains | Active | v0.2 | RiffleMap uses `rifflemap.com`; staging is available at `staging.rifflemap.com`; repo/project IDs remain `river-go`. |
 | PLATFORM-B2 | decision | Confirm GCP region | Open | v0.2 | Template uses `europe-west2`; can switch before provisioning. |
-| PLATFORM-B3 | decision | Choose first publish shape | Open | v0.2 | Firebase Hosting-only is fastest; Hosting plus Cloud Run is closer to MVP architecture. |
+| PLATFORM-B3 | decision | Choose first publish shape | Resolved | v0.2 | Use Firebase Hosting plus Cloud Run, deployed backend-first and preview-first. |
 | PLATFORM-B4 | dependency | Create or select GCP/Firebase projects | Active | v0.3 | Setup script can create projects with `--create-resources` once billing config is set. |
 | PLATFORM-B5 | task | Add health checks | Active | v0.3 | Read-only first pass checks billing, APIs, Firebase visibility, Cloud Run, Artifact Registry, and Cloud SQL. |
 | PLATFORM-B6 | task | Add secret sync script | Open | v0.3 | Sync values from ignored runtime config into Secret Manager/GitHub without making the repo-local file the source of truth. |
@@ -114,7 +131,10 @@ Billing must be verified before enabling paid or billing-gated APIs. If billing 
 | PLATFORM-B9 | validation | Stop on missing or failed billing link | Resolved | v0.3 | Setup script now verifies billing and stops before API enablement when billing cannot be linked. |
 | PLATFORM-B10 | validation | Treat GitHub environment 403 as manual setup | Resolved | v0.3 | Setup script now reports missing repo admin rights as a manual step instead of an operational failure. |
 | PLATFORM-B11 | validation | Handle disabled service account key creation | Resolved | v0.3 | Setup defaults to keyless auth and reports Workload Identity Federation follow-up when org policy blocks keys. |
-| PLATFORM-B12 | validation | Keep Hosting deployable before API exists | Resolved | v0.3 | Removed active `/api` Cloud Run rewrite until the staging API service is deployed. |
+| PLATFORM-B12 | validation | Keep Hosting deployable before API exists | Resolved | v0.3 | Live Hosting remains unchanged until Cloud Run exists and preview-channel smoke tests pass. |
+| PLATFORM-B13 | task | Refresh local GCP auth before staging deploy | Active | v0.3 | Current shell cannot access `river-go-staging` until `gcloud auth login` is refreshed. |
+| PLATFORM-B14 | task | Populate staging runtime database URLs | Active | v0.3 | `platform/.config/river-go-runtime.json` must contain real staging DB URLs before migration/API deploy. |
+| PLATFORM-B15 | validation | Org policy blocks `allUsers` invoker binding | Resolved | v0.3 | Use Cloud Run `--no-invoker-iam-check` instead of adding `allUsers` IAM where organisation policy blocks domain-external principals. |
 
 ## Change Log
 
@@ -129,5 +149,8 @@ Billing must be verified before enabling paid or billing-gated APIs. If billing 
 | 2026-05-22 | Made Firebase Hosting config static-only until Cloud Run API exists. |
 | 2026-05-22 | Expanded runtime config template to follow the Kinetiq platform/runtime split. |
 | 2026-05-22 | Added isolated local PostGIS database configuration for backend development. |
+| 2026-05-23 | Added Cloud Run API deploy, Cloud SQL migration, Firebase preview/live deploy, and end-to-end smoke scripts. |
+| 2026-05-23 | Updated Cloud Run deploy path for organisation policy that blocks `allUsers` IAM bindings. |
+| 2026-05-23 | Updated public brand/domain notes to RiffleMap and `staging.rifflemap.com`. |
 | 2026-05-21 | Added initial GCP/Firebase provisioning script. |
 | 2026-05-21 | Added initial in-repo platform configuration spec. |

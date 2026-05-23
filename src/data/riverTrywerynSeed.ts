@@ -116,6 +116,15 @@ const releaseSource: SourceMetadata = {
   url: "https://www.nationalwhitewatercentre.co.uk/water-level-information",
 };
 
+const userPhotoSource: SourceMetadata = {
+  kind: "community",
+  label: "User-provided River Tryweryn photo",
+  confidence: "medium",
+  updatedAt: "2026-05-23",
+  notes:
+    "Photo supplied for the River Tryweryn demo dataset. Location and caption should be confirmed before public data publication.",
+};
+
 const routeTracesBySection = trywerynRouteTraces as Record<
   string,
   LatLngTuple[]
@@ -233,13 +242,13 @@ const riverTrywerynSectionSeeds: RiverSection[] = [
     ],
     photos: [
       {
-        id: "tryweryn-dam-photo-needed",
-        title: "Photo needed: dam release start",
-        url: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+        id: "tryweryn-river-photo",
+        title: "River Tryweryn whitewater",
+        url: "/images/river-tryweryn.jpeg",
         caption:
-          "Placeholder image. Replace with a contributor photo of the permitted near-dam start/centre access context.",
-        dateTaken: "Needed",
-        source: seedSource,
+          "User-provided Tryweryn river photo for the demo section image.",
+        dateTaken: "May 2026",
+        source: userPhotoSource,
       },
     ],
     reports: [
@@ -349,13 +358,13 @@ const riverTrywerynSectionSeeds: RiverSection[] = [
     ],
     photos: [
       {
-        id: "tryweryn-lower-photo-needed",
-        title: "Photo needed: lower portage",
-        url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=900&q=80",
+        id: "tryweryn-lower-river-photo",
+        title: "River Tryweryn whitewater",
+        url: "/images/river-tryweryn.jpeg",
         caption:
-          "Placeholder image. Replace with a contributor photo of the portage decision point.",
-        dateTaken: "Needed",
-        source: seedSource,
+          "User-provided Tryweryn river photo used until lower-section-specific photos are collected.",
+        dateTaken: "May 2026",
+        source: userPhotoSource,
       },
     ],
     reports: [

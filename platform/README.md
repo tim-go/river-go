@@ -1,6 +1,6 @@
-# River Go Platform
+# RiffleMap Platform
 
-This subproject owns River Go platform configuration inside the main application repository.
+This subproject owns RiffleMap platform configuration inside the main application repository. Internal repo and cloud resource IDs remain `river-go`.
 
 It is intentionally not a separate repo. The goal is to keep product specs, application code, and platform intent together while still separating cloud setup concerns from the frontend app.
 
@@ -123,9 +123,53 @@ npm run platform:health:staging
 
 The health check reports project, billing, API, Firebase, Artifact Registry, Cloud SQL, and Cloud Run state. It does not create or mutate resources.
 
+## End-To-End Staging Rollout
+
+Use the preview-first rollout when connecting Firebase Hosting to Cloud Run and Cloud SQL. This keeps the existing live Hosting site serving until the final live deploy step.
+
+Prerequisites:
+
+- `platform/.config/river-go-runtime.json` has real `staging.database.url` and `staging.database.migrationsUrl` values from the vault.
+- `gcloud auth login` has a fresh token for an account with access to `river-go-staging`.
+- Cloud SQL users, grants, and PostGIS are already configured.
+
+Run database migrations through Cloud SQL Auth Proxy:
+
+```bash
+npm run platform:migrate:staging
+```
+
+Deploy the API to Cloud Run without changing Firebase Hosting traffic:
+
+```bash
+npm run platform:deploy-api:staging
+```
+
+The staging deploy uses Cloud Run's `--no-invoker-iam-check` public access mode because the organisation policy blocks `allUsers` IAM bindings.
+
+Deploy Hosting to a preview channel first:
+
+```bash
+npm run platform:deploy-web-preview:staging
+```
+
+Smoke-test the preview URL printed by Firebase:
+
+```bash
+platform/scripts/infra/check-e2e.sh https://<preview-url>
+```
+
+Only after the preview passes, deploy live Hosting:
+
+```bash
+npm run platform:deploy-web:staging
+```
+
+The staging Hosting rewrite for `/api/**` points to `river-go-api-staging`. The catch-all app rewrite stays below it, so the map app remains static and should continue loading even if the API has a runtime problem.
+
 ## Preferred Stack
 
-River Go should use the same service family as the Kinetiq platform pattern, but contained in this repo:
+RiffleMap should use the same service family as the Kinetiq platform pattern, but contained in this repo:
 
 - Firebase Hosting for the public web entry point
 - Firebase Auth for contributor identity

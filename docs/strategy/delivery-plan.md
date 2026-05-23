@@ -24,19 +24,20 @@ This document gives a clear view of the feature set we want to deliver and the c
 | Feedback capture workflow | `/docs/product/wye-pilot-feedback-template.md` | Active | Structured Wye pilot feedback template exists; real sessions still needed. |
 | Backend persistence | `/docs/specs/backend/service-api.md` | Queued | Cloud Run, Firebase Auth, Firebase Storage, PostgreSQL/PostGIS, and moderation API boundaries are specced. |
 | Backend data and sync model | `/docs/specs/backend/data-and-sync-model.md` | Landed | Hybrid relational/JSONB contribution model and idempotent offline sync push are implemented locally against PostGIS. |
+| Staging end-to-end deployment | `/docs/specs/ops/platform-configuration.md` | Active | Cloud Run API deploy, Cloud SQL migration, Firebase preview/live deploy, and E2E smoke scripts exist; deploy is blocked until local GCP auth and staging runtime DB URLs are refreshed. |
 | Auth and contributor identity | `/docs/specs/community/community-contributions.md` | Queued | Needed before real community data collection. |
 | Photo uploads | `/docs/specs/community/community-contributions.md` | Queued | Currently represented as placeholder/photo contribution metadata only. |
 | Moderation dashboard | `/docs/specs/community/trust-and-moderation.md` | Queued | Needed before public community launch. |
 
 ## Recommended Next Sprint
 
-1. Resolve GCP billing account project-link quota so staging can finish setup.
-2. Run a focused Tryweryn verification pass for the near-dam start, centre rules, release source, lower portage, and Bala finish.
-3. Run first Wye feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
-4. Verify upstream Wye and Tryweryn gauge/provider mappings, likely including NRW for Wales.
-5. Decide backend package shape, migration tooling, and offline sync-friendly IDs before writing API code.
-6. Design the first local/offline contribution outbox before replacing localStorage with API-only persistence.
-7. Add deploy workflow only after billing is linked and staging health check is green.
+1. Confirm staging platform health after local GCP authentication is refreshed.
+2. Refresh `gcloud auth login` and populate real staging DB URLs in `platform/.config/river-go-runtime.json`.
+3. Run staging DB migrations, deploy Cloud Run API, deploy Firebase Hosting preview, and smoke-test before live Hosting cutover.
+4. Run a focused Tryweryn verification pass for the near-dam start, centre rules, release source, lower portage, and Bala finish.
+5. Run first Wye feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
+6. Verify upstream Wye and Tryweryn gauge/provider mappings, likely including NRW for Wales.
+7. Decide backend package shape, migration tooling, and offline sync-friendly IDs before writing API code.
 
 ## Release Interpretation
 

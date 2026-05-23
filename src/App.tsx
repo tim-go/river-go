@@ -452,6 +452,14 @@ function App() {
     setIsAddMode(false);
   }
 
+  function closeContributionForm() {
+    setIsFormOpen(false);
+    setIsAddMode(false);
+    setSelectedLocation(null);
+    setSelectedTargetLabel("Selected map location");
+    setFormError("");
+  }
+
   function chooseContributionType(nextType: ContributionType) {
     setContributionType(nextType);
     setCategory(categoryOptions[nextType][0]);
@@ -480,14 +488,14 @@ function App() {
 
   return (
     <main className="app-shell">
-      <section className="topbar" aria-label="River Go navigation">
+      <section className="topbar" aria-label="RiffleMap navigation">
         <div className="brand-lockup">
           <span className="brand-mark">
             <Waves size={22} strokeWidth={2.3} />
           </span>
           <div>
             <p className="eyebrow">UK community river intelligence</p>
-            <h1>River Go</h1>
+            <h1>RiffleMap</h1>
           </div>
         </div>
         <div className="topbar-actions">
@@ -613,7 +621,7 @@ function App() {
                 type="button"
                 aria-label="Close contribution form"
                 title="Close"
-                onClick={() => setIsFormOpen(false)}
+                onClick={closeContributionForm}
               >
                 <X size={18} />
               </button>
@@ -772,8 +780,8 @@ function App() {
               <p className="eyebrow">Add mode</p>
               <strong>Click the river map where the knowledge belongs.</strong>
               <span>
-                Pick an existing marker to update it, or click the river line to
-                place a new item.
+                Click an open part of the route or map to place a new item.
+                Existing markers open their details.
               </span>
             </div>
             <button
@@ -1226,27 +1234,49 @@ function RiverMap({
               ? "#7c5c1d"
               : "#52606d";
 
-      L.polyline(section.route, {
+      const routeLine = L.polyline(section.route, {
         color,
         weight: isActive ? 7 : 4,
         opacity: isActive ? 0.95 : 0.7,
-      })
-        .addTo(layers)
-        .on("click", () => callbackRef.current(section));
+      }).addTo(layers);
 
-      L.marker(section.centre, {
+      routeLine.on("click", (event) => {
+        L.DomEvent.stop(event.originalEvent);
+
+        if (isAddMode) {
+          mapClickRef.current(
+            [event.latlng.lat, event.latlng.lng],
+            undefined,
+            "New map contribution",
+          );
+          return;
+        }
+
+        callbackRef.current(section);
+      });
+
+      const sectionMarker = L.marker(section.centre, {
+        bubblingMouseEvents: false,
         icon: L.divIcon({
           className: "",
           html: markerHtml(isActive ? "section-active" : "section", "R"),
           iconSize: [32, 32],
           iconAnchor: [16, 16],
         }),
-      })
+      });
+
+      sectionMarker
         .addTo(layers)
-        .on("click", () => callbackRef.current(section));
+        .bindPopup(
+          `<strong>${section.sectionName}</strong><br/>${section.summary}`,
+        )
+        .on("click", (event) => {
+          L.DomEvent.stop(event.originalEvent);
+          sectionMarker.openPopup();
+        });
 
       section.accessPoints.forEach((accessPoint) => {
-        L.marker(accessPoint.location, {
+        const marker = L.marker(accessPoint.location, {
           bubblingMouseEvents: false,
           icon: L.divIcon({
             className: "",
@@ -1254,24 +1284,21 @@ function RiverMap({
             iconSize: [28, 28],
             iconAnchor: [14, 14],
           }),
-        })
+        });
+
+        marker
           .addTo(layers)
-          .bindTooltip(accessPoint.name)
           .bindPopup(
-            `<strong>${accessPoint.name}</strong><br/>Add an access update here.`,
+            `<strong>${accessPoint.name}</strong><br/>${accessPoint.type}<br/>${accessPoint.notes}`,
           )
-          .on("click", () => {
-            callbackRef.current(section);
-            mapClickRef.current(
-              accessPoint.location,
-              "access",
-              accessPoint.name,
-            );
+          .on("click", (event) => {
+            L.DomEvent.stop(event.originalEvent);
+            marker.openPopup();
           });
       });
 
       section.hazards.forEach((hazard) => {
-        L.marker(hazard.location, {
+        const marker = L.marker(hazard.location, {
           bubblingMouseEvents: false,
           icon: L.divIcon({
             className: "",
@@ -1279,20 +1306,21 @@ function RiverMap({
             iconSize: [30, 30],
             iconAnchor: [15, 15],
           }),
-        })
+        });
+
+        marker
           .addTo(layers)
-          .bindTooltip(hazard.title)
           .bindPopup(
-            `<strong>${hazard.title}</strong><br/>Add a hazard update at this point.`,
+            `<strong>${hazard.title}</strong><br/>${hazard.type} · ${hazard.severity}<br/>${hazard.description}`,
           )
-          .on("click", () => {
-            callbackRef.current(section);
-            mapClickRef.current(hazard.location, "hazard", hazard.title);
+          .on("click", (event) => {
+            L.DomEvent.stop(event.originalEvent);
+            marker.openPopup();
           });
       });
 
       section.features.forEach((feature) => {
-        L.marker(feature.location, {
+        const marker = L.marker(feature.location, {
           bubblingMouseEvents: false,
           icon: L.divIcon({
             className: "",
@@ -1300,28 +1328,38 @@ function RiverMap({
             iconSize: [26, 26],
             iconAnchor: [13, 13],
           }),
-        })
+        });
+
+        marker
           .addTo(layers)
-          .bindTooltip(feature.title)
           .bindPopup(
-            `<strong>${feature.title}</strong><br/>Add a feature update here.`,
+            `<strong>${feature.title}</strong><br/>${feature.type}<br/>${feature.description}`,
           )
-          .on("click", () => {
-            callbackRef.current(section);
-            mapClickRef.current(feature.location, "feature", feature.title);
+          .on("click", (event) => {
+            L.DomEvent.stop(event.originalEvent);
+            marker.openPopup();
           });
       });
 
-      L.marker(section.gauge.location, {
+      const gaugeMarker = L.marker(section.gauge.location, {
+        bubblingMouseEvents: false,
         icon: L.divIcon({
           className: "",
           html: markerHtml("gauge", "~"),
           iconSize: [28, 28],
           iconAnchor: [14, 14],
         }),
-      })
+      });
+
+      gaugeMarker
         .addTo(layers)
-        .bindTooltip(`${section.gauge.name}: ${section.gauge.value}`);
+        .bindPopup(
+          `<strong>${section.gauge.name}</strong><br/>${section.gauge.value}<br/>${section.gauge.observedAt}`,
+        )
+        .on("click", (event) => {
+          L.DomEvent.stop(event.originalEvent);
+          gaugeMarker.openPopup();
+        });
     });
 
     contributions.forEach((contribution) => {
@@ -1349,7 +1387,7 @@ function RiverMap({
                 ? "A"
                 : "N";
 
-      L.marker(contribution.location, {
+      const marker = L.marker(contribution.location, {
         bubblingMouseEvents: false,
         icon: L.divIcon({
           className: "",
@@ -1357,20 +1395,16 @@ function RiverMap({
           iconSize: [30, 30],
           iconAnchor: [15, 15],
         }),
-      })
+      });
+
+      marker
         .addTo(layers)
-        .bindTooltip(contribution.title)
         .bindPopup(
           `<strong>${contribution.title}</strong><br/>${contribution.type} · ${contribution.status}<br/>${syncStatusLabel(syncStatus)}<br/>${contribution.detail}`,
         )
-        .on("click", () => {
-          if (isAddMode && contribution.location) {
-            mapClickRef.current(
-              contribution.location,
-              contribution.type,
-              contribution.title,
-            );
-          }
+        .on("click", (event) => {
+          L.DomEvent.stop(event.originalEvent);
+          marker.openPopup();
         });
     });
 
@@ -1383,8 +1417,7 @@ function RiverMap({
           iconAnchor: [16, 16],
         }),
       })
-        .addTo(layers)
-        .bindTooltip("Draft contribution location");
+        .addTo(layers);
     }
 
     if (previousSectionIdRef.current !== activeSection.id) {
@@ -1415,12 +1448,6 @@ function RiverMap({
   return (
     <section className="map-stage" aria-label="River map">
       <div className="map-canvas" ref={mapContainerRef} />
-      <div className="map-instruction">
-        <MapPinned size={16} />
-        {isAddMode
-          ? "Add mode: click the route or marker"
-          : "Select a section or use Add local knowledge"}
-      </div>
       <div className="map-legend" aria-label="Map legend">
         <span>
           <i className="legend-dot legend-dot--section" /> Section

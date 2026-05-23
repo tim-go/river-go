@@ -9,7 +9,7 @@ maturity: Trial
 # Community Contributions
 
 **Work state:** Active
-**Last updated:** 2026-05-22
+**Last updated:** 2026-05-23
 **Scope:** The user workflow for adding first-party community river knowledge to a section or map location.
 
 ## Purpose
@@ -41,7 +41,7 @@ The prototype must support:
 
 - explicit add mode
 - map click to place a contribution
-- marker click to update an existing map object
+- marker click to inspect an existing map object without placing a new contribution marker
 - floating contribution form
 - contribution type selection with distinct prompts for condition, hazard, access, photo, and feature contributions
 - title
@@ -66,11 +66,13 @@ Expected user flow:
 
 1. User clicks `Add local knowledge`.
 2. App enters add mode.
-3. User clicks the river map or an existing marker.
+3. User clicks an open part of the route or map.
 4. App opens a floating contribution form.
 5. User chooses contribution type and fills required fields.
 6. User saves.
 7. Saved contribution appears on the map and section update list.
+
+Existing seeded and saved information markers remain inspect-only, even while add mode is active. A future explicit `Add update here` action can be added inside marker popups if updating existing map objects becomes a priority.
 
 Required fields:
 
@@ -104,7 +106,7 @@ Offline requirements:
 | --- | --- | --- | --- | --- | --- | --- |
 | CON-F1 | Explicit add mode | Map/top bar | Landed | prototype | — | User must intentionally enter add mode before placing new map items. |
 | CON-F2 | Map placement | Map | Landed | prototype | — | Map click selects draft contribution location. |
-| CON-F3 | Marker update entry | Map | Landed | prototype | — | Clicking existing seeded markers can start contribution at that object. |
+| CON-F3 | Marker inspection | Map | Active | prototype | — | Clicking existing seeded or saved markers opens details and does not place new draft markers. |
 | CON-F4 | Floating contribution form | Map | Landed | prototype | — | Form appears over map after placement. |
 | CON-F5 | Saved contribution markers | Map | Landed | prototype | — | Saved demo items persist in localStorage and render on map. |
 | CON-F6 | Saved marker popups | Map | Landed | prototype | — | Saved markers show saved detail on click. |
@@ -122,6 +124,7 @@ Offline requirements:
 | CON-B2 | decision | Contributor agreement | Open | MVP | Need terms for first-party community data. |
 | CON-B3 | enhancement | Prompt after viewing/watching a section | Open | v0.2 | Could ask users to confirm hazards or report recent conditions. |
 | CON-B4 | decision | Offline sign-in requirement | Open | MVP | Decide whether users must sign in before going offline to submit later. |
+| CON-B5 | enhancement | Explicit marker update action | Open | v0.2 | Add an `Add update here` action inside marker popups if users need to contribute against existing objects. |
 
 ## Change Log
 
@@ -132,4 +135,5 @@ Offline requirements:
 | 2026-05-22 | Added initial local contribution outbox storage service. |
 | 2026-05-22 | Wired add-local-knowledge saves into queued local outbox records. |
 | 2026-05-22 | Added manual sync for queued outbox records. |
+| 2026-05-23 | Changed existing marker clicks to inspect-only; contribution placement now uses open route/map clicks. |
 | 2026-05-21 | Migrated to spec schema v4. |

@@ -10,17 +10,17 @@ maturity: Trial
 
 **Work state:** Active
 **Last updated:** 2026-05-23
-**Scope:** The runnable frontend prototype used to validate River Go's section map, dam-release Tryweryn sample, and community contribution workflow.
+**Scope:** The runnable frontend prototype used to validate RiffleMap's section map, dam-release Tryweryn sample, and community contribution workflow.
 
 ## Purpose
 
-The demo prototype exists to validate River Go's product shape before backend investment. It lets paddlers understand a real river section, inspect map-based river knowledge, and test the community contribution flow.
+The demo prototype exists to validate RiffleMap's product shape before backend investment. It lets paddlers understand a real river section, inspect map-based river knowledge, and test the community contribution flow.
 
 The demo is not yet a production app. It uses seeded data and local browser persistence.
 
 ## Product Role
 
-- `Primary user objective:` Understand whether River Go's section-first map and contribution model would help plan and refresh river knowledge.
+- `Primary user objective:` Understand whether RiffleMap's section-first map and contribution model would help plan and refresh river knowledge.
 - `Classification:` Core
 - `Loop step:` Choose / Report / Review
 - `Why this matters:` The prototype is the fastest way to validate whether community-maintained river intelligence is a strong enough product wedge before building backend infrastructure.
@@ -70,6 +70,8 @@ Prototype data currently comes from:
 
 The active sample map currently uses River Tryweryn sections, including a near-dam Llyn Celyn release/stilling-basin section. Wye fixtures remain in the repo for pilot work but are not the active demo dataset.
 
+The public app brand is RiffleMap. Internal repo, GCP, Firebase, and deployment IDs remain `river-go`.
+
 The prototype should remain lightweight until feedback confirms the contribution model.
 
 ## Open Questions
@@ -91,6 +93,7 @@ The prototype should remain lightweight until feedback confirms the contribution
 | DEMO-F5 | Floating add form | Map | Landed | prototype | — | Replaces buried right-panel form with map overlay contribution form. |
 | DEMO-F6 | Tryweryn active sample | Data/map | Active | prototype | — | Demo data now focuses on a dam-release Tryweryn sample beginning near Llyn Celyn dam. |
 | DEMO-F7 | Backend persistence | Backend | Queued | post-feedback | — | Defer until contribution model is validated with users. |
+| DEMO-F8 | RiffleMap public brand | App shell | Active | prototype | — | Visible app title and browser title use RiffleMap while internal IDs remain `river-go`. |
 
 ### Backlog
 
@@ -107,3 +110,4 @@ The prototype should remain lightweight until feedback confirms the contribution
 | --- | --- |
 | 2026-05-21 | Migrated to spec schema v4. |
 | 2026-05-23 | Switched active sample data to River Tryweryn, starting near the Llyn Celyn dam release. |
+| 2026-05-23 | Updated public app brand to RiffleMap. |

@@ -52,7 +52,15 @@ Selecting a section from the left list must fit the map to that section's route 
 
 Clicking markers must not unexpectedly zoom out or recenter the map.
 
-Marker popups/tooltips must make clicked objects understandable.
+Marker click popups must make clicked objects understandable.
+
+Hover tooltips should not duplicate marker popups in the prototype because they create two simultaneous information surfaces.
+
+Clicking seeded or saved information markers must inspect that object only. It must not create a draft marker or open the add-contribution form.
+
+The map should not show a persistent instruction box during normal browsing. Add-mode instructions may appear in the dedicated add-mode banner.
+
+When add mode is active, clicking an open part of the route or map may place a new contribution. Clicking an existing information marker still opens that marker's details.
 
 River Wye route traces are generated from OpenStreetMap River Wye waterway geometry through `/scripts/generateWyeRouteTraces.mjs` and stored in `/src/data/wyeRouteTraces.ts`.
 
@@ -83,9 +91,10 @@ Production behaviour may differ:
 | MAP-F1 | Section list selection | Left panel/map | Landed | prototype | — | Selecting a section fits the map to route bounds. |
 | MAP-F2 | Traced route fixtures | Map | Landed | prototype | — | Wye and active Tryweryn samples use OSM-derived route traces instead of straight lines. |
 | MAP-F3 | Marker display | Map | Landed | prototype | — | Access, hazards, features, gauges, saved contributions, and draft markers render. |
-| MAP-F4 | Marker popups | Map | Landed | prototype | — | Seeded and saved markers expose popups/tooltips. |
+| MAP-F4 | Marker popups | Map | Landed | prototype | — | Seeded and saved markers expose click popups without hover tooltip duplication. |
 | MAP-F5 | Marker click without recenter | Map | Landed | prototype | — | Marker clicks do not trigger route fit/zoom. |
-| MAP-F6 | Layer filters | Map | Queued | v0.2 | — | Filter by hazards, access, reports, photos, and stale items. |
+| MAP-F6 | Inspect-only information markers | Map | Active | prototype | — | Marker clicks show details and do not create draft contribution markers. |
+| MAP-F7 | Layer filters | Map | Queued | v0.2 | — | Filter by hazards, access, reports, photos, and stale items. |
 
 ### Backlog
 
@@ -101,3 +110,5 @@ Production behaviour may differ:
 | --- | --- |
 | 2026-05-21 | Migrated to spec schema v4. |
 | 2026-05-23 | Added active Tryweryn route-trace fixture context. |
+| 2026-05-23 | Clarified inspect-only marker click behaviour. |
+| 2026-05-23 | Removed persistent map instruction panel and marker hover tooltips. |

@@ -2,7 +2,9 @@
 
 ## Working Concept
 
-River Go is a UK-first canoeing app that combines live river data with community-maintained local knowledge. The app helps paddlers understand river sections before they travel: current levels, access points, hazards, photos, portages, runnable ranges, and recent condition reports.
+RiffleMap is a UK-first canoeing app that combines live river data with community-maintained local knowledge. The app helps paddlers understand river sections before they travel: current levels, access points, hazards, photos, portages, runnable ranges, and recent condition reports.
+
+The repository, GCP projects, and Firebase projects continue to use the internal `river-go` name. RiffleMap is the public product brand.
 
 The product is not just a gauge map. Its core value is a trusted, structured, and fresh knowledge layer built by paddlers.
 
@@ -65,7 +67,7 @@ Make it easy to add photos, hazards, features, access notes, condition reports, 
 
 ## Differentiation
 
-River Go should differentiate on:
+RiffleMap should differentiate on:
 
 - UK-first access and river-section context.
 - Canoe-specific suitability and trip planning.
@@ -84,4 +86,3 @@ Early product success should be measured by whether users can answer:
 - What are the known hazards?
 - Has anyone paddled or checked it recently?
 - What has changed since the last known report?
-

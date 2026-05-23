@@ -6,6 +6,14 @@
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         {
+          "source": "/api/**",
+          "run": {
+            "serviceId": "river-go-api-staging",
+            "region": "europe-west2",
+            "pinTag": true
+          }
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }
