@@ -49,6 +49,8 @@ Initial endpoints:
 | --- | --- | --- |
 | `GET` | `/api/health` | Runtime health check. |
 | `GET` | `/api/me` | Upsert and return the authenticated member profile. |
+| `GET` | `/api/me/contributions` | List the signed-in member's synced contributions with section, moderation, and photo context. |
+| `GET` | `/api/me/photos` | List the signed-in member's uploaded photos with section and contribution context. |
 | `GET` | `/api/admin/members` | List member profiles for admins. |
 | `POST` | `/api/admin/members/:memberId/access` | Admin-only update of member role and trust level. |
 | `GET` | `/api/rivers` | River list. |
@@ -58,7 +60,9 @@ Initial endpoints:
 | `POST` | `/api/sections/:sectionId/contributions` | Create hazard/report/access/photo/feature contribution. |
 | `POST` | `/api/contributions/:id/confirmations` | Confirm existing contribution or seeded hazard. |
 | `POST` | `/api/contributions/:id/resolution` | Mark contribution resolved with evidence. |
+| `DELETE` | `/api/contributions/:id` | Soft-delete a contribution when requested by its owner, an admin, or a contribution moderator. |
 | `POST` | `/api/photos/upload-intent` | Create controlled upload target for Firebase Storage. |
+| `DELETE` | `/api/photos/:photoId` | Soft-delete a photo when requested by its owner, an admin, or a contribution moderator. |
 | `GET` | `/api/moderation/queue` | Moderator review queue. |
 | `POST` | `/api/moderation/:id/decision` | Approve, reject, merge, or request clarification. |
 | `GET` | `/api/moderation/contributions` | Admin/moderator contribution review queue. |
@@ -133,6 +137,8 @@ Moderation:
 | API-F10 | Member identity API | Backend/auth | Active | MVP | — | Adds `/api/me`, member upsert, and admin member list endpoint. |
 | API-F11 | Contribution readback API | Backend/API | Landed | MVP | — | Implements `GET /api/sections/:sectionId/contributions` for the persisted contribution loop. |
 | API-F12 | Member access management API | Backend/admin | Landed | MVP | — | Admins can update member role and trust level. |
+| API-F13 | Photo management API | Backend/media | Active | MVP | — | Supports member photo listing and owner/moderator soft-delete. |
+| API-F14 | Member contribution management API | Backend/community | Active | MVP | — | Supports member contribution listing and owner/moderator soft-delete. |
 
 ### Backlog
 

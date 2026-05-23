@@ -8,8 +8,10 @@ import { getPort } from "./config.js";
 import {
   applyModerationDecision,
   isModerationDecision,
+  listContributionsForMember,
   listContributionsForSection,
   listModerationContributions,
+  softDeleteContribution,
 } from "./contributions.js";
 import { closePool, pool } from "./db.js";
 import { HttpError, readJsonBody, sendJson } from "./http.js";
@@ -22,6 +24,7 @@ import {
   updateMemberAccessForAdmin,
   upsertMemberFromAuth,
 } from "./members.js";
+import { listPhotosForMember, softDeletePhoto } from "./photos.js";
 import { pushSyncOperations } from "./sync.js";
 
 async function route(
@@ -56,6 +59,44 @@ async function route(
     requireAdmin(member);
     const members = await listMembersForAdmin();
     return { status: 200, body: { members } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/photos") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const photos = await listPhotosForMember(member.id);
+    return { status: 200, body: { photos } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/contributions") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const contributions = await listContributionsForMember(member.id);
+    return { status: 200, body: { contributions } };
+  }
+
+  const contributionDeleteMatch = url.pathname.match(
+    /^\/api\/contributions\/([^/]+)$/,
+  );
+  if (method === "DELETE" && contributionDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const contribution = await softDeleteContribution(
+      decodeURIComponent(contributionDeleteMatch[1]),
+      member,
+    );
+    return { status: 200, body: { contribution } };
+  }
+
+  const photoDeleteMatch = url.pathname.match(/^\/api\/photos\/([^/]+)$/);
+  if (method === "DELETE" && photoDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const photo = await softDeletePhoto(
+      decodeURIComponent(photoDeleteMatch[1]),
+      member,
+    );
+    return { status: 200, body: { photo } };
   }
 
   const adminMemberAccessMatch = url.pathname.match(

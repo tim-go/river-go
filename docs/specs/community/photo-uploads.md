@@ -85,6 +85,10 @@ Moderation rules:
 
 - moderation queues must show attached photo thumbnails or previews before a moderator can approve, confirm, challenge, hide, or reject the contribution
 - contribution-level moderation decisions must update attached photo visibility metadata so an approved photo contribution becomes visible in route, section, and POI details
+- signed-in members must be able to list their own uploaded photos, return to the related map section, and delete photos they uploaded
+- admins and contribution moderators must have an override delete/hide action for any uploaded photo during review or later operational cleanup
+- photo deletion should be a soft delete in the MVP: hide public metadata and retain audit/storage references until a separate retention/deletion policy exists
+- when the only photo on a `photo` contribution is deleted, the parent contribution should also be hidden from public section/POI views
 - access-point photos and hazard evidence can become public after light moderation or trusted-member promotion
 - privacy-sensitive images, faces, number plates, private land, signage, and disputed access locations need stricter review
 - rejected photos should remain auditable but not public
@@ -111,6 +115,8 @@ Initial backend endpoints:
 | `POST` | `/api/photos/:id/complete` | Mark an uploaded photo complete and attach it to the relevant section, POI, or contribution. |
 | `GET` | `/api/sections/:sectionId/photos` | Return public and member-visible photos for a section. |
 | `GET` | `/api/pois/:poiId/photos` | Return public and member-visible photos for a POI. |
+| `GET` | `/api/me/photos` | Return the signed-in member's uploaded photos with contribution and section context. |
+| `DELETE` | `/api/photos/:photoId` | Soft-delete a photo when requested by its owner, an admin, or a contribution moderator. |
 | `POST` | `/api/photos/:id/moderation` | Admin/moderator decision for photo visibility. |
 
 The first implementation may fold section/POI photo retrieval into section detail responses if separate endpoints are premature.
@@ -144,6 +150,8 @@ Minimum table shape:
 | `moderation_status` | `pending-upload`, `uploaded`, `moderation-pending`, `visible`, `rejected`, or `hidden`. |
 | `payload` | JSON metadata for client hints, dimensions, mime type, moderation notes, and processing state. |
 
+Soft-deleted photos should keep their storage paths and audit metadata but move to `hidden` moderation state. Physical deletion from Firebase Storage needs a later retention and audit policy.
+
 ## Open Questions
 
 - Should the first public launch use pre-moderation for all photos, or allow trusted members to publish immediately?
@@ -166,6 +174,8 @@ Minimum table shape:
 | PHOTO-F6 | Photo moderation | Admin | Landed | MVP | v0.4 | Moderation queue shows attached photo previews before decision, and decisions update contribution and photo visibility metadata. |
 | PHOTO-F7 | Offline photo queue | PWA/mobile | Queued | MVP | — | Queue metadata and pending binary upload when the user is offline. |
 | PHOTO-F8 | Browser image processing | PWA | Landed | MVP | v0.4 | Browser resizes selected photos to display and thumbnail JPEG derivatives before upload. |
+| PHOTO-F9 | Member photo management | Profile/backend | Active | MVP | — | Members can list uploaded photos, jump to the map section, and soft-delete their own uploads. |
+| PHOTO-F10 | Moderator photo delete override | Admin/backend | Active | MVP | — | Admins and contribution moderators can soft-delete uploaded photos during review. |
 
 ### Backlog
 
@@ -176,6 +186,7 @@ Minimum table shape:
 | PHOTO-B3 | risk | Privacy-sensitive media | Open | MVP | Need admin guidance and contributor copy for people, plates, private land, and access disputes. |
 | PHOTO-B4 | dependency | Contributor licence | Open | MVP | Required before accepting real public uploads. |
 | PHOTO-B5 | dependency | POI backend model | Open | MVP | Needed for clean POI-specific photo attachment. |
+| PHOTO-B6 | decision | Physical storage deletion | Open | MVP | Define retention/audit rules before deleting Firebase Storage objects. |
 
 ## Change Log
 

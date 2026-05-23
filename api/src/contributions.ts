@@ -1,6 +1,8 @@
 import type { PoolClient } from "pg";
 import { pool } from "./db.js";
 import { HttpError } from "./http.js";
+import type { Member } from "./members.js";
+import { canModerate } from "./members.js";
 
 export type ContributionModerationStatus =
   | "reported"
@@ -169,6 +171,43 @@ export async function listModerationContributions(
   return result.rows.map(mapContributionRow);
 }
 
+export async function listContributionsForMember(
+  memberId: string,
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiContribution[]> {
+  const result = await client.query<ContributionRow>(
+    `SELECT
+      c.id,
+      c.section_id,
+      c.type,
+      CASE
+        WHEN c.geometry IS NULL THEN NULL
+        ELSE ST_AsGeoJSON(c.geometry)::json
+      END AS geometry,
+      c.payload,
+      ${photoAggregateSql("c.id")} AS photos,
+      c.observed_at,
+      c.created_at,
+      c.updated_at,
+      c.moderation_status,
+      c.sync_status,
+      c.revision,
+      c.member_id,
+      m.display_name,
+      m.email,
+      m.trust_level
+    FROM contributions c
+    LEFT JOIN members m ON m.id = c.member_id
+    WHERE c.member_id = $1
+      AND c.moderation_status NOT IN ('hidden', 'rejected')
+    ORDER BY c.created_at DESC
+    LIMIT 200`,
+    [memberId],
+  );
+
+  return result.rows.map(mapContributionRow);
+}
+
 export async function getContributionById(
   contributionId: string,
   client: PoolClient | typeof pool = pool,
@@ -245,6 +284,50 @@ export async function applyModerationDecision(
   }
 
   return getContributionById(contributionId, client);
+}
+
+export async function softDeleteContribution(
+  contributionId: string,
+  actor: Member,
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiContribution> {
+  const existing = await getContributionById(contributionId, client);
+
+  if (existing.contributor.id !== actor.id && !canModerate(actor)) {
+    throw new HttpError(
+      403,
+      "Only the contribution owner or a moderator can delete it.",
+    );
+  }
+
+  const result = await client.query(
+    `UPDATE contributions
+    SET moderation_status = 'hidden',
+      updated_at = now(),
+      revision = revision + 1
+    WHERE id = $1`,
+    [contributionId],
+  );
+
+  if (!result.rowCount) {
+    throw new HttpError(404, "Contribution not found.");
+  }
+
+  await client.query(
+    `UPDATE contribution_photos
+    SET moderation_status = 'hidden',
+      updated_at = now()
+    WHERE contribution_id = $1`,
+    [contributionId],
+  );
+
+  return {
+    ...existing,
+    moderationStatus: "hidden",
+    photos: [],
+    revision: existing.revision + 1,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 export function mapContributionRow(row: ContributionRow): ApiContribution {

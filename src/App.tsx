@@ -24,6 +24,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Star,
+  Trash2,
   UserRound,
   Waves,
   X,
@@ -33,7 +34,9 @@ import { FormEvent, useEffect, useMemo, useRef, useState, type ReactNode } from 
 import { riverSections } from "./data/demoData";
 import {
   applyContributionModerationDecision,
+  deleteContribution,
   fetchModerationContributions,
+  fetchMyContributions,
   fetchSectionContributions,
   type ModerationDecision,
 } from "./services/contributionApi";
@@ -63,6 +66,11 @@ import {
   type ProcessedContributionPhoto,
 } from "./services/imageProcessing";
 import { uploadContributionPhoto } from "./services/photoUpload";
+import {
+  deletePhoto,
+  fetchMyPhotos,
+  type MemberPhoto,
+} from "./services/photoApi";
 import type {
   Contribution,
   ContributionPhoto,
@@ -140,10 +148,34 @@ const contributionOptions: Array<{
 
 const categoryOptions: Record<ContributionType, string[]> = {
   report: ["level", "recent paddle", "crowding", "weather", "other"],
-  hazard: ["weir", "strainer", "bridge", "shallow water", "navigation conflict"],
-  access: ["put-in", "take-out", "parking", "portage", "restriction"],
-  photo: ["access photo", "hazard photo", "river view", "level reference"],
-  feature: ["landing", "facility", "bridge", "rest stop", "navigation"],
+  hazard: [
+    "weir",
+    "strainer",
+    "bridge",
+    "shallow water",
+    "navigation conflict",
+    "other",
+  ],
+  access: ["put-in", "take-out", "parking", "portage", "restriction", "other"],
+  photo: [
+    "access photo",
+    "hazard photo",
+    "river view",
+    "level reference",
+    "other",
+  ],
+  feature: [
+    "general feature",
+    "rapid",
+    "wave",
+    "eddy",
+    "landing",
+    "facility",
+    "bridge",
+    "rest stop",
+    "navigation",
+    "other",
+  ],
 };
 
 type AppSection = "search" | "map" | "favourites" | "profile" | "more" | "admin";
@@ -172,6 +204,8 @@ const moderationActions: Array<{
 type MemberRoleFilter = "all" | MemberRole;
 type MemberTrustFilter = "all" | MemberTrustLevel;
 type ModerationDraftDecision = ModerationDecision | "";
+type PendingPhotoDelete = { id: string; title: string };
+type PendingPointDelete = { id: string; title: string };
 
 interface SelectedPoi {
   id: string;
@@ -187,6 +221,11 @@ interface SelectedPoi {
   navigationLocation?: LatLngTuple;
   syncStatus?: ContributionSyncStatus;
   photos?: ContributionPhoto[];
+  category?: string;
+  author?: string;
+  dateObserved?: string;
+  createdAt?: string;
+  contributionType?: ContributionType;
 }
 
 const appNavItems: Array<{
@@ -219,6 +258,69 @@ function syncActionLabel({
   }
 
   return "All local changes synced";
+}
+
+function pluralise(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function SyncOutboxBanner({
+  queuedOutboxCount,
+  failedOutboxCount,
+  isOnline,
+  isSyncingOutbox,
+  canSyncOutbox,
+  onSync,
+}: {
+  queuedOutboxCount: number;
+  failedOutboxCount: number;
+  isOnline: boolean;
+  isSyncingOutbox: boolean;
+  canSyncOutbox: boolean;
+  onSync: () => void;
+}) {
+  if (queuedOutboxCount === 0) {
+    return null;
+  }
+
+  const state = failedOutboxCount > 0 ? "failed" : !isOnline ? "offline" : "queued";
+  const title =
+    state === "failed"
+      ? `${pluralise(failedOutboxCount, "change")} need retry`
+      : state === "offline"
+        ? `${pluralise(queuedOutboxCount, "change")} saved on this device`
+        : `${pluralise(queuedOutboxCount, "change")} waiting to sync`;
+  const detail =
+    state === "failed"
+      ? "Some local knowledge did not reach RiverLaunch.app. Retry when you have a stable connection."
+      : state === "offline"
+        ? "You are offline. These changes will stay local until you reconnect and sync."
+        : "Sync now to publish your latest local knowledge to RiverLaunch.app.";
+
+  return (
+    <section className={`sync-banner sync-banner--${state}`} role="status">
+      <div className="sync-banner__content">
+        {state === "failed" ? (
+          <AlertTriangle size={20} />
+        ) : (
+          <RefreshCw size={20} />
+        )}
+        <div>
+          <strong>{title}</strong>
+          <span>{detail}</span>
+        </div>
+      </div>
+      <button
+        className="primary-action sync-banner__action"
+        type="button"
+        onClick={onSync}
+        disabled={!canSyncOutbox}
+      >
+        <RefreshCw size={16} />
+        {isSyncingOutbox ? "Syncing" : state === "failed" ? "Retry sync" : "Sync now"}
+      </button>
+    </section>
+  );
 }
 
 function optionForType(type: ContributionType) {
@@ -695,6 +797,43 @@ function PoiDetailPanel({
             <p>{poi.sourceLabel}</p>
           </section>
         ) : null}
+        {poi.kind === "contribution" ? (
+          <section className="info-block">
+            <h3>Contribution</h3>
+            <div className="detail-list">
+              {poi.contributionType ? (
+                <span>
+                  <strong>Type</strong>
+                  {poi.contributionType}
+                </span>
+              ) : null}
+              {poi.category ? (
+                <span>
+                  <strong>Category</strong>
+                  {poi.category}
+                </span>
+              ) : null}
+              {poi.author ? (
+                <span>
+                  <strong>Added by</strong>
+                  {poi.author}
+                </span>
+              ) : null}
+              {poi.dateObserved ? (
+                <span>
+                  <strong>Observed</strong>
+                  {poi.dateObserved}
+                </span>
+              ) : null}
+              {poi.createdAt ? (
+                <span>
+                  <strong>Added</strong>
+                  {poi.createdAt}
+                </span>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
         {poi.syncStatus ? (
           <section className="info-block">
             <h3>Sync</h3>
@@ -789,6 +928,9 @@ function App() {
   const [isAddMode, setIsAddMode] = useState(false);
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator === "undefined" ? true : navigator.onLine,
+  );
   const [authState, setAuthState] = useState<AuthState>({
     status: "loading",
     user: null,
@@ -797,6 +939,19 @@ function App() {
   const [authMessage, setAuthMessage] = useState("");
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
   const [memberMessage, setMemberMessage] = useState("");
+  const [memberPhotos, setMemberPhotos] = useState<MemberPhoto[]>([]);
+  const [isMemberPhotosLoading, setIsMemberPhotosLoading] = useState(false);
+  const [photoMessage, setPhotoMessage] = useState("");
+  const [pendingPhotoDelete, setPendingPhotoDelete] =
+    useState<PendingPhotoDelete | null>(null);
+  const [memberContributions, setMemberContributions] = useState<Contribution[]>(
+    [],
+  );
+  const [isMemberContributionsLoading, setIsMemberContributionsLoading] =
+    useState(false);
+  const [pointMessage, setPointMessage] = useState("");
+  const [pendingPointDelete, setPendingPointDelete] =
+    useState<PendingPointDelete | null>(null);
   const [adminMembers, setAdminMembers] = useState<MemberProfile[]>([]);
   const [isAdminLoading, setIsAdminLoading] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
@@ -844,12 +999,16 @@ function App() {
   const queuedOutboxCount = outboxRecords.filter((record) =>
     ["draft", "queued", "syncing", "failed"].includes(record.syncStatus),
   ).length;
+  const failedOutboxCount = outboxRecords.filter(
+    (record) => record.syncStatus === "failed",
+  ).length;
   const isAuthConfigured = authState.status !== "unconfigured";
   const isSignedIn = Boolean(authState.user);
   const canSyncOutbox =
     queuedOutboxCount > 0 &&
     !isSyncingOutbox &&
-    isSignedIn;
+    isSignedIn &&
+    isOnline;
   const favouriteSections = riverSections.filter((section) =>
     favouriteSectionIds.includes(section.id),
   );
@@ -882,6 +1041,20 @@ function App() {
   }, [adminMembers, memberRoleFilter, memberSearch, memberTrustFilter]);
 
   useEffect(() => subscribeToAuthState(setAuthState), []);
+
+  useEffect(() => {
+    function updateOnlineState() {
+      setIsOnline(navigator.onLine);
+    }
+
+    window.addEventListener("online", updateOnlineState);
+    window.addEventListener("offline", updateOnlineState);
+
+    return () => {
+      window.removeEventListener("online", updateOnlineState);
+      window.removeEventListener("offline", updateOnlineState);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -918,6 +1091,12 @@ function App() {
       setMemberProfile(null);
       setMemberMessage("");
       setAdminMembers([]);
+      setMemberPhotos([]);
+      setPhotoMessage("");
+      setPendingPhotoDelete(null);
+      setMemberContributions([]);
+      setPointMessage("");
+      setPendingPointDelete(null);
       setModerationContributions([]);
       setModerationDraftDecisions({});
       setModerationMessage("");
@@ -966,6 +1145,15 @@ function App() {
       void openModerationPanel();
     }
   }, [activeAppSection, activeAdminPage, canAccessAdminTools]);
+
+  useEffect(() => {
+    if (!authState.user || activeAppSection !== "profile") {
+      return;
+    }
+
+    void loadMemberPhotos();
+    void loadMemberContributions();
+  }, [activeAppSection, authState.user]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(contributions));
@@ -1166,9 +1354,7 @@ function App() {
     setSelectedLocation(null);
     setIsFormOpen(false);
     setIsSubmittingContribution(false);
-    if (!authState.user && isAuthConfigured) {
-      setSyncMessage("Saved locally. Sign in to sync this contribution.");
-    }
+    setSyncMessage("Saved locally. Sync now to publish this contribution.");
   }
 
   async function handlePhotoSelection(file: File | undefined) {
@@ -1313,6 +1499,162 @@ function App() {
     setAuthMessage("");
     setIsWelcomeDismissedForSession(true);
     setAuthSheetMode("save-required");
+  }
+
+  async function loadMemberPhotos() {
+    if (!authState.user) {
+      return;
+    }
+
+    setIsMemberPhotosLoading(true);
+    setPhotoMessage("");
+
+    try {
+      setMemberPhotos(await fetchMyPhotos());
+    } catch (error) {
+      setPhotoMessage(
+        error instanceof Error ? error.message : "Could not load your photos.",
+      );
+    } finally {
+      setIsMemberPhotosLoading(false);
+    }
+  }
+
+  async function loadMemberContributions() {
+    if (!authState.user) {
+      return;
+    }
+
+    setIsMemberContributionsLoading(true);
+    setPointMessage("");
+
+    try {
+      setMemberContributions(await fetchMyContributions());
+    } catch (error) {
+      setPointMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load your local knowledge.",
+      );
+    } finally {
+      setIsMemberContributionsLoading(false);
+    }
+  }
+
+  function openSectionOnMap(sectionId: string | null | undefined) {
+    const section = riverSections.find((item) => item.id === sectionId);
+
+    if (!section) {
+      return null;
+    }
+
+    setActiveSectionId(section.id);
+    setSectionFocusNonce((current) => current + 1);
+    setIsPanelOpen(false);
+    setSelectedPoi(null);
+    setActiveAppSection("map");
+
+    return section;
+  }
+
+  function openPhotoOnMap(photo: MemberPhoto) {
+    if (!openSectionOnMap(photo.sectionId)) {
+      setPhotoMessage("This photo is not attached to a known map section.");
+    }
+  }
+
+  function openContributionOnMap(contribution: Contribution) {
+    if (!openSectionOnMap(contribution.sectionId)) {
+      setPointMessage("This item is not attached to a known map section.");
+    }
+  }
+
+  function removeDeletedPhotoFromContributions(
+    current: Contribution[],
+    deletedPhoto: MemberPhoto,
+  ) {
+    return current.flatMap((contribution) => {
+      if (contribution.id !== deletedPhoto.contributionId) {
+        return [contribution];
+      }
+
+      const photos = (contribution.photos ?? []).filter(
+        (photo) => photo.id !== deletedPhoto.id,
+      );
+
+      if (contribution.type === "photo" && photos.length === 0) {
+        return [];
+      }
+
+      return [{ ...contribution, photos }];
+    });
+  }
+
+  function requestDeletePhoto(photoId: string, title: string) {
+    setPendingPhotoDelete({ id: photoId, title });
+  }
+
+  function requestDeletePoint(contributionId: string, title: string) {
+    setPendingPointDelete({ id: contributionId, title });
+  }
+
+  async function handleDeletePhoto(photoId: string) {
+    setPhotoMessage("");
+    setModerationMessage("");
+
+    try {
+      const deletedPhoto = await deletePhoto(photoId);
+      setMemberPhotos((current) =>
+        current.filter((photo) => photo.id !== deletedPhoto.id),
+      );
+      setContributions((current) =>
+        removeDeletedPhotoFromContributions(current, deletedPhoto),
+      );
+      setModerationContributions((current) =>
+        removeDeletedPhotoFromContributions(current, deletedPhoto),
+      );
+      setPhotoMessage("Photo deleted.");
+      setModerationMessage("Photo deleted.");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not delete this photo.";
+      setPhotoMessage(message);
+      setModerationMessage(message);
+    } finally {
+      setPendingPhotoDelete(null);
+    }
+  }
+
+  async function handleDeletePoint(contributionId: string) {
+    setPointMessage("");
+    setModerationMessage("");
+
+    try {
+      const deletedContribution = await deleteContribution(contributionId);
+      setMemberContributions((current) =>
+        current.filter((contribution) => contribution.id !== deletedContribution.id),
+      );
+      setContributions((current) =>
+        current.filter((contribution) => contribution.id !== deletedContribution.id),
+      );
+      setModerationContributions((current) =>
+        current.filter((contribution) => contribution.id !== deletedContribution.id),
+      );
+      setMemberPhotos((current) =>
+        current.filter(
+          (photo) => photo.contributionId !== deletedContribution.id,
+        ),
+      );
+      setPointMessage("Point deleted.");
+      setModerationMessage("Point deleted.");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not delete this point.";
+      setPointMessage(message);
+      setModerationMessage(message);
+    } finally {
+      setPendingPointDelete(null);
+    }
   }
 
   async function openAdminPanel() {
@@ -1686,6 +2028,14 @@ function App() {
           isSectionListOpen ? "workspace--sections-open" : ""
         }`}
       >
+        <SyncOutboxBanner
+          queuedOutboxCount={queuedOutboxCount}
+          failedOutboxCount={failedOutboxCount}
+          isOnline={isOnline}
+          isSyncingOutbox={isSyncingOutbox}
+          canSyncOutbox={canSyncOutbox}
+          onSync={syncOutboxNow}
+        />
         <aside
           className={`section-list ${
             isSectionListOpen ? "section-list--open" : "section-list--closed"
@@ -2503,6 +2853,14 @@ function App() {
                     {authMessage || authState.error || memberMessage}
                   </p>
                 ) : null}
+                <SyncOutboxBanner
+                  queuedOutboxCount={queuedOutboxCount}
+                  failedOutboxCount={failedOutboxCount}
+                  isOnline={isOnline}
+                  isSyncingOutbox={isSyncingOutbox}
+                  canSyncOutbox={canSyncOutbox}
+                  onSync={syncOutboxNow}
+                />
                 <div className="profile-stats">
                   <Metric
                     icon={MessageSquare}
@@ -2546,6 +2904,168 @@ function App() {
                     Sync now
                   </button>
                 </div>
+                {isSignedIn ? (
+                  <section className="profile-card profile-card--stacked">
+                    <div className="block-title">
+                      <div>
+                        <h3>My points</h3>
+                        <span>{memberContributions.length} saved</span>
+                      </div>
+                      <button
+                        className="ghost-button ghost-button--compact"
+                        type="button"
+                        onClick={() => void loadMemberContributions()}
+                        disabled={isMemberContributionsLoading}
+                      >
+                        <RefreshCw size={15} />
+                        Refresh
+                      </button>
+                    </div>
+                    {pointMessage ? (
+                      <p className="profile-message">{pointMessage}</p>
+                    ) : null}
+                    {isMemberContributionsLoading ? (
+                      <p className="source-note">Loading your points...</p>
+                    ) : memberContributions.length ? (
+                      <div className="profile-photo-list">
+                        {memberContributions.map((contribution) => {
+                          const section = riverSections.find(
+                            (item) => item.id === contribution.sectionId,
+                          );
+
+                          return (
+                            <article
+                              className="profile-point-row"
+                              key={contribution.id}
+                            >
+                              <div className="profile-point-icon">
+                                {contribution.type === "photo" ? (
+                                  <Camera size={18} />
+                                ) : contribution.type === "hazard" ? (
+                                  <AlertTriangle size={18} />
+                                ) : contribution.type === "access" ? (
+                                  <MapPinned size={18} />
+                                ) : contribution.type === "feature" ? (
+                                  <MapPin size={18} />
+                                ) : (
+                                  <MessageSquare size={18} />
+                                )}
+                              </div>
+                              <div>
+                                <strong>{contribution.title}</strong>
+                                <span>{contribution.detail}</span>
+                                <small>
+                                  {section?.sectionName ?? contribution.sectionId} ·{" "}
+                                  {contribution.type} ·{" "}
+                                  {contributionStatusLabel(contribution.status)}
+                                </small>
+                              </div>
+                              <div className="profile-photo-actions">
+                                <button
+                                  className="ghost-button ghost-button--compact"
+                                  type="button"
+                                  onClick={() => openContributionOnMap(contribution)}
+                                >
+                                  <MapIcon size={15} />
+                                  Map
+                                </button>
+                                <button
+                                  className="ghost-button ghost-button--compact"
+                                  type="button"
+                                  onClick={() =>
+                                    requestDeletePoint(
+                                      contribution.id,
+                                      contribution.title,
+                                    )
+                                  }
+                                >
+                                  <Trash2 size={15} />
+                                  Delete
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="source-note">
+                        Synced local knowledge will appear here.
+                      </p>
+                    )}
+                  </section>
+                ) : null}
+                {isSignedIn ? (
+                  <section className="profile-card profile-card--stacked">
+                    <div className="block-title">
+                      <div>
+                        <h3>My photos</h3>
+                        <span>{memberPhotos.length} uploaded</span>
+                      </div>
+                      <button
+                        className="ghost-button ghost-button--compact"
+                        type="button"
+                        onClick={() => void loadMemberPhotos()}
+                        disabled={isMemberPhotosLoading}
+                      >
+                        <RefreshCw size={15} />
+                        Refresh
+                      </button>
+                    </div>
+                    {photoMessage ? (
+                      <p className="profile-message">{photoMessage}</p>
+                    ) : null}
+                    {isMemberPhotosLoading ? (
+                      <p className="source-note">Loading your photos...</p>
+                    ) : memberPhotos.length ? (
+                      <div className="profile-photo-list">
+                        {memberPhotos.map((photo) => (
+                          <article className="profile-photo-row" key={photo.id}>
+                            <img
+                              src={photo.thumbnailUrl ?? photo.displayUrl ?? ""}
+                              alt={photo.caption || photo.contributionTitle}
+                            />
+                            <div>
+                              <strong>{photo.contributionTitle}</strong>
+                              <span>{photo.caption || photo.contributionDetail}</span>
+                              <small>
+                                {photo.sectionId ?? "No section"} ·{" "}
+                                {photo.photoModerationStatus} ·{" "}
+                                {new Date(photo.createdAt).toLocaleDateString()}
+                              </small>
+                            </div>
+                            <div className="profile-photo-actions">
+                              <button
+                                className="ghost-button ghost-button--compact"
+                                type="button"
+                                onClick={() => openPhotoOnMap(photo)}
+                              >
+                                <MapIcon size={15} />
+                                Map
+                              </button>
+                              <button
+                                className="ghost-button ghost-button--compact"
+                                type="button"
+                                onClick={() =>
+                                  requestDeletePhoto(
+                                    photo.id,
+                                    photo.caption || photo.contributionTitle,
+                                  )
+                                }
+                              >
+                                <Trash2 size={15} />
+                                Delete
+                              </button>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="source-note">
+                        Uploaded photos will appear here after they sync.
+                      </p>
+                    )}
+                  </section>
+                ) : null}
               </div>
             </PlaceholderPage>
           ) : activeAppSection === "more" ? (
@@ -2836,22 +3356,46 @@ function App() {
                                       {contribution.photos?.length ? (
                                         <div className="moderation-photo-grid">
                                           {contribution.photos.map((photo) => (
-                                            <a
+                                            <div
+                                              className="moderation-photo-card"
                                               key={photo.id}
-                                              href={photo.displayUrl}
-                                              target="_blank"
-                                              rel="noreferrer"
                                             >
-                                              <img
-                                                src={photo.thumbnailUrl || photo.displayUrl}
-                                                alt={photo.caption || contribution.title}
-                                              />
+                                              <a
+                                                href={photo.displayUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                              >
+                                                <img
+                                                  src={
+                                                    photo.thumbnailUrl ||
+                                                    photo.displayUrl
+                                                  }
+                                                  alt={
+                                                    photo.caption ||
+                                                    contribution.title
+                                                  }
+                                                />
+                                              </a>
                                               <span>
                                                 {photo.caption ||
                                                   photo.originalName ||
                                                   "Photo"}
                                               </span>
-                                            </a>
+                                              <button
+                                                className="ghost-button ghost-button--compact"
+                                                type="button"
+                                                onClick={() =>
+                                                  requestDeletePhoto(
+                                                    photo.id,
+                                                    photo.caption ||
+                                                      contribution.title,
+                                                  )
+                                                }
+                                              >
+                                                <Trash2 size={15} />
+                                                Delete
+                                              </button>
+                                            </div>
                                           ))}
                                         </div>
                                       ) : null}
@@ -2950,6 +3494,78 @@ function App() {
         activeSection={activeAppSection}
         onSelectSection={setActiveAppSection}
       />
+
+      {pendingPhotoDelete ? (
+        <div className="auth-sheet-backdrop" role="presentation">
+          <section
+            className="confirm-panel confirm-panel--modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Delete photo"
+          >
+            <div>
+              <p className="eyebrow">Delete photo</p>
+              <h3>{pendingPhotoDelete.title}</h3>
+              <p>
+                Hide this photo from RiverLaunch.app? The audit record will be
+                retained.
+              </p>
+            </div>
+            <div className="form-actions">
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => setPendingPhotoDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="submit-button"
+                type="button"
+                onClick={() => void handleDeletePhoto(pendingPhotoDelete.id)}
+              >
+                Delete
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingPointDelete ? (
+        <div className="auth-sheet-backdrop" role="presentation">
+          <section
+            className="confirm-panel confirm-panel--modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Delete point"
+          >
+            <div>
+              <p className="eyebrow">Delete point</p>
+              <h3>{pendingPointDelete.title}</h3>
+              <p>
+                Hide this point and any attached photos from RiverLaunch.app?
+                The audit record will be retained.
+              </p>
+            </div>
+            <div className="form-actions">
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => setPendingPointDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="submit-button"
+                type="button"
+                onClick={() => void handleDeletePoint(pendingPointDelete.id)}
+              >
+                Delete
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {authSheetMode ? (
         <AuthPromptSheet
@@ -3355,6 +3971,11 @@ function RiverMap({
                 sourceConfidence: "community",
                 syncStatus,
                 photos: contribution.photos,
+                category: contribution.category,
+                author: contribution.author,
+                dateObserved: contribution.dateObserved,
+                createdAt: contribution.createdAt,
+                contributionType: contribution.type,
               }),
           }),
         )

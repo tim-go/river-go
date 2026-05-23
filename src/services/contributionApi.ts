@@ -76,6 +76,23 @@ export async function fetchModerationContributions(): Promise<Contribution[]> {
   return (result.contributions ?? []).map(mapApiContribution);
 }
 
+export async function fetchMyContributions(): Promise<Contribution[]> {
+  const result = await fetchContributionEndpoint<{ contributions?: ApiContribution[] }>(
+    "/api/me/contributions",
+  );
+  return (result.contributions ?? []).map(mapApiContribution);
+}
+
+export async function deleteContribution(
+  contributionId: string,
+): Promise<Contribution> {
+  const result = await fetchContributionEndpoint<{ contribution: ApiContribution }>(
+    `/api/contributions/${encodeURIComponent(contributionId)}`,
+    { method: "DELETE" },
+  );
+  return mapApiContribution(result.contribution);
+}
+
 export type ModerationDecision =
   | "approve"
   | "confirm"

@@ -64,6 +64,8 @@ Contribution types:
 - feature
 - access
 
+Each contribution type should include an `other` category fallback. Feature categories should support general features plus river-specific items such as rapids, waves, eddies, landings, facilities, bridges, rest stops, and navigation notes.
+
 Expected user flow:
 
 1. Signed-in user clicks `Add local knowledge`.
@@ -77,6 +79,8 @@ Expected user flow:
 For the backend-persisted MVP, save should create a local outbox record first and then sync to the backend. Once the backend accepts the operation, the contribution should reload from `GET /api/sections/:sectionId/contributions` and remain visible across sessions/devices according to its moderation and visibility state.
 
 Existing seeded and saved information markers remain inspect-only, even while add mode is active. A future explicit `Add update here` action can be added inside marker popups if updating existing map objects becomes a priority.
+
+Signed-in members should be able to review their own synced points from Profile, return to the related map section, and delete items they created. Deletion is a soft-delete in the MVP: the contribution moves to `hidden`, attached photos are hidden, and audit/storage metadata is retained. Admins and contribution moderators may use the same delete path as an override.
 
 Required fields:
 
@@ -95,6 +99,7 @@ Offline requirements:
 - sync should be retryable without duplicating the contribution
 - photos should be queued separately from contribution metadata as defined in `/docs/specs/community/photo-uploads.md`
 - saved local observations should not be lost if the browser/app closes before sync
+- unsynced or failed outbox changes must be shown with a prominent banner on contribution-relevant surfaces, including Map and Profile, with a clear sync/retry action
 
 ## Open Questions
 
@@ -121,6 +126,8 @@ Offline requirements:
 | CON-F10 | Photo upload | Media | Landed | MVP | v0.4 | Photo contribution flow resizes/uploads a display image and thumbnail, then syncs photo metadata with the contribution. |
 | CON-F11 | Offline contribution outbox | PWA/mobile | Active | MVP | — | Form save writes queued sync operations locally and a manual sync action pushes them to the backend. |
 | CON-F12 | Backend-persisted contribution loop | API/frontend | Landed | MVP | — | Uses `/docs/specs/backend/data-and-sync-model.md` Phase 1: signed-in save, sync, readback, merge, and status labels. |
+| CON-F13 | Member point management | Profile/backend | Active | MVP | — | Members can list synced contributions, return to the map section, and soft-delete their own points. |
+| CON-F14 | Prominent sync state | Map/Profile | Active | MVP | — | Shows a banner for queued, failed, or offline outbox changes with sync/retry action. |
 
 ### Backlog
 
@@ -128,9 +135,10 @@ Offline requirements:
 | --- | --- | --- | --- | --- | --- |
 | CON-B1 | decision | Require map location for reports? | Open | v0.2 | Some reports are section-level; hazards/features/access should be map-specific. |
 | CON-B2 | decision | Contributor agreement | Open | MVP | Need terms for first-party community data. |
-| CON-B3 | enhancement | Prompt after viewing/watching a section | Open | v0.2 | Could ask users to confirm hazards or report recent conditions. |
-| CON-B4 | decision | Offline sign-in requirement | Resolved | MVP | Users must be signed in before creating offline contribution drafts that will sync later. |
-| CON-B5 | enhancement | Explicit marker update action | Open | v0.2 | Add an `Add update here` action inside marker popups if users need to contribute against existing objects. |
+| CON-B3 | decision | Physical deletion policy | Open | MVP | Define retention and recovery rules before hard-deleting contribution rows or uploaded media. |
+| CON-B4 | enhancement | Prompt after viewing/watching a section | Open | v0.2 | Could ask users to confirm hazards or report recent conditions. |
+| CON-B5 | decision | Offline sign-in requirement | Resolved | MVP | Users must be signed in before creating offline contribution drafts that will sync later. |
+| CON-B6 | enhancement | Explicit marker update action | Open | v0.2 | Add an `Add update here` action inside marker popups if users need to contribute against existing objects. |
 
 ## Change Log
 
