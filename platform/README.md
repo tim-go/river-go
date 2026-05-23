@@ -1,6 +1,6 @@
-# RiffleMap Platform
+# RiffleMap.com Platform
 
-This subproject owns RiffleMap platform configuration inside the main application repository. Internal repo and cloud resource IDs remain `river-go`.
+This subproject owns RiffleMap.com platform configuration inside the main application repository. Internal repo and cloud resource IDs remain `river-go`.
 
 It is intentionally not a separate repo. The goal is to keep product specs, application code, and platform intent together while still separating cloud setup concerns from the frontend app.
 
@@ -169,7 +169,7 @@ The staging Hosting rewrite for `/api/**` points to `river-go-api-staging`. The 
 
 ## Preferred Stack
 
-RiffleMap should use the same service family as the Kinetiq platform pattern, but contained in this repo:
+RiffleMap.com should use the same service family as the Kinetiq platform pattern, but contained in this repo:
 
 - Firebase Hosting for the public web entry point
 - Firebase Auth for contributor identity

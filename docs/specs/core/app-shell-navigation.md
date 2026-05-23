@@ -14,7 +14,7 @@ maturity: Draft
 
 ## Purpose
 
-RiffleMap needs a consistent app information architecture that works on desktop web, mobile web/PWA, and a later native mobile app.
+RiffleMap.com needs a consistent app information architecture that works on desktop web, mobile web/PWA, and a later native mobile app.
 
 The app should keep the map as the primary working surface while making search, saved places, profile, and secondary tools reachable from a stable navigation model.
 
@@ -48,7 +48,11 @@ Desktop and larger tablet layouts should use a persistent left navigation rail/s
 
 Mobile and PWA layouts should use a bottom tab bar for the same primary sections.
 
-Branding should be present without blocking startup. The app should not use an artificial splash screen during normal launch; instead, the desktop nav and secondary mobile surfaces such as `Profile` and `More` should carry compact RiffleMap branding while the map header stays contextual.
+Branding should be present without delaying startup. When auth resolves and no user is signed in, the app should show a welcome sheet with `Sign in` and `Continue as guest`. Continuing as guest dismisses the sheet for the current browser/PWA session using session storage, so refreshes and sign-out in the same session do not immediately re-show it. The desktop nav and secondary mobile surfaces such as `Profile` and `More` should carry compact RiffleMap.com branding while the map header stays contextual.
+
+Anonymous users may browse the map, search, route details, POIs, photos, levels, and navigation links. Savable actions require sign-in, including favourites, add local knowledge, add photo, sync, admin, and future offline packs.
+
+Desktop navigation should include a compact account footer. Signed-in users should see their account label, role, and a route to `Profile`; signed-out users should see `Guest` state and a sign-in action. The account footer should collapse to an icon-only affordance with the desktop nav rail.
 
 The `Map` section remains the default first view and contains the river map, section list, selected-section panel, contribution workflow, and map-specific controls.
 
@@ -81,14 +85,16 @@ Admin tools should remain role-gated and should not appear for ordinary members.
 | NAV-F2 | Mobile bottom tabs | PWA/mobile shell | Active | prototype | — | Bottom tabs mirror primary app sections. |
 | NAV-F3 | Profile section | Member shell | Active | prototype | — | Shows member identity, role, trust, local contribution count, and sync state. |
 | NAV-F4 | Placeholder sections | Search/more | Active | prototype | — | Lightweight placeholders preserve the final information architecture. |
-| NAV-F5 | Local favourite sections | Map/favourites | Active | prototype | — | Star toggles the active route into a localStorage-backed Favourites list. |
+| NAV-F5 | Account-gated favourite sections | Map/favourites | Active | prototype | — | Star prompts signed-out users to sign in; signed-in favourites remain local in the prototype until backend persistence exists. |
+| NAV-F6 | Signed-out welcome sheet | App shell/auth | Active | prototype | — | Welcome sheet appears on signed-out startup and explains guest browsing versus account-backed save/contribute actions. |
+| NAV-F7 | Desktop account footer | Desktop shell/auth | Active | prototype | — | Desktop nav shows signed-in account context or signed-out sign-in affordance without using map header space. |
 
 ### Backlog
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
 | NAV-B1 | decision | Top bar responsibility | Resolved | v0.3 | Keep identity in `Profile`; show map-specific action strip only on `Map`. |
-| NAV-B2 | enhancement | Durable favourites model | Open | MVP | Move favourites from browser localStorage into member-backed backend data. |
+| NAV-B2 | enhancement | Durable favourites model | Open | MVP | Move signed-in favourites from browser localStorage into member-backed backend data. |
 | NAV-B3 | enhancement | Search and discovery | Open | MVP | Connect search to river/section discovery, filters, and grade/runnability state. |
 
 ## Change Log
@@ -96,3 +102,4 @@ Admin tools should remain role-gated and should not appear for ordinary members.
 | Date | Change |
 | --- | --- |
 | 2026-05-23 | Added initial app shell navigation spec. |
+| 2026-05-23 | Added signed-out startup welcome sheet and sign-in requirement for savable actions. |

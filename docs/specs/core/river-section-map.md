@@ -30,6 +30,7 @@ The map is the primary workspace. The section list and right-hand panel are supp
 - `/docs/specs/release/demo-prototype.md`
 - `/docs/specs/data/river-wye-seed-data.md`
 - `/docs/specs/data/river-tryweryn-seed-data.md`
+- `/docs/specs/data/uk-kayaking-sample-catalogue.md`
 - `/docs/specs/community/community-contributions.md`
 - `/src/App.tsx`
 - `/src/data/wyeRouteTraces.ts`
@@ -99,6 +100,8 @@ Seeded Wye access points, hazards, features, and gauge markers are currently sna
 
 Seeded Tryweryn access points, hazards, features, and release-reference markers are also snapped onto the section route for demo coherence.
 
+The active demo also includes a UK kayaking sample catalogue under `/src/data/ukKayakingSeed.ts`. These entries are schematic discovery samples only; route lines and markers must be replaced with verified geometry and local review before publication.
+
 Production behaviour may differ:
 
 - access/hazard/feature markers should remain at true submitted coordinates
@@ -130,6 +133,7 @@ Production behaviour may differ:
 | MAP-F9 | UK discovery overview | Map | Queued | MVP | — | Show rivers/sections from wider zooms, coloured by level/runnability and labelled with grade. |
 | MAP-F10 | Grade and runnability filters | Map | Queued | MVP | — | Let paddlers filter to sections such as grade III-IV that are running now. |
 | MAP-F11 | POI details surface | Map/POI panel | Active | prototype | — | Marker popups stay compact and open a separate POI detail panel for full marker information. |
+| MAP-F12 | Multi-river sample catalogue | Map/search | Active | prototype | — | Active demo includes Tryweryn, Wye, and a schematic UK kayaking sample catalogue. |
 
 ### Backlog
 
@@ -151,3 +155,4 @@ Production behaviour may differ:
 | 2026-05-23 | Removed persistent map instruction panel and marker hover tooltips. |
 | 2026-05-23 | Added discovery overview, grade filtering, and access navigation requirements. |
 | 2026-05-23 | Added separate section popup, route panel, and POI detail surface model. |
+| 2026-05-23 | Added active multi-river sample catalogue context. |

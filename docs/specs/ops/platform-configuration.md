@@ -95,7 +95,7 @@ Staging rollout order:
 
 ## Open Questions
 
-- Should the public brand remain RiffleMap while keeping repo/project IDs as `river-go`?
+- Should the public brand remain RiffleMap.com while keeping repo/project IDs as `river-go`?
 - Should production use `europe-west2` for UK locality or match Kinetiq's existing `europe-west1` convention?
 - What production domain cutover sequence should be used for `rifflemap.com`?
 
@@ -122,7 +122,7 @@ Staging rollout order:
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
-| PLATFORM-B1 | decision | Confirm domains | Active | v0.2 | RiffleMap uses `rifflemap.com`; staging is available at `staging.rifflemap.com`; repo/project IDs remain `river-go`. |
+| PLATFORM-B1 | decision | Confirm domains | Active | v0.2 | RiffleMap.com uses `rifflemap.com`; staging is available at `staging.rifflemap.com`; repo/project IDs remain `river-go`. |
 | PLATFORM-B2 | decision | Confirm GCP region | Open | v0.2 | Template uses `europe-west2`; can switch before provisioning. |
 | PLATFORM-B3 | decision | Choose first publish shape | Resolved | v0.2 | Use Firebase Hosting plus Cloud Run, deployed backend-first and preview-first. |
 | PLATFORM-B4 | dependency | Create or select GCP/Firebase projects | Active | v0.3 | Setup script can create projects with `--create-resources` once billing config is set. |
@@ -153,6 +153,6 @@ Staging rollout order:
 | 2026-05-22 | Added isolated local PostGIS database configuration for backend development. |
 | 2026-05-23 | Added Cloud Run API deploy, Cloud SQL migration, Firebase preview/live deploy, and end-to-end smoke scripts. |
 | 2026-05-23 | Updated Cloud Run deploy path for organisation policy that blocks `allUsers` IAM bindings. |
-| 2026-05-23 | Updated public brand/domain notes to RiffleMap and `staging.rifflemap.com`. |
+| 2026-05-23 | Updated public brand/domain notes to RiffleMap.com and `staging.rifflemap.com`. |
 | 2026-05-21 | Added initial GCP/Firebase provisioning script. |
 | 2026-05-21 | Added initial in-repo platform configuration spec. |

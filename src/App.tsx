@@ -64,6 +64,7 @@ import type {
 const STORAGE_KEY = "river-go-demo-contributions";
 const HAZARD_REVIEW_STORAGE_KEY = "river-go-demo-hazard-reviews";
 const FAVOURITES_STORAGE_KEY = "river-go-demo-favourite-sections";
+const WELCOME_SESSION_STORAGE_KEY = "rifflemap-welcome-dismissed-session";
 
 const bandLabels = {
   "too-low": "Too low",
@@ -132,6 +133,7 @@ const categoryOptions: Record<ContributionType, string[]> = {
 
 type AppSection = "search" | "map" | "favourites" | "profile" | "more" | "admin";
 type AdminPage = "index" | "members" | "moderation" | "system";
+type AuthSheetMode = "welcome" | "save-required";
 
 interface SelectedPoi {
   id: string;
@@ -208,6 +210,22 @@ function loadFavouriteSectionIds(): string[] {
     return stored ? (JSON.parse(stored) as string[]) : [];
   } catch {
     return [];
+  }
+}
+
+function hasDismissedWelcomeForSession() {
+  try {
+    return sessionStorage.getItem(WELCOME_SESSION_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function rememberWelcomeDismissedForSession() {
+  try {
+    sessionStorage.setItem(WELCOME_SESSION_STORAGE_KEY, "true");
+  } catch {
+    // Non-critical; the welcome sheet can reappear if session storage is unavailable.
   }
 }
 
@@ -301,14 +319,26 @@ function AppNavigation({
   activeSection,
   collapsed,
   isAdmin,
+  isSignedIn,
+  isAuthConfigured,
+  memberLabel,
+  memberMeta,
+  memberRole,
   onToggleCollapsed,
   onSelectSection,
+  onSignIn,
 }: {
   activeSection: AppSection;
   collapsed: boolean;
   isAdmin: boolean;
+  isSignedIn: boolean;
+  isAuthConfigured: boolean;
+  memberLabel: string;
+  memberMeta: string;
+  memberRole: string;
   onToggleCollapsed: () => void;
   onSelectSection: (section: AppSection) => void;
+  onSignIn: () => void;
 }) {
   const visibleNavItems = isAdmin
     ? [...appNavItems, { id: "admin" as const, label: "Admin", icon: ShieldCheck }]
@@ -317,12 +347,12 @@ function AppNavigation({
   return (
     <aside className={`app-nav ${collapsed ? "app-nav--collapsed" : ""}`}>
       <div className="app-nav__header">
-        <div className="app-nav__brand" title="RiffleMap">
+        <div className="app-nav__brand" title="RiffleMap.com">
           <span className="brand-mark brand-mark--nav">
             <Waves size={20} strokeWidth={2.3} />
           </span>
           <span>
-            <strong>RiffleMap</strong>
+            <strong>RiffleMap.com</strong>
             <small>River intelligence</small>
           </span>
         </div>
@@ -355,6 +385,28 @@ function AppNavigation({
           );
         })}
       </nav>
+      <div className="app-nav__account">
+        <button
+          className="app-nav__account-main"
+          type="button"
+          title={
+            isSignedIn
+              ? `${memberLabel} · ${memberRole}`
+              : "Sign in to save favourites and contribute"
+          }
+          onClick={isSignedIn ? () => onSelectSection("profile") : onSignIn}
+          disabled={!isSignedIn && !isAuthConfigured}
+        >
+          <span className="app-nav__avatar">
+            <UserRound size={18} />
+          </span>
+          <span className="app-nav__account-text">
+            <strong>{memberLabel}</strong>
+            <small>{memberMeta}</small>
+          </span>
+        </button>
+        <span className="status-chip app-nav__account-role">{memberRole}</span>
+      </div>
     </aside>
   );
 }
@@ -398,9 +450,91 @@ function AppBrandPanel() {
         <Waves size={22} strokeWidth={2.3} />
       </span>
       <div>
-        <strong>RiffleMap</strong>
+        <strong>RiffleMap.com</strong>
         <span>Community river intelligence for paddlers.</span>
       </div>
+    </div>
+  );
+}
+
+function AuthPromptSheet({
+  mode,
+  authMessage,
+  isAuthConfigured,
+  onSignIn,
+  onContinueAsGuest,
+  onClose,
+}: {
+  mode: AuthSheetMode;
+  authMessage: string;
+  isAuthConfigured: boolean;
+  onSignIn: () => void;
+  onContinueAsGuest: () => void;
+  onClose: () => void;
+}) {
+  const isWelcome = mode === "welcome";
+
+  return (
+    <div className="auth-sheet-backdrop" role="presentation">
+      <section
+        className="auth-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label={isWelcome ? "Welcome to RiffleMap.com" : "Sign in required"}
+      >
+        <div className="auth-sheet__image">
+          <img src="/images/river-tryweryn.jpeg" alt="" />
+        </div>
+        <div className="auth-sheet__content">
+          <div className="auth-sheet__brand">
+            <span className="brand-mark">
+              <Waves size={22} strokeWidth={2.3} />
+            </span>
+            <span>RiffleMap.com</span>
+          </div>
+          <div>
+            <p className="eyebrow">
+              {isWelcome ? "Community river intelligence" : "Account required"}
+            </p>
+            <h2>
+              {isWelcome
+                ? "Plan rivers openly. Save and contribute with an account."
+                : "Sign in to save favourites or add local knowledge."}
+            </h2>
+            <p>
+              Browse routes, levels, access points, hazards, and photos without an
+              account. Sign in when you want RiffleMap.com to save something for you or
+              accept community updates.
+            </p>
+          </div>
+          {authMessage ? <p className="profile-message">{authMessage}</p> : null}
+          <div className="auth-sheet__actions">
+            <button
+              className="primary-action"
+              type="button"
+              onClick={onSignIn}
+              disabled={!isAuthConfigured}
+            >
+              <LogIn size={16} />
+              Sign in
+            </button>
+            {isWelcome ? (
+              <button className="ghost-button" type="button" onClick={onContinueAsGuest}>
+                Continue as guest
+              </button>
+            ) : (
+              <button className="ghost-button" type="button" onClick={onClose}>
+                Not now
+              </button>
+            )}
+          </div>
+          {!isAuthConfigured ? (
+            <p className="auth-sheet__note">
+              Sign-in is not configured in this environment.
+            </p>
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }
@@ -427,9 +561,11 @@ function PlaceholderPage({
 function PoiDetailPanel({
   poi,
   onClose,
+  onAddPhoto,
 }: {
   poi: SelectedPoi;
   onClose: () => void;
+  onAddPhoto: () => void;
 }) {
   return (
     <section className="poi-detail-panel" aria-label="Point of interest details">
@@ -484,7 +620,7 @@ function PoiDetailPanel({
               Navigate
             </a>
           ) : null}
-          <button className="ghost-button" type="button">
+          <button className="ghost-button" type="button" onClick={onAddPhoto}>
             <Camera size={16} />
             Add photo
           </button>
@@ -549,6 +685,9 @@ function App() {
   const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
   const [isGaugeLoading, setIsGaugeLoading] = useState(false);
   const [isSectionListOpen, setIsSectionListOpen] = useState(false);
+  const [authSheetMode, setAuthSheetMode] = useState<AuthSheetMode | null>(null);
+  const [isWelcomeDismissedForSession, setIsWelcomeDismissedForSession] =
+    useState(() => hasDismissedWelcomeForSession());
 
   const activeSection = useMemo(
     () =>
@@ -573,16 +712,38 @@ function App() {
     ["draft", "queued", "syncing", "failed"].includes(record.syncStatus),
   ).length;
   const isAuthConfigured = authState.status !== "unconfigured";
+  const isSignedIn = Boolean(authState.user);
   const canSyncOutbox =
     queuedOutboxCount > 0 &&
     !isSyncingOutbox &&
-    (!isAuthConfigured || Boolean(authState.user));
+    isSignedIn;
   const favouriteSections = riverSections.filter((section) =>
     favouriteSectionIds.includes(section.id),
   );
-  const isActiveSectionFavourite = favouriteSectionIds.includes(activeSection.id);
+  const isActiveSectionFavourite =
+    isSignedIn && favouriteSectionIds.includes(activeSection.id);
 
   useEffect(() => subscribeToAuthState(setAuthState), []);
+
+  useEffect(() => {
+    if (authState.status === "loading") {
+      return;
+    }
+
+    if (authState.user) {
+      setAuthSheetMode(null);
+      return;
+    }
+
+    if (!isWelcomeDismissedForSession && authSheetMode !== "save-required") {
+      setAuthSheetMode("welcome");
+    }
+  }, [
+    authState.status,
+    authState.user,
+    authSheetMode,
+    isWelcomeDismissedForSession,
+  ]);
 
   useEffect(() => {
     let isMounted = true;
@@ -686,6 +847,12 @@ function App() {
     const safeTitle = title.trim();
     const safeDetail = detail.trim();
 
+    if (!isSignedIn) {
+      setFormError("Sign in before saving local knowledge.");
+      setAuthSheetMode("save-required");
+      return;
+    }
+
     if (!safeTitle || !safeDetail) {
       setFormError("Add a title and detail before saving.");
       return;
@@ -774,8 +941,9 @@ function App() {
       return;
     }
 
-    if (isAuthConfigured && !authState.user) {
+    if (!isSignedIn) {
       setSyncMessage("Sign in before syncing local contributions.");
+      setAuthSheetMode("save-required");
       return;
     }
 
@@ -813,8 +981,10 @@ function App() {
 
     try {
       await signInWithGoogle();
+      return true;
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : "Could not sign in.");
+      return false;
     }
   }
 
@@ -826,6 +996,32 @@ function App() {
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : "Could not sign out.");
     }
+  }
+
+  function continueAsGuest() {
+    rememberWelcomeDismissedForSession();
+    setIsWelcomeDismissedForSession(true);
+    setAuthSheetMode(null);
+  }
+
+  function closeAuthSheet() {
+    rememberWelcomeDismissedForSession();
+    setIsWelcomeDismissedForSession(true);
+    setAuthSheetMode(null);
+  }
+
+  async function signInFromSheet() {
+    const signedIn = await handleSignIn();
+
+    if (signedIn) {
+      setAuthSheetMode(null);
+    }
+  }
+
+  function requireSignInForSave() {
+    setAuthMessage("");
+    setIsWelcomeDismissedForSession(true);
+    setAuthSheetMode("save-required");
   }
 
   async function openAdminPanel() {
@@ -926,6 +1122,13 @@ function App() {
   }
 
   function startAddMode(nextType: ContributionType = contributionType) {
+    if (!isSignedIn) {
+      setIsAddMode(false);
+      setIsFormOpen(false);
+      requireSignInForSave();
+      return;
+    }
+
     const requiresLocation = optionForType(nextType).locationRequired;
     chooseContributionType(nextType);
     setIsAddMode(requiresLocation);
@@ -961,12 +1164,25 @@ function App() {
   }
 
   function toggleFavouriteSection(section: RiverSection) {
+    if (!isSignedIn) {
+      requireSignInForSave();
+      return;
+    }
+
     setFavouriteSectionIds((current) =>
       current.includes(section.id)
         ? current.filter((sectionId) => sectionId !== section.id)
         : [...current, section.id],
     );
   }
+
+  const accountLabel =
+    memberProfile?.displayName ?? authState.user?.displayName ?? "Guest";
+  const accountMeta =
+    memberProfile?.email ??
+    authState.user?.email ??
+    "Browse freely; sign in to save";
+  const accountRole = memberProfile?.role ?? (isSignedIn ? "Member" : "Signed out");
 
   return (
     <main
@@ -1029,12 +1245,16 @@ function App() {
               }`}
               type="button"
               title={
-                isActiveSectionFavourite
+                !isSignedIn
+                  ? "Sign in to save favourites"
+                  : isActiveSectionFavourite
                   ? "Remove from favourites"
                   : "Add to favourites"
               }
               aria-label={
-                isActiveSectionFavourite
+                !isSignedIn
+                  ? "Sign in to save favourites"
+                  : isActiveSectionFavourite
                   ? "Remove from favourites"
                   : "Add to favourites"
               }
@@ -1070,8 +1290,14 @@ function App() {
           activeSection={activeAppSection}
           collapsed={isAppNavCollapsed}
           isAdmin={memberProfile?.role === "ADMIN"}
+          isSignedIn={isSignedIn}
+          isAuthConfigured={isAuthConfigured}
+          memberLabel={accountLabel}
+          memberMeta={accountMeta}
+          memberRole={accountRole}
           onToggleCollapsed={() => setIsAppNavCollapsed((current) => !current)}
           onSelectSection={setActiveAppSection}
+          onSignIn={handleSignIn}
         />
 
         <section className="app-view">
@@ -1314,6 +1540,7 @@ function App() {
           <PoiDetailPanel
             poi={selectedPoi}
             onClose={() => setSelectedPoi(null)}
+            onAddPhoto={() => startAddMode("photo")}
           />
         ) : null}
 
@@ -1698,49 +1925,71 @@ function App() {
             </PlaceholderPage>
           ) : activeAppSection === "favourites" ? (
             <PlaceholderPage section="favourites" title="Favourites">
-              <div className="placeholder-list">
-                {favouriteSections.map((section) => (
-                  <div className="placeholder-row" key={section.id}>
-                    <span>
-                      <strong>{section.riverName}</strong>
-                      <small>{section.sectionName}</small>
-                    </span>
-                    <span className={`level-pill level-pill--${section.levelBand}`}>
-                      {bandLabels[section.levelBand]}
-                    </span>
-                    <button
-                      className="ghost-button ghost-button--compact"
-                      type="button"
-                      onClick={() => {
-                        selectSection(section);
-                        setActiveAppSection("map");
-                      }}
-                    >
-                      <MapIcon size={15} />
-                      Open
-                    </button>
-                    <button
-                      className="icon-button icon-button--compact"
-                      type="button"
-                      title="Remove from favourites"
-                      aria-label={`Remove ${section.sectionName} from favourites`}
-                      onClick={() => setPendingUnfavouriteSection(section)}
-                    >
-                      <X size={15} />
-                    </button>
+              {!isSignedIn ? (
+                <section className="sign-in-card">
+                  <Star size={22} />
+                  <div>
+                    <h3>Sign in to save favourites</h3>
+                    <p>
+                      RiffleMap.com treats favourites as account-only saved routes, so
+                      sign in before saving sections.
+                    </p>
                   </div>
-                ))}
-                {favouriteSections.length === 0 ? (
-                  <div className="placeholder-row">
-                    <span>
-                      <strong>No favourites yet</strong>
-                      <small>Use the star on the Map section to save a route here.</small>
-                    </span>
-                    <Star size={18} />
-                  </div>
-                ) : null}
-              </div>
-              {pendingUnfavouriteSection ? (
+                  <button
+                    className="primary-action"
+                    type="button"
+                    onClick={requireSignInForSave}
+                    disabled={!isAuthConfigured}
+                  >
+                    <LogIn size={16} />
+                    Sign in
+                  </button>
+                </section>
+              ) : (
+                <div className="placeholder-list">
+                  {favouriteSections.map((section) => (
+                    <div className="placeholder-row" key={section.id}>
+                      <span>
+                        <strong>{section.riverName}</strong>
+                        <small>{section.sectionName}</small>
+                      </span>
+                      <span className={`level-pill level-pill--${section.levelBand}`}>
+                        {bandLabels[section.levelBand]}
+                      </span>
+                      <button
+                        className="ghost-button ghost-button--compact"
+                        type="button"
+                        onClick={() => {
+                          selectSection(section);
+                          setActiveAppSection("map");
+                        }}
+                      >
+                        <MapIcon size={15} />
+                        Open
+                      </button>
+                      <button
+                        className="icon-button icon-button--compact"
+                        type="button"
+                        title="Remove from favourites"
+                        aria-label={`Remove ${section.sectionName} from favourites`}
+                        onClick={() => setPendingUnfavouriteSection(section)}
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                  ))}
+                  {favouriteSections.length === 0 ? (
+                    <div className="placeholder-row">
+                      <span>
+                        <strong>No favourites yet</strong>
+                        <small>Use the star on the Map section to save a route here.</small>
+                      </span>
+                      <Star size={18} />
+                    </div>
+                  ) : null}
+                </div>
+              )}
+              {isSignedIn && pendingUnfavouriteSection ? (
                 <section className="confirm-panel" role="dialog" aria-modal="true">
                   <div>
                     <p className="eyebrow">Remove favourite</p>
@@ -1793,6 +2042,27 @@ function App() {
                     {memberProfile?.role ?? "Guest"}
                   </span>
                 </div>
+                {!isSignedIn ? (
+                  <section className="sign-in-card">
+                    <LogIn size={22} />
+                    <div>
+                      <h3>Sign in to save and contribute</h3>
+                      <p>
+                        Browsing is open to everyone. Favourites, local knowledge,
+                        photos, and sync need a RiffleMap.com account.
+                      </p>
+                    </div>
+                    <button
+                      className="primary-action"
+                      type="button"
+                      onClick={handleSignIn}
+                      disabled={!isAuthConfigured}
+                    >
+                      <LogIn size={16} />
+                      Sign in
+                    </button>
+                  </section>
+                ) : null}
                 {authMessage || authState.error || memberMessage ? (
                   <p className="profile-message">
                     {authMessage || authState.error || memberMessage}
@@ -1821,7 +2091,7 @@ function App() {
                   />
                 </div>
                 <div className="profile-actions">
-                  {authState.user ? (
+                  {isSignedIn ? (
                     <button
                       className="ghost-button"
                       type="button"
@@ -1830,17 +2100,7 @@ function App() {
                       <LogOut size={16} />
                       Sign out
                     </button>
-                  ) : (
-                    <button
-                      className="primary-action"
-                      type="button"
-                      onClick={handleSignIn}
-                      disabled={!isAuthConfigured}
-                    >
-                      <LogIn size={16} />
-                      Sign in
-                    </button>
-                  )}
+                  ) : null}
                   <button
                     className="ghost-button"
                     type="button"
@@ -2023,6 +2283,17 @@ function App() {
         activeSection={activeAppSection}
         onSelectSection={setActiveAppSection}
       />
+
+      {authSheetMode ? (
+        <AuthPromptSheet
+          mode={authSheetMode}
+          authMessage={authMessage || authState.error || ""}
+          isAuthConfigured={isAuthConfigured}
+          onSignIn={signInFromSheet}
+          onContinueAsGuest={continueAsGuest}
+          onClose={closeAuthSheet}
+        />
+      ) : null}
     </main>
   );
 }

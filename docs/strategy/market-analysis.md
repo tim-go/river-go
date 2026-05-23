@@ -14,7 +14,7 @@ RiverApp is strong on river levels, gauge coverage, favorites, alerts, maps, and
 
 RiverApp's public positioning includes large-scale gauge and river coverage, real-time aggregation from many hydrological sources, push alerts, favourites, historical data, whitewater sections, put-ins, take-outs, dams, impassable rapids, parking locations, user notes, hazards, legal issues, and trip reports.
 
-Implication: RiffleMap should not try to beat RiverApp by being another larger gauge browser. River levels are necessary, but they are not enough to define the product. The stronger opportunity is to make UK canoe section knowledge more structured, local, fresh, trusted, and usable offline.
+Implication: RiffleMap.com should not try to beat RiverApp by being another larger gauge browser. River levels are necessary, but they are not enough to define the product. The stronger opportunity is to make UK canoe section knowledge more structured, local, fresh, trusted, and usable offline.
 
 Reference: https://www.riverapp.net/en
 
@@ -110,7 +110,7 @@ The gap is a structured contribution system where users add typed, reviewable, d
 
 ## Strategic Recommendation
 
-Build RiffleMap as a UK-first community river intelligence app for canoeists.
+Build RiffleMap.com as a UK-first community river intelligence app for canoeists.
 
 Avoid a feature war with established apps. Instead, compete by making a smaller set of decisions much easier:
 

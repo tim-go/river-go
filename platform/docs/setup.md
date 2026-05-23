@@ -1,4 +1,4 @@
-# RiffleMap Platform Setup
+# RiffleMap.com Platform Setup
 
 ## Current State
 
@@ -49,7 +49,7 @@ Important values:
 
 Edit `platform/.config/river-go-runtime.json` once Firebase apps and API URLs exist.
 
-RiffleMap follows the Kinetiq two-file config split while keeping internal repository and cloud IDs as `river-go`:
+RiffleMap.com follows the Kinetiq two-file config split while keeping internal repository and cloud IDs as `river-go`:
 
 - `river-go-platform.json` contains provisioning facts: GCP project IDs, billing/resource parent, Firebase project IDs, Cloud SQL instance/database/user names, service accounts, domains, and GitHub environment names.
 - `river-go-runtime.json` contains execution facts and deployable secrets: URLs, `DATABASE_URL`, migration database URL, Firebase web SDK config, Firebase Admin credentials when needed, session/auth settings, and storage buckets.

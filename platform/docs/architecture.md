@@ -1,8 +1,8 @@
-# RiffleMap Platform Architecture
+# RiffleMap.com Platform Architecture
 
 ## Purpose
 
-RiffleMap will publish from the main repository while keeping platform configuration in `platform/`. Internal repository, GCP, Firebase, and service IDs continue to use `river-go`.
+RiffleMap.com will publish from the main repository while keeping platform configuration in `platform/`. Internal repository, GCP, Firebase, and service IDs continue to use `river-go`.
 
 The deployment shape should support the current web demo, the future backend API, and a later mobile app without splitting infrastructure into a separate repository.
 
