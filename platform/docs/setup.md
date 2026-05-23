@@ -281,6 +281,58 @@ npm run platform:deploy-web:staging
 
 If live Hosting needs to be rolled back, use the Firebase Console Hosting release history and select the previous release rollback action.
 
+## Hosted Web Auth Flow
+
+Staging currently uses popup sign-in because it is known to work with the Firebase project helper domain:
+
+```json
+{
+  "staging": {
+    "firebase": {
+      "client": {
+        "authDomain": "river-go-staging.firebaseapp.com"
+      }
+    },
+    "auth": {
+      "flow": "popup"
+    }
+  }
+}
+```
+
+Before attempting inline redirect sign-in, run:
+
+```bash
+npm run platform:auth:inline:staging
+```
+
+That command prints the exact Firebase authorised domain, Google OAuth JavaScript origin, OAuth redirect URI, generated Google client ID, and generated redirect URI that must match the Google Cloud OAuth client.
+
+The inline staging cutover is:
+
+```json
+{
+  "staging": {
+    "firebase": {
+      "client": {
+        "authDomain": "staging.riverlaunch.app"
+      }
+    },
+    "auth": {
+      "flow": "redirect"
+    }
+  }
+}
+```
+
+Then deploy Hosting:
+
+```bash
+npm run platform:deploy-web:staging
+```
+
+If Google rejects the request or users cannot complete sign-in, roll back those two values to `river-go-staging.firebaseapp.com` and `popup`, then redeploy Hosting.
+
 ## Provisioning Roadmap
 
 Future platform scripts should be added in this order:
