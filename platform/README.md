@@ -1,6 +1,6 @@
-# RiffleMap.com Platform
+# RiverLaunch.app Platform
 
-This subproject owns RiffleMap.com platform configuration inside the main application repository. Internal repo and cloud resource IDs remain `river-go`.
+This subproject owns RiverLaunch.app platform configuration inside the main application repository. Internal repo and cloud resource IDs remain `river-go`.
 
 It is intentionally not a separate repo. The goal is to keep product specs, application code, and platform intent together while still separating cloud setup concerns from the frontend app.
 
@@ -85,9 +85,9 @@ Cloud SQL passwords, PostGIS extension setup, custom domains, and deployment sec
 
 ## Local Database
 
-River Go uses a separate local PostGIS database so it does not disturb the shared Kinetiq `kinetiq-db` container on `localhost:5432`.
+RiverLaunch.app uses a separate local PostGIS database so it does not disturb the shared Kinetiq `kinetiq-db` container on `localhost:5432`.
 
-Start the local River Go database:
+Start the local RiverLaunch.app database:
 
 ```bash
 npm run db:local:up
@@ -111,7 +111,7 @@ Local connection defaults:
 - app URL: `postgresql://river_go_app:river_go@localhost:5435/river_go`
 - migrations URL: `postgresql://github_ci:river_go@localhost:5435/river_go`
 
-PostGIS is PostgreSQL's geospatial extension. River Go needs it to store and query river routes, sections, hazards, access points, and nearby map contributions as real geometry rather than plain latitude/longitude text.
+PostGIS is PostgreSQL's geospatial extension. RiverLaunch.app needs it to store and query river routes, sections, hazards, access points, and nearby map contributions as real geometry rather than plain latitude/longitude text.
 
 ## Health Checks
 
@@ -169,7 +169,7 @@ The staging Hosting rewrite for `/api/**` points to `river-go-api-staging`. The 
 
 ## Preferred Stack
 
-RiffleMap.com should use the same service family as the Kinetiq platform pattern, but contained in this repo:
+RiverLaunch.app should use the same service family as the Kinetiq platform pattern, but contained in this repo:
 
 - Firebase Hosting for the public web entry point
 - Firebase Auth for contributor identity

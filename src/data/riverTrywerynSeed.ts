@@ -79,7 +79,7 @@ function snapLocationToRoute(location: LatLngTuple, route: LatLngTuple[]) {
 
 const seedSource: SourceMetadata = {
   kind: "seed",
-  label: "River Go Tryweryn seed dataset",
+  label: "RiverLaunch.app Tryweryn seed dataset",
   confidence: "low",
   updatedAt: "2026-05-23",
   notes:
@@ -254,7 +254,7 @@ const riverTrywerynSectionSeeds: RiverSection[] = [
     reports: [
       {
         id: "tryweryn-dam-seed-report",
-        author: "River Go seed",
+        author: "RiverLaunch.app seed",
         dateObserved: "Needs local confirmation",
         type: "Seed note",
         text: "First contributor task: verify the exact authorised start point near the dam, centre check-in process, and whether this marker should be labelled as access, feature, or release reference only.",
@@ -370,7 +370,7 @@ const riverTrywerynSectionSeeds: RiverSection[] = [
     reports: [
       {
         id: "tryweryn-lower-seed-report",
-        author: "River Go seed",
+        author: "RiverLaunch.app seed",
         dateObserved: "Needs local confirmation",
         type: "Seed note",
         text: "Collect fresh lower-section reports for obstructions, exact portage line, and Bala take-out practicality.",

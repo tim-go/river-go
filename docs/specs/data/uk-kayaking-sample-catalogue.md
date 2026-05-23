@@ -20,7 +20,7 @@ The catalogue is not a ranked list and is not verified guidebook advice. It is a
 
 ## Product Role
 
-- `Primary user objective:` See how RiffleMap.com could browse multiple well-known rivers across the UK.
+- `Primary user objective:` See how RiverLaunch.app could browse multiple well-known rivers across the UK.
 - `Classification:` Data
 - `Loop step:` Browse / Choose
 - `Why this matters:` A single sample river cannot validate discovery, account-gated favourites, or future grade/runnability filters.

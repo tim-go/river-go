@@ -23,7 +23,7 @@ The map is the primary workspace. The section list and right-hand panel are supp
 - `Primary user objective:` Choose and inspect a river section using a route-aware map.
 - `Classification:` Core
 - `Loop step:` Choose
-- `Why this matters:` River Go's core unit is the river section. If users cannot quickly orient themselves on the map, the community data model will not be trusted.
+- `Why this matters:` RiverLaunch.app's core unit is the river section. If users cannot quickly orient themselves on the map, the community data model will not be trusted.
 
 ## References
 

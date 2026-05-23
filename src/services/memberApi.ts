@@ -1,7 +1,8 @@
 import { getApiBaseUrl } from "./apiConfig";
 import { getCurrentUserIdToken } from "./firebaseAuth";
 
-export type MemberRole = "MEMBER" | "ADMIN" | "CONTRIB_ADMIN";
+export type MemberRole = "MEMBER" | "TRUSTED_MEMBER" | "CONTRIB_MODERATOR" | "ADMIN";
+export type MemberTrustLevel = "NEW" | "KNOWN" | "TRUSTED";
 
 export interface MemberProfile {
   id: string;
@@ -10,7 +11,7 @@ export interface MemberProfile {
   displayName: string | null;
   photoUrl: string | null;
   role: MemberRole;
-  trustLevel: string;
+  trustLevel: MemberTrustLevel;
   createdAt: string;
   updatedAt: string;
   lastSeenAt: string | null;
@@ -28,7 +29,23 @@ export async function fetchAdminMembers(): Promise<MemberProfile[]> {
   );
 }
 
-async function fetchMemberEndpoint<T>(path: string): Promise<T> {
+export async function updateAdminMemberAccess(
+  memberId: string,
+  access: { role: MemberRole; trustLevel: MemberTrustLevel },
+): Promise<MemberProfile> {
+  return fetchMemberEndpoint<{ member: MemberProfile }>(
+    `/api/admin/members/${encodeURIComponent(memberId)}/access`,
+    {
+      method: "POST",
+      body: JSON.stringify(access),
+    },
+  ).then((result) => result.member);
+}
+
+async function fetchMemberEndpoint<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
   const authToken = await getCurrentUserIdToken();
 
   if (!authToken) {
@@ -36,9 +53,12 @@ async function fetchMemberEndpoint<T>(path: string): Promise<T> {
   }
 
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
+    ...options,
     headers: {
+      "content-type": "application/json",
       authorization: `Bearer ${authToken}`,
     },
+    method: options.method ?? "GET",
   });
 
   if (!response.ok) {

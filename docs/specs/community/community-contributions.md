@@ -23,7 +23,7 @@ The contribution model should collect structured data, not loose comments.
 - `Primary user objective:` Add useful local river knowledge after scouting, paddling, or reviewing a section.
 - `Classification:` Core
 - `Loop step:` Report
-- `Why this matters:` River Go's defensible value is first-party community river intelligence. If contribution is confusing or too slow, the product thesis fails.
+- `Why this matters:` RiverLaunch.app's defensible value is first-party community river intelligence. If contribution is confusing or too slow, the product thesis fails.
 
 ## References
 

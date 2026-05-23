@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { listContributionsForSection } from "./contributions.js";
+import {
+  applyModerationDecision,
+  listContributionsForSection,
+  listModerationContributions,
+} from "./contributions.js";
 import { closePool } from "./db.js";
 import { upsertMemberFromAuth } from "./members.js";
 import { pushSyncOperations } from "./sync.js";
@@ -47,8 +51,28 @@ try {
   const first = await pushSyncOperations({ operations: [operation] }, actor);
   const second = await pushSyncOperations({ operations: [operation] }, actor);
   const contributions = await listContributionsForSection(sectionId, member.id);
+  const moderationQueue = await listModerationContributions();
+  const moderatedContribution = await applyModerationDecision(
+    contributionId,
+    "confirm",
+  );
 
-  console.log(JSON.stringify({ first, second, contributions }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        first,
+        second,
+        contributions,
+        moderationQueueCount: moderationQueue.length,
+        smokeContributionInModerationQueue: moderationQueue.some(
+          (contribution) => contribution.id === contributionId,
+        ),
+        moderatedContribution,
+      },
+      null,
+      2,
+    ),
+  );
 
   if (first.accepted.length !== 1 || second.accepted[0]?.status !== "duplicate") {
     throw new Error("Smoke sync did not prove idempotent replay");
@@ -60,6 +84,14 @@ try {
 
   if (contributions[0]?.contributor.id !== member.id) {
     throw new Error("Smoke sync did not prove authenticated member linkage");
+  }
+
+  if (!moderationQueue.some((contribution) => contribution.id === contributionId)) {
+    throw new Error("Smoke sync did not prove moderation queue readback");
+  }
+
+  if (moderatedContribution.moderationStatus !== "confirmed") {
+    throw new Error("Smoke sync did not prove moderation decision update");
   }
 } finally {
   await closePool();

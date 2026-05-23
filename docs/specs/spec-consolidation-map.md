@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This map helps locate the owning spec for River Go work. If a durable change does not fit one of these specs, create or update the nearest owning spec before implementation.
+This map helps locate the owning spec for RiverLaunch.app work. If a durable change does not fit one of these specs, create or update the nearest owning spec before implementation.
 
 ## Current Specs
 

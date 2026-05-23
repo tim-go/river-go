@@ -79,7 +79,7 @@ function snapLocationToRoute(location: LatLngTuple, route: LatLngTuple[]) {
 
 const seedSource: SourceMetadata = {
   kind: "seed",
-  label: "River Go Wye seed dataset",
+  label: "RiverLaunch.app Wye seed dataset",
   confidence: "low",
   updatedAt: "2026-05-21",
   notes:
@@ -180,7 +180,7 @@ const riverWyeSectionSeeds: RiverSection[] = [
     reports: [
       {
         id: "wye-glasbury-seed-report",
-        author: "River Go seed",
+        author: "RiverLaunch.app seed",
         dateObserved: "Needs local confirmation",
         type: "Seed note",
         text: "Ask early contributors to confirm launch process, parking, and low-water scrape points.",
@@ -269,7 +269,7 @@ const riverWyeSectionSeeds: RiverSection[] = [
     reports: [
       {
         id: "wye-whitney-seed-report",
-        author: "River Go seed",
+        author: "RiverLaunch.app seed",
         dateObserved: "Needs local confirmation",
         type: "Seed note",
         text: "Collect reports on whether this feels distinct enough from longer Wye day trips.",
@@ -358,7 +358,7 @@ const riverWyeSectionSeeds: RiverSection[] = [
     reports: [
       {
         id: "wye-bredwardine-seed-report",
-        author: "River Go seed",
+        author: "RiverLaunch.app seed",
         dateObserved: "Needs local confirmation",
         type: "Seed note",
         text: "Ask contributors whether this section split is practical for open canoe day trips.",
@@ -536,7 +536,7 @@ const riverWyeSectionSeeds: RiverSection[] = [
     reports: [
       {
         id: "wye-ross-seed-report",
-        author: "River Go seed",
+        author: "RiverLaunch.app seed",
         dateObserved: "Needs local confirmation",
         type: "Seed note",
         text: "Ask contributors which gauge and level bands they use for this section.",
@@ -626,7 +626,7 @@ const riverWyeSectionSeeds: RiverSection[] = [
     reports: [
       {
         id: "wye-symonds-seed-report",
-        author: "River Go seed",
+        author: "RiverLaunch.app seed",
         dateObserved: "Needs local confirmation",
         type: "Seed note",
         text: "Test how users report crowding, landing quality, and navigation conflicts.",
@@ -715,7 +715,7 @@ const riverWyeSectionSeeds: RiverSection[] = [
     reports: [
       {
         id: "wye-monmouth-seed-report",
-        author: "River Go seed",
+        author: "RiverLaunch.app seed",
         dateObserved: "Needs local confirmation",
         type: "Seed note",
         text: "Collect real timing reports and note which groups find this a long day.",

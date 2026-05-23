@@ -14,7 +14,7 @@ maturity: Draft
 
 ## Purpose
 
-Photos are a core part of RiffleMap.com community knowledge. They help paddlers recognise access points, hazards, river features, water-level references, and recent conditions before they travel.
+Photos are a core part of RiverLaunch.app community knowledge. They help paddlers recognise access points, hazards, river features, water-level references, and recent conditions before they travel.
 
 Photo upload must be structured. A photo should attach to a river section, POI, or contribution, not exist as a loose gallery item.
 

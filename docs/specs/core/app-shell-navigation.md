@@ -14,7 +14,7 @@ maturity: Draft
 
 ## Purpose
 
-RiffleMap.com needs a consistent app information architecture that works on desktop web, mobile web/PWA, and a later native mobile app.
+RiverLaunch.app needs a consistent app information architecture that works on desktop web, mobile web/PWA, and a later native mobile app.
 
 The app should keep the map as the primary working surface while making search, saved places, profile, and secondary tools reachable from a stable navigation model.
 
@@ -48,7 +48,7 @@ Desktop and larger tablet layouts should use a persistent left navigation rail/s
 
 Mobile and PWA layouts should use a bottom tab bar for the same primary sections.
 
-Branding should be present without delaying startup. When auth resolves and no user is signed in, the app should show a welcome sheet with `Sign in` and `Continue as guest`. Continuing as guest dismisses the sheet for the current browser/PWA session using session storage, so refreshes and sign-out in the same session do not immediately re-show it. The desktop nav and secondary mobile surfaces such as `Profile` and `More` should carry compact RiffleMap.com branding while the map header stays contextual.
+Branding should be present without delaying startup. When auth resolves and no user is signed in, the app should show a welcome sheet with `Sign in` and `Continue as guest`. Continuing as guest dismisses the sheet for the current browser/PWA session using session storage, so refreshes and sign-out in the same session do not immediately re-show it. The desktop nav and secondary mobile surfaces such as `Profile` and `More` should carry compact RiverLaunch.app branding while the map header stays contextual.
 
 Anonymous users may browse the map, search, route details, POIs, photos, levels, and navigation links. Savable actions require sign-in, including favourites, add local knowledge, add photo, sync, admin, and future offline packs.
 
@@ -71,6 +71,8 @@ Member identity should not be persistently shown in the global header because it
 `More` should contain secondary tools such as admin entry, settings, offline packs, and future support/feedback surfaces.
 
 Admin tools should remain role-gated and should not appear for ordinary members. Admin should be its own section with an index of admin options. Each option should open a separate full-page admin surface with a link back to the Admin index, starting with `Members` and later expanding to moderation, reports, data quality, and system status.
+
+The member directory should support search plus role/trust filtering. Member rows should keep identity, role, trust, and access controls visually grouped so role/trust editing remains clear on desktop and mobile.
 
 ## Open Questions
 

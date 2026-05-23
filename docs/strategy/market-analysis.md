@@ -14,7 +14,7 @@ RiverApp is strong on river levels, gauge coverage, favorites, alerts, maps, and
 
 RiverApp's public positioning includes large-scale gauge and river coverage, real-time aggregation from many hydrological sources, push alerts, favourites, historical data, whitewater sections, put-ins, take-outs, dams, impassable rapids, parking locations, user notes, hazards, legal issues, and trip reports.
 
-Implication: RiffleMap.com should not try to beat RiverApp by being another larger gauge browser. River levels are necessary, but they are not enough to define the product. The stronger opportunity is to make UK canoe section knowledge more structured, local, fresh, trusted, and usable offline.
+Implication: RiverLaunch.app should not try to beat RiverApp by being another larger gauge browser. River levels are necessary, but they are not enough to define the product. The stronger opportunity is to make UK canoe section knowledge more structured, local, fresh, trusted, and usable offline.
 
 Reference: https://www.riverapp.net/en
 
@@ -22,13 +22,13 @@ Reference: https://www.riverapp.net/en
 
 PaddleWays is a broad paddling app with maps, routes, access points, hazards, public comments, photos, streamflow, trip tracking, and paid tiers for advanced planning features.
 
-Implication: PaddleWays validates the demand for community map layers and trip planning, but it is broader than UK canoeing. River Go can compete through UK-specific utility and simpler section-level decision making.
+Implication: PaddleWays validates the demand for community map layers and trip planning, but it is broader than UK canoeing. RiverLaunch.app can compete through UK-specific utility and simpler section-level decision making.
 
 Reference: https://www.paddleways.com
 
 ### Canua
 
-Canua is Europe-focused and supports canoeing, kayaking, SUP, route planning, tracking, and logbook-style workflows. It is relevant as River Go expands beyond the UK.
+Canua is Europe-focused and supports canoeing, kayaking, SUP, route planning, tracking, and logbook-style workflows. It is relevant as RiverLaunch.app expands beyond the UK.
 
 Implication: European expansion will need careful differentiation. The community freshness and UK-originated section model should be proven before going wider.
 
@@ -38,7 +38,7 @@ Reference: https://www.canua.info/en
 
 American Whitewater is not a UK competitor, but it is a strong example of community-maintained river information at scale: river sections, gauges, difficulty, descriptions, hazards, photos, and reports.
 
-Implication: River Go can learn from the run/section model, but should adapt it for UK access, canoe suitability, and mixed river/canal/navigation-authority realities.
+Implication: RiverLaunch.app can learn from the run/section model, but should adapt it for UK access, canoe suitability, and mixed river/canal/navigation-authority realities.
 
 Reference: https://www.americanwhitewater.org
 
@@ -54,7 +54,7 @@ Reference: https://www.ukriversguidebook.co.uk
 
 Paddle UK provides membership, licensing information, advocacy, and access campaigning. Its "Clear Access, Clear Waters" work highlights the access complexity in England and Wales.
 
-Implication: River Go should be careful with legal claims and should present access notes as informational guidance with source/date/context, not definitive legal advice.
+Implication: RiverLaunch.app should be careful with legal claims and should present access notes as informational guidance with source/date/context, not definitive legal advice.
 
 Reference: https://paddleuk.org.uk
 
@@ -66,19 +66,19 @@ Most tools can show maps, gauges, or routes. Fewer tools answer the canoeist's p
 
 "Can I realistically paddle this stretch from this put-in to this take-out?"
 
-River Go should focus on the section as the main object, with relevant access, hazards, levels, photos, suitability, and notes all attached to that section.
+RiverLaunch.app should focus on the section as the main object, with relevant access, hazards, levels, photos, suitability, and notes all attached to that section.
 
 ### Gap 2: UK Access and Local Context
 
 The UK has a complex mix of public rights, navigation authorities, licences, access agreements, contested rivers, canals, clubs, private land, parking constraints, and local sensitivities.
 
-Generic global apps tend to flatten this complexity. River Go can make access context more visible while avoiding overconfident legal claims.
+Generic global apps tend to flatten this complexity. RiverLaunch.app can make access context more visible while avoiding overconfident legal claims.
 
 ### Gap 3: Hazard Freshness
 
 Hazards change. A fallen tree, blocked portage, damaged landing, or dangerous weir approach can make old information misleading.
 
-River Go should treat hazard freshness as a core product feature:
+RiverLaunch.app should treat hazard freshness as a core product feature:
 
 - last reported
 - last confirmed
@@ -104,13 +104,13 @@ Generic paddling apps often serve kayaks, SUPs, rafting, fishing, and touring to
 
 ### Gap 5: Trustworthy Community Contributions
 
-Community data is only useful if users can judge whether it is current and credible. River Go should not be a loose pile of pins and comments.
+Community data is only useful if users can judge whether it is current and credible. RiverLaunch.app should not be a loose pile of pins and comments.
 
 The gap is a structured contribution system where users add typed, reviewable, date-stamped river knowledge.
 
 ## Strategic Recommendation
 
-Build RiffleMap.com as a UK-first community river intelligence app for canoeists.
+Build RiverLaunch.app as a UK-first community river intelligence app for canoeists.
 
 Avoid a feature war with established apps. Instead, compete by making a smaller set of decisions much easier:
 

@@ -23,7 +23,7 @@ The seed data is draft and unverified. It must not be treated as published trip 
 - `Primary user objective:` Inspect a dam-release whitewater section and understand where local knowledge is required before paddling.
 - `Classification:` Core
 - `Loop step:` Choose / Review / Report
-- `Why this matters:` The Tryweryn makes the value of River Go clearer: static map data is not enough when release schedules, centre rules, obstructions, and portage knowledge change.
+- `Why this matters:` The Tryweryn makes the value of RiverLaunch.app clearer: static map data is not enough when release schedules, centre rules, obstructions, and portage knowledge change.
 
 ## References
 

@@ -2,7 +2,7 @@
 
 ## Summary
 
-River Go needs two categories of data:
+RiverLaunch.app needs two categories of data:
 
 - Authoritative baseline data: rivers, gauges, river levels, flow, flood warnings, paths, navigation notices, water quality, and broad map context.
 - Community river intelligence: hazards, photos, access practicality, runnable ranges, canoe suitability, portages, recent condition reports, and local feature knowledge.
@@ -11,10 +11,10 @@ The product should use official and open data for the baseline, then differentia
 
 ## Data Strategy
 
-River Go should not try to own every data source directly at the start. It should use a provider model:
+RiverLaunch.app should not try to own every data source directly at the start. It should use a provider model:
 
 - each external source has an adapter
-- source data is normalised into River Go entities
+- source data is normalised into RiverLaunch.app entities
 - source attribution is stored and displayed where required
 - official data is kept separate from user-submitted interpretation
 - community data can refine, confirm, or contextualise official data
@@ -361,7 +361,7 @@ https://environment.ec.europa.eu/topics/water/bathing-water_en
 
 ## Community-Only Data
 
-These are the data categories where River Go can differentiate most strongly.
+These are the data categories where RiverLaunch.app can differentiate most strongly.
 
 ### Runnable Ranges
 
@@ -413,7 +413,7 @@ Community data should capture:
 
 This is a major gap in existing data.
 
-River Go should store:
+RiverLaunch.app should store:
 
 - date observed
 - last confirmed
@@ -533,7 +533,7 @@ Reports should become visually stale over time.
 
 ## Key Product Gaps
 
-The main gaps River Go should solve are:
+The main gaps RiverLaunch.app should solve are:
 
 - no single UK-first canoe section guide with live data and community intelligence
 - no reliable section-level runnable-range model for canoeists

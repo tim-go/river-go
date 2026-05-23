@@ -28,7 +28,7 @@ if (databaseUrl && !databaseUrl.includes("<")) {
   setIfPresent(env, "DATABASE_URL", databaseUrl);
 }
 
-console.log(`Starting River Go API with ${envName} runtime config.`);
+console.log(`Starting RiverLaunch.app API with ${envName} runtime config.`);
 console.log(`Runtime config: ${fs.existsSync(runtimePath) ? runtimePath : "not found"}`);
 
 const child = spawn("npm", ["--prefix", "api", "run", "dev"], {

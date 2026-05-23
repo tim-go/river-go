@@ -9,7 +9,7 @@ import {
 const { config, path: configPath, source } = loadPlatformConfig();
 const { errors, warnings } = validatePlatformConfig(config);
 
-console.log("River Go platform config check");
+console.log("RiverLaunch.app platform config check");
 console.log(`Config: ${configPath}`);
 console.log(`Source: ${source}`);
 

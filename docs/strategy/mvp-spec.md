@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build the first useful version of River Go for UK canoeists. The MVP should help users choose and understand river sections using live data plus community-contributed local knowledge.
+Build the first useful version of RiverLaunch.app for UK canoeists. The MVP should help users choose and understand river sections using live data plus community-contributed local knowledge.
 
 ## MVP Scope
 

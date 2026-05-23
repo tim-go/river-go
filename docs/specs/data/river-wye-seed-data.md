@@ -14,7 +14,7 @@ maturity: Trial
 
 ## Purpose
 
-The River Wye seed dataset provides a realistic pilot area for validating River Go's section model, map UX, and community contribution workflow.
+The River Wye seed dataset provides a realistic pilot area for validating RiverLaunch.app's section model, map UX, and community contribution workflow.
 
 The seed data is draft and unverified. It should not be treated as published trip advice.
 
@@ -23,7 +23,7 @@ The seed data is draft and unverified. It should not be treated as published tri
 - `Primary user objective:` Browse plausible River Wye sections and identify where community verification is needed.
 - `Classification:` Core
 - `Loop step:` Choose / Review
-- `Why this matters:` The Wye pilot is the first test of whether River Go can turn a real river corridor into structured, community-maintained section knowledge.
+- `Why this matters:` The Wye pilot is the first test of whether RiverLaunch.app can turn a real river corridor into structured, community-maintained section knowledge.
 
 ## References
 

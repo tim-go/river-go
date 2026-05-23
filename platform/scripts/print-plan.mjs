@@ -24,7 +24,7 @@ if (errors.length > 0) {
 
 const env = getEnvironment(config, envName);
 
-console.log(`River Go platform plan: ${envName}`);
+console.log(`RiverLaunch.app platform plan: ${envName}`);
 console.log(`Config: ${path}`);
 console.log(`Source: ${source}`);
 

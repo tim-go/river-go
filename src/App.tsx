@@ -31,7 +31,12 @@ import {
 import L from "leaflet";
 import { FormEvent, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { riverSections } from "./data/demoData";
-import { fetchSectionContributions } from "./services/contributionApi";
+import {
+  applyContributionModerationDecision,
+  fetchModerationContributions,
+  fetchSectionContributions,
+  type ModerationDecision,
+} from "./services/contributionApi";
 import {
   createContributionOutboxRecord,
   createContributionOutboxStore,
@@ -47,7 +52,10 @@ import {
 import {
   fetchAdminMembers,
   fetchCurrentMember,
+  updateAdminMemberAccess,
   type MemberProfile,
+  type MemberRole,
+  type MemberTrustLevel,
 } from "./services/memberApi";
 import { fetchEnvironmentAgencyGaugeReading } from "./services/riverLevels";
 import type {
@@ -65,7 +73,7 @@ import type {
 const STORAGE_KEY = "river-go-demo-contributions";
 const HAZARD_REVIEW_STORAGE_KEY = "river-go-demo-hazard-reviews";
 const FAVOURITES_STORAGE_KEY = "river-go-demo-favourite-sections";
-const WELCOME_SESSION_STORAGE_KEY = "rifflemap-welcome-dismissed-session";
+const WELCOME_SESSION_STORAGE_KEY = "riverlaunch-welcome-dismissed-session";
 
 const bandLabels = {
   "too-low": "Too low",
@@ -135,6 +143,29 @@ const categoryOptions: Record<ContributionType, string[]> = {
 type AppSection = "search" | "map" | "favourites" | "profile" | "more" | "admin";
 type AdminPage = "index" | "members" | "moderation" | "system";
 type AuthSheetMode = "welcome" | "save-required";
+
+const memberRoleOptions: MemberRole[] = [
+  "MEMBER",
+  "TRUSTED_MEMBER",
+  "CONTRIB_MODERATOR",
+  "ADMIN",
+];
+const memberTrustOptions: MemberTrustLevel[] = ["NEW", "KNOWN", "TRUSTED"];
+
+const moderationActions: Array<{
+  decision: ModerationDecision;
+  label: string;
+}> = [
+  { decision: "approve", label: "Approve" },
+  { decision: "confirm", label: "Confirm" },
+  { decision: "challenge", label: "Challenge" },
+  { decision: "hide", label: "Hide" },
+  { decision: "reject", label: "Reject" },
+];
+
+type MemberRoleFilter = "all" | MemberRole;
+type MemberTrustFilter = "all" | MemberTrustLevel;
+type ModerationDraftDecision = ModerationDecision | "";
 
 interface SelectedPoi {
   id: string;
@@ -332,6 +363,14 @@ function contributionStatusLabel(status: Contribution["status"]) {
   return labels[status] ?? status;
 }
 
+function hasModeratorAccess(role?: MemberRole | null) {
+  return role === "ADMIN" || role === "CONTRIB_MODERATOR";
+}
+
+function hasAdminAccess(role?: MemberRole | null) {
+  return role === "ADMIN";
+}
+
 function mergeSectionContributions(
   current: Contribution[],
   sectionId: string,
@@ -396,12 +435,12 @@ function AppNavigation({
   return (
     <aside className={`app-nav ${collapsed ? "app-nav--collapsed" : ""}`}>
       <div className="app-nav__header">
-        <div className="app-nav__brand" title="RiffleMap.com">
+        <div className="app-nav__brand" title="RiverLaunch.app">
           <span className="brand-mark brand-mark--nav">
             <Waves size={20} strokeWidth={2.3} />
           </span>
           <span>
-            <strong>RiffleMap.com</strong>
+            <strong>RiverLaunch.app</strong>
             <small>River intelligence</small>
           </span>
         </div>
@@ -499,7 +538,7 @@ function AppBrandPanel() {
         <Waves size={22} strokeWidth={2.3} />
       </span>
       <div>
-        <strong>RiffleMap.com</strong>
+        <strong>RiverLaunch.app</strong>
         <span>Community river intelligence for paddlers.</span>
       </div>
     </div>
@@ -529,7 +568,7 @@ function AuthPromptSheet({
         className="auth-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label={isWelcome ? "Welcome to RiffleMap.com" : "Sign in required"}
+        aria-label={isWelcome ? "Welcome to RiverLaunch.app" : "Sign in required"}
       >
         <div className="auth-sheet__image">
           <img src="/images/river-tryweryn.jpeg" alt="" />
@@ -539,7 +578,7 @@ function AuthPromptSheet({
             <span className="brand-mark">
               <Waves size={22} strokeWidth={2.3} />
             </span>
-            <span>RiffleMap.com</span>
+            <span>RiverLaunch.app</span>
           </div>
           <div>
             <p className="eyebrow">
@@ -552,7 +591,7 @@ function AuthPromptSheet({
             </h2>
             <p>
               Browse routes, levels, access points, hazards, and photos without an
-              account. Sign in when you want RiffleMap.com to save something for you or
+              account. Sign in when you want RiverLaunch.app to save something for you or
               accept community updates.
             </p>
           </div>
@@ -731,6 +770,19 @@ function App() {
   const [memberMessage, setMemberMessage] = useState("");
   const [adminMembers, setAdminMembers] = useState<MemberProfile[]>([]);
   const [isAdminLoading, setIsAdminLoading] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberRoleFilter, setMemberRoleFilter] =
+    useState<MemberRoleFilter>("all");
+  const [memberTrustFilter, setMemberTrustFilter] =
+    useState<MemberTrustFilter>("all");
+  const [moderationContributions, setModerationContributions] = useState<
+    Contribution[]
+  >([]);
+  const [moderationDraftDecisions, setModerationDraftDecisions] = useState<
+    Record<string, ModerationDraftDecision>
+  >({});
+  const [isModerationLoading, setIsModerationLoading] = useState(false);
+  const [moderationMessage, setModerationMessage] = useState("");
   const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
   const [isGaugeLoading, setIsGaugeLoading] = useState(false);
   const [isSectionListOpen, setIsSectionListOpen] = useState(false);
@@ -771,6 +823,31 @@ function App() {
   );
   const isActiveSectionFavourite =
     isSignedIn && favouriteSectionIds.includes(activeSection.id);
+  const canAccessAdminTools = hasModeratorAccess(memberProfile?.role);
+  const canManageMembers = hasAdminAccess(memberProfile?.role);
+  const filteredAdminMembers = useMemo(() => {
+    const searchTerm = memberSearch.trim().toLowerCase();
+
+    return adminMembers.filter((member) => {
+      const matchesSearch =
+        !searchTerm ||
+        [
+          member.displayName,
+          member.email,
+          member.firebaseUid,
+          member.role,
+          member.trustLevel,
+        ]
+          .filter(Boolean)
+          .some((value) => value!.toLowerCase().includes(searchTerm));
+      const matchesRole =
+        memberRoleFilter === "all" || member.role === memberRoleFilter;
+      const matchesTrust =
+        memberTrustFilter === "all" || member.trustLevel === memberTrustFilter;
+
+      return matchesSearch && matchesRole && matchesTrust;
+    });
+  }, [adminMembers, memberRoleFilter, memberSearch, memberTrustFilter]);
 
   useEffect(() => subscribeToAuthState(setAuthState), []);
 
@@ -801,6 +878,9 @@ function App() {
       setMemberProfile(null);
       setMemberMessage("");
       setAdminMembers([]);
+      setModerationContributions([]);
+      setModerationDraftDecisions({});
+      setModerationMessage("");
       return () => {
         isMounted = false;
       };
@@ -831,11 +911,21 @@ function App() {
     if (
       activeAppSection === "admin" &&
       activeAdminPage === "members" &&
-      memberProfile?.role === "ADMIN"
+      canManageMembers
     ) {
       void openAdminPanel();
     }
-  }, [activeAppSection, activeAdminPage, memberProfile?.role]);
+  }, [activeAppSection, activeAdminPage, canManageMembers]);
+
+  useEffect(() => {
+    if (
+      activeAppSection === "admin" &&
+      activeAdminPage === "moderation" &&
+      canAccessAdminTools
+    ) {
+      void openModerationPanel();
+    }
+  }, [activeAppSection, activeAdminPage, canAccessAdminTools]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(contributions));
@@ -1130,6 +1220,90 @@ function App() {
     }
   }
 
+  async function openModerationPanel() {
+    setActiveAppSection("admin");
+    setActiveAdminPage("moderation");
+    setIsModerationLoading(true);
+    setModerationMessage("");
+    setModerationDraftDecisions({});
+
+    try {
+      setModerationContributions(await fetchModerationContributions());
+    } catch (error) {
+      setModerationMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load moderation queue.",
+      );
+    } finally {
+      setIsModerationLoading(false);
+    }
+  }
+
+  async function updateMemberAccess(
+    member: MemberProfile,
+    access: { role?: MemberRole; trustLevel?: MemberTrustLevel },
+  ) {
+    setMemberMessage("");
+
+    try {
+      const updatedMember = await updateAdminMemberAccess(member.id, {
+        role: access.role ?? member.role,
+        trustLevel: access.trustLevel ?? member.trustLevel,
+      });
+      setAdminMembers((current) =>
+        current.map((item) => (item.id === updatedMember.id ? updatedMember : item)),
+      );
+      if (memberProfile?.id === updatedMember.id) {
+        setMemberProfile(updatedMember);
+      }
+    } catch (error) {
+      setMemberMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not update member access.",
+      );
+    }
+  }
+
+  async function applyModerationDecision(
+    contribution: Contribution,
+    decision: ModerationDecision,
+  ) {
+    setModerationMessage("");
+
+    try {
+      const updatedContribution = await applyContributionModerationDecision(
+        contribution.id,
+        decision,
+      );
+      setModerationContributions((current) =>
+        current.filter((item) => item.id !== updatedContribution.id),
+      );
+      setModerationDraftDecisions((current) => {
+        const next = { ...current };
+        delete next[updatedContribution.id];
+        return next;
+      });
+      setContributions((current) =>
+        current.map((item) =>
+          item.id === updatedContribution.id ? updatedContribution : item,
+        ),
+      );
+      setModerationMessage(
+        `${updatedContribution.title} marked ${contributionStatusLabel(
+          updatedContribution.status,
+        )}.`,
+      );
+    } catch (error) {
+      setModerationMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not update contribution moderation state.",
+      );
+    }
+  }
+
   function confirmSeedHazard(hazardId: string) {
     setHazardReviews((current) => {
       const existing = current[hazardId];
@@ -1378,7 +1552,7 @@ function App() {
         <AppNavigation
           activeSection={activeAppSection}
           collapsed={isAppNavCollapsed}
-          isAdmin={memberProfile?.role === "ADMIN"}
+          isAdmin={canAccessAdminTools}
           isSignedIn={isSignedIn}
           isAuthConfigured={isAuthConfigured}
           memberLabel={accountLabel}
@@ -2022,7 +2196,7 @@ function App() {
                   <div>
                     <h3>Sign in to save favourites</h3>
                     <p>
-                      RiffleMap.com treats favourites as account-only saved routes, so
+                      RiverLaunch.app treats favourites as account-only saved routes, so
                       sign in before saving sections.
                     </p>
                   </div>
@@ -2140,7 +2314,7 @@ function App() {
                       <h3>Sign in to save and contribute</h3>
                       <p>
                         Browsing is open to everyone. Favourites, local knowledge,
-                        photos, and sync need a RiffleMap.com account.
+                        photos, and sync need a RiverLaunch.app account.
                       </p>
                     </div>
                     <button
@@ -2208,18 +2382,22 @@ function App() {
             <PlaceholderPage section="more" title="More">
               <AppBrandPanel />
               <div className="placeholder-list">
-                {memberProfile?.role === "ADMIN" ? (
+                {canAccessAdminTools ? (
                   <button
                     className="placeholder-row"
                     type="button"
                     onClick={() => {
-                      setActiveAdminPage("index");
+                      setActiveAdminPage(canManageMembers ? "index" : "moderation");
                       setActiveAppSection("admin");
                     }}
                   >
                     <span>
-                      <strong>Admin</strong>
-                      <small>Members, moderation, and platform controls</small>
+                      <strong>{canManageMembers ? "Admin" : "Moderation"}</strong>
+                      <small>
+                        {canManageMembers
+                          ? "Members, moderation, and platform controls"
+                          : "Contribution queue, reports, and disputes"}
+                      </small>
                     </span>
                     <ShieldCheck size={18} />
                   </button>
@@ -2253,25 +2431,27 @@ function App() {
             </PlaceholderPage>
           ) : (
             <PlaceholderPage section="admin" title="Admin">
-              {memberProfile?.role === "ADMIN" ? (
+              {canAccessAdminTools ? (
                 <div className="admin-workspace">
                   {activeAdminPage === "index" ? (
                     <div className="placeholder-list">
+                      {canManageMembers ? (
+                        <button
+                          className="placeholder-row"
+                          type="button"
+                          onClick={openAdminPanel}
+                        >
+                          <span>
+                            <strong>Members</strong>
+                            <small>Member directory, roles, and recent activity</small>
+                          </span>
+                          <UserRound size={18} />
+                        </button>
+                      ) : null}
                       <button
                         className="placeholder-row"
                         type="button"
-                        onClick={openAdminPanel}
-                      >
-                        <span>
-                          <strong>Members</strong>
-                          <small>Member directory, roles, and recent activity</small>
-                        </span>
-                        <UserRound size={18} />
-                      </button>
-                      <button
-                        className="placeholder-row"
-                        type="button"
-                        onClick={() => setActiveAdminPage("moderation")}
+                        onClick={openModerationPanel}
                       >
                         <span>
                           <strong>Moderation</strong>
@@ -2279,17 +2459,19 @@ function App() {
                         </span>
                         <Flag size={18} />
                       </button>
-                      <button
-                        className="placeholder-row"
-                        type="button"
-                        onClick={() => setActiveAdminPage("system")}
-                      >
-                        <span>
-                          <strong>System</strong>
-                          <small>Data quality, sync health, and platform status</small>
-                        </span>
-                        <ShieldCheck size={18} />
-                      </button>
+                      {canManageMembers ? (
+                        <button
+                          className="placeholder-row"
+                          type="button"
+                          onClick={() => setActiveAdminPage("system")}
+                        >
+                          <span>
+                            <strong>System</strong>
+                            <small>Data quality, sync health, and platform status</small>
+                          </span>
+                          <ShieldCheck size={18} />
+                        </button>
+                      ) : null}
                     </div>
                   ) : (
                     <section className="admin-page">
@@ -2301,7 +2483,7 @@ function App() {
                         <ChevronDown size={15} />
                         Admin
                       </button>
-                      {activeAdminPage === "members" ? (
+                      {activeAdminPage === "members" && canManageMembers ? (
                         <>
                           <div className="quick-add-panel__header">
                             <div>
@@ -2320,34 +2502,236 @@ function App() {
                           {isAdminLoading ? (
                             <p className="source-note">Loading members...</p>
                           ) : (
-                            <div className="member-list member-list--full">
-                              {adminMembers.map((member) => (
-                                <div className="member-row" key={member.id}>
-                                  <div>
-                                    <strong>
-                                      {member.displayName ?? member.email ?? member.firebaseUid}
-                                    </strong>
-                                    <span>{member.email ?? "No email"}</span>
+                            <>
+                              <div className="member-directory-filters">
+                                <label className="member-search">
+                                  <span>Search</span>
+                                  <input
+                                    type="search"
+                                    value={memberSearch}
+                                    onChange={(event) =>
+                                      setMemberSearch(event.target.value)
+                                    }
+                                    placeholder="Name, email, role, or UID"
+                                  />
+                                </label>
+                                <label>
+                                  <span>Role</span>
+                                  <select
+                                    value={memberRoleFilter}
+                                    onChange={(event) =>
+                                      setMemberRoleFilter(
+                                        event.target.value as MemberRoleFilter,
+                                      )
+                                    }
+                                  >
+                                    <option value="all">All roles</option>
+                                    {memberRoleOptions.map((role) => (
+                                      <option key={role} value={role}>
+                                        {role}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <label>
+                                  <span>Trust</span>
+                                  <select
+                                    value={memberTrustFilter}
+                                    onChange={(event) =>
+                                      setMemberTrustFilter(
+                                        event.target.value as MemberTrustFilter,
+                                      )
+                                    }
+                                  >
+                                    <option value="all">All trust</option>
+                                    {memberTrustOptions.map((trustLevel) => (
+                                      <option key={trustLevel} value={trustLevel}>
+                                        {trustLevel}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              </div>
+                              <div className="member-list member-list--full">
+                                {filteredAdminMembers.map((member) => (
+                                  <div className="member-row" key={member.id}>
+                                    <div className="member-identity">
+                                      <strong>
+                                        {member.displayName ??
+                                          member.email ??
+                                          member.firebaseUid}
+                                      </strong>
+                                      <span>{member.email ?? "No email"}</span>
+                                      <div className="member-status-row">
+                                        <span className="status-chip">
+                                          {member.role}
+                                        </span>
+                                        <span className="status-chip">
+                                          {member.trustLevel}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="member-access-controls">
+                                      <label>
+                                        <span>Role</span>
+                                        <select
+                                          value={member.role}
+                                          onChange={(event) =>
+                                            void updateMemberAccess(member, {
+                                              role: event.target.value as MemberRole,
+                                            })
+                                          }
+                                        >
+                                          {memberRoleOptions.map((role) => (
+                                            <option key={role} value={role}>
+                                              {role}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </label>
+                                      <label>
+                                        <span>Trust</span>
+                                        <select
+                                          value={member.trustLevel}
+                                          onChange={(event) =>
+                                            void updateMemberAccess(member, {
+                                              trustLevel: event.target
+                                                .value as MemberTrustLevel,
+                                            })
+                                          }
+                                        >
+                                          {memberTrustOptions.map((trustLevel) => (
+                                            <option key={trustLevel} value={trustLevel}>
+                                              {trustLevel}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </label>
+                                    </div>
                                   </div>
-                                  <span className="status-chip">{member.role}</span>
-                                </div>
-                              ))}
-                              {adminMembers.length === 0 ? (
-                                <p className="source-note">No members found.</p>
+                                ))}
+                                {adminMembers.length === 0 ? (
+                                  <p className="source-note">No members found.</p>
+                                ) : filteredAdminMembers.length === 0 ? (
+                                  <p className="source-note">
+                                    No members match those filters.
+                                  </p>
+                                ) : null}
+                              </div>
+                            </>
+                          )}
+                        </>
+                      ) : activeAdminPage === "moderation" ? (
+                        <>
+                          <div className="quick-add-panel__header">
+                            <div>
+                              <p className="eyebrow">Moderation</p>
+                              <h2>Contribution queue</h2>
+                            </div>
+                            <button
+                              className="ghost-button ghost-button--compact"
+                              type="button"
+                              onClick={openModerationPanel}
+                            >
+                              <RefreshCw size={15} />
+                              Refresh
+                            </button>
+                          </div>
+                          {moderationMessage ? (
+                            <p className="profile-message">{moderationMessage}</p>
+                          ) : null}
+                          {isModerationLoading ? (
+                            <p className="source-note">Loading moderation queue...</p>
+                          ) : (
+                            <div className="moderation-list">
+                              {moderationContributions.map((contribution) => {
+                                const draftDecision =
+                                  moderationDraftDecisions[contribution.id] ?? "";
+
+                                return (
+                                  <article
+                                    className="moderation-row"
+                                    key={contribution.id}
+                                  >
+                                    <div className="moderation-row__content">
+                                      <strong>{contribution.title}</strong>
+                                      <span className="moderation-row__meta">
+                                        {contribution.type} ·{" "}
+                                        {contributionStatusLabel(
+                                          contribution.status,
+                                        )}{" "}
+                                        · {contribution.sectionId}
+                                      </span>
+                                      <p>{contribution.detail}</p>
+                                      <small className="moderation-row__meta">
+                                        {contribution.author} · observed{" "}
+                                        {contribution.dateObserved}
+                                      </small>
+                                    </div>
+                                    <div className="moderation-status">
+                                      <span
+                                        className={`status-chip status-chip--${contribution.status}`}
+                                      >
+                                        {contributionStatusLabel(
+                                          contribution.status,
+                                        )}
+                                      </span>
+                                    </div>
+                                    <div className="moderation-actions">
+                                      <label>
+                                        <span>Decision</span>
+                                        <select
+                                          aria-label={`Moderation decision for ${contribution.title}`}
+                                          value={draftDecision}
+                                          onChange={(event) => {
+                                            setModerationDraftDecisions(
+                                              (current) => ({
+                                                ...current,
+                                                [contribution.id]: event.target
+                                                  .value as ModerationDraftDecision,
+                                              }),
+                                            );
+                                          }}
+                                        >
+                                          <option value="">Choose...</option>
+                                          {moderationActions.map((action) => (
+                                            <option
+                                              key={action.decision}
+                                              value={action.decision}
+                                            >
+                                              {action.label}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </label>
+                                      <button
+                                        className="ghost-button ghost-button--compact moderation-apply-button"
+                                        type="button"
+                                        disabled={!draftDecision}
+                                        onClick={() => {
+                                          if (!draftDecision) {
+                                            return;
+                                          }
+                                          void applyModerationDecision(
+                                            contribution,
+                                            draftDecision,
+                                          );
+                                        }}
+                                      >
+                                        Apply
+                                      </button>
+                                    </div>
+                                  </article>
+                                );
+                              })}
+                              {moderationContributions.length === 0 ? (
+                                <p className="source-note">
+                                  No contributions need moderation.
+                                </p>
                               ) : null}
                             </div>
                           )}
                         </>
-                      ) : activeAdminPage === "moderation" ? (
-                        <div className="placeholder-list">
-                          <div className="placeholder-row">
-                            <span>
-                              <strong>Moderation</strong>
-                              <small>Contribution queue and reporting tools will live here.</small>
-                            </span>
-                            <Flag size={18} />
-                          </div>
-                        </div>
                       ) : (
                         <div className="placeholder-list">
                           <div className="placeholder-row">

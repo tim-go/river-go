@@ -11,20 +11,20 @@ maturity: Draft
 
 **Work state:** Active
 **Last updated:** 2026-05-23
-**Scope:** In-repository platform configuration for publishing River Go with Firebase and GCP.
+**Scope:** In-repository platform configuration for publishing RiverLaunch.app with Firebase and GCP.
 
 ## Purpose
 
-River Go needs a publishing path without creating a separate platform repository.
+RiverLaunch.app needs a publishing path without creating a separate platform repository.
 
 Platform configuration should live in this repository under `/platform`, close to the specs and app code, while remaining clearly separated from frontend source files.
 
 ## Product Role
 
-- `Primary user objective:` Publish River Go for pilot users and later production users without losing deployment repeatability.
+- `Primary user objective:` Publish RiverLaunch.app for pilot users and later production users without losing deployment repeatability.
 - `Classification:` Enabler
 - `Loop step:` Publish / Operate
-- `Why this matters:` Community contribution features only become useful when River Go is available outside a local demo.
+- `Why this matters:` Community contribution features only become useful when RiverLaunch.app is available outside a local demo.
 
 ## References
 
@@ -95,9 +95,9 @@ Staging rollout order:
 
 ## Open Questions
 
-- Should the public brand remain RiffleMap.com while keeping repo/project IDs as `river-go`?
+- Should the public brand remain RiverLaunch.app while keeping repo/project IDs as `river-go`?
 - Should production use `europe-west2` for UK locality or match Kinetiq's existing `europe-west1` convention?
-- What production domain cutover sequence should be used for `rifflemap.com`?
+- What production domain cutover sequence should be used for `riverlaunch.app`?
 
 ## Tracking
 
@@ -113,7 +113,7 @@ Staging rollout order:
 | PLATFORM-F6 | Deployment workflow | Ops/CI | Active | v0.3 | — | Build-only GitHub Actions workflow exists; deploy remains blocked until billing is linked. |
 | PLATFORM-F7 | Firebase Hosting config | Ops/config | Landed | v0.3 | — | Staging Hosting includes `/api/**` Cloud Run rewrite; live deploy waits until API preview passes. |
 | PLATFORM-F8 | Platform health check | Ops/tooling | Landed | v0.3 | — | Read-only health check reports billing/API/resource state. |
-| PLATFORM-F9 | Local PostGIS database | Ops/local-dev | Landed | v0.3 | — | Adds isolated River Go PostGIS container on `127.0.0.1:5435` with local app and migration users. |
+| PLATFORM-F9 | Local PostGIS database | Ops/local-dev | Landed | v0.3 | — | Adds isolated RiverLaunch.app PostGIS container on `127.0.0.1:5435` with local app and migration users. |
 | PLATFORM-F10 | Cloud Run API deployment script | Ops/deploy | Active | v0.3 | — | Builds API Docker image, writes `DATABASE_URL` to Secret Manager, deploys Cloud Run with invoker IAM check disabled for public staging access, and checks health. |
 | PLATFORM-F11 | Preview-first Hosting deployment | Ops/deploy | Active | v0.3 | — | Deploys API rewrite to a Firebase preview channel before live Hosting cutover. |
 | PLATFORM-F12 | Cloud SQL migration script | Ops/deploy | Active | v0.3 | — | Runs SQL migrations through Cloud SQL Auth Proxy using the migration DB URL. |
@@ -122,7 +122,7 @@ Staging rollout order:
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
-| PLATFORM-B1 | decision | Confirm domains | Active | v0.2 | RiffleMap.com uses `rifflemap.com`; staging is available at `staging.rifflemap.com`; repo/project IDs remain `river-go`. |
+| PLATFORM-B1 | decision | Confirm domains | Active | v0.2 | RiverLaunch.app uses `riverlaunch.app`; staging is available at `staging.riverlaunch.app`; repo/project IDs remain `river-go`. |
 | PLATFORM-B2 | decision | Confirm GCP region | Open | v0.2 | Template uses `europe-west2`; can switch before provisioning. |
 | PLATFORM-B3 | decision | Choose first publish shape | Resolved | v0.2 | Use Firebase Hosting plus Cloud Run, deployed backend-first and preview-first. |
 | PLATFORM-B4 | dependency | Create or select GCP/Firebase projects | Active | v0.3 | Setup script can create projects with `--create-resources` once billing config is set. |
@@ -153,6 +153,6 @@ Staging rollout order:
 | 2026-05-22 | Added isolated local PostGIS database configuration for backend development. |
 | 2026-05-23 | Added Cloud Run API deploy, Cloud SQL migration, Firebase preview/live deploy, and end-to-end smoke scripts. |
 | 2026-05-23 | Updated Cloud Run deploy path for organisation policy that blocks `allUsers` IAM bindings. |
-| 2026-05-23 | Updated public brand/domain notes to RiffleMap.com and `staging.rifflemap.com`. |
+| 2026-05-23 | Updated public brand/domain notes to RiverLaunch.app and `staging.riverlaunch.app`. |
 | 2026-05-21 | Added initial GCP/Firebase provisioning script. |
 | 2026-05-21 | Added initial in-repo platform configuration spec. |

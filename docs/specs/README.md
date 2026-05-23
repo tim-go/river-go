@@ -1,10 +1,10 @@
-# River Go Specs
+# RiverLaunch.app Specs
 
 ## Purpose
 
-This folder contains the living specs for River Go.
+This folder contains the living specs for RiverLaunch.app.
 
-River Go follows the same three-layer model used in the Kinetiq spec-driven-development methodology:
+RiverLaunch.app follows the same three-layer model used in the Kinetiq spec-driven-development methodology:
 
 ```text
 Strategy  - why
@@ -24,7 +24,7 @@ Strategy documents live in `/docs/strategy`. Specs live here under `/docs/specs`
 
 ## Spec Schema
 
-River Go specs use Kinetiq spec schema v4.
+RiverLaunch.app specs use Kinetiq spec schema v4.
 
 Required frontmatter:
 

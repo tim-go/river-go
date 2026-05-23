@@ -1,5 +1,6 @@
 import type { PoolClient } from "pg";
 import { pool } from "./db.js";
+import { HttpError } from "./http.js";
 
 export type ContributionModerationStatus =
   | "reported"
@@ -100,6 +101,105 @@ export async function listContributionsForSection(
   return result.rows.map(mapContributionRow);
 }
 
+export async function listModerationContributions(
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiContribution[]> {
+  const result = await client.query<ContributionRow>(
+    `SELECT
+      c.id,
+      c.section_id,
+      c.type,
+      CASE
+        WHEN c.geometry IS NULL THEN NULL
+        ELSE ST_AsGeoJSON(c.geometry)::json
+      END AS geometry,
+      c.payload,
+      c.observed_at,
+      c.created_at,
+      c.updated_at,
+      c.moderation_status,
+      c.sync_status,
+      c.revision,
+      c.member_id,
+      m.display_name,
+      m.email,
+      m.trust_level
+    FROM contributions c
+    LEFT JOIN members m ON m.id = c.member_id
+    WHERE c.moderation_status IN (
+      'pending',
+      'challenged',
+      'needs-confirmation',
+      'reported'
+    )
+    ORDER BY
+      CASE c.moderation_status
+        WHEN 'pending' THEN 1
+        WHEN 'challenged' THEN 2
+        WHEN 'needs-confirmation' THEN 3
+        ELSE 4
+      END,
+      c.created_at DESC
+    LIMIT 200`,
+  );
+
+  return result.rows.map(mapContributionRow);
+}
+
+export type ModerationDecision =
+  | "approve"
+  | "confirm"
+  | "challenge"
+  | "hide"
+  | "reject"
+  | "resolve";
+
+export async function applyModerationDecision(
+  contributionId: string,
+  decision: ModerationDecision,
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiContribution> {
+  const nextStatus = moderationStatusForDecision(decision);
+  const result = await client.query<ContributionRow>(
+    `WITH updated AS (
+      UPDATE contributions
+      SET moderation_status = $2,
+        updated_at = now(),
+        revision = revision + 1
+      WHERE id = $1
+      RETURNING *
+    )
+    SELECT
+      updated.id,
+      updated.section_id,
+      updated.type,
+      CASE
+        WHEN updated.geometry IS NULL THEN NULL
+        ELSE ST_AsGeoJSON(updated.geometry)::json
+      END AS geometry,
+      updated.payload,
+      updated.observed_at,
+      updated.created_at,
+      updated.updated_at,
+      updated.moderation_status,
+      updated.sync_status,
+      updated.revision,
+      updated.member_id,
+      m.display_name,
+      m.email,
+      m.trust_level
+    FROM updated
+    LEFT JOIN members m ON m.id = updated.member_id`,
+    [contributionId, nextStatus],
+  );
+
+  if (!result.rowCount) {
+    throw new HttpError(404, "Contribution not found.");
+  }
+
+  return mapContributionRow(result.rows[0]);
+}
+
 export function mapContributionRow(row: ContributionRow): ApiContribution {
   return {
     id: row.id,
@@ -120,4 +220,28 @@ export function mapContributionRow(row: ContributionRow): ApiContribution {
       trustLevel: row.trust_level,
     },
   };
+}
+
+export function isModerationDecision(
+  value: unknown,
+): value is ModerationDecision {
+  return (
+    value === "approve" ||
+    value === "confirm" ||
+    value === "challenge" ||
+    value === "hide" ||
+    value === "reject" ||
+    value === "resolve"
+  );
+}
+
+function moderationStatusForDecision(
+  decision: ModerationDecision,
+): ContributionModerationStatus {
+  if (decision === "approve") return "reported";
+  if (decision === "confirm") return "confirmed";
+  if (decision === "challenge") return "challenged";
+  if (decision === "hide") return "hidden";
+  if (decision === "reject") return "rejected";
+  return "resolved";
 }

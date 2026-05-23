@@ -2,9 +2,9 @@
 
 ## Working Concept
 
-RiffleMap.com is a UK-first canoeing app that combines live river data with community-maintained local knowledge. The app helps paddlers understand river sections before they travel: current levels, access points, hazards, photos, portages, runnable ranges, and recent condition reports.
+RiverLaunch.app is a UK-first canoeing app that combines live river data with community-maintained local knowledge. The app helps paddlers understand river sections before they travel: current levels, access points, hazards, photos, portages, runnable ranges, and recent condition reports.
 
-The repository, GCP projects, and Firebase projects continue to use the internal `river-go` name. RiffleMap.com is the public product brand.
+The repository, GCP projects, and Firebase projects continue to use the internal `river-go` name. RiverLaunch.app is the public product brand.
 
 The product is not just a gauge map. Its core value is a trusted, structured, and fresh knowledge layer built by paddlers.
 
@@ -12,7 +12,7 @@ The product is not just a gauge map. Its core value is a trusted, structured, an
 
 The UK river knowledge layer for canoeists: section context, access clarity, hazards, photos, recent reports, and live levels in one place.
 
-RiffleMap.com should not be positioned as a smaller river-level app. River levels are important context, but the strategic product is structured local river knowledge that becomes better after every trip.
+RiverLaunch.app should not be positioned as a smaller river-level app. River levels are important context, but the strategic product is structured local river knowledge that becomes better after every trip.
 
 ## Initial Market
 
@@ -69,7 +69,7 @@ Make it easy to add photos, hazards, features, access notes, condition reports, 
 
 ## Differentiation
 
-RiffleMap.com should differentiate on:
+RiverLaunch.app should differentiate on:
 
 - UK-first access and river-section context.
 - Canoe-specific suitability and trip planning.

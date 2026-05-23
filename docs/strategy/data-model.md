@@ -2,7 +2,7 @@
 
 ## Summary
 
-This document defines the initial product-level data model for River Go. It is not yet a database schema, but it should guide future implementation.
+This document defines the initial product-level data model for RiverLaunch.app. It is not yet a database schema, but it should guide future implementation.
 
 The model centres on river sections, with gauges, access points, features, hazards, photos, condition reports, and community confirmations attached to them.
 

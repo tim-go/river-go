@@ -10,11 +10,11 @@ maturity: Draft
 
 **Work state:** Queued
 **Last updated:** 2026-05-23
-**Scope:** Backend API, auth, storage, and persistence design for River Go's community river intelligence service.
+**Scope:** Backend API, auth, storage, and persistence design for RiverLaunch.app's community river intelligence service.
 
 ## Purpose
 
-River Go needs a backend before it can collect real community data.
+RiverLaunch.app needs a backend before it can collect real community data.
 
 The backend should preserve the current prototype's section-first map and contribution model while moving identity, persistence, moderation, media, and provider ingestion out of the browser.
 
@@ -50,6 +50,7 @@ Initial endpoints:
 | `GET` | `/api/health` | Runtime health check. |
 | `GET` | `/api/me` | Upsert and return the authenticated member profile. |
 | `GET` | `/api/admin/members` | List member profiles for admins. |
+| `POST` | `/api/admin/members/:memberId/access` | Admin-only update of member role and trust level. |
 | `GET` | `/api/rivers` | River list. |
 | `GET` | `/api/rivers/:riverId/sections` | Section list with route summaries. |
 | `GET` | `/api/sections/:sectionId` | Section detail, hazards, access, features, reports, photos, and current gauge context. |
@@ -60,6 +61,8 @@ Initial endpoints:
 | `POST` | `/api/photos/upload-intent` | Create controlled upload target for Firebase Storage. |
 | `GET` | `/api/moderation/queue` | Moderator review queue. |
 | `POST` | `/api/moderation/:id/decision` | Approve, reject, merge, or request clarification. |
+| `GET` | `/api/moderation/contributions` | Admin/moderator contribution review queue. |
+| `POST` | `/api/moderation/contributions/:id/decision` | Admin/moderator decision for contribution visibility/status. |
 
 Offline-aware endpoints should be added before the first serious mobile/offline release:
 
@@ -122,13 +125,14 @@ Moderation:
 | API-F2 | Firebase Auth integration | Backend/auth | Active | MVP | — | Sync endpoint can verify Firebase ID tokens and attach the verified user ID as actor; hard write enforcement is feature-flagged. |
 | API-F3 | PostgreSQL/PostGIS persistence | Backend/data | Queued | MVP | — | Durable storage for river/community data. |
 | API-F4 | Firebase Storage photo flow | Backend/media | Queued | MVP | — | Controlled upload intent, completion endpoint, metadata persistence, and photo moderation; see `/docs/specs/community/photo-uploads.md`. |
-| API-F5 | Moderation queue | Backend/admin | Queued | MVP | — | Review and promote community data. |
+| API-F5 | Moderation queue | Backend/admin | Landed | MVP | — | Admins and contribution moderators can list queued contributions and apply approve/confirm/challenge/hide/reject/resolve decisions. |
 | API-F6 | Provider ingestion cache | Backend/data | Queued | MVP | — | Move live river-level ingestion server-side. |
 | API-F7 | Offline sync contracts | Backend/sync | Queued | MVP | — | Support client-generated IDs, idempotent pushes, pull tokens, and offline pack downloads. |
 | API-F8 | Initial sync push implementation | Backend/sync | Landed | v0.3 | — | First backend slice proves `GET /api/health` and idempotent `POST /api/sync/push`. |
 | API-F9 | Cloud Run deploy package | Backend/ops | Active | v0.3 | — | Adds Dockerfile and deployment support for Cloud Run plus Cloud SQL. |
 | API-F10 | Member identity API | Backend/auth | Active | MVP | — | Adds `/api/me`, member upsert, and admin member list endpoint. |
 | API-F11 | Contribution readback API | Backend/API | Landed | MVP | — | Implements `GET /api/sections/:sectionId/contributions` for the persisted contribution loop. |
+| API-F12 | Member access management API | Backend/admin | Landed | MVP | — | Admins can update member role and trust level. |
 
 ### Backlog
 

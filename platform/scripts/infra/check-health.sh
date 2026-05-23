@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# River Go platform health check. Read-only.
+# RiverLaunch.app platform health check. Read-only.
 
 set -uo pipefail
 
@@ -33,7 +33,7 @@ CLOUD_RUN_SERVICE="$(json_value ".environments.$ENV.cloudRunService")"
 ARTIFACT_REPO="$(json_value ".environments.$ENV.artifactRegistryRepository")"
 CLOUD_SQL_INSTANCE="$(json_value ".environments.$ENV.database.instance")"
 
-section "River Go platform health - $ENV"
+section "RiverLaunch.app platform health - $ENV"
 
 for command_name in jq gcloud firebase; do
   require_command "$command_name"

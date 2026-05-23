@@ -14,13 +14,13 @@ maturity: Draft
 
 ## Purpose
 
-River Go will often be used near rivers, on rural roads, at access points, and on the water where mobile signal may be weak or absent.
+RiverLaunch.app will often be used near rivers, on rural roads, at access points, and on the water where mobile signal may be weak or absent.
 
 Offline mode is therefore a core product requirement, not a later convenience. Users must be able to take useful river information with them and capture observations while disconnected.
 
 ## Product Role
 
-- `Primary user objective:` Use River Go before, during, and after a paddle even when signal disappears.
+- `Primary user objective:` Use RiverLaunch.app before, during, and after a paddle even when signal disappears.
 - `Classification:` Core
 - `Loop step:` Choose / Navigate / Report / Sync
 - `Why this matters:` The app's community-data model depends on users capturing fresh knowledge in the field; if the app fails without signal, the data loop breaks at the moment observations are most valuable.
@@ -91,12 +91,12 @@ Initial offline pack scope:
 
 - selected river sections
 - route traces
-- River Go marker/features data
+- RiverLaunch.app marker/features data
 - lightweight base-map cache only where provider terms allow it
 
 Future mobile apps should support explicit `Save for offline` flows for rivers, sections, and trips.
 
-OpenStreetMap-derived and third-party map tiles must be treated carefully. Offline tile caching depends on provider terms, rate limits, and attribution requirements. River Go should prefer owning or licensing offline-friendly vector/tiles before offering large-scale offline map downloads.
+OpenStreetMap-derived and third-party map tiles must be treated carefully. Offline tile caching depends on provider terms, rate limits, and attribution requirements. RiverLaunch.app should prefer owning or licensing offline-friendly vector/tiles before offering large-scale offline map downloads.
 
 ### Sync
 
@@ -235,7 +235,7 @@ The product should frame offline data as planning and community context, not a s
 ## Open Questions
 
 - What is the smallest useful offline pack for the River Wye pilot?
-- Which map tile/vector provider can River Go legally cache for offline use?
+- Which map tile/vector provider can RiverLaunch.app legally cache for offline use?
 - Should offline packs be automatic for recently viewed sections or explicit user action only?
 - How long should cached river-level data remain visible before being hidden or strongly degraded?
 - How should anonymous/offline contributions work if a user signs in after creating them?
@@ -249,7 +249,7 @@ The product should frame offline data as planning and community context, not a s
 | --- | --- | --- | --- | --- | --- | --- |
 | OFF-F1 | Offline product requirement | Product/spec | Landed | v0.3 | — | Defines offline use as a core requirement rather than a mobile-only future feature. |
 | OFF-F2 | App-shell cache | PWA | Queued | MVP | — | Cache the app shell so the PWA can reopen without connectivity. |
-| OFF-F3 | Offline river data pack | Map/data | Queued | MVP | — | Save selected river/section geometry and River Go features for offline reading. |
+| OFF-F3 | Offline river data pack | Map/data | Queued | MVP | — | Save selected river/section geometry and RiverLaunch.app features for offline reading. |
 | OFF-F4 | Offline contribution outbox | Community | Active | MVP | — | Add form saves queued contribution operations locally and exposes a manual sync trigger. |
 | OFF-F5 | Offline photo queue | Media | Queued | MVP | — | Queue media locally and upload separately when connectivity returns. |
 | OFF-F6 | Sync API model | Backend | Active | MVP | — | Idempotent push endpoint exists and frontend can manually push queued outbox operations. |

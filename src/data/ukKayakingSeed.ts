@@ -2,7 +2,7 @@ import type { LatLngTuple, LevelBand, RiverSection, SourceMetadata } from "../ty
 
 const sampleCatalogueSource: SourceMetadata = {
   kind: "seed",
-  label: "RiffleMap.com UK kayaking sample catalogue",
+  label: "RiverLaunch.app UK kayaking sample catalogue",
   confidence: "low",
   updatedAt: "2026-05-23",
   notes:
@@ -110,7 +110,7 @@ function createSampleSection(section: SampleSectionInput): RiverSection {
         location: routePoint(section.route, 0.55),
         lastConfirmed: "Unverified seed",
         description:
-          "This river is included as a known paddling candidate, but RiffleMap.com needs contributor updates for current hazards, trees, access, and level guidance.",
+          "This river is included as a known paddling candidate, but RiverLaunch.app needs contributor updates for current hazards, trees, access, and level guidance.",
         source,
       },
     ],
@@ -139,7 +139,7 @@ function createSampleSection(section: SampleSectionInput): RiverSection {
     reports: [
       {
         id: `${section.id}-seed-report`,
-        author: "RiffleMap.com seed",
+        author: "RiverLaunch.app seed",
         dateObserved: "Needs local confirmation",
         type: "Seed note",
         text:

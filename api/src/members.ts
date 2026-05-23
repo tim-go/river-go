@@ -4,7 +4,8 @@ import { getAdminEmails } from "./config.js";
 import { pool } from "./db.js";
 import { HttpError } from "./http.js";
 
-export type MemberRole = "MEMBER" | "ADMIN" | "CONTRIB_ADMIN";
+export type MemberRole = "MEMBER" | "TRUSTED_MEMBER" | "CONTRIB_MODERATOR" | "ADMIN";
+export type MemberTrustLevel = "NEW" | "KNOWN" | "TRUSTED";
 
 export interface Member {
   id: string;
@@ -13,7 +14,7 @@ export interface Member {
   displayName: string | null;
   photoUrl: string | null;
   role: MemberRole;
-  trustLevel: string;
+  trustLevel: MemberTrustLevel;
   createdAt: string;
   updatedAt: string;
   lastSeenAt: string | null;
@@ -26,7 +27,7 @@ interface MemberRow {
   display_name: string | null;
   photo_url: string | null;
   role: MemberRole;
-  trust_level: string;
+  trust_level: MemberTrustLevel;
   created_at: Date;
   updated_at: Date;
   last_seen_at: Date | null;
@@ -82,10 +83,55 @@ export async function listMembersForAdmin(): Promise<Member[]> {
   return result.rows.map(mapMember);
 }
 
+export async function updateMemberAccessForAdmin(
+  memberId: string,
+  role: MemberRole,
+  trustLevel: MemberTrustLevel,
+): Promise<Member> {
+  const result = await pool.query<MemberRow>(
+    `UPDATE members
+    SET role = $2,
+      trust_level = $3,
+      updated_at = now()
+    WHERE id = $1
+    RETURNING *`,
+    [memberId, role, trustLevel],
+  );
+
+  if (!result.rowCount) {
+    throw new HttpError(404, "Member not found.");
+  }
+
+  return mapMember(result.rows[0]);
+}
+
 export function requireAdmin(member: Member): void {
   if (member.role !== "ADMIN") {
     throw new HttpError(403, "Admin role is required.");
   }
+}
+
+export function requireModerator(member: Member): void {
+  if (!canModerate(member)) {
+    throw new HttpError(403, "Moderator role is required.");
+  }
+}
+
+export function canModerate(member: Member): boolean {
+  return member.role === "ADMIN" || member.role === "CONTRIB_MODERATOR";
+}
+
+export function isMemberRole(value: unknown): value is MemberRole {
+  return (
+    value === "MEMBER" ||
+    value === "TRUSTED_MEMBER" ||
+    value === "CONTRIB_MODERATOR" ||
+    value === "ADMIN"
+  );
+}
+
+export function isMemberTrustLevel(value: unknown): value is MemberTrustLevel {
+  return value === "NEW" || value === "KNOWN" || value === "TRUSTED";
 }
 
 function isAdminEmail(email: string | undefined): boolean {

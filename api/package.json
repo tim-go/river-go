@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "db:migrate": "tsx src/migrate.ts",
     "sync:smoke": "tsx src/smoke-sync.ts"

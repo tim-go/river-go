@@ -19,8 +19,10 @@ interface ApiContribution {
   moderationStatus: ContributionStatus;
   revision: number;
   contributor: {
+    id: string | null;
     displayName: string | null;
     email: string | null;
+    trustLevel: string | null;
   };
 }
 
@@ -47,6 +49,35 @@ export async function fetchSectionContributions(
   return (result.contributions ?? []).map(mapApiContribution);
 }
 
+export async function fetchModerationContributions(): Promise<Contribution[]> {
+  const result = await fetchContributionEndpoint<{ contributions?: ApiContribution[] }>(
+    "/api/moderation/contributions",
+  );
+  return (result.contributions ?? []).map(mapApiContribution);
+}
+
+export type ModerationDecision =
+  | "approve"
+  | "confirm"
+  | "challenge"
+  | "hide"
+  | "reject"
+  | "resolve";
+
+export async function applyContributionModerationDecision(
+  contributionId: string,
+  decision: ModerationDecision,
+): Promise<Contribution> {
+  const result = await fetchContributionEndpoint<{ contribution: ApiContribution }>(
+    `/api/moderation/contributions/${encodeURIComponent(contributionId)}/decision`,
+    {
+      method: "POST",
+      body: JSON.stringify({ decision }),
+    },
+  );
+  return mapApiContribution(result.contribution);
+}
+
 function mapApiContribution(contribution: ApiContribution): Contribution {
   const payload = contribution.payload ?? {};
   const dateObserved = contribution.observedAt
@@ -55,7 +86,7 @@ function mapApiContribution(contribution: ApiContribution): Contribution {
   const author =
     contribution.contributor.displayName ??
     contribution.contributor.email ??
-    "RiffleMap member";
+    "RiverLaunch.app member";
 
   return {
     id: contribution.id,
@@ -76,6 +107,32 @@ function mapApiContribution(contribution: ApiContribution): Contribution {
     location: mapPointGeometry(contribution.geometry),
     serverRevision: contribution.revision,
   };
+}
+
+async function fetchContributionEndpoint<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const authToken = await getCurrentUserIdToken();
+
+  if (!authToken) {
+    throw new Error("Sign in before loading moderation data.");
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+    ...options,
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${authToken}`,
+    },
+    method: options.method ?? "GET",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Contribution API failed with HTTP ${response.status}`);
+  }
+
+  return (await response.json()) as T;
 }
 
 function mapPointGeometry(

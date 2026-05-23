@@ -14,7 +14,7 @@ maturity: Draft
 
 ## Purpose
 
-River Go needs a data model that supports offline-first contribution capture without losing the benefits of PostgreSQL/PostGIS queries.
+RiverLaunch.app needs a data model that supports offline-first contribution capture without losing the benefits of PostgreSQL/PostGIS queries.
 
 The model should combine structured relational columns for identity, sync, moderation, timestamps, and geometry with JSONB payloads for contribution-type-specific data that will evolve as the community model matures.
 
@@ -115,7 +115,7 @@ The backend must treat `operationId` as an idempotency key. Replaying the same o
 
 | Column | Type | Purpose |
 | --- | --- | --- |
-| `id` | `uuid primary key` | Internal member ID used by River Go records. |
+| `id` | `uuid primary key` | Internal member ID used by RiverLaunch.app records. |
 | `firebase_uid` | `text unique not null` | Stable Firebase Auth user identifier. |
 | `email` | `text` | Latest verified email from Firebase token claims. |
 | `display_name` | `text` | Latest display name from Firebase token claims. |
@@ -154,7 +154,7 @@ The backend must treat `operationId` as an idempotency key. Replaying the same o
 | `entity_type` | `text` | Target entity type. |
 | `entity_id` | `uuid` | Target entity ID. |
 | `actor_id` | `text` | Authenticated user or null for pre-auth prototype. |
-| `actor_member_id` | `uuid` | Authenticated River Go member ID when available. |
+| `actor_member_id` | `uuid` | Authenticated RiverLaunch.app member ID when available. |
 | `base_revision` | `bigint` | Revision the client acted on, null for creates. |
 | `received_at` | `timestamptz` | Server receive time. |
 | `payload` | `jsonb` | Original operation payload. |
@@ -296,7 +296,7 @@ Tasks:
 | SYNC-F4 | Sync push endpoint | Backend/API | Landed | v0.3 | — | Accepts authenticated `contribution.create` operations, stores member linkage, and is called by manual frontend sync. |
 | SYNC-F5 | Photo metadata schema | Backend/media | Queued | MVP | — | Metadata table exists before binary upload flow is implemented; must support section, POI, and contribution attachment. |
 | SYNC-F6 | Member identity schema | Backend/auth | Active | MVP | — | Members are keyed by Firebase UID and linked to synced contributions. |
-| SYNC-F7 | Community trust roles | Backend/auth | Queued | MVP | — | Extend member role/trust model for `TRUSTED_MEMBER` and `CONTRIB_MODERATOR` without relying on `ADMIN` for normal contribution review. |
+| SYNC-F7 | Community trust roles | Backend/auth | Landed | MVP | — | Extends member role/trust model for `TRUSTED_MEMBER` and `CONTRIB_MODERATOR` without relying on `ADMIN` for normal contribution review. |
 | SYNC-F8 | Contribution readback API | Backend/API | Landed | MVP | — | Phase 1 read endpoint returns backend contributions by section for frontend load/merge. |
 | SYNC-F9 | Frontend backend contribution merge | Frontend/sync | Landed | MVP | — | Phase 1 frontend merges backend contributions with local queued outbox records and shows moderation/sync labels. |
 
@@ -309,6 +309,7 @@ Tasks:
 | SYNC-B3 | task | Firebase Auth actor binding | Resolved | MVP | HTTP sync writes require Firebase Auth and link accepted contributions to member rows. |
 | SYNC-B4 | task | IndexedDB outbox implementation | Open | MVP | Client-side peer to the sync operation envelope. |
 | SYNC-B5 | task | Phase 1 persisted contribution loop | Resolved | MVP | Backend section readback, authenticated sync writes, moderation defaults, smoke readback, and frontend merge are implemented. |
+| SYNC-B6 | task | Phase 2 trust roles and moderation controls | Resolved | MVP | Migration, admin role/trust editing, moderation queue, and basic moderation decisions are implemented. |
 
 ## Change Log
 

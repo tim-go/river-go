@@ -1,6 +1,6 @@
-# River Go API
+# RiverLaunch.app API
 
-This package contains the first River Go backend slice.
+This package contains the first RiverLaunch.app backend slice.
 
 It is intentionally small:
 
@@ -13,7 +13,7 @@ The first sync operation is `contribution.create`. It is idempotent: replaying t
 
 ## Local Development
 
-Start the local River Go PostGIS database from the repo root:
+Start the local RiverLaunch.app PostGIS database from the repo root:
 
 ```bash
 npm run db:local:up

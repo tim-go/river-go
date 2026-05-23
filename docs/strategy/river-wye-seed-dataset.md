@@ -4,7 +4,7 @@
 
 This document describes the initial River Wye seed dataset used by the demo app.
 
-The seed dataset is not a published guide. It is draft product data for testing the River Go community model, contribution workflow, and section-level information architecture.
+The seed dataset is not a published guide. It is draft product data for testing the RiverLaunch.app community model, contribution workflow, and section-level information architecture.
 
 The source fixture is:
 

@@ -5,12 +5,21 @@ import {
   requireAuthContext,
 } from "./auth.js";
 import { getPort } from "./config.js";
-import { listContributionsForSection } from "./contributions.js";
+import {
+  applyModerationDecision,
+  isModerationDecision,
+  listContributionsForSection,
+  listModerationContributions,
+} from "./contributions.js";
 import { closePool, pool } from "./db.js";
 import { HttpError, readJsonBody, sendJson } from "./http.js";
 import {
   listMembersForAdmin,
+  isMemberRole,
+  isMemberTrustLevel,
   requireAdmin,
+  requireModerator,
+  updateMemberAccessForAdmin,
   upsertMemberFromAuth,
 } from "./members.js";
 import { pushSyncOperations } from "./sync.js";
@@ -47,6 +56,53 @@ async function route(
     requireAdmin(member);
     const members = await listMembersForAdmin();
     return { status: 200, body: { members } };
+  }
+
+  const adminMemberAccessMatch = url.pathname.match(
+    /^\/api\/admin\/members\/([^/]+)\/access$/,
+  );
+  if (method === "POST" && adminMemberAccessMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireAdmin(member);
+
+    if (!isRecord(body) || !isMemberRole(body.role) || !isMemberTrustLevel(body.trustLevel)) {
+      throw new HttpError(400, "role and trustLevel are required.");
+    }
+
+    const updatedMember = await updateMemberAccessForAdmin(
+      decodeURIComponent(adminMemberAccessMatch[1]),
+      body.role,
+      body.trustLevel,
+    );
+    return { status: 200, body: { member: updatedMember } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/moderation/contributions") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+    const contributions = await listModerationContributions();
+    return { status: 200, body: { contributions } };
+  }
+
+  const moderationDecisionMatch = url.pathname.match(
+    /^\/api\/moderation\/contributions\/([^/]+)\/decision$/,
+  );
+  if (method === "POST" && moderationDecisionMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+
+    if (!isRecord(body) || !isModerationDecision(body.decision)) {
+      throw new HttpError(400, "decision is required.");
+    }
+
+    const contribution = await applyModerationDecision(
+      decodeURIComponent(moderationDecisionMatch[1]),
+      body.decision,
+    );
+    return { status: 200, body: { contribution } };
   }
 
   const sectionContributionsMatch = url.pathname.match(
@@ -94,12 +150,16 @@ export function createApiServer() {
   });
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const port = getPort();
   const server = createApiServer();
 
   server.listen(port, () => {
-    console.log(`River Go API listening on http://127.0.0.1:${port}`);
+    console.log(`RiverLaunch.app API listening on http://127.0.0.1:${port}`);
   });
 
   process.on("SIGTERM", () => {

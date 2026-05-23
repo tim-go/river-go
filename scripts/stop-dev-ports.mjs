@@ -11,7 +11,7 @@ const listeners = getListeners()
   .filter((listener) => isRiverGoProcess(listener, repoDir));
 
 if (listeners.length === 0) {
-  console.log(`No River Go dev processes found on ports ${ports.join(", ")}.`);
+  console.log(`No RiverLaunch.app dev processes found on ports ${ports.join(", ")}.`);
   process.exit(0);
 }
 

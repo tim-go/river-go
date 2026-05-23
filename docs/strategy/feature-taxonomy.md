@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This taxonomy defines the first set of contribution and map-feature types for River Go. It should keep user-submitted data consistent enough to search, filter, moderate, and display clearly.
+This taxonomy defines the first set of contribution and map-feature types for RiverLaunch.app. It should keep user-submitted data consistent enough to search, filter, moderate, and display clearly.
 
 ## Top-Level Object Types
 

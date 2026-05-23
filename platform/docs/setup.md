@@ -1,4 +1,4 @@
-# RiffleMap.com Platform Setup
+# RiverLaunch.app Platform Setup
 
 ## Current State
 
@@ -49,7 +49,7 @@ Important values:
 
 Edit `platform/.config/river-go-runtime.json` once Firebase apps and API URLs exist.
 
-RiffleMap.com follows the Kinetiq two-file config split while keeping internal repository and cloud IDs as `river-go`:
+RiverLaunch.app follows the Kinetiq two-file config split while keeping internal repository and cloud IDs as `river-go`:
 
 - `river-go-platform.json` contains provisioning facts: GCP project IDs, billing/resource parent, Firebase project IDs, Cloud SQL instance/database/user names, service accounts, domains, and GitHub environment names.
 - `river-go-runtime.json` contains execution facts and deployable secrets: URLs, `DATABASE_URL`, migration database URL, Firebase web SDK config, Firebase Admin credentials when needed, session/auth settings, and storage buckets.
@@ -66,9 +66,9 @@ Do not add a `?host=/cloudsql/...` suffix to that URL. The Cloud SQL connection 
 
 ## Local PostGIS Database
 
-The Kinetiq workspace already runs a shared `kinetiq-db` container on `localhost:5432`. Do not reuse or modify that container for River Go.
+The Kinetiq workspace already runs a shared `kinetiq-db` container on `localhost:5432`. Do not reuse or modify that container for RiverLaunch.app.
 
-River Go owns a separate local PostGIS container on `127.0.0.1:5435`.
+RiverLaunch.app owns a separate local PostGIS container on `127.0.0.1:5435`.
 
 ```bash
 npm run db:local:up

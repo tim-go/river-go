@@ -1,8 +1,8 @@
-# RiffleMap.com Platform Architecture
+# RiverLaunch.app Platform Architecture
 
 ## Purpose
 
-RiffleMap.com will publish from the main repository while keeping platform configuration in `platform/`. Internal repository, GCP, Firebase, and service IDs continue to use `river-go`.
+RiverLaunch.app will publish from the main repository while keeping platform configuration in `platform/`. Internal repository, GCP, Firebase, and service IDs continue to use `river-go`.
 
 The deployment shape should support the current web demo, the future backend API, and a later mobile app without splitting infrastructure into a separate repository.
 
@@ -10,8 +10,8 @@ The deployment shape should support the current web demo, the future backend API
 
 | Environment | Purpose | Typical URL |
 | --- | --- | --- |
-| `staging` | Public pilot/demo testing | `https://staging.rifflemap.com` |
-| `prod` | Public launch service | `https://rifflemap.com` |
+| `staging` | Public pilot/demo testing | `https://staging.riverlaunch.app` |
+| `prod` | Public launch service | `https://riverlaunch.app` |
 
 The exact domains can change in local config. The templates use placeholder domains until real DNS is chosen.
 

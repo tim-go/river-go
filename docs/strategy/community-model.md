@@ -2,7 +2,7 @@
 
 ## Summary
 
-River Go is community-driven. Users should be encouraged to upload photos, hazards, river features, access notes, and recent condition reports.
+RiverLaunch.app is community-driven. Users should be encouraged to upload photos, hazards, river features, access notes, and recent condition reports.
 
 The community model must be structured from day one. Contributions should be typed, date-stamped, attached to river objects, and open to confirmation or dispute. The product should help users judge freshness and confidence rather than simply showing old pins forever.
 

@@ -14,9 +14,9 @@ maturity: Buildable
 
 ## Purpose
 
-River Go needs current river level data, but the product should not expose raw provider APIs directly as the core domain model.
+RiverLaunch.app needs current river level data, but the product should not expose raw provider APIs directly as the core domain model.
 
-Provider data should be normalised into River Go's section/gauge model.
+Provider data should be normalised into RiverLaunch.app's section/gauge model.
 
 ## Product Role
 
@@ -55,11 +55,11 @@ Production architecture:
 ```text
 Environment Agency / NRW / SEPA / DfI APIs
         ↓
-River Go backend provider adapters
+RiverLaunch.app backend provider adapters
         ↓
 database/cache
         ↓
-River Go API
+RiverLaunch.app API
         ↓
 frontend
 ```
@@ -73,7 +73,7 @@ Dam-release rivers such as the Tryweryn need a release-aware provider model as w
 The first implementation should:
 
 - fetch station/measure readings for selected Wye gauge candidates
-- normalise latest reading into a River Go shape
+- normalise latest reading into a RiverLaunch.app shape
 - expose observed time, value, unit, trend if available, provider, and source URL
 - fail gracefully back to seed/demo values
 - keep provider-specific details out of UI components where possible
@@ -122,7 +122,7 @@ Target frontend shape:
 | LEVEL-F4 | Gauge display replacement | UI | Landed | v0.2 | — | Gauge card prefers live EA reading when available and shows fallback state otherwise. |
 | LEVEL-F5 | Backend ingestion design | Backend | Queued | MVP | — | Move provider logic server-side before production. |
 | LEVEL-F6 | Offline/stale level display | UI/data | Queued | MVP | — | Cached provider readings must be labelled as stale/offline when connectivity is unavailable. |
-| LEVEL-F7 | Tryweryn release provider model | Data/service | Queued | v0.2 | — | Decide how centre/NRW release information maps into River Go level state. |
+| LEVEL-F7 | Tryweryn release provider model | Data/service | Queued | v0.2 | — | Decide how centre/NRW release information maps into RiverLaunch.app level state. |
 
 ### Backlog
 

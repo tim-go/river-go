@@ -2,7 +2,7 @@
 
 ## Decision
 
-River Go will use the River Wye as the first pilot region.
+RiverLaunch.app will use the River Wye as the first pilot region.
 
 The pilot should prove the product's central thesis: a canoeist can use live baseline data plus fresh community intelligence to understand a specific river section before travelling.
 

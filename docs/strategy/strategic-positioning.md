@@ -2,9 +2,9 @@
 
 ## Summary
 
-RiffleMap.com is worth building if it avoids becoming a smaller copy of established river-level apps.
+RiverLaunch.app is worth building if it avoids becoming a smaller copy of established river-level apps.
 
-The product should not try to win by matching broad gauge coverage, global river databases, mobile alerts, and general paddling features from day one. Established competitors already do that well. RiffleMap.com should instead become the best local river knowledge layer for paddlers, starting with UK canoeing.
+The product should not try to win by matching broad gauge coverage, global river databases, mobile alerts, and general paddling features from day one. Established competitors already do that well. RiverLaunch.app should instead become the best local river knowledge layer for paddlers, starting with UK canoeing.
 
 The strategic decision is:
 
@@ -28,7 +28,7 @@ Those answers often live in clubs, guidebooks, informal groups, local memory, tr
 
 RiverApp is a strong competitor. Its public site positions it as a global river-condition app with tens of thousands of gauges, more than 20,000 rivers/water bodies, more than 80 data sources, push alerts, favourites, historical statistics, whitewater runs, put-ins, take-outs, dams, impassable rapids, parking locations, user notes, hazards, legal issues, and trip reports.
 
-That means a direct gauge-app feature war would be weak strategy. RiffleMap.com should assume competitors will remain better at broad coverage for some time.
+That means a direct gauge-app feature war would be weak strategy. RiverLaunch.app should assume competitors will remain better at broad coverage for some time.
 
 The better gap is depth and trust around local section knowledge:
 
@@ -47,7 +47,7 @@ References:
 
 ## Product Thesis
 
-RiffleMap.com becomes valuable when every trip can improve the map.
+RiverLaunch.app becomes valuable when every trip can improve the map.
 
 The product loop is:
 
@@ -58,11 +58,11 @@ The product loop is:
 5. That knowledge appears clearly on the map with date, source, confidence, and status.
 6. Other paddlers can trust, confirm, dispute, or refresh it.
 
-If this loop works, RiffleMap.com gains a defensible data asset. If it does not work, the product becomes an underpowered map.
+If this loop works, RiverLaunch.app gains a defensible data asset. If it does not work, the product becomes an underpowered map.
 
 ## Strategic Boundary
 
-RiffleMap.com should not start as:
+RiverLaunch.app should not start as:
 
 - a general outdoor map
 - a social network
@@ -71,7 +71,7 @@ RiffleMap.com should not start as:
 - a generic river-level browser
 - a safety certification product
 
-RiffleMap.com should start as:
+RiverLaunch.app should start as:
 
 - a small number of high-quality river sections
 - a clear map of practical river knowledge
@@ -163,4 +163,4 @@ Continue, but keep the next milestone narrow:
 
 The strategic question is not "Can we build another paddling app?"
 
-The strategic question is "Can RiffleMap.com become the trusted, fresh, community-maintained knowledge layer for real river sections?"
+The strategic question is "Can RiverLaunch.app become the trusted, fresh, community-maintained knowledge layer for real river sections?"

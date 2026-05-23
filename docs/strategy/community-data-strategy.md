@@ -2,7 +2,7 @@
 
 ## Summary
 
-RiffleMap.com depends on community data. Official sources can provide maps, gauges, river levels, warnings, and some physical features, but they do not answer the most important canoeing questions at section level:
+RiverLaunch.app depends on community data. Official sources can provide maps, gauges, river levels, warnings, and some physical features, but they do not answer the most important canoeing questions at section level:
 
 - Is this section practical for an open canoe?
 - Which gauge actually represents this stretch?
@@ -16,20 +16,20 @@ The app's long-term value is a structured, trusted, and fresh community-maintain
 
 ## Core Strategic Principle
 
-RiffleMap.com should not rely on scraping other community sites or copying guidebook content. That creates copyright, licensing, trust, and brand risk.
+RiverLaunch.app should not rely on scraping other community sites or copying guidebook content. That creates copyright, licensing, trust, and brand risk.
 
-Instead, RiffleMap.com should build its own first-party community dataset:
+Instead, RiverLaunch.app should build its own first-party community dataset:
 
 - contributed directly by users
 - contributed by clubs and trusted local paddlers
 - sourced from official/open data where permitted
 - independently verified when reference material is used for discovery
-- structured into River Go's river-section model
+- structured into RiverLaunch.app's river-section model
 - moderated and maintained over time
 
 This makes community data both the product's main value and its defensible asset.
 
-The strategic test is simple: if members do not add, confirm, correct, or refresh local river knowledge, RiffleMap.com becomes another thin map. If they do, the product becomes more useful after every trip.
+The strategic test is simple: if members do not add, confirm, correct, or refresh local river knowledge, RiverLaunch.app becomes another thin map. If they do, the product becomes more useful after every trip.
 
 ## Why Community Data Is the Product
 
@@ -301,7 +301,7 @@ Do not attempt full UK coverage before the data model and contribution workflow 
 
 ## Reference Sources Without Copying
 
-Guidebooks, forums, club pages, and existing apps can help identify what to investigate, but River Go should not copy protected content.
+Guidebooks, forums, club pages, and existing apps can help identify what to investigate, but RiverLaunch.app should not copy protected content.
 
 Acceptable use:
 
@@ -393,7 +393,7 @@ Access notes should receive stricter moderation than general photos or features.
 
 ## Legal and Ethical Position
 
-River Go should be explicit:
+RiverLaunch.app should be explicit:
 
 - community data is submitted by users
 - conditions can change quickly

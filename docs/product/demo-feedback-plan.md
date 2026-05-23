@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The River Go demo should be used to test whether the community-driven River Wye concept makes sense to real paddlers before we build backend systems.
+The RiverLaunch.app demo should be used to test whether the community-driven River Wye concept makes sense to real paddlers before we build backend systems.
 
 The goal is not to validate every map detail. The goal is to learn whether the workflow, data categories, and trust model feel useful.
 

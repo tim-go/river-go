@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# River Go platform setup.
+# RiverLaunch.app platform setup.
 #
 # Usage:
 #   platform/scripts/infra/setup.sh staging --dry-run
@@ -44,7 +44,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --help|-h)
       cat <<'USAGE'
-River Go platform setup.
+RiverLaunch.app platform setup.
 
 Usage:
   platform/scripts/infra/setup.sh staging --dry-run
@@ -409,7 +409,7 @@ ensure_firebase() {
     pass "Firebase web app exists: $web_app_id"
   else
     info "Registering Firebase web app"
-    run firebase apps:create WEB "River Go Web ($ENV)" --project="$FIREBASE_PROJECT" \
+    run firebase apps:create WEB "RiverLaunch.app Web ($ENV)" --project="$FIREBASE_PROJECT" \
       && pass "Firebase web app registered" \
       || warn "Could not register Firebase web app"
 
@@ -564,7 +564,7 @@ ensure_artifact_registry() {
   run gcloud artifacts repositories create "$ARTIFACT_REPO" \
     --repository-format=docker \
     --location="$REGION" \
-    --description="River Go Cloud Run images" \
+    --description="RiverLaunch.app Cloud Run images" \
     --project="$GCP_PROJECT" \
     --quiet \
     && pass "Artifact Registry repository created" \
@@ -626,8 +626,8 @@ ensure_cloud_sql() {
 ensure_service_accounts() {
   section "Service accounts - $GCP_PROJECT"
 
-  ensure_service_account "$CI_SA_NAME" "River Go GitHub Actions"
-  ensure_service_account "$SERVER_SA_NAME" "River Go server runtime"
+  ensure_service_account "$CI_SA_NAME" "RiverLaunch.app GitHub Actions"
+  ensure_service_account "$SERVER_SA_NAME" "RiverLaunch.app server runtime"
 
   grant_roles "$CI_SA_EMAIL" \
     roles/run.admin \
@@ -763,7 +763,7 @@ setup_environment() {
   ENV="$1"
 
   echo ""
-  echo -e "${BOLD}River Go platform setup: $ENV${NC}"
+  echo -e "${BOLD}RiverLaunch.app platform setup: $ENV${NC}"
 
   load_config "$ENV"
   validate_config "$ENV"
@@ -789,5 +789,5 @@ for env in "${ENVS[@]}"; do
   setup_environment "$env" || warn "Setup incomplete for $env"
 done
 
-print_summary "River Go platform setup"
+print_summary "RiverLaunch.app platform setup"
 exit $?

@@ -14,7 +14,7 @@ maturity: Buildable
 
 ## Purpose
 
-Community data is only useful if users can judge freshness, confidence, and credibility. RiffleMap.com should make trust visible without implying that a section is safe.
+Community data is only useful if users can judge freshness, confidence, and credibility. RiverLaunch.app should make trust visible without implying that a section is safe.
 
 Moderation should not be an admin-only publishing gate. The product should make it easy for members to add useful POIs, hazards, reports, access notes, and photos, while using trust, confidence labels, community confirmation, and lightweight moderator roles to manage risk.
 
@@ -23,7 +23,7 @@ Moderation should not be an admin-only publishing gate. The product should make 
 - `Primary user objective:` Decide how much confidence to place in community river knowledge.
 - `Classification:` Core
 - `Loop step:` Review
-- `Why this matters:` RiffleMap.com depends on community data. If useful contributions wait behind a tiny admin gate, the community loop will fail; if risky content publishes without context, the trust layer will fail.
+- `Why this matters:` RiverLaunch.app depends on community data. If useful contributions wait behind a tiny admin gate, the community loop will fail; if risky content publishes without context, the trust layer will fail.
 
 ## References
 
@@ -45,6 +45,9 @@ The prototype supports lightweight trust actions:
 - status display
 - confirmation count
 - last confirmed text
+- admin member role/trust editing
+- moderation queue for admins and contribution moderators
+- moderation decisions for approve, confirm, challenge, hide, reject, and resolve
 
 Statuses:
 
@@ -80,7 +83,7 @@ Core flow:
 5. Trusted members and community moderators can accelerate publication, hide problematic items, and resolve disputes.
 6. Admins retain platform-level control, but are not the normal path for day-to-day contribution review.
 
-Initial roles should be:
+Initial roles are:
 
 - `MEMBER` can sign in and contribute local knowledge.
 - `TRUSTED_MEMBER` can have lower-friction publication for low-risk contribution types and stronger confirmation weight.
@@ -88,6 +91,8 @@ Initial roles should be:
 - `ADMIN` can access platform-level administration, manage users/roles, and override moderation decisions.
 
 `TRUSTED_MEMBER` is a contribution trust role, not a platform administration role. `CONTRIB_MODERATOR` should be scoped by river, region, club, or contribution type when the backend model is ready, rather than always being global.
+
+Permissions roll up. `ADMIN` can access all contribution moderation actions that `CONTRIB_MODERATOR` can access, plus member role/trust management and platform controls.
 
 Trust level should remain separate from role:
 
@@ -201,8 +206,9 @@ Access notes should receive stricter moderation than ordinary features.
 | TRUST-F3 | Resolve seeded hazard | Section panel | Landed | prototype | — | Stored in localStorage. |
 | TRUST-F4 | Confirm/resolve user hazard | Section panel | Landed | prototype | — | Supports localStorage demo contributions. |
 | TRUST-F5 | Staleness rules | Data/model | Queued | v0.2 | — | Use current community strategy defaults. |
-| TRUST-F6 | Moderation queue | Admin/backend | Queued | MVP | — | Required before public community launch. |
-| TRUST-F7 | Contributor roles | Auth/community | Active | MVP | — | Start with `MEMBER` and `ADMIN`; reserve `CONTRIB_ADMIN` for contribution moderation. |
+| TRUST-F6 | Moderation queue | Admin/backend | Landed | MVP | — | Admins and contribution moderators can view queued contributions and apply basic decisions. |
+| TRUST-F7 | Contributor roles | Auth/community | Landed | MVP | — | Supports `MEMBER`, `TRUSTED_MEMBER`, `CONTRIB_MODERATOR`, and `ADMIN`; admin permissions roll up over moderation. |
+| TRUST-F8 | Member role/trust editing | Admin/backend | Landed | MVP | — | Admin member directory can update role and trust level. |
 
 ### Backlog
 
@@ -211,6 +217,7 @@ Access notes should receive stricter moderation than ordinary features.
 | TRUST-B1 | decision | Who can resolve hazards? | Open | MVP | Likely trusted contributors/moderators, with member suggestions. |
 | TRUST-B2 | decision | How stale is stale? | Triaged | v0.2 | Strategy suggests 7/30 days for reports, 90 days for hazards. |
 | TRUST-B3 | enhancement | Evidence photo requirement for serious hazards | Open | MVP | Could increase trust but may add contribution friction. |
+| TRUST-B4 | enhancement | Scoped moderator permissions | Open | MVP | Current `CONTRIB_MODERATOR` is global; later scope by river, region, club, or contribution type. |
 
 ## Change Log
 
