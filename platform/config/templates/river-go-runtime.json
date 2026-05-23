@@ -34,7 +34,8 @@
     },
     "auth": {
       "sessionSecret": "",
-      "allowedSignupEmails": ""
+      "allowedSignupEmails": "",
+      "adminEmails": "tim.gost@gmail.com;jgudgeon.ost@gmail.com"
     },
     "storage": {
       "bucket": "river-go-staging.firebasestorage.app"
@@ -64,7 +65,8 @@
     },
     "auth": {
       "sessionSecret": "",
-      "allowedSignupEmails": ""
+      "allowedSignupEmails": "",
+      "adminEmails": "tim.gost@gmail.com;jgudgeon.ost@gmail.com"
     },
     "storage": {
       "bucket": "river-go-staging.firebasestorage.app"
@@ -94,7 +96,8 @@
     },
     "auth": {
       "sessionSecret": "",
-      "allowedSignupEmails": ""
+      "allowedSignupEmails": "",
+      "adminEmails": ""
     },
     "storage": {
       "bucket": "river-go-prod.firebasestorage.app"

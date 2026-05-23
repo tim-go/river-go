@@ -43,6 +43,7 @@ The persistence model should use:
 - SQL migrations for schema changes
 - client-generated UUIDs for offline-created entities
 - operation IDs for idempotent sync retries
+- durable member records keyed by Firebase UID before public contribution collection
 
 ## Contribution Object
 
@@ -109,6 +110,21 @@ The backend must treat `operationId` as an idempotency key. Replaying the same o
 
 ## Initial Tables
 
+### `members`
+
+| Column | Type | Purpose |
+| --- | --- | --- |
+| `id` | `uuid primary key` | Internal member ID used by River Go records. |
+| `firebase_uid` | `text unique not null` | Stable Firebase Auth user identifier. |
+| `email` | `text` | Latest verified email from Firebase token claims. |
+| `display_name` | `text` | Latest display name from Firebase token claims. |
+| `photo_url` | `text` | Latest profile photo URL from Firebase token claims. |
+| `role` | `text` | `MEMBER`, `ADMIN`, or future `CONTRIB_ADMIN`. |
+| `trust_level` | `text` | Initial trust/reputation state. |
+| `created_at` | `timestamptz` | First time the member was seen. |
+| `updated_at` | `timestamptz` | Last profile update time. |
+| `last_seen_at` | `timestamptz` | Last authenticated API call. |
+
 ### `contributions`
 
 | Column | Type | Purpose |
@@ -121,6 +137,7 @@ The backend must treat `operationId` as an idempotency key. Replaying the same o
 | `observed_at` | `timestamptz` | When the observation happened. |
 | `created_at` | `timestamptz` | Server creation time or supplied client creation time where safe. |
 | `created_by` | `text` | Contributor identity, nullable until Firebase Auth is wired. |
+| `member_id` | `uuid` | Authenticated member reference when available. |
 | `moderation_status` | `text` | `pending`, `needs-confirmation`, `accepted`, `rejected`, or later states. |
 | `sync_status` | `text` | Server-side sync acceptance state. |
 | `sync_source` | `text` | `online`, `offline-pwa`, `offline-mobile`, or similar. |
@@ -136,6 +153,7 @@ The backend must treat `operationId` as an idempotency key. Replaying the same o
 | `entity_type` | `text` | Target entity type. |
 | `entity_id` | `uuid` | Target entity ID. |
 | `actor_id` | `text` | Authenticated user or null for pre-auth prototype. |
+| `actor_member_id` | `uuid` | Authenticated River Go member ID when available. |
 | `base_revision` | `bigint` | Revision the client acted on, null for creates. |
 | `received_at` | `timestamptz` | Server receive time. |
 | `payload` | `jsonb` | Original operation payload. |
@@ -206,6 +224,7 @@ The response should report accepted and failed operations separately:
 | SYNC-F3 | Initial SQL migrations | Backend/data | Landed | v0.3 | — | PostGIS-backed schema plus app-user grants for contribution sync. |
 | SYNC-F4 | Sync push endpoint | Backend/API | Landed | v0.3 | — | First implementation accepts `contribution.create` operations and is called by manual frontend sync. |
 | SYNC-F5 | Photo metadata schema | Backend/media | Queued | MVP | — | Metadata table exists before binary upload flow is implemented. |
+| SYNC-F6 | Member identity schema | Backend/auth | Active | MVP | — | Members are keyed by Firebase UID and linked to synced contributions. |
 
 ### Backlog
 
@@ -213,7 +232,7 @@ The response should report accepted and failed operations separately:
 | --- | --- | --- | --- | --- | --- |
 | SYNC-B1 | decision | Runtime validation library | Open | v0.3 | Hand-written validation is acceptable for first slice; revisit before API expands. |
 | SYNC-B2 | decision | Pull sync revision model | Open | MVP | Required before offline packs can incrementally update. |
-| SYNC-B3 | task | Firebase Auth actor binding | Open | MVP | Replace nullable actor with verified Firebase user. |
+| SYNC-B3 | task | Firebase Auth actor binding | Active | MVP | Replace nullable actor with verified Firebase user and member row. |
 | SYNC-B4 | task | IndexedDB outbox implementation | Open | MVP | Client-side peer to the sync operation envelope. |
 
 ## Change Log

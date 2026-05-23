@@ -17,6 +17,7 @@ import {
   RefreshCw,
   Route,
   ShieldAlert,
+  ShieldCheck,
   Star,
   Waves,
   X,
@@ -36,6 +37,11 @@ import {
   subscribeToAuthState,
   type AuthState,
 } from "./services/firebaseAuth";
+import {
+  fetchAdminMembers,
+  fetchCurrentMember,
+  type MemberProfile,
+} from "./services/memberApi";
 import { fetchEnvironmentAgencyGaugeReading } from "./services/riverLevels";
 import type {
   Contribution,
@@ -214,6 +220,11 @@ function App() {
     error: null,
   });
   const [authMessage, setAuthMessage] = useState("");
+  const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
+  const [memberMessage, setMemberMessage] = useState("");
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [adminMembers, setAdminMembers] = useState<MemberProfile[]>([]);
+  const [isAdminLoading, setIsAdminLoading] = useState(false);
   const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
   const [isGaugeLoading, setIsGaugeLoading] = useState(false);
   const [isSectionListOpen, setIsSectionListOpen] = useState(false);
@@ -247,6 +258,40 @@ function App() {
     (!isAuthConfigured || Boolean(authState.user));
 
   useEffect(() => subscribeToAuthState(setAuthState), []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!authState.user) {
+      setMemberProfile(null);
+      setMemberMessage("");
+      setAdminMembers([]);
+      setIsAdminPanelOpen(false);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    fetchCurrentMember()
+      .then((member) => {
+        if (isMounted) {
+          setMemberProfile(member);
+          setMemberMessage("");
+        }
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setMemberProfile(null);
+          setMemberMessage(
+            error instanceof Error ? error.message : "Could not load member profile.",
+          );
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authState.user]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(contributions));
@@ -442,6 +487,22 @@ function App() {
     }
   }
 
+  async function openAdminPanel() {
+    setIsAdminPanelOpen(true);
+    setIsAdminLoading(true);
+    setMemberMessage("");
+
+    try {
+      setAdminMembers(await fetchAdminMembers());
+    } catch (error) {
+      setMemberMessage(
+        error instanceof Error ? error.message : "Could not load members.",
+      );
+    } finally {
+      setIsAdminLoading(false);
+    }
+  }
+
   function confirmSeedHazard(hazardId: string) {
     setHazardReviews((current) => {
       const existing = current[hazardId];
@@ -561,7 +622,11 @@ function App() {
               {authState.status === "loading"
                 ? "Checking sign-in"
                 : authState.user
-                  ? authState.user.displayName
+                  ? memberProfile
+                    ? `${memberProfile.displayName ?? authState.user.displayName} · ${
+                        memberProfile.role
+                      }`
+                    : authState.user.displayName
                   : isAuthConfigured
                     ? "Signed out"
                     : "Auth not configured"}
@@ -587,6 +652,16 @@ function App() {
               </button>
             )}
           </div>
+          {memberProfile?.role === "ADMIN" ? (
+            <button
+              className="ghost-button sync-action"
+              type="button"
+              onClick={openAdminPanel}
+            >
+              <ShieldCheck size={16} />
+              Admin
+            </button>
+          ) : null}
           <span
             className={`sync-pill ${
               queuedOutboxCount > 0 ? "sync-pill--queued" : ""
@@ -638,8 +713,10 @@ function App() {
             <Plus size={18} />
             Add local knowledge
           </button>
-          {authMessage || authState.error ? (
-            <p className="topbar-message">{authMessage || authState.error}</p>
+          {authMessage || authState.error || memberMessage ? (
+            <p className="topbar-message">
+              {authMessage || authState.error || memberMessage}
+            </p>
           ) : null}
         </div>
       </section>
@@ -887,6 +964,44 @@ function App() {
               <X size={15} />
               Cancel
             </button>
+          </section>
+        ) : null}
+
+        {isAdminPanelOpen ? (
+          <section className="admin-panel" aria-label="Admin members">
+            <div className="quick-add-panel__header">
+              <div>
+                <p className="eyebrow">Admin</p>
+                <h2>Members</h2>
+              </div>
+              <button
+                className="icon-button"
+                type="button"
+                aria-label="Close admin panel"
+                title="Close"
+                onClick={() => setIsAdminPanelOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            {isAdminLoading ? (
+              <p className="source-note">Loading members...</p>
+            ) : (
+              <div className="member-list">
+                {adminMembers.map((member) => (
+                  <div className="member-row" key={member.id}>
+                    <div>
+                      <strong>{member.displayName ?? member.email ?? member.firebaseUid}</strong>
+                      <span>{member.email ?? "No email"}</span>
+                    </div>
+                    <span className="status-chip">{member.role}</span>
+                  </div>
+                ))}
+                {adminMembers.length === 0 ? (
+                  <p className="source-note">No members found.</p>
+                ) : null}
+              </div>
+            )}
           </section>
         ) : null}
 

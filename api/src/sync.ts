@@ -32,6 +32,11 @@ interface SyncOperationInput {
   payload: ContributionCreatePayload;
 }
 
+interface SyncActor {
+  firebaseUid: string | null;
+  memberId: string | null;
+}
+
 interface ContributionCreatePayload {
   id: string;
   type: string;
@@ -48,7 +53,7 @@ interface ContributionCreatePayload {
 
 export async function pushSyncOperations(
   body: unknown,
-  actorId: string | null = null,
+  actor: SyncActor = { firebaseUid: null, memberId: null },
 ): Promise<SyncPushResult> {
   if (!isRecord(body) || !Array.isArray(body.operations)) {
     throw new Error("Body must contain operations array");
@@ -71,10 +76,13 @@ export async function pushSyncOperations(
 
     try {
       accepted.push(
-        await processOperation({
-          ...operation.value,
-          actorId,
-        }),
+        await processOperation(
+          {
+            ...operation.value,
+            actorId: actor.firebaseUid,
+          },
+          actor,
+        ),
       );
     } catch (error) {
       failed.push({
@@ -88,7 +96,10 @@ export async function pushSyncOperations(
   return { accepted, failed };
 }
 
-async function processOperation(operation: SyncOperationInput): Promise<SyncAcceptedOperation> {
+async function processOperation(
+  operation: SyncOperationInput,
+  actor: SyncActor = { firebaseUid: operation.actorId ?? null, memberId: null },
+): Promise<SyncAcceptedOperation> {
   if (operation.operationType !== "contribution.create") {
     throw new Error(`Unsupported operation type: ${operation.operationType}`);
   }
@@ -121,7 +132,7 @@ async function processOperation(operation: SyncOperationInput): Promise<SyncAcce
       };
     }
 
-    const result = await insertContribution(client, operation);
+    const result = await insertContribution(client, operation, actor);
 
     await client.query(
       `INSERT INTO sync_operations (
@@ -129,17 +140,19 @@ async function processOperation(operation: SyncOperationInput): Promise<SyncAcce
         operation_type,
         entity_type,
         entity_id,
+        actor_member_id,
         actor_id,
         base_revision,
         payload,
         result_status,
         result_payload
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9::jsonb)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10::jsonb)`,
       [
         operation.operationId,
         operation.operationType,
         operation.entityType,
         operation.entityId,
+        actor.memberId,
         operation.actorId ?? null,
         operation.baseRevision ?? null,
         JSON.stringify(operation),
@@ -161,6 +174,7 @@ async function processOperation(operation: SyncOperationInput): Promise<SyncAcce
 async function insertContribution(
   client: PoolClient,
   operation: SyncOperationInput,
+  actor: SyncActor,
 ): Promise<SyncAcceptedOperation> {
   const contribution = operation.payload;
   const geometryJson = contribution.geometry ? JSON.stringify(contribution.geometry) : null;
@@ -176,6 +190,7 @@ async function insertContribution(
       geometry,
       observed_at,
       created_at,
+      member_id,
       created_by,
       moderation_status,
       sync_status,
@@ -191,9 +206,10 @@ async function insertContribution(
       COALESCE($7::timestamptz, now()),
       $8,
       $9,
-      'accepted',
       $10,
-      $11::jsonb
+      'accepted',
+      $11,
+      $12::jsonb
     )
     ON CONFLICT (id) DO UPDATE SET
       updated_at = now()
@@ -206,6 +222,7 @@ async function insertContribution(
       geometryJson,
       contribution.observedAt ?? null,
       operation.createdAt ?? null,
+      actor.memberId,
       operation.actorId ?? null,
       initialModerationStatus(contribution.type),
       syncSource,

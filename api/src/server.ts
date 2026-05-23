@@ -1,9 +1,14 @@
 import { createServer } from "node:http";
 import type { IncomingHttpHeaders } from "node:http";
-import { getWriteAuthContext } from "./auth.js";
+import { getWriteAuthContext, requireAuthContext } from "./auth.js";
 import { getPort } from "./config.js";
 import { closePool, pool } from "./db.js";
 import { HttpError, readJsonBody, sendJson } from "./http.js";
+import {
+  listMembersForAdmin,
+  requireAdmin,
+  upsertMemberFromAuth,
+} from "./members.js";
 import { pushSyncOperations } from "./sync.js";
 
 async function route(
@@ -26,9 +31,27 @@ async function route(
     };
   }
 
+  if (method === "GET" && url.pathname === "/api/me") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    return { status: 200, body: { member } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/admin/members") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireAdmin(member);
+    const members = await listMembersForAdmin();
+    return { status: 200, body: { members } };
+  }
+
   if (method === "POST" && url.pathname === "/api/sync/push") {
     const authContext = await getWriteAuthContext(headers);
-    const result = await pushSyncOperations(body, authContext?.userId ?? null);
+    const member = authContext ? await upsertMemberFromAuth(authContext) : null;
+    const result = await pushSyncOperations(body, {
+      firebaseUid: authContext?.userId ?? null,
+      memberId: member?.id ?? null,
+    });
     return { status: result.failed.length ? 207 : 200, body: result };
   }
 

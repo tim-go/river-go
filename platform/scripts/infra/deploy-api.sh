@@ -106,6 +106,7 @@ CLOUD_SQL_INSTANCE="$(json_value ".environments.$ENV.database.instance")"
 SERVER_SA_NAME="$(jq -r ".environments.$ENV.serviceAccounts.server // \"river-go-server\"" "$CONFIG_PATH")"
 SERVER_SA_EMAIL="$SERVER_SA_NAME@$GCP_PROJECT.iam.gserviceaccount.com"
 DATABASE_URL="$(runtime_value ".$ENV.database.url")"
+ADMIN_EMAILS="$(jq -er ".$ENV.auth.adminEmails // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 
 if [[ -z "$TAG" ]]; then
   GIT_SHA="$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo manual)"
@@ -141,7 +142,7 @@ run gcloud run deploy "$CLOUD_RUN_SERVICE" \
   --no-invoker-iam-check \
   --service-account="$SERVER_SA_EMAIL" \
   --add-cloudsql-instances="$CLOUD_SQL_CONNECTION_NAME" \
-  --set-env-vars="CLOUD_SQL_CONNECTION_NAME=$CLOUD_SQL_CONNECTION_NAME,NODE_ENV=production" \
+  --set-env-vars="^|^CLOUD_SQL_CONNECTION_NAME=$CLOUD_SQL_CONNECTION_NAME|NODE_ENV=production|ADMIN_EMAILS=$ADMIN_EMAILS" \
   --set-secrets="DATABASE_URL=DATABASE_URL:latest" \
   --port="8080" \
   --memory="512Mi" \

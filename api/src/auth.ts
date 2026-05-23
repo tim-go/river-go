@@ -8,15 +8,35 @@ export interface AuthContext {
   userId: string;
   email?: string;
   name?: string;
+  picture?: string;
 }
 
 export async function getWriteAuthContext(
   headers: IncomingHttpHeaders,
 ): Promise<AuthContext | null> {
+  return getAuthContext(headers, { required: isWriteAuthRequired() });
+}
+
+export async function requireAuthContext(
+  headers: IncomingHttpHeaders,
+): Promise<AuthContext> {
+  const authContext = await getAuthContext(headers, { required: true });
+
+  if (!authContext) {
+    throw new HttpError(401, "Sign-in is required.");
+  }
+
+  return authContext;
+}
+
+async function getAuthContext(
+  headers: IncomingHttpHeaders,
+  options: { required: boolean },
+): Promise<AuthContext | null> {
   const token = getBearerToken(headers.authorization);
 
   if (!token) {
-    if (isWriteAuthRequired()) {
+    if (options.required) {
       throw new HttpError(401, "Sign-in is required to sync contributions.");
     }
 
@@ -29,6 +49,8 @@ export async function getWriteAuthContext(
       userId: decodedToken.uid,
       email: typeof decodedToken.email === "string" ? decodedToken.email : undefined,
       name: typeof decodedToken.name === "string" ? decodedToken.name : undefined,
+      picture:
+        typeof decodedToken.picture === "string" ? decodedToken.picture : undefined,
     };
   } catch {
     throw new HttpError(401, "Invalid Firebase ID token.");

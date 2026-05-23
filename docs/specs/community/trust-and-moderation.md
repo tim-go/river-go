@@ -63,6 +63,12 @@ Production should add:
 - edit history
 - source/confidence metadata
 
+Initial roles:
+
+- `MEMBER` can sign in and contribute local knowledge.
+- `ADMIN` can access the admin area and view/manage platform-level user/member data.
+- `CONTRIB_ADMIN` is reserved for future contribution moderation workflows, such as reviewing hazards, access notes, disputes, and stale content.
+
 Moderation priority should be highest for:
 
 - safety-critical hazards
@@ -94,7 +100,7 @@ Access notes should receive stricter moderation than ordinary features.
 | TRUST-F4 | Confirm/resolve user hazard | Section panel | Landed | prototype | — | Supports localStorage demo contributions. |
 | TRUST-F5 | Staleness rules | Data/model | Queued | v0.2 | — | Use current community strategy defaults. |
 | TRUST-F6 | Moderation queue | Admin/backend | Queued | MVP | — | Required before public community launch. |
-| TRUST-F7 | Contributor roles | Auth/community | Queued | MVP | — | Member, trusted contributor, club contributor, moderator. |
+| TRUST-F7 | Contributor roles | Auth/community | Active | MVP | — | Start with `MEMBER` and `ADMIN`; reserve `CONTRIB_ADMIN` for contribution moderation. |
 
 ### Backlog
 

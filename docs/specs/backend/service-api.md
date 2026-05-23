@@ -47,6 +47,8 @@ Initial endpoints:
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/health` | Runtime health check. |
+| `GET` | `/api/me` | Upsert and return the authenticated member profile. |
+| `GET` | `/api/admin/members` | List member profiles for admins. |
 | `GET` | `/api/rivers` | River list. |
 | `GET` | `/api/rivers/:riverId/sections` | Section list with route summaries. |
 | `GET` | `/api/sections/:sectionId` | Section detail, hazards, access, features, reports, photos, and current gauge context. |
@@ -72,6 +74,9 @@ Auth:
 - Anonymous read access is allowed for public river/section data.
 - Write access requires a verified Firebase user.
 - The first sync endpoint accepts Firebase bearer tokens and records the verified user as the operation actor when present.
+- Authenticated calls upsert a `members` record keyed by Firebase UID.
+- Roles start with `MEMBER` and `ADMIN`; `CONTRIB_ADMIN` is reserved for contribution moderation/admin workflows.
+- `ADMIN` is assigned from the environment's `ADMIN_EMAILS` allowlist, sourced from runtime config during Cloud Run deployment.
 - Backend hard enforcement of signed writes can be enabled with `REQUIRE_AUTH_FOR_WRITES=true` after staging smoke tests can provide an auth token.
 - Moderator endpoints require a role claim or backend role table.
 
@@ -120,6 +125,7 @@ Moderation:
 | API-F7 | Offline sync contracts | Backend/sync | Queued | MVP | — | Support client-generated IDs, idempotent pushes, pull tokens, and offline pack downloads. |
 | API-F8 | Initial sync push implementation | Backend/sync | Landed | v0.3 | — | First backend slice proves `GET /api/health` and idempotent `POST /api/sync/push`. |
 | API-F9 | Cloud Run deploy package | Backend/ops | Active | v0.3 | — | Adds Dockerfile and deployment support for Cloud Run plus Cloud SQL. |
+| API-F10 | Member identity API | Backend/auth | Active | MVP | — | Adds `/api/me`, member upsert, and admin member list endpoint. |
 
 ### Backlog
 
