@@ -40,6 +40,11 @@
     },
     "storage": {
       "bucket": "river-go-staging.firebasestorage.app"
+    },
+    "integrations": {
+      "what3words": {
+        "apiKey": ""
+      }
     }
   },
   "staging": {
@@ -72,6 +77,11 @@
     },
     "storage": {
       "bucket": "river-go-staging.firebasestorage.app"
+    },
+    "integrations": {
+      "what3words": {
+        "apiKey": ""
+      }
     }
   },
   "prod": {
@@ -104,6 +114,11 @@
     },
     "storage": {
       "bucket": "river-go-prod.firebasestorage.app"
+    },
+    "integrations": {
+      "what3words": {
+        "apiKey": ""
+      }
     }
   }
 }

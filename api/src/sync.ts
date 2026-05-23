@@ -5,6 +5,7 @@ import {
   type ContributionRow,
 } from "./contributions.js";
 import { pool } from "./db.js";
+import { enrichPayloadWithWhat3Words } from "./what3words.js";
 
 const contributionTypes = new Set(["hazard", "report", "photo", "feature", "access"]);
 
@@ -202,7 +203,10 @@ async function insertContribution(
 ): Promise<SyncAcceptedOperation> {
   const contribution = operation.payload;
   const geometryJson = contribution.geometry ? JSON.stringify(contribution.geometry) : null;
-  const payload = contribution.payload ?? {};
+  const payload = await enrichPayloadWithWhat3Words(
+    contribution.payload ?? {},
+    contribution.geometry,
+  );
   const syncSource = contribution.client?.createdOffline ? "offline-pwa" : "online";
 
   const result = await client.query<ContributionRow>(

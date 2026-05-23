@@ -3,6 +3,7 @@ import {
   Camera,
   CheckCircle2,
   ChevronDown,
+  Copy,
   Clock3,
   Droplets,
   ExternalLink,
@@ -71,6 +72,13 @@ import {
   fetchMyPhotos,
   type MemberPhoto,
 } from "./services/photoApi";
+import {
+  fetchCoordinatesForWhat3Words,
+  fetchWhat3WordsAddress,
+  formatWhat3Words,
+  googleMapsDirectionsUrl,
+  googleMapsSearchUrl,
+} from "./services/locationReferences";
 import type {
   Contribution,
   ContributionPhoto,
@@ -88,6 +96,10 @@ const STORAGE_KEY = "river-go-demo-contributions";
 const HAZARD_REVIEW_STORAGE_KEY = "river-go-demo-hazard-reviews";
 const FAVOURITES_STORAGE_KEY = "river-go-demo-favourite-sections";
 const WELCOME_SESSION_STORAGE_KEY = "riverlaunch-welcome-dismissed-session";
+const SYNC_BANNER_DISMISSAL_STORAGE_KEY = "riverlaunch-sync-banner-dismissal";
+const SYNC_BANNER_DISMISS_MS = 60 * 60 * 1000;
+const SEARCH_FOCUS_ZOOM = 15;
+const NEARBY_POI_MAX_KM = 5;
 
 const bandLabels = {
   "too-low": "Too low",
@@ -181,6 +193,7 @@ const categoryOptions: Record<ContributionType, string[]> = {
 type AppSection = "search" | "map" | "favourites" | "profile" | "more" | "admin";
 type AdminPage = "index" | "members" | "moderation" | "system";
 type AuthSheetMode = "welcome" | "save-required";
+type SearchMode = "name" | "point";
 
 const memberRoleOptions: MemberRole[] = [
   "MEMBER",
@@ -194,7 +207,7 @@ const moderationActions: Array<{
   decision: ModerationDecision;
   label: string;
 }> = [
-  { decision: "approve", label: "Approve" },
+  { decision: "approve", label: "Publish as reported" },
   { decision: "confirm", label: "Confirm" },
   { decision: "challenge", label: "Challenge" },
   { decision: "hide", label: "Hide" },
@@ -206,6 +219,28 @@ type MemberTrustFilter = "all" | MemberTrustLevel;
 type ModerationDraftDecision = ModerationDecision | "";
 type PendingPhotoDelete = { id: string; title: string };
 type PendingPointDelete = { id: string; title: string };
+type SyncBannerDismissal = {
+  queuedOutboxCount: number;
+  failedOutboxCount: number;
+  expiresAt: number;
+};
+type NearbyPoiResult = {
+  id: string;
+  kind: "access" | "hazard" | "feature" | "gauge" | "contribution";
+  title: string;
+  subtitle: string;
+  section: RiverSection;
+  location: LatLngTuple;
+  distanceKm: number;
+};
+type LocationSearchResult = {
+  label: string;
+  location: LatLngTuple;
+  nearestPlace?: string;
+  country?: string;
+  focusSection?: RiverSection;
+  pois: NearbyPoiResult[];
+};
 
 interface SelectedPoi {
   id: string;
@@ -219,6 +254,7 @@ interface SelectedPoi {
   sourceLabel?: string;
   sourceConfidence?: string;
   navigationLocation?: LatLngTuple;
+  what3words?: string;
   syncStatus?: ContributionSyncStatus;
   photos?: ContributionPhoto[];
   category?: string;
@@ -267,19 +303,23 @@ function pluralise(count: number, singular: string, plural = `${singular}s`) {
 function SyncOutboxBanner({
   queuedOutboxCount,
   failedOutboxCount,
+  isDismissed,
   isOnline,
   isSyncingOutbox,
   canSyncOutbox,
+  onDismiss,
   onSync,
 }: {
   queuedOutboxCount: number;
   failedOutboxCount: number;
+  isDismissed: boolean;
   isOnline: boolean;
   isSyncingOutbox: boolean;
   canSyncOutbox: boolean;
+  onDismiss: () => void;
   onSync: () => void;
 }) {
-  if (queuedOutboxCount === 0) {
+  if (queuedOutboxCount === 0 || isDismissed) {
     return null;
   }
 
@@ -310,15 +350,24 @@ function SyncOutboxBanner({
           <span>{detail}</span>
         </div>
       </div>
-      <button
-        className="primary-action sync-banner__action"
-        type="button"
-        onClick={onSync}
-        disabled={!canSyncOutbox}
-      >
-        <RefreshCw size={16} />
-        {isSyncingOutbox ? "Syncing" : state === "failed" ? "Retry sync" : "Sync now"}
-      </button>
+      <div className="sync-banner__actions">
+        <button
+          className="primary-action sync-banner__action"
+          type="button"
+          onClick={onSync}
+          disabled={!canSyncOutbox}
+        >
+          <RefreshCw size={16} />
+          {isSyncingOutbox ? "Syncing" : state === "failed" ? "Retry sync" : "Sync now"}
+        </button>
+        <button
+          className="ghost-button sync-banner__action"
+          type="button"
+          onClick={onDismiss}
+        >
+          Later
+        </button>
+      </div>
     </section>
   );
 }
@@ -370,6 +419,42 @@ function rememberWelcomeDismissedForSession() {
   }
 }
 
+function loadSyncBannerDismissal(): SyncBannerDismissal | null {
+  try {
+    const stored = sessionStorage.getItem(SYNC_BANNER_DISMISSAL_STORAGE_KEY);
+    if (!stored) return null;
+
+    const value = JSON.parse(stored) as Partial<SyncBannerDismissal>;
+    return typeof value.queuedOutboxCount === "number" &&
+      typeof value.failedOutboxCount === "number" &&
+      typeof value.expiresAt === "number"
+      ? {
+          queuedOutboxCount: value.queuedOutboxCount,
+          failedOutboxCount: value.failedOutboxCount,
+          expiresAt: value.expiresAt,
+        }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSyncBannerDismissal(dismissal: SyncBannerDismissal | null) {
+  try {
+    if (!dismissal) {
+      sessionStorage.removeItem(SYNC_BANNER_DISMISSAL_STORAGE_KEY);
+      return;
+    }
+
+    sessionStorage.setItem(
+      SYNC_BANNER_DISMISSAL_STORAGE_KEY,
+      JSON.stringify(dismissal),
+    );
+  } catch {
+    // Non-critical; the sync banner can reappear if session storage is unavailable.
+  }
+}
+
 function markerHtml(kind: string, label: string) {
   return `<span class="map-marker map-marker--${kind}" aria-hidden="true">${label}</span>`;
 }
@@ -380,6 +465,8 @@ function createMapPopupContent({
   summary,
   detailsLabel = "Details",
   navigationLocation,
+  navigationLabel = "Maps",
+  navigationMode = "map",
   onDetails,
 }: {
   title: string;
@@ -387,6 +474,8 @@ function createMapPopupContent({
   summary: string;
   detailsLabel?: string;
   navigationLocation?: LatLngTuple;
+  navigationLabel?: string;
+  navigationMode?: "directions" | "map";
   onDetails: () => void;
 }) {
   const container = L.DomUtil.create("div", "map-popup-card");
@@ -412,11 +501,37 @@ function createMapPopupContent({
 
   if (navigationLocation) {
     const link = L.DomUtil.create("a", "", actions);
-    link.href = navigationUrl(navigationLocation);
+    link.href =
+      navigationMode === "directions"
+        ? googleMapsDirectionsUrl(navigationLocation)
+        : googleMapsSearchUrl(navigationLocation);
     link.target = "_blank";
     link.rel = "noreferrer";
-    link.textContent = "Navigate";
+    link.textContent = navigationLabel;
   }
+
+  return container;
+}
+
+function createSearchedLocationPopup(location: LatLngTuple, title: string) {
+  const container = L.DomUtil.create("div", "map-popup-card");
+  L.DomEvent.disableClickPropagation(container);
+
+  const heading = L.DomUtil.create("strong", "", container);
+  heading.textContent = title;
+
+  const meta = L.DomUtil.create("span", "", container);
+  meta.textContent = formatLocation(location);
+
+  const body = L.DomUtil.create("p", "", container);
+  body.textContent = "Opened from Search.";
+
+  const actions = L.DomUtil.create("div", "map-popup-actions", container);
+  const link = L.DomUtil.create("a", "", actions);
+  link.href = googleMapsSearchUrl(location);
+  link.target = "_blank";
+  link.rel = "noreferrer";
+  link.textContent = "Maps";
 
   return container;
 }
@@ -432,8 +547,149 @@ function formatLocation(location: LatLngTuple) {
   return `${location[0].toFixed(4)}, ${location[1].toFixed(4)}`;
 }
 
+function parseCoordinateSearch(value: string): LatLngTuple | null {
+  const match = value
+    .trim()
+    .match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const lat = Number(match[1]);
+  const lng = Number(match[2]);
+
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
+    return null;
+  }
+
+  return [lat, lng];
+}
+
+function looksLikeWhat3Words(value: string) {
+  return /^\/{0,3}[\p{L}-]+(?:\.[\p{L}-]+){2}$/u.test(value.trim());
+}
+
+function normaliseWhat3WordsSearch(value: string) {
+  return value.trim().replace(/^\/{1,3}/, "").toLowerCase();
+}
+
+function distanceKmBetween(from: LatLngTuple, to: LatLngTuple) {
+  const earthRadiusKm = 6371;
+  const lat1 = (from[0] * Math.PI) / 180;
+  const lat2 = (to[0] * Math.PI) / 180;
+  const deltaLat = ((to[0] - from[0]) * Math.PI) / 180;
+  const deltaLng = ((to[1] - from[1]) * Math.PI) / 180;
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusKm * c;
+}
+
+function nearestSectionsForLocation(location: LatLngTuple) {
+  return riverSections
+    .map((section) => ({
+      section,
+      distanceKm: distanceKmBetween(location, section.centre),
+      location: section.centre,
+    }))
+    .sort((left, right) => left.distanceKm - right.distanceKm);
+}
+
+function nearbyPoisForLocation(
+  location: LatLngTuple,
+  contributions: Contribution[],
+) {
+  const seedPois = riverSections.flatMap((section): NearbyPoiResult[] => [
+    ...section.accessPoints.map((accessPoint) => ({
+      id: accessPoint.id,
+      kind: "access" as const,
+      title: accessPoint.name,
+      subtitle: `${section.riverName} · ${section.sectionName}`,
+      section,
+      location: accessPoint.location,
+      distanceKm: distanceKmBetween(location, accessPoint.location),
+    })),
+    ...section.hazards.map((hazard) => ({
+      id: hazard.id,
+      kind: "hazard" as const,
+      title: hazard.title,
+      subtitle: `${hazard.type} · ${section.sectionName}`,
+      section,
+      location: hazard.location,
+      distanceKm: distanceKmBetween(location, hazard.location),
+    })),
+    ...section.features.map((feature) => ({
+      id: feature.id,
+      kind: "feature" as const,
+      title: feature.title,
+      subtitle: `${feature.type} · ${section.sectionName}`,
+      section,
+      location: feature.location,
+      distanceKm: distanceKmBetween(location, feature.location),
+    })),
+    {
+      id: section.gauge.id,
+      kind: "gauge" as const,
+      title: section.gauge.name,
+      subtitle: `Gauge · ${section.sectionName}`,
+      section,
+      location: section.gauge.location,
+      distanceKm: distanceKmBetween(location, section.gauge.location),
+    },
+  ]);
+
+  const contributionPois = contributions.flatMap((contribution): NearbyPoiResult[] => {
+    if (
+      !contribution.location ||
+      contribution.status === "hidden" ||
+      contribution.status === "rejected"
+    ) {
+      return [];
+    }
+
+    const section = riverSections.find((item) => item.id === contribution.sectionId);
+
+    if (!section) {
+      return [];
+    }
+
+    return [
+      {
+        id: contribution.id,
+        kind: "contribution",
+        title: contribution.title,
+        subtitle: `Community ${contribution.type} · ${section.sectionName}`,
+        section,
+        location: contribution.location,
+        distanceKm: distanceKmBetween(location, contribution.location),
+      },
+    ];
+  });
+
+  return [...seedPois, ...contributionPois]
+    .filter((poi) => poi.distanceKm <= NEARBY_POI_MAX_KM)
+    .sort((left, right) => left.distanceKm - right.distanceKm)
+    .slice(0, 8);
+}
+
+function formatDistanceKm(distanceKm: number) {
+  return distanceKm < 1
+    ? `${Math.round(distanceKm * 1000)} m`
+    : `${distanceKm.toFixed(1)} km`;
+}
+
 function navigationUrl(location: LatLngTuple) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${location[0]},${location[1]}`;
+  return googleMapsDirectionsUrl(location);
 }
 
 function defaultObservedDate() {
@@ -470,6 +726,19 @@ function contributionStatusLabel(status: Contribution["status"]) {
   };
 
   return labels[status] ?? status;
+}
+
+function moderationResultMessage(
+  contribution: Contribution,
+  decision: ModerationDecision,
+) {
+  if (decision === "approve") {
+    return `${contribution.title} published as reported.`;
+  }
+
+  return `${contribution.title} marked ${contributionStatusLabel(
+    contribution.status,
+  )}.`;
 }
 
 function hasModeratorAccess(role?: MemberRole | null) {
@@ -764,6 +1033,58 @@ function PoiDetailPanel({
   onClose: () => void;
   onAddPhoto: () => void;
 }) {
+  const [what3wordsAddress, setWhat3WordsAddress] = useState(
+    poi.what3words ?? "",
+  );
+  const [isWhat3WordsLoading, setIsWhat3WordsLoading] = useState(false);
+  const [what3wordsUnavailable, setWhat3WordsUnavailable] = useState(false);
+  const [copiedLocationLabel, setCopiedLocationLabel] = useState("");
+
+  function resetWhat3WordsState() {
+    setCopiedLocationLabel("");
+    setWhat3WordsAddress(poi.what3words ?? "");
+    setWhat3WordsUnavailable(false);
+    setIsWhat3WordsLoading(false);
+  }
+
+  useEffect(() => {
+    resetWhat3WordsState();
+  }, [poi.id, poi.location, poi.what3words]);
+
+  async function loadWhat3WordsAddress() {
+    setIsWhat3WordsLoading(true);
+    setWhat3WordsUnavailable(false);
+
+    try {
+      const result = await fetchWhat3WordsAddress(poi.location);
+      setWhat3WordsUnavailable(!result.configured || !result.words);
+      setWhat3WordsAddress(result.words ?? "");
+    } catch {
+      setWhat3WordsUnavailable(true);
+    } finally {
+      setIsWhat3WordsLoading(false);
+    }
+  }
+
+  function retryWhat3WordsAddress() {
+    setCopiedLocationLabel("");
+    void loadWhat3WordsAddress();
+  }
+
+  async function copyLocationText(label: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedLocationLabel(`${label} copied`);
+    } catch {
+      setCopiedLocationLabel("Could not copy");
+    }
+  }
+
+  const coordinateText = formatLocation(poi.location);
+  const formattedWhat3Words = what3wordsAddress
+    ? formatWhat3Words(what3wordsAddress)
+    : "";
+
   return (
     <section className="poi-detail-panel" aria-label="Point of interest details">
       <button
@@ -791,12 +1112,97 @@ function PoiDetailPanel({
           <h3>Details</h3>
           <p>{poi.summary}</p>
         </section>
+        <section className="info-block">
+          <h3>Location</h3>
+          <div className="detail-list">
+            <span>
+              <strong>Coordinates</strong>
+              {coordinateText}
+            </span>
+            {formattedWhat3Words ? (
+              <span>
+                <strong>what3words</strong>
+                {formattedWhat3Words}
+              </span>
+            ) : isWhat3WordsLoading ? (
+              <span>
+                <strong>what3words</strong>
+                Looking up...
+              </span>
+            ) : what3wordsUnavailable ? (
+              <span>
+                <strong>what3words</strong>
+                Unavailable
+              </span>
+            ) : null}
+          </div>
+          <div className="location-actions">
+            <a
+              className="ghost-button ghost-button--compact"
+              href={googleMapsSearchUrl(poi.location)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <MapIcon size={15} />
+              Maps
+            </a>
+            {poi.navigationLocation ? (
+              <a
+                className="ghost-button ghost-button--compact"
+                href={googleMapsDirectionsUrl(poi.navigationLocation)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Navigation size={15} />
+                Navigate
+              </a>
+            ) : null}
+            <button
+              className="ghost-button ghost-button--compact"
+              type="button"
+              onClick={() => void copyLocationText("Coordinates", coordinateText)}
+            >
+              <Copy size={15} />
+              Copy
+            </button>
+            {formattedWhat3Words ? (
+              <button
+                className="ghost-button ghost-button--compact"
+                type="button"
+                onClick={() =>
+                  void copyLocationText("what3words", formattedWhat3Words)
+                }
+              >
+                <Copy size={15} />
+                W3W
+              </button>
+            ) : !isWhat3WordsLoading ? (
+              <button
+                className="ghost-button ghost-button--compact"
+                type="button"
+                onClick={retryWhat3WordsAddress}
+              >
+                <RefreshCw size={15} />
+                Fetch W3W
+              </button>
+            ) : null}
+          </div>
+          {copiedLocationLabel ? (
+            <p className="source-note">{copiedLocationLabel}</p>
+          ) : null}
+        </section>
         {poi.sourceLabel ? (
           <section className="info-block">
             <h3>Source</h3>
             <p>{poi.sourceLabel}</p>
           </section>
         ) : null}
+        <div className="form-actions form-actions--inline">
+          <button className="ghost-button" type="button" onClick={onAddPhoto}>
+            <Camera size={16} />
+            Add photo
+          </button>
+        </div>
         {poi.kind === "contribution" ? (
           <section className="info-block">
             <h3>Contribution</h3>
@@ -858,23 +1264,6 @@ function PoiDetailPanel({
             </div>
           </section>
         ) : null}
-        <div className="form-actions">
-          {poi.navigationLocation ? (
-            <a
-              className="compact-nav-link compact-nav-link--panel"
-              href={navigationUrl(poi.navigationLocation)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <ExternalLink size={14} />
-              Navigate
-            </a>
-          ) : null}
-          <button className="ghost-button" type="button" onClick={onAddPhoto}>
-            <Camera size={16} />
-            Add photo
-          </button>
-        </div>
       </div>
     </section>
   );
@@ -921,6 +1310,11 @@ function App() {
   const [isSubmittingContribution, setIsSubmittingContribution] = useState(false);
   const [selectedLocation, setSelectedLocation] =
     useState<LatLngTuple | null>(null);
+  const [searchFocusLocation, setSearchFocusLocation] =
+    useState<LatLngTuple | null>(null);
+  const [searchFocusLabel, setSearchFocusLabel] = useState("Searched location");
+  const [showSearchFocusMarker, setShowSearchFocusMarker] = useState(false);
+  const [searchFocusNonce, setSearchFocusNonce] = useState(0);
   const [selectedPoi, setSelectedPoi] = useState<SelectedPoi | null>(null);
   const [selectedTargetLabel, setSelectedTargetLabel] = useState(
     "Selected map location",
@@ -973,6 +1367,15 @@ function App() {
   const [authSheetMode, setAuthSheetMode] = useState<AuthSheetMode | null>(null);
   const [isWelcomeDismissedForSession, setIsWelcomeDismissedForSession] =
     useState(() => hasDismissedWelcomeForSession());
+  const [syncBannerDismissal, setSyncBannerDismissal] =
+    useState<SyncBannerDismissal | null>(() => loadSyncBannerDismissal());
+  const [searchMode, setSearchMode] = useState<SearchMode>("name");
+  const [riverSearchTerm, setRiverSearchTerm] = useState("");
+  const [locationSearchInput, setLocationSearchInput] = useState("");
+  const [locationSearchResult, setLocationSearchResult] =
+    useState<LocationSearchResult | null>(null);
+  const [locationSearchMessage, setLocationSearchMessage] = useState("");
+  const [isLocationSearchLoading, setIsLocationSearchLoading] = useState(false);
 
   const activeSection = useMemo(
     () =>
@@ -1009,6 +1412,11 @@ function App() {
     !isSyncingOutbox &&
     isSignedIn &&
     isOnline;
+  const isSyncBannerDismissed =
+    Boolean(syncBannerDismissal) &&
+    syncBannerDismissal!.expiresAt > Date.now() &&
+    queuedOutboxCount <= syncBannerDismissal!.queuedOutboxCount &&
+    failedOutboxCount <= syncBannerDismissal!.failedOutboxCount;
   const favouriteSections = riverSections.filter((section) =>
     favouriteSectionIds.includes(section.id),
   );
@@ -1016,6 +1424,24 @@ function App() {
     isSignedIn && favouriteSectionIds.includes(activeSection.id);
   const canAccessAdminTools = hasModeratorAccess(memberProfile?.role);
   const canManageMembers = hasAdminAccess(memberProfile?.role);
+  const filteredSearchSections = useMemo(() => {
+    const searchTerm = riverSearchTerm.trim().toLowerCase();
+
+    if (!searchTerm) {
+      return riverSections;
+    }
+
+    return riverSections.filter((section) =>
+      [
+        section.riverName,
+        section.sectionName,
+        section.summary,
+        section.difficulty,
+        section.levelLabel,
+        ...section.suitability,
+      ].some((value) => value.toLowerCase().includes(searchTerm)),
+    );
+  }, [riverSearchTerm]);
   const filteredAdminMembers = useMemo(() => {
     const searchTerm = memberSearch.trim().toLowerCase();
 
@@ -1297,6 +1723,16 @@ function App() {
       return;
     }
 
+    let what3words: string | undefined;
+    if (location && isOnline) {
+      try {
+        const locationReference = await fetchWhat3WordsAddress(location);
+        what3words = locationReference.words ?? undefined;
+      } catch {
+        what3words = undefined;
+      }
+    }
+
     const nextContribution: Contribution = {
       id: contributionId,
       sectionId: activeSection.id,
@@ -1317,6 +1753,7 @@ function App() {
       lastConfirmed: contributionType === "hazard" ? undefined : "Just now",
       createdAt: "Just now",
       location,
+      what3words,
       photos,
     };
 
@@ -1327,6 +1764,7 @@ function App() {
       outboxRecord,
       ...current.filter((record) => record.id !== outboxRecord.id),
     ]);
+    clearSyncBannerDismissal();
 
     try {
       await outboxStore.save(outboxRecord);
@@ -1402,6 +1840,7 @@ function App() {
     setOutboxRecords([]);
     setHazardReviews({});
     setSyncMessage("");
+    clearSyncBannerDismissal();
   }
 
   async function syncOutboxNow() {
@@ -1424,6 +1863,13 @@ function App() {
       });
       const nextRecords = await outboxStore.list();
       setOutboxRecords(nextRecords);
+      if (
+        nextRecords.filter((record) =>
+          ["draft", "queued", "syncing", "failed"].includes(record.syncStatus),
+        ).length === 0
+      ) {
+        clearSyncBannerDismissal();
+      }
       const backendContributions = await fetchSectionContributions(activeSection.id);
       setContributions((current) =>
         mergeSectionContributions(
@@ -1501,6 +1947,21 @@ function App() {
     setAuthSheetMode("save-required");
   }
 
+  function dismissSyncBanner() {
+    const dismissal: SyncBannerDismissal = {
+      queuedOutboxCount,
+      failedOutboxCount,
+      expiresAt: Date.now() + SYNC_BANNER_DISMISS_MS,
+    };
+    setSyncBannerDismissal(dismissal);
+    saveSyncBannerDismissal(dismissal);
+  }
+
+  function clearSyncBannerDismissal() {
+    setSyncBannerDismissal(null);
+    saveSyncBannerDismissal(null);
+  }
+
   async function loadMemberPhotos() {
     if (!authState.user) {
       return;
@@ -1552,6 +2013,9 @@ function App() {
     setSectionFocusNonce((current) => current + 1);
     setIsPanelOpen(false);
     setSelectedPoi(null);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
     setActiveAppSection("map");
 
     return section;
@@ -1745,9 +2209,7 @@ function App() {
         ),
       );
       setModerationMessage(
-        `${updatedContribution.title} marked ${contributionStatusLabel(
-          updatedContribution.status,
-        )}.`,
+        moderationResultMessage(updatedContribution, decision),
       );
     } catch (error) {
       setModerationMessage(
@@ -1815,6 +2277,9 @@ function App() {
     }
 
     setSelectedLocation(location);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
     setSelectedTargetLabel(label);
     setFormError("");
     if (nextType) {
@@ -1855,6 +2320,9 @@ function App() {
     setIsAddMode(requiresLocation);
     setIsFormOpen(!requiresLocation);
     setSelectedLocation(null);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
     setSelectedTargetLabel(
       optionForType(nextType).locationRequired
         ? "Choose a map location"
@@ -1867,6 +2335,9 @@ function App() {
     setActiveSectionId(section.id);
     setSectionFocusNonce((current) => current + 1);
     setIsSectionListOpen(false);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
   }
 
   function openRouteDetails(section: RiverSection) {
@@ -1882,6 +2353,91 @@ function App() {
     setIsPanelOpen(false);
     setIsFormOpen(false);
     setIsAddMode(false);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
+  }
+
+  async function handleLocationReferenceSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const searchValue = locationSearchInput.trim();
+    setLocationSearchMessage("");
+    setLocationSearchResult(null);
+
+    if (!searchValue) {
+      setLocationSearchMessage("Enter a what3words address or coordinates.");
+      return;
+    }
+
+    const coordinates = parseCoordinateSearch(searchValue);
+
+    if (coordinates) {
+      const nearestSections = nearestSectionsForLocation(coordinates);
+      setLocationSearchResult({
+        label: formatLocation(coordinates),
+        location: coordinates,
+        focusSection: nearestSections[0]?.section,
+        pois: nearbyPoisForLocation(coordinates, contributions),
+      });
+      return;
+    }
+
+    if (!looksLikeWhat3Words(searchValue)) {
+      setLocationSearchMessage(
+        "Enter a what3words address like ///filled.count.soap or coordinates like 52.0521,-2.7123.",
+      );
+      return;
+    }
+
+    setIsLocationSearchLoading(true);
+
+    try {
+      const result = await fetchCoordinatesForWhat3Words(
+        normaliseWhat3WordsSearch(searchValue),
+      );
+
+      if (!result.configured || !result.coordinates) {
+        setLocationSearchMessage("Could not find that location reference.");
+        return;
+      }
+
+      const location: LatLngTuple = [
+        result.coordinates.lat,
+        result.coordinates.lng,
+      ];
+
+      setLocationSearchResult({
+        label: result.words ? formatWhat3Words(result.words) : formatWhat3Words(searchValue),
+        location,
+        nearestPlace: result.nearestPlace,
+        country: result.country,
+        focusSection: nearestSectionsForLocation(location)[0]?.section,
+        pois: nearbyPoisForLocation(location, contributions),
+      });
+    } catch {
+      setLocationSearchMessage("Could not find that location reference.");
+    } finally {
+      setIsLocationSearchLoading(false);
+    }
+  }
+
+  function openSearchLocationOnMap(
+    section: RiverSection,
+    location: LatLngTuple,
+    label = "Searched location",
+    showMarker = true,
+  ) {
+    selectSection(section);
+    setSearchFocusLocation(location);
+    setSearchFocusLabel(label);
+    setShowSearchFocusMarker(showMarker);
+    setSearchFocusNonce((current) => current + 1);
+    setSelectedLocation(null);
+    setSelectedPoi(null);
+    setIsFormOpen(false);
+    setIsAddMode(false);
+    setActiveAppSection("map");
   }
 
   function toggleFavouriteSection(section: RiverSection) {
@@ -2031,9 +2587,11 @@ function App() {
         <SyncOutboxBanner
           queuedOutboxCount={queuedOutboxCount}
           failedOutboxCount={failedOutboxCount}
+          isDismissed={isSyncBannerDismissed}
           isOnline={isOnline}
           isSyncingOutbox={isSyncingOutbox}
           canSyncOutbox={canSyncOutbox}
+          onDismiss={dismissSyncBanner}
           onSync={syncOutboxNow}
         />
         <aside
@@ -2071,6 +2629,10 @@ function App() {
           contributions={contributions}
           outboxRecords={outboxRecords}
           selectedLocation={selectedLocation}
+          searchFocusLocation={searchFocusLocation}
+          searchFocusLabel={searchFocusLabel}
+          showSearchFocusMarker={showSearchFocusMarker}
+          searchFocusNonce={searchFocusNonce}
           isAddMode={isAddMode}
           onMapClick={handleMapClick}
           focusNonce={sectionFocusNonce}
@@ -2675,37 +3237,175 @@ function App() {
           ) : activeAppSection === "search" ? (
             <PlaceholderPage section="search" title="Search">
               <div className="search-panel">
-                <label>
-                  River or place
-                  <input placeholder="Tryweryn, Wye, Dee" />
-                </label>
-                <div className="filter-row">
-                  <span className="status-chip">Grade I-II</span>
-                  <span className="status-chip">Grade III-IV</span>
-                  <span className="status-chip">Running now</span>
-                  <span className="status-chip">Open canoe</span>
+                <div className="segmented-control search-mode-tabs" role="tablist">
+                  <button
+                    className={searchMode === "name" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={searchMode === "name"}
+                    onClick={() => setSearchMode("name")}
+                  >
+                    <Search size={16} />
+                    Name
+                  </button>
+                  <button
+                    className={searchMode === "point" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={searchMode === "point"}
+                    onClick={() => setSearchMode("point")}
+                  >
+                    <MapPin size={16} />
+                    Point
+                  </button>
                 </div>
-                <div className="placeholder-list">
-                  {riverSections.map((section) => (
-                    <button
-                      className="placeholder-row"
-                      key={section.id}
-                      type="button"
-                      onClick={() => {
-                        selectSection(section);
-                        setActiveAppSection("map");
-                      }}
-                    >
-                      <span>
-                        <strong>{section.riverName}</strong>
-                        <small>{section.sectionName}</small>
-                      </span>
-                      <span className={`level-pill level-pill--${section.levelBand}`}>
-                        {bandLabels[section.levelBand]}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+
+                {searchMode === "name" ? (
+                  <section className="search-mode-panel" aria-label="Search by name">
+                    <label>
+                      River or section
+                      <input
+                        value={riverSearchTerm}
+                        onChange={(event) => setRiverSearchTerm(event.target.value)}
+                        placeholder="Tryweryn, Wye, Dee"
+                      />
+                    </label>
+                    <div className="filter-row">
+                      <span className="status-chip">Grade I-II</span>
+                      <span className="status-chip">Grade III-IV</span>
+                      <span className="status-chip">Running now</span>
+                      <span className="status-chip">Open canoe</span>
+                    </div>
+                    <div className="placeholder-list">
+                      {filteredSearchSections.map((section) => (
+                        <button
+                          className="placeholder-row"
+                          key={section.id}
+                          type="button"
+                          onClick={() => {
+                            selectSection(section);
+                            setActiveAppSection("map");
+                          }}
+                        >
+                          <span>
+                            <strong>{section.riverName}</strong>
+                            <small>{section.sectionName}</small>
+                          </span>
+                          <span className={`level-pill level-pill--${section.levelBand}`}>
+                            {bandLabels[section.levelBand]}
+                          </span>
+                        </button>
+                      ))}
+                      {filteredSearchSections.length === 0 ? (
+                        <p className="source-note">No matching sections yet.</p>
+                      ) : null}
+                    </div>
+                  </section>
+                ) : (
+                  <form
+                    className="location-search-card"
+                    onSubmit={(event) => void handleLocationReferenceSearch(event)}
+                    aria-label="Search by point"
+                  >
+                    <div>
+                      <h3>Find a point</h3>
+                      <p>
+                        Enter a what3words address or coordinates to find nearby
+                        points of interest.
+                      </p>
+                    </div>
+                  <label>
+                    Location reference
+                    <input
+                      value={locationSearchInput}
+                      onChange={(event) => setLocationSearchInput(event.target.value)}
+                      placeholder="///filled.count.soap or 52.0521,-2.7123"
+                    />
+                  </label>
+                  <button
+                    className="primary-action"
+                    type="submit"
+                    disabled={isLocationSearchLoading}
+                  >
+                    <Search size={16} />
+                    {isLocationSearchLoading ? "Searching" : "Find"}
+                  </button>
+                  {locationSearchMessage ? (
+                    <p className="form-error">{locationSearchMessage}</p>
+                  ) : null}
+                  {locationSearchResult ? (
+                    <div className="location-search-result">
+                      <div className="location-search-result__summary">
+                        <div>
+                          <strong>{locationSearchResult.label}</strong>
+                          <span>{formatLocation(locationSearchResult.location)}</span>
+                          {locationSearchResult.nearestPlace ||
+                          locationSearchResult.country ? (
+                            <small>
+                              {[locationSearchResult.nearestPlace, locationSearchResult.country]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </small>
+                          ) : null}
+                        </div>
+                        {locationSearchResult.focusSection ? (
+                          <button
+                            className="primary-action"
+                            type="button"
+                            onClick={() =>
+                              openSearchLocationOnMap(
+                                locationSearchResult.focusSection!,
+                                locationSearchResult.location,
+                                "Searched location",
+                              )
+                            }
+                          >
+                            <MapIcon size={16} />
+                            Open point
+                          </button>
+                        ) : null}
+                      </div>
+                      <h4>Nearby Points of Interest</h4>
+                      {locationSearchResult.pois.length ? (
+                        <div className="placeholder-list">
+                          {locationSearchResult.pois.map((poi) => (
+                            <div className="placeholder-row location-result-row" key={poi.id}>
+                              <span>
+                                <strong>{poi.title}</strong>
+                                <small>
+                                  {poi.subtitle} · {formatDistanceKm(poi.distanceKm)}
+                                </small>
+                              </span>
+                              <span className="status-chip">{poi.kind}</span>
+                              <div className="location-result-actions">
+                                <button
+                                  className="ghost-button ghost-button--compact"
+                                  type="button"
+                                  onClick={() =>
+                                    openSearchLocationOnMap(
+                                      poi.section,
+                                      poi.location,
+                                      poi.title,
+                                      false,
+                                    )
+                                  }
+                                >
+                                  <MapIcon size={15} />
+                                  Open
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="source-note">
+                          No nearby POIs in the current sample catalogue.
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
+                  </form>
+                )}
               </div>
             </PlaceholderPage>
           ) : activeAppSection === "favourites" ? (
@@ -2856,9 +3556,11 @@ function App() {
                 <SyncOutboxBanner
                   queuedOutboxCount={queuedOutboxCount}
                   failedOutboxCount={failedOutboxCount}
+                  isDismissed={isSyncBannerDismissed}
                   isOnline={isOnline}
                   isSyncingOutbox={isSyncingOutbox}
                   canSyncOutbox={canSyncOutbox}
+                  onDismiss={dismissSyncBanner}
                   onSync={syncOutboxNow}
                 />
                 <div className="profile-stats">
@@ -3586,6 +4288,10 @@ function RiverMap({
   contributions,
   outboxRecords,
   selectedLocation,
+  searchFocusLocation,
+  searchFocusLabel,
+  showSearchFocusMarker,
+  searchFocusNonce,
   isAddMode,
   onMapClick,
   focusNonce,
@@ -3597,6 +4303,10 @@ function RiverMap({
   contributions: Contribution[];
   outboxRecords: ContributionOutboxRecord[];
   selectedLocation: LatLngTuple | null;
+  searchFocusLocation: LatLngTuple | null;
+  searchFocusLabel: string;
+  showSearchFocusMarker: boolean;
+  searchFocusNonce: number;
   isAddMode: boolean;
   onMapClick: (
     location: LatLngTuple,
@@ -3617,6 +4327,7 @@ function RiverMap({
   const routeDetailsRef = useRef(onOpenRouteDetails);
   const previousSectionIdRef = useRef(activeSection.id);
   const previousFocusNonceRef = useRef(focusNonce);
+  const previousSearchFocusNonceRef = useRef(searchFocusNonce);
   const shouldFitActiveSectionRef = useRef(true);
   const outboxByContributionId = useMemo(
     () =>
@@ -3773,10 +4484,12 @@ function RiverMap({
             createMapPopupContent({
               title: accessPoint.name,
               subtitle: `Access · ${accessPoint.type}`,
-              summary: accessPoint.notes,
-              navigationLocation: accessPoint.location,
-              onDetails: () =>
-                poiDetailsRef.current({
+            summary: accessPoint.notes,
+            navigationLocation: accessPoint.location,
+            navigationLabel: "Directions",
+            navigationMode: "directions",
+            onDetails: () =>
+              poiDetailsRef.current({
                   id: accessPoint.id,
                   kind: "access",
                   title: accessPoint.name,
@@ -3812,11 +4525,12 @@ function RiverMap({
           .addTo(layers)
           .bindPopup(
             createMapPopupContent({
-              title: hazard.title,
-              subtitle: `${hazard.type} · ${hazard.severity}`,
-              summary: hazard.description,
-              onDetails: () =>
-                poiDetailsRef.current({
+            title: hazard.title,
+            subtitle: `${hazard.type} · ${hazard.severity}`,
+            summary: hazard.description,
+            navigationLocation: hazard.location,
+            onDetails: () =>
+              poiDetailsRef.current({
                   id: hazard.id,
                   kind: "hazard",
                   title: hazard.title,
@@ -3825,10 +4539,11 @@ function RiverMap({
                   sectionLabel: section.sectionName,
                   location: hazard.location,
                   status: hazard.status,
-                  sourceLabel: hazard.source?.label,
-                  sourceConfidence: hazard.source?.confidence,
-                }),
-            }),
+                sourceLabel: hazard.source?.label,
+                sourceConfidence: hazard.source?.confidence,
+                navigationLocation: hazard.location,
+              }),
+          }),
           )
           .on("click", (event) => {
             L.DomEvent.stop(event.originalEvent);
@@ -3851,11 +4566,12 @@ function RiverMap({
           .addTo(layers)
           .bindPopup(
             createMapPopupContent({
-              title: feature.title,
-              subtitle: `Feature · ${feature.type}`,
-              summary: feature.description,
-              onDetails: () =>
-                poiDetailsRef.current({
+            title: feature.title,
+            subtitle: `Feature · ${feature.type}`,
+            summary: feature.description,
+            navigationLocation: feature.location,
+            onDetails: () =>
+              poiDetailsRef.current({
                   id: feature.id,
                   kind: "feature",
                   title: feature.title,
@@ -3864,10 +4580,11 @@ function RiverMap({
                   sectionLabel: section.sectionName,
                   location: feature.location,
                   status: "Feature",
-                  sourceLabel: feature.source?.label,
-                  sourceConfidence: feature.source?.confidence,
-                }),
-            }),
+                sourceLabel: feature.source?.label,
+                sourceConfidence: feature.source?.confidence,
+                navigationLocation: feature.location,
+              }),
+          }),
           )
           .on("click", (event) => {
             L.DomEvent.stop(event.originalEvent);
@@ -3892,6 +4609,7 @@ function RiverMap({
             title: section.gauge.name,
             subtitle: "Gauge",
             summary: `${section.gauge.value} · ${section.gauge.observedAt}`,
+            navigationLocation: section.gauge.location,
             onDetails: () =>
               poiDetailsRef.current({
                 id: section.gauge.id,
@@ -3904,6 +4622,7 @@ function RiverMap({
                 status: section.gauge.trend,
                 sourceLabel: section.gauge.source?.label,
                 sourceConfidence: section.gauge.source?.confidence,
+                navigationLocation: section.gauge.location,
               }),
           }),
         )
@@ -3955,6 +4674,7 @@ function RiverMap({
             title: contribution.title,
             subtitle: `${contribution.type} · ${contributionStatusLabel(contribution.status)}`,
             summary: contribution.detail,
+            navigationLocation: contribution.location,
             onDetails: () =>
               poiDetailsRef.current({
                 id: contribution.id,
@@ -3969,6 +4689,8 @@ function RiverMap({
                 status: contribution.status,
                 sourceLabel: contribution.author,
                 sourceConfidence: "community",
+                navigationLocation: contribution.location!,
+                what3words: contribution.what3words,
                 syncStatus,
                 photos: contribution.photos,
                 category: contribution.category,
@@ -3985,6 +4707,21 @@ function RiverMap({
         });
     });
 
+    if (searchFocusLocation && showSearchFocusMarker) {
+      L.marker(searchFocusLocation, {
+        icon: L.divIcon({
+          className: "",
+          html: markerHtml("search", "S"),
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+        }),
+      })
+        .addTo(layers)
+        .bindPopup(
+          createSearchedLocationPopup(searchFocusLocation, searchFocusLabel),
+        );
+    }
+
     if (selectedLocation) {
       L.marker(selectedLocation, {
         icon: L.divIcon({
@@ -3999,7 +4736,8 @@ function RiverMap({
 
     if (
       previousSectionIdRef.current !== activeSection.id ||
-      previousFocusNonceRef.current !== focusNonce
+      previousFocusNonceRef.current !== focusNonce ||
+      previousSearchFocusNonceRef.current !== searchFocusNonce
     ) {
       shouldFitActiveSectionRef.current = true;
     }
@@ -4021,16 +4759,23 @@ function RiverMap({
         }
 
         map.invalidateSize();
-        map.fitBounds(bounds, {
-          animate: false,
-          maxZoom: 13,
-          paddingTopLeft: [48, 84],
-          paddingBottomRight: [48, 96],
-        });
+        if (searchFocusLocation) {
+          map.setView(searchFocusLocation, SEARCH_FOCUS_ZOOM, {
+            animate: false,
+          });
+        } else {
+          map.fitBounds(bounds, {
+            animate: false,
+            maxZoom: 13,
+            paddingTopLeft: [48, 84],
+            paddingBottomRight: [48, 96],
+          });
+        }
         didFit = true;
         shouldFitActiveSectionRef.current = false;
         previousSectionIdRef.current = activeSection.id;
         previousFocusNonceRef.current = focusNonce;
+        previousSearchFocusNonceRef.current = searchFocusNonce;
       };
       rafId = window.requestAnimationFrame(fitRoute);
       [80, 180, 360].forEach((delay) => {
@@ -4048,11 +4793,15 @@ function RiverMap({
 
     previousSectionIdRef.current = activeSection.id;
     previousFocusNonceRef.current = focusNonce;
+    previousSearchFocusNonceRef.current = searchFocusNonce;
   }, [
     activeSection,
     contributions,
     focusNonce,
     outboxByContributionId,
+    searchFocusLocation,
+    showSearchFocusMarker,
+    searchFocusNonce,
     selectedLocation,
     isAddMode,
   ]);

@@ -51,3 +51,7 @@ export function getAdminEmails(): string[] {
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
 }
+
+export function getWhat3WordsApiKey(): string | undefined {
+  return process.env.WHAT3WORDS_API_KEY?.trim() || undefined;
+}

@@ -4,7 +4,13 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
-const envName = process.argv[2] ?? "local";
+const [, , envName = "local", ...command] = process.argv;
+
+if (!command.length) {
+  console.error("Usage: node scripts/run-api-runtime-command.mjs <env> <command...>");
+  process.exit(1);
+}
+
 const repoDir = process.cwd();
 const platformDir = path.join(repoDir, "platform");
 const runtimePath =
@@ -13,27 +19,21 @@ const runtimePath =
 
 const runtimeConfig = readJson(runtimePath, {});
 const envConfig = readObject(runtimeConfig[envName]);
-const apiPort = readString(envConfig?.ports?.api);
-const databaseUrl = readString(envConfig?.database?.url);
-const firebaseProjectId = readString(envConfig?.firebase?.projectId);
-const adminEmails = readString(envConfig?.auth?.adminEmails);
-const what3wordsApiKey = readString(envConfig?.integrations?.what3words?.apiKey);
-
 const env = { ...process.env };
 
-setIfPresent(env, "PORT", apiPort);
-setIfPresent(env, "FIREBASE_PROJECT_ID", firebaseProjectId);
-setIfPresent(env, "ADMIN_EMAILS", adminEmails);
-setIfPresent(env, "WHAT3WORDS_API_KEY", what3wordsApiKey);
+setIfPresent(env, "DATABASE_URL", readString(envConfig?.database?.url));
+setIfPresent(env, "FIREBASE_PROJECT_ID", readString(envConfig?.firebase?.projectId));
+setIfPresent(env, "ADMIN_EMAILS", readString(envConfig?.auth?.adminEmails));
+setIfPresent(
+  env,
+  "WHAT3WORDS_API_KEY",
+  readString(envConfig?.integrations?.what3words?.apiKey),
+);
 
-if (databaseUrl && !databaseUrl.includes("<")) {
-  setIfPresent(env, "DATABASE_URL", databaseUrl);
-}
-
-console.log(`Starting RiverLaunch.app API with ${envName} runtime config.`);
+console.log(`Running API command with ${envName} runtime config.`);
 console.log(`Runtime config: ${fs.existsSync(runtimePath) ? runtimePath : "not found"}`);
 
-const child = spawn("npm", ["--prefix", "api", "run", "dev"], {
+const child = spawn(command[0], command.slice(1), {
   cwd: repoDir,
   env,
   stdio: "inherit",
@@ -65,7 +65,7 @@ function readString(value) {
 }
 
 function setIfPresent(env, key, value) {
-  if (value && !env[key]) {
+  if (value && !value.includes("<") && !env[key]) {
     env[key] = value;
   }
 }

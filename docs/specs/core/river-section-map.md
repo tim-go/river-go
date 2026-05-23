@@ -48,6 +48,7 @@ The map must display:
 - gauge markers
 - saved contribution markers
 - draft contribution marker
+- searched-location marker opened from Search
 
 The map should support two browsing levels:
 
@@ -66,6 +67,8 @@ The map and section list should eventually allow paddlers to filter sections by:
 
 Selecting a section from the section list or Search must fit the map to show the selected route's start and end points.
 
+Opening a location reference from Search should centre and zoom the map to the searched point, without creating a draft contribution marker.
+
 The selected-section route panel should stay closed by default. Users can open it explicitly with the Route control.
 
 Sections and Route controls should live in the map header action strip and show active state when their panel is open.
@@ -83,6 +86,12 @@ The map should distinguish three inspection surfaces:
 POI marker popups should include a `Details` action that opens the POI detail panel. Opening POI details must not open the route panel.
 
 Access point markers and access details should expose a navigation action that opens an external navigation app, starting with Google Maps directions to the access point latitude/longitude.
+
+POI details should expose practical location-sharing actions for all marker types: open the point in Google Maps, copy coordinates, and show/copy a stored what3words address when available. The POI detail panel should not automatically call the what3words API on every view; live lookup should be an explicit fallback action until the relevant POI data has been enriched and stored.
+
+If the what3words provider is configured but temporarily unavailable, blocked, or otherwise unable to return an address, the UI should show neutral unavailable copy and continue to expose coordinates and Google Maps actions. It should not expose provider billing, quota, key, or plan details to ordinary users.
+
+On mobile, Add Info and POI details should use full-height map overlays rather than cramped bottom sheets, while preserving access to the bottom app navigation.
 
 Hover tooltips should not duplicate marker popups in the prototype because they create two simultaneous information surfaces.
 
@@ -134,6 +143,8 @@ Production behaviour may differ:
 | MAP-F10 | Grade and runnability filters | Map | Queued | MVP | — | Let paddlers filter to sections such as grade III-IV that are running now. |
 | MAP-F11 | POI details surface | Map/POI panel | Active | prototype | — | Marker popups stay compact and open a separate POI detail panel for full marker information. |
 | MAP-F12 | Multi-river sample catalogue | Map/search | Active | prototype | — | Active demo includes Tryweryn, Wye, and a schematic UK kayaking sample catalogue. |
+| MAP-F13 | POI location actions | Map/POI panel | Active | MVP | — | POIs expose Google Maps, coordinate copy, and what3words display/copy when configured. |
+| MAP-F14 | Searched-location marker | Search/map | Active | prototype | — | Location-reference search can place a distinct searched-location marker without entering add mode. |
 
 ### Backlog
 
@@ -144,6 +155,7 @@ Production behaviour may differ:
 | MAP-B3 | enhancement | Highlight current selected object | Triaged | prototype | Useful when clicking saved markers or seeded hazards. |
 | MAP-B4 | decision | Whitewater grade model | Open | MVP | Add structured min/max grade fields alongside current human-readable difficulty text. |
 | MAP-B5 | research | RiverPredictor-style forecasts | Open | Later | Assess 48h forecast data/model options after live levels and section-grade filters are established. |
+| MAP-B6 | enhancement | Native navigation app choices | Open | Later | Consider Apple Maps, Waze, OS-level share sheets, and mobile app deep-link behaviour after Google Maps links prove useful. |
 
 ## Change Log
 
@@ -156,3 +168,4 @@ Production behaviour may differ:
 | 2026-05-23 | Added discovery overview, grade filtering, and access navigation requirements. |
 | 2026-05-23 | Added separate section popup, route panel, and POI detail surface model. |
 | 2026-05-23 | Added active multi-river sample catalogue context. |
+| 2026-05-23 | Added Google Maps, coordinate copy, what3words, and mobile full-height POI overlay requirements. |

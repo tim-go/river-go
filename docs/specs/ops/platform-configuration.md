@@ -57,7 +57,7 @@ The platform configuration must:
 - provide read-only health checks that make billing/API/deployment blockers visible
 - prefer keyless GCP authentication over downloaded service account keys
 - use a Kinetiq-style two-file local config split: platform config for provisioning facts, runtime config for execution values and deployable secrets
-- load local API development values from ignored runtime config so local admin roles, Firebase project ID, database URL, and API port match the selected environment
+- load local API development values from ignored runtime config so local admin roles, Firebase project ID, database URL, API port, and optional integration keys match the selected environment
 - deploy staging end-to-end using a backend-first, Firebase Hosting preview-channel-first workflow so the live staging site remains available until the final cutover
 - support Cloud Run public access through `--no-invoker-iam-check` when organisation policy blocks `allUsers` IAM bindings
 
@@ -65,13 +65,14 @@ The first implementation should include:
 
 - committed templates
 - ignored local config location
-- ignored local runtime config for URLs, DB URLs, Firebase runtime config, auth/session values, and storage targets
+- ignored local runtime config for URLs, DB URLs, Firebase runtime config, auth/session values, storage targets, and optional third-party integration keys
 - validation script
 - resource-plan script
 - setup and architecture notes
 - setup script for staging/prod GCP and Firebase resources
 - Cloud Run API deployment script
 - Cloud SQL migration script using Cloud SQL Auth Proxy
+- operator-run Cloud SQL backfill script for missing stored what3words addresses
 - Firebase Hosting preview/live deployment script
 - end-to-end HTTP smoke script for `/api/health` and idempotent sync push
 - local LAN preview on port `6173` by default, avoiding Kinetiq Engine's `50xxx` worktree port range
@@ -114,10 +115,11 @@ Staging rollout order:
 | PLATFORM-F7 | Firebase Hosting config | Ops/config | Landed | v0.3 | — | Staging Hosting includes `/api/**` Cloud Run rewrite; live deploy waits until API preview passes. |
 | PLATFORM-F8 | Platform health check | Ops/tooling | Landed | v0.3 | — | Read-only health check reports billing/API/resource state. |
 | PLATFORM-F9 | Local PostGIS database | Ops/local-dev | Landed | v0.3 | — | Adds isolated RiverLaunch.app PostGIS container on `127.0.0.1:5435` with local app and migration users. |
-| PLATFORM-F10 | Cloud Run API deployment script | Ops/deploy | Active | v0.3 | — | Builds API Docker image, writes `DATABASE_URL` to Secret Manager, deploys Cloud Run with invoker IAM check disabled for public staging access, and checks health. |
+| PLATFORM-F10 | Cloud Run API deployment script | Ops/deploy | Active | v0.3 | — | Builds API Docker image, writes `DATABASE_URL` plus configured integration secrets to Secret Manager, deploys Cloud Run with invoker IAM check disabled for public staging access, and checks health. |
 | PLATFORM-F11 | Preview-first Hosting deployment | Ops/deploy | Active | v0.3 | — | Deploys API rewrite to a Firebase preview channel before live Hosting cutover. |
 | PLATFORM-F12 | Cloud SQL migration script | Ops/deploy | Active | v0.3 | — | Runs SQL migrations through Cloud SQL Auth Proxy using the migration DB URL. |
 | PLATFORM-F13 | Hosted Firebase Auth flow | Ops/auth | Landed | v0.3 | — | Hosted web builds use inline redirect sign-in with the public Hosting domain as Firebase `authDomain`; auth diagnostics print the exact OAuth client and redirect URI before deploys. |
+| PLATFORM-F14 | what3words backfill script | Ops/data | Active | MVP | — | Runs an operator-controlled Cloud SQL backfill for point contributions missing stored what3words metadata. |
 
 ### Backlog
 

@@ -79,6 +79,7 @@ function createContributionOperation(
         craftType: contribution.craftType,
         status: contribution.status,
         confirmations: contribution.confirmations,
+        what3wordsAddress: contribution.what3words,
         photos: contribution.photos ?? [],
       },
       client: {

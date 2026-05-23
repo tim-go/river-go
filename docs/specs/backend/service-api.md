@@ -49,6 +49,8 @@ Initial endpoints:
 | --- | --- | --- |
 | `GET` | `/api/health` | Runtime health check. |
 | `GET` | `/api/me` | Upsert and return the authenticated member profile. |
+| `GET` | `/api/locations/what3words?lat=...&lng=...` | Convert coordinates to a what3words address when the integration key is configured. |
+| `GET` | `/api/locations/what3words?words=...` | Convert a what3words address back to coordinates for future search/share flows. |
 | `GET` | `/api/me/contributions` | List the signed-in member's synced contributions with section, moderation, and photo context. |
 | `GET` | `/api/me/photos` | List the signed-in member's uploaded photos with section and contribution context. |
 | `GET` | `/api/admin/members` | List member profiles for admins. |
@@ -104,6 +106,13 @@ Provider ingestion:
 - Provider records keep source URL, observed time, provider station/measure IDs, and fetch status.
 - Cached provider records must expose observed/fetched timestamps and freshness state so offline clients never present stale river levels as live readings.
 
+Location references:
+
+- Google Maps outbound links are generated client-side from latitude/longitude and do not require a server key.
+- what3words lookups run server-side through `/api/locations/what3words` so the API key is not exposed in the browser build.
+- Contribution sync may enrich point payloads with `what3wordsAddress` when the integration key is configured; lookup failure must not block contribution persistence.
+- Existing point contributions can be enriched by an operator-run backfill. The backfill stores `what3wordsAddress` in the existing contribution JSONB payload and should be run with `--dry-run` first against staging/prod.
+
 Moderation:
 
 - New community hazards start as `needs-confirmation`.
@@ -139,6 +148,7 @@ Moderation:
 | API-F12 | Member access management API | Backend/admin | Landed | MVP | — | Admins can update member role and trust level. |
 | API-F13 | Photo management API | Backend/media | Active | MVP | — | Supports member photo listing and owner/moderator soft-delete. |
 | API-F14 | Member contribution management API | Backend/community | Active | MVP | — | Supports member contribution listing and owner/moderator soft-delete. |
+| API-F15 | what3words location API | Backend/integration | Active | MVP | — | Server-side coordinate/address conversion with optional sync-time contribution enrichment. |
 
 ### Backlog
 

@@ -140,6 +140,7 @@ export interface Contribution {
   lastConfirmed?: string;
   createdAt: string;
   location?: LatLngTuple;
+  what3words?: string;
   serverRevision?: number;
   photos?: ContributionPhoto[];
 }

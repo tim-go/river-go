@@ -139,6 +139,15 @@ Run database migrations through Cloud SQL Auth Proxy:
 npm run platform:migrate:staging
 ```
 
+Backfill stored what3words addresses for existing point contributions when needed:
+
+```bash
+npm run platform:backfill:w3w:staging -- --dry-run
+npm run platform:backfill:w3w:staging
+```
+
+The backfill connects through Cloud SQL Auth Proxy, finds visible point contributions without `payload.what3wordsAddress`, and stores the generated address in the existing JSONB payload.
+
 Deploy the API to Cloud Run without changing Firebase Hosting traffic:
 
 ```bash

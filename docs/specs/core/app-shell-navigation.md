@@ -70,6 +70,8 @@ Member identity should not be persistently shown in the global header because it
 
 `More` should contain secondary tools such as admin entry, settings, offline packs, and future support/feedback surfaces.
 
+`Search` should support both river/section discovery and location-reference lookup using explicit modes/tabs so mobile users are not forced through a long mixed workflow. Location-reference lookup should accept coordinates and what3words addresses, resolve them to a map point, show a direct open-point action, and show clearly labelled nearby points of interest only when they are plausibly nearby in the current catalogue. Opening a nearby POI from Search should zoom to that existing POI on the map rather than creating a separate searched-location marker. Search should not silently switch map context or start contribution capture without a user action on the map.
+
 Admin tools should remain role-gated and should not appear for ordinary members. Admin should be its own section with an index of admin options. Each option should open a separate full-page admin surface with a link back to the Admin index, starting with `Members` and later expanding to moderation, reports, data quality, and system status.
 
 The member directory should support search plus role/trust filtering. Member rows should keep identity, role, trust, and access controls visually grouped so role/trust editing remains clear on desktop and mobile.
@@ -92,6 +94,7 @@ The member directory should support search plus role/trust filtering. Member row
 | NAV-F5 | Account-gated favourite sections | Map/favourites | Active | prototype | — | Star prompts signed-out users to sign in; signed-in favourites remain local in the prototype until backend persistence exists. |
 | NAV-F6 | Signed-out welcome sheet | App shell/auth | Active | prototype | — | Welcome sheet appears on signed-out startup and explains guest browsing versus account-backed save/contribute actions. |
 | NAV-F7 | Desktop account footer | Desktop shell/auth | Active | prototype | — | Desktop nav shows signed-in account context or signed-out sign-in affordance without using map header space. |
+| NAV-F8 | Location-reference search | Search/map | Active | prototype | — | Search accepts coordinates or what3words, shows nearby sections, and opens a searched-location marker on the map by explicit action. |
 
 ### Backlog
 

@@ -8,6 +8,7 @@ It is intentionally small:
 - PostgreSQL/PostGIS access through `pg`
 - `GET /api/health`
 - `POST /api/sync/push`
+- optional what3words coordinate/address lookup through `GET /api/locations/what3words`
 
 The first sync operation is `contribution.create`. It is idempotent: replaying the same `operationId` returns the original accepted entity without creating a duplicate contribution.
 
@@ -31,7 +32,7 @@ Start the API:
 npm run api:dev
 ```
 
-The root `api:dev` command loads local runtime values from `platform/.config/river-go-runtime.json`, including `DATABASE_URL`, `FIREBASE_PROJECT_ID`, `ADMIN_EMAILS`, and the API port. To run against the staging runtime block instead:
+The root `api:dev` command loads local runtime values from `platform/.config/river-go-runtime.json`, including `DATABASE_URL`, `FIREBASE_PROJECT_ID`, `ADMIN_EMAILS`, optional `WHAT3WORDS_API_KEY`, and the API port. To run against the staging runtime block instead:
 
 ```bash
 npm run api:dev:staging
@@ -48,6 +49,15 @@ Run the idempotent sync smoke test:
 ```bash
 npm run api:sync:smoke
 ```
+
+Backfill stored what3words addresses for existing point contributions:
+
+```bash
+npm run api:backfill:w3w -- --dry-run
+npm run api:backfill:w3w
+```
+
+The backfill stores `payload.what3wordsAddress` on each eligible contribution row. It does not add a schema column.
 
 ## Local Database Defaults
 
@@ -67,7 +77,7 @@ When `CLOUD_SQL_CONNECTION_NAME` is set, the API connects to PostgreSQL through 
 postgresql://river_go_app:<password>@localhost/river_go
 ```
 
-The staging deployment script stores `DATABASE_URL` in Secret Manager, builds the API image, deploys Cloud Run, attaches the Cloud SQL instance, and checks `/api/health`:
+The staging deployment script stores `DATABASE_URL` and any configured integration secrets in Secret Manager, builds the API image, deploys Cloud Run, attaches the Cloud SQL instance, and checks `/api/health`:
 
 ```bash
 npm run platform:deploy-api:staging

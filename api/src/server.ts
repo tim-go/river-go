@@ -26,6 +26,10 @@ import {
 } from "./members.js";
 import { listPhotosForMember, softDeletePhoto } from "./photos.js";
 import { pushSyncOperations } from "./sync.js";
+import {
+  lookupCoordinatesForWhat3Words,
+  lookupWhat3WordsForCoordinates,
+} from "./what3words.js";
 
 async function route(
   requestUrl: string,
@@ -51,6 +55,28 @@ async function route(
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
     return { status: 200, body: { member } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/locations/what3words") {
+    const lat = Number.parseFloat(url.searchParams.get("lat") ?? "");
+    const lng = Number.parseFloat(url.searchParams.get("lng") ?? "");
+    const words = url.searchParams.get("words");
+
+    if (words) {
+      return {
+        status: 200,
+        body: await lookupCoordinatesForWhat3Words(words),
+      };
+    }
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      throw new HttpError(400, "lat and lng are required.");
+    }
+
+    return {
+      status: 200,
+      body: await lookupWhat3WordsForCoordinates(lat, lng),
+    };
   }
 
   if (method === "GET" && url.pathname === "/api/admin/members") {

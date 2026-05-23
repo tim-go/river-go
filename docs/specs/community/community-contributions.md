@@ -82,6 +82,8 @@ Existing seeded and saved information markers remain inspect-only, even while ad
 
 Signed-in members should be able to review their own synced points from Profile, return to the related map section, and delete items they created. Deletion is a soft-delete in the MVP: the contribution moves to `hidden`, attached photos are hidden, and audit/storage metadata is retained. Admins and contribution moderators may use the same delete path as an override.
 
+Point contributions should retain practical location references where available. The client always stores coordinates in the contribution geometry, and the PWA should enrich a new point with `what3wordsAddress` once at save time when online. The backend should also enrich synced point payloads at create/sync time when the server-side integration is configured, so offline saves and older clients still get stored location references. This avoids spending provider requests every time a user opens the same POI details.
+
 Required fields:
 
 - title
@@ -99,7 +101,8 @@ Offline requirements:
 - sync should be retryable without duplicating the contribution
 - photos should be queued separately from contribution metadata as defined in `/docs/specs/community/photo-uploads.md`
 - saved local observations should not be lost if the browser/app closes before sync
-- unsynced or failed outbox changes must be shown with a prominent banner on contribution-relevant surfaces, including Map and Profile, with a clear sync/retry action
+- unsynced or failed outbox changes must be shown with a prominent banner on contribution-relevant surfaces, including Map and Profile, with clear `Sync now` and `Later` actions
+- choosing `Later` should hide the banner for the current session for a limited period, but a newly added local contribution or increased failed/queued count should show it again
 
 ## Open Questions
 
@@ -128,6 +131,7 @@ Offline requirements:
 | CON-F12 | Backend-persisted contribution loop | API/frontend | Landed | MVP | — | Uses `/docs/specs/backend/data-and-sync-model.md` Phase 1: signed-in save, sync, readback, merge, and status labels. |
 | CON-F13 | Member point management | Profile/backend | Active | MVP | — | Members can list synced contributions, return to the map section, and soft-delete their own points. |
 | CON-F14 | Prominent sync state | Map/Profile | Active | MVP | — | Shows a banner for queued, failed, or offline outbox changes with sync/retry action. |
+| CON-F15 | Location reference enrichment | Backend/sync | Active | MVP | — | Synced point contributions may store server-generated what3words metadata alongside coordinates. |
 
 ### Backlog
 

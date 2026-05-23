@@ -142,6 +142,7 @@ function mapApiContribution(contribution: ApiContribution): Contribution {
       contribution.moderationStatus === "confirmed" ? "Backend verified" : undefined,
     createdAt: formatRelativeDate(contribution.createdAt),
     location: mapPointGeometry(contribution.geometry),
+    what3words: readString(payload.what3wordsAddress) ?? undefined,
     serverRevision: contribution.revision,
     photos: mapApiContributionPhotos(contribution.photos),
   };

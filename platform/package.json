@@ -17,6 +17,8 @@
     "auth:inline:prod": "node scripts/check-auth-config.mjs prod --inline",
     "migrate:staging": "scripts/infra/migrate-api-db.sh staging",
     "migrate:prod": "scripts/infra/migrate-api-db.sh prod",
+    "backfill:w3w:staging": "scripts/infra/backfill-what3words.sh staging",
+    "backfill:w3w:prod": "scripts/infra/backfill-what3words.sh prod",
     "deploy-api:staging": "scripts/infra/deploy-api.sh staging",
     "deploy-api:prod": "scripts/infra/deploy-api.sh prod",
     "deploy-web-preview:staging": "scripts/infra/deploy-web.sh staging --preview",
