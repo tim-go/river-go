@@ -160,18 +160,19 @@ async function handleRedirectResult(
 }
 
 function shouldUseRedirectSignIn() {
-  if (typeof window === "undefined") {
+  const configuredFlow = (
+    import.meta.env.VITE_FIREBASE_AUTH_FLOW as string | undefined
+  )?.trim();
+
+  if (configuredFlow === "redirect") {
+    return true;
+  }
+
+  if (configuredFlow === "popup") {
     return false;
   }
 
-  const hostname = window.location.hostname;
-  return !(
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname.startsWith("192.168.") ||
-    hostname.startsWith("10.") ||
-    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
-  );
+  return import.meta.env.PROD;
 }
 
 function mapAuthUser(user: User): AuthUser {
