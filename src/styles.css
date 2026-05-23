@@ -111,6 +111,35 @@ h1 {
   gap: 8px;
 }
 
+.member-status {
+  display: inline-flex;
+  min-height: 40px;
+  max-width: 260px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f7f8f4;
+}
+
+.member-status span {
+  overflow: hidden;
+  color: #394655;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-message {
+  flex-basis: 100%;
+  margin: 0;
+  color: #9b1c12;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .sync-pill {
   display: inline-flex;
   min-height: 32px;
@@ -699,6 +728,23 @@ h1 {
   margin-bottom: 3px;
 }
 
+.compact-nav-link {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 0 9px;
+  border: 1px solid #c7d4cd;
+  border-radius: 8px;
+  background: white;
+  color: var(--river-dark);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .hazard-item p,
 .report-item p {
   margin: 6px 0 0;
@@ -1050,6 +1096,13 @@ textarea {
   .topbar-actions {
     width: 100%;
     flex-wrap: wrap;
+  }
+
+  .member-status {
+    width: 100%;
+    max-width: none;
+    justify-content: space-between;
+    order: -2;
   }
 
   .sync-pill {

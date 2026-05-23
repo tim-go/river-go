@@ -53,6 +53,7 @@ The prototype must support:
 - saved marker display
 - saved marker popup
 - localStorage persistence
+- member sign-in status before public sync
 
 Contribution types:
 
@@ -86,6 +87,7 @@ Offline requirements:
 
 - users should be able to create contribution drafts without network access
 - offline drafts should be visible on the map with a local/queued status
+- when Firebase Auth is configured, users must sign in before syncing queued contributions
 - contribution IDs should be generated client-side before sync
 - sync should be retryable without duplicating the contribution
 - photos should be queued separately from contribution metadata
@@ -112,7 +114,7 @@ Offline requirements:
 | CON-F6 | Saved marker popups | Map | Landed | prototype | — | Saved markers show saved detail on click. |
 | CON-F7 | Validation feedback | Form | Landed | prototype | — | Required fields and inline error avoid silent save failure. |
 | CON-F8 | Separate contribution flows | UX | Landed | v0.2 | — | Panel actions and form prompts now separate condition, hazard, access, photo, and feature contributions. |
-| CON-F9 | Authenticated contributors | Backend/auth | Queued | MVP | — | Needed before real community data collection. |
+| CON-F9 | Authenticated contributors | Backend/auth | Active | MVP | — | Frontend Firebase Google sign-in is being introduced before real community data collection; backend enforcement remains staged. |
 | CON-F10 | Photo upload | Media | Queued | MVP | — | Requires storage and moderation. |
 | CON-F11 | Offline contribution outbox | PWA/mobile | Active | MVP | — | Form save writes queued sync operations locally and a manual sync action pushes them to the backend. |
 
@@ -136,4 +138,5 @@ Offline requirements:
 | 2026-05-22 | Wired add-local-knowledge saves into queued local outbox records. |
 | 2026-05-22 | Added manual sync for queued outbox records. |
 | 2026-05-23 | Changed existing marker clicks to inspect-only; contribution placement now uses open route/map clicks. |
+| 2026-05-23 | Started authenticated contributor workflow with Firebase sign-in and signed sync requests. |
 | 2026-05-21 | Migrated to spec schema v4. |

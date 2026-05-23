@@ -5,7 +5,10 @@ import {
   ChevronDown,
   Clock3,
   Droplets,
+  ExternalLink,
   Flag,
+  LogIn,
+  LogOut,
   MapPinned,
   MapPin,
   MessageSquare,
@@ -26,6 +29,13 @@ import {
   createContributionOutboxStore,
 } from "./services/contributionOutbox";
 import { syncContributionOutbox } from "./services/contributionSync";
+import {
+  getCurrentUserIdToken,
+  signInWithGoogle,
+  signOutCurrentUser,
+  subscribeToAuthState,
+  type AuthState,
+} from "./services/firebaseAuth";
 import { fetchEnvironmentAgencyGaugeReading } from "./services/riverLevels";
 import type {
   Contribution,
@@ -141,6 +151,10 @@ function formatLocation(location: LatLngTuple) {
   return `${location[0].toFixed(4)}, ${location[1].toFixed(4)}`;
 }
 
+function navigationUrl(location: LatLngTuple) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${location[0]},${location[1]}`;
+}
+
 function defaultObservedDate() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -194,6 +208,12 @@ function App() {
   const [isAddMode, setIsAddMode] = useState(false);
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
+  const [authState, setAuthState] = useState<AuthState>({
+    status: "loading",
+    user: null,
+    error: null,
+  });
+  const [authMessage, setAuthMessage] = useState("");
   const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
   const [isGaugeLoading, setIsGaugeLoading] = useState(false);
   const [isSectionListOpen, setIsSectionListOpen] = useState(false);
@@ -220,6 +240,13 @@ function App() {
   const queuedOutboxCount = outboxRecords.filter((record) =>
     ["draft", "queued", "syncing", "failed"].includes(record.syncStatus),
   ).length;
+  const isAuthConfigured = authState.status !== "unconfigured";
+  const canSyncOutbox =
+    queuedOutboxCount > 0 &&
+    !isSyncingOutbox &&
+    (!isAuthConfigured || Boolean(authState.user));
+
+  useEffect(() => subscribeToAuthState(setAuthState), []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(contributions));
@@ -297,7 +324,7 @@ function App() {
       severity: contributionType === "hazard" ? severity : undefined,
       status:
         contributionType === "hazard" ? "needs-confirmation" : "confirmed",
-      author: "Demo contributor",
+      author: authState.user?.displayName ?? "Local contributor",
       dateObserved,
       craftType:
         contributionType === "report" || contributionType === "hazard"
@@ -341,6 +368,9 @@ function App() {
     setFormError("");
     setSelectedLocation(null);
     setIsFormOpen(false);
+    if (!authState.user && isAuthConfigured) {
+      setSyncMessage("Saved locally. Sign in to sync this contribution.");
+    }
   }
 
   function resetDemoContributions() {
@@ -358,11 +388,18 @@ function App() {
       return;
     }
 
+    if (isAuthConfigured && !authState.user) {
+      setSyncMessage("Sign in before syncing local contributions.");
+      return;
+    }
+
     setIsSyncingOutbox(true);
     setSyncMessage("Syncing local changes...");
 
     try {
-      const summary = await syncContributionOutbox(outboxStore);
+      const summary = await syncContributionOutbox(outboxStore, {
+        getAuthToken: getCurrentUserIdToken,
+      });
       const nextRecords = await outboxStore.list();
       setOutboxRecords(nextRecords);
 
@@ -382,6 +419,26 @@ function App() {
       setOutboxRecords(await outboxStore.list());
     } finally {
       setIsSyncingOutbox(false);
+    }
+  }
+
+  async function handleSignIn() {
+    setAuthMessage("");
+
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : "Could not sign in.");
+    }
+  }
+
+  async function handleSignOut() {
+    setAuthMessage("");
+
+    try {
+      await signOutCurrentUser();
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : "Could not sign out.");
     }
   }
 
@@ -499,6 +556,37 @@ function App() {
           </div>
         </div>
         <div className="topbar-actions">
+          <div className="member-status" title="Contributor sign-in">
+            <span>
+              {authState.status === "loading"
+                ? "Checking sign-in"
+                : authState.user
+                  ? authState.user.displayName
+                  : isAuthConfigured
+                    ? "Signed out"
+                    : "Auth not configured"}
+            </span>
+            {authState.user ? (
+              <button
+                className="ghost-button ghost-button--compact"
+                type="button"
+                onClick={handleSignOut}
+              >
+                <LogOut size={15} />
+                Sign out
+              </button>
+            ) : (
+              <button
+                className="ghost-button ghost-button--compact"
+                type="button"
+                onClick={handleSignIn}
+                disabled={!isAuthConfigured}
+              >
+                <LogIn size={15} />
+                Sign in
+              </button>
+            )}
+          </div>
           <span
             className={`sync-pill ${
               queuedOutboxCount > 0 ? "sync-pill--queued" : ""
@@ -515,11 +603,15 @@ function App() {
             className="ghost-button sync-action"
             type="button"
             onClick={syncOutboxNow}
-            disabled={queuedOutboxCount === 0 || isSyncingOutbox}
+            disabled={!canSyncOutbox}
             title="Sync local contributions"
           >
             <RefreshCw size={16} />
-            {isSyncingOutbox ? "Syncing" : "Sync now"}
+            {isSyncingOutbox
+              ? "Syncing"
+              : isAuthConfigured && !authState.user && queuedOutboxCount > 0
+                ? "Sign in to sync"
+                : "Sync now"}
           </button>
           <button
             className="icon-button"
@@ -546,6 +638,9 @@ function App() {
             <Plus size={18} />
             Add local knowledge
           </button>
+          {authMessage || authState.error ? (
+            <p className="topbar-message">{authMessage || authState.error}</p>
+          ) : null}
         </div>
       </section>
 
@@ -920,6 +1015,15 @@ function App() {
                     <div>
                       <strong>{accessPoint.name}</strong>
                       <span>{accessPoint.notes}</span>
+                      <a
+                        className="compact-nav-link"
+                        href={navigationUrl(accessPoint.location)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <ExternalLink size={14} />
+                        Navigate
+                      </a>
                     </div>
                   </div>
                 ))}
@@ -1019,7 +1123,7 @@ function App() {
                     <div>
                       <strong>{contribution.title}</strong>
                       <span>
-                        {contribution.type} · observed{" "}
+                        {contribution.author} · {contribution.type} · observed{" "}
                         {contribution.dateObserved ?? "today"} ·{" "}
                         {contribution.createdAt}
                       </span>
@@ -1289,7 +1393,7 @@ function RiverMap({
         marker
           .addTo(layers)
           .bindPopup(
-            `<strong>${accessPoint.name}</strong><br/>${accessPoint.type}<br/>${accessPoint.notes}`,
+            `<strong>${accessPoint.name}</strong><br/>${accessPoint.type}<br/>${accessPoint.notes}<br/><a href="${navigationUrl(accessPoint.location)}" target="_blank" rel="noreferrer">Navigate with Google Maps</a>`,
           )
           .on("click", (event) => {
             L.DomEvent.stop(event.originalEvent);

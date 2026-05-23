@@ -1,10 +1,17 @@
 import { createServer } from "node:http";
+import type { IncomingHttpHeaders } from "node:http";
+import { getWriteAuthContext } from "./auth.js";
 import { getPort } from "./config.js";
 import { closePool, pool } from "./db.js";
 import { HttpError, readJsonBody, sendJson } from "./http.js";
 import { pushSyncOperations } from "./sync.js";
 
-async function route(requestUrl: string, method: string, body: unknown): Promise<{ status: number; body: unknown }> {
+async function route(
+  requestUrl: string,
+  method: string,
+  headers: IncomingHttpHeaders,
+  body: unknown,
+): Promise<{ status: number; body: unknown }> {
   const url = new URL(requestUrl, "http://localhost");
 
   if (method === "GET" && url.pathname === "/api/health") {
@@ -20,7 +27,8 @@ async function route(requestUrl: string, method: string, body: unknown): Promise
   }
 
   if (method === "POST" && url.pathname === "/api/sync/push") {
-    const result = await pushSyncOperations(body);
+    const authContext = await getWriteAuthContext(headers);
+    const result = await pushSyncOperations(body, authContext?.userId ?? null);
     return { status: result.failed.length ? 207 : 200, body: result };
   }
 
@@ -31,7 +39,12 @@ export function createApiServer() {
   return createServer(async (request, response) => {
     try {
       const body = request.method === "POST" ? await readJsonBody(request) : {};
-      const result = await route(request.url ?? "/", request.method ?? "GET", body);
+      const result = await route(
+        request.url ?? "/",
+        request.method ?? "GET",
+        request.headers,
+        body,
+      );
       sendJson(response, result);
     } catch (error) {
       const status = error instanceof HttpError ? error.status : 500;

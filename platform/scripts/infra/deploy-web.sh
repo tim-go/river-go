@@ -51,9 +51,29 @@ if [[ -z "$MODE" ]]; then
 fi
 
 CONFIG_PATH="${RIVER_GO_PLATFORM_CONFIG:-$PLATFORM_DIR/.config/river-go-platform.json}"
+RUNTIME_CONFIG_PATH="${RIVER_GO_RUNTIME_CONFIG:-$PLATFORM_DIR/.config/river-go-runtime.json}"
+FIREBASE_SDK_FILE=""
 
 json_value() {
   jq -er "$1" "$CONFIG_PATH"
+}
+
+runtime_value() {
+  jq -er "$1" "$RUNTIME_CONFIG_PATH"
+}
+
+runtime_or_sdk_value() {
+  local runtime_query="$1"
+  local sdk_query="$2"
+  local runtime_result=""
+
+  runtime_result="$(jq -er "$runtime_query" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
+  if [[ -n "$runtime_result" ]]; then
+    printf '%s' "$runtime_result"
+    return 0
+  fi
+
+  jq -er "$sdk_query" "$FIREBASE_SDK_FILE"
 }
 
 section "Hosting deploy preflight - $ENV"
@@ -67,11 +87,33 @@ if [[ "$ok" != true ]]; then
   exit 1
 fi
 
+if [[ ! -f "$RUNTIME_CONFIG_PATH" ]]; then
+  fail "Runtime config not found: $RUNTIME_CONFIG_PATH"
+  print_summary "Firebase Hosting deploy"
+  exit 1
+fi
+
 GCP_PROJECT="$(json_value ".environments.$ENV.gcpProject")"
 FIREBASE_PROJECT="$(json_value ".environments.$ENV.firebaseProject")"
 REGION="$(json_value ".environments.$ENV.region")"
 CLOUD_RUN_SERVICE="$(json_value ".environments.$ENV.cloudRunService")"
 HOSTING_TARGET="$(json_value ".environments.$ENV.firebaseHostingSite")"
+FIREBASE_SDK_FILE_VALUE="$(jq -r ".environments.$ENV.files.firebaseSdkFile // \".config/firebase-sdk-$ENV.json\"" "$CONFIG_PATH")"
+FIREBASE_SDK_FILE="$PLATFORM_DIR/$FIREBASE_SDK_FILE_VALUE"
+
+export VITE_FIREBASE_API_KEY
+export VITE_FIREBASE_AUTH_DOMAIN
+export VITE_FIREBASE_PROJECT_ID
+export VITE_FIREBASE_STORAGE_BUCKET
+export VITE_FIREBASE_MESSAGING_SENDER_ID
+export VITE_FIREBASE_APP_ID
+
+VITE_FIREBASE_API_KEY="$(runtime_or_sdk_value ".$ENV.firebase.client.apiKey" ".apiKey")"
+VITE_FIREBASE_AUTH_DOMAIN="$(runtime_or_sdk_value ".$ENV.firebase.client.authDomain" ".authDomain")"
+VITE_FIREBASE_PROJECT_ID="$(runtime_or_sdk_value ".$ENV.firebase.client.projectId" ".projectId")"
+VITE_FIREBASE_STORAGE_BUCKET="$(runtime_or_sdk_value ".$ENV.firebase.client.storageBucket" ".storageBucket")"
+VITE_FIREBASE_MESSAGING_SENDER_ID="$(runtime_or_sdk_value ".$ENV.firebase.client.messagingSenderId" ".messagingSenderId")"
+VITE_FIREBASE_APP_ID="$(runtime_or_sdk_value ".$ENV.firebase.client.appId" ".appId")"
 
 section "Cloud Run API"
 if gcloud run services describe "$CLOUD_RUN_SERVICE" \

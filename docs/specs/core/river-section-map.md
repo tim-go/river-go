@@ -48,11 +48,28 @@ The map must display:
 - saved contribution markers
 - draft contribution marker
 
+The map should support two browsing levels:
+
+- a UK overview mode where river sections can be discovered from far out
+- a section-detail mode where a selected section shows route, access, hazards, photos, features, reports, and level context
+
+Overview route styling should use level/runnability state as the primary colour channel. Difficulty or whitewater grade should be shown as a compact badge/label rather than competing route colour.
+
+The map and section list should eventually allow paddlers to filter sections by:
+
+- whitewater grade range, for example grade III-IV
+- current level/runnability band
+- craft suitability
+- recent community reports
+- hazards or access constraints
+
 Selecting a section from the left list must fit the map to that section's route bounds.
 
 Clicking markers must not unexpectedly zoom out or recenter the map.
 
 Marker click popups must make clicked objects understandable.
+
+Access point markers and access details should expose a navigation action that opens an external navigation app, starting with Google Maps directions to the access point latitude/longitude.
 
 Hover tooltips should not duplicate marker popups in the prototype because they create two simultaneous information surfaces.
 
@@ -80,7 +97,9 @@ Production behaviour may differ:
 
 - Should production markers be snapped, projected visually only, or left at true coordinates?
 - What OSM/ODbL obligations apply if route traces become product data?
-- When should the map gain filters or clustering?
+- Should overview discovery use clustered section markers, simplified route lines, or catchment-level grouping at low zoom?
+- How should grade filters handle mixed-grade sections or sections whose grade changes materially by level?
+- Should navigation actions offer Google Maps only, or detect Apple Maps/Waze on mobile?
 
 ## Tracking
 
@@ -95,6 +114,9 @@ Production behaviour may differ:
 | MAP-F5 | Marker click without recenter | Map | Landed | prototype | — | Marker clicks do not trigger route fit/zoom. |
 | MAP-F6 | Inspect-only information markers | Map | Active | prototype | — | Marker clicks show details and do not create draft contribution markers. |
 | MAP-F7 | Layer filters | Map | Queued | v0.2 | — | Filter by hazards, access, reports, photos, and stale items. |
+| MAP-F8 | Access navigation links | Map/detail panel | Active | v0.2 | — | Access points should open external directions using their coordinates. |
+| MAP-F9 | UK discovery overview | Map | Queued | MVP | — | Show rivers/sections from wider zooms, coloured by level/runnability and labelled with grade. |
+| MAP-F10 | Grade and runnability filters | Map | Queued | MVP | — | Let paddlers filter to sections such as grade III-IV that are running now. |
 
 ### Backlog
 
@@ -103,6 +125,8 @@ Production behaviour may differ:
 | MAP-B1 | decision | True marker coordinates vs route snapping | Open | v0.2 | Demo snaps markers; production should likely preserve true coordinates. |
 | MAP-B2 | dependency | OSM attribution and ODbL review | Open | v0.2 | Required before using derived geometry as product data. |
 | MAP-B3 | enhancement | Highlight current selected object | Triaged | prototype | Useful when clicking saved markers or seeded hazards. |
+| MAP-B4 | decision | Whitewater grade model | Open | MVP | Add structured min/max grade fields alongside current human-readable difficulty text. |
+| MAP-B5 | research | RiverPredictor-style forecasts | Open | Later | Assess 48h forecast data/model options after live levels and section-grade filters are established. |
 
 ## Change Log
 
@@ -112,3 +136,4 @@ Production behaviour may differ:
 | 2026-05-23 | Added active Tryweryn route-trace fixture context. |
 | 2026-05-23 | Clarified inspect-only marker click behaviour. |
 | 2026-05-23 | Removed persistent map instruction panel and marker hover tooltips. |
+| 2026-05-23 | Added discovery overview, grade filtering, and access navigation requirements. |

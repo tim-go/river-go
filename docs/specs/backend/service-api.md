@@ -71,6 +71,8 @@ Auth:
 - Firebase Auth verifies signed-in contributors.
 - Anonymous read access is allowed for public river/section data.
 - Write access requires a verified Firebase user.
+- The first sync endpoint accepts Firebase bearer tokens and records the verified user as the operation actor when present.
+- Backend hard enforcement of signed writes can be enabled with `REQUIRE_AUTH_FOR_WRITES=true` after staging smoke tests can provide an auth token.
 - Moderator endpoints require a role claim or backend role table.
 
 Storage:
@@ -110,7 +112,7 @@ Moderation:
 | Key | Feature | Surface | Status | Target | Delivered | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | API-F1 | API contract | Backend | Landed | v0.2 | — | Defines first backend endpoints and boundaries. |
-| API-F2 | Firebase Auth integration | Backend/auth | Queued | MVP | — | Verify ID tokens on write/moderation endpoints. |
+| API-F2 | Firebase Auth integration | Backend/auth | Active | MVP | — | Sync endpoint can verify Firebase ID tokens and attach the verified user ID as actor; hard write enforcement is feature-flagged. |
 | API-F3 | PostgreSQL/PostGIS persistence | Backend/data | Queued | MVP | — | Durable storage for river/community data. |
 | API-F4 | Firebase Storage photo flow | Backend/media | Queued | MVP | — | Controlled upload intent and photo moderation. |
 | API-F5 | Moderation queue | Backend/admin | Queued | MVP | — | Review and promote community data. |
@@ -138,3 +140,4 @@ Moderation:
 | 2026-05-22 | Added offline sync API and persistence implications. |
 | 2026-05-22 | Linked initial data/sync model and backend package decisions. |
 | 2026-05-23 | Added Cloud Run packaging and deployment path for the first API slice. |
+| 2026-05-23 | Started Firebase Auth verification path for sync writes. |

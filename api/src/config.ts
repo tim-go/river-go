@@ -36,3 +36,15 @@ export function getPort(): number {
 
   return port;
 }
+
+export function getFirebaseProjectId(): string | undefined {
+  return (
+    process.env.FIREBASE_PROJECT_ID ||
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.GCLOUD_PROJECT
+  );
+}
+
+export function isWriteAuthRequired(): boolean {
+  return process.env.REQUIRE_AUTH_FOR_WRITES === "true";
+}

@@ -191,6 +191,8 @@ Where whitewater grading applies, store that separately:
 - grade V
 - grade VI
 
+Whitewater grade should become structured section data so users can filter for ranges such as grade III-IV. A section may need minimum and maximum grade fields because some sections contain mixed difficulty or change character with level.
+
 ## Photo Categories
 
 - river view
@@ -230,6 +232,7 @@ Where whitewater grading applies, store that separately:
 The map should eventually allow filtering by:
 
 - river section difficulty
+- whitewater grade range
 - craft suitability
 - current level band
 - hazards
@@ -240,4 +243,3 @@ The map should eventually allow filtering by:
 - licence/navigation context
 - family-friendly sections
 - public transport access
-

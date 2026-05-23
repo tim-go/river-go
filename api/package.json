@@ -11,6 +11,7 @@
     "sync:smoke": "tsx src/smoke-sync.ts"
   },
   "dependencies": {
+    "firebase-admin": "^13.10.0",
     "pg": "^8.16.3"
   },
   "devDependencies": {

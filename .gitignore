@@ -3,6 +3,8 @@ dist/
 .vite/
 tmp/
 *.tsbuildinfo
+.env.local
+.env.*.local
 .config/
 platform/.config/
 firebase-debug.log

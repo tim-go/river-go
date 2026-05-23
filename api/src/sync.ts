@@ -46,7 +46,10 @@ interface ContributionCreatePayload {
   };
 }
 
-export async function pushSyncOperations(body: unknown): Promise<SyncPushResult> {
+export async function pushSyncOperations(
+  body: unknown,
+  actorId: string | null = null,
+): Promise<SyncPushResult> {
   if (!isRecord(body) || !Array.isArray(body.operations)) {
     throw new Error("Body must contain operations array");
   }
@@ -67,7 +70,12 @@ export async function pushSyncOperations(body: unknown): Promise<SyncPushResult>
     }
 
     try {
-      accepted.push(await processOperation(operation.value));
+      accepted.push(
+        await processOperation({
+          ...operation.value,
+          actorId,
+        }),
+      );
     } catch (error) {
       failed.push({
         operationId: operation.value.operationId,

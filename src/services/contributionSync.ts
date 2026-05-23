@@ -24,7 +24,7 @@ export interface ContributionSyncSummary {
 
 export async function syncContributionOutbox(
   outboxStore: ContributionOutboxStore,
-  options: { apiBaseUrl?: string } = {},
+  options: { apiBaseUrl?: string; getAuthToken?: () => Promise<string | null> } = {},
 ): Promise<ContributionSyncSummary> {
   const candidates = (await outboxStore.list()).filter((record) =>
     ["queued", "failed", "syncing"].includes(record.syncStatus),
@@ -39,13 +39,20 @@ export async function syncContributionOutbox(
   );
 
   try {
+    const authToken = options.getAuthToken ? await options.getAuthToken() : null;
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+    };
+
+    if (authToken) {
+      headers.authorization = `Bearer ${authToken}`;
+    }
+
     const response = await fetch(
       `${options.apiBaseUrl ?? getApiBaseUrl()}/api/sync/push`,
       {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           operations: candidates.map((record) => record.operation),
         }),

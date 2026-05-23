@@ -73,6 +73,7 @@ The first implementation should include:
 - Cloud SQL migration script using Cloud SQL Auth Proxy
 - Firebase Hosting preview/live deployment script
 - end-to-end HTTP smoke script for `/api/health` and idempotent sync push
+- local LAN preview on port `6173` by default, avoiding Kinetiq Engine's `50xxx` worktree port range
 
 The setup script should support `--dry-run` and require `--create-resources` before creating missing GCP projects or paid resources.
 
