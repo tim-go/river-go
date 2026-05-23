@@ -48,6 +48,8 @@ Cloud Run API
 | Secret Manager | Database URLs, service credentials, API tokens, and webhook secrets. |
 | GitHub Actions | Build, test, deploy, and environment-scoped secret delivery. |
 
+Firebase Auth redirect sign-in should use the public Hosting domain as the SDK `authDomain` for each hosted environment. Staging uses `staging.riverlaunch.app` and production uses `riverlaunch.app`; both domains must remain listed in Firebase Auth authorised domains and as Google OAuth redirect URIs with the `/__/auth/handler` suffix.
+
 ## Repository Boundary
 
 Platform configuration lives in this repo:

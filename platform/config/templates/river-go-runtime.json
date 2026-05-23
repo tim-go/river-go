@@ -24,7 +24,7 @@
       "projectDomain": "river-go-staging.firebaseapp.com",
       "client": {
         "apiKey": "",
-        "authDomain": "river-go-staging.firebaseapp.com",
+        "authDomain": "staging.riverlaunch.app",
         "projectId": "river-go-staging",
         "storageBucket": "river-go-staging.firebasestorage.app",
         "messagingSenderId": "",
@@ -55,7 +55,7 @@
       "projectDomain": "river-go-staging.firebaseapp.com",
       "client": {
         "apiKey": "",
-        "authDomain": "river-go-staging.firebaseapp.com",
+        "authDomain": "staging.riverlaunch.app",
         "projectId": "river-go-staging",
         "storageBucket": "river-go-staging.firebasestorage.app",
         "messagingSenderId": "",
@@ -86,7 +86,7 @@
       "projectDomain": "river-go-prod.firebaseapp.com",
       "client": {
         "apiKey": "",
-        "authDomain": "river-go-prod.firebaseapp.com",
+        "authDomain": "riverlaunch.app",
         "projectId": "river-go-prod",
         "storageBucket": "river-go-prod.firebasestorage.app",
         "messagingSenderId": "",
