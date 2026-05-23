@@ -24,7 +24,7 @@
       "projectDomain": "river-go-staging.firebaseapp.com",
       "client": {
         "apiKey": "",
-        "authDomain": "staging.riverlaunch.app",
+        "authDomain": "river-go-staging.firebaseapp.com",
         "projectId": "river-go-staging",
         "storageBucket": "river-go-staging.firebasestorage.app",
         "messagingSenderId": "",
@@ -35,7 +35,8 @@
     "auth": {
       "sessionSecret": "",
       "allowedSignupEmails": "",
-      "adminEmails": "tim.gost@gmail.com;jgudgeon.ost@gmail.com"
+      "adminEmails": "tim.gost@gmail.com;jgudgeon.ost@gmail.com",
+      "flow": "popup"
     },
     "storage": {
       "bucket": "river-go-staging.firebasestorage.app"
@@ -55,7 +56,7 @@
       "projectDomain": "river-go-staging.firebaseapp.com",
       "client": {
         "apiKey": "",
-        "authDomain": "staging.riverlaunch.app",
+        "authDomain": "river-go-staging.firebaseapp.com",
         "projectId": "river-go-staging",
         "storageBucket": "river-go-staging.firebasestorage.app",
         "messagingSenderId": "",
@@ -66,7 +67,8 @@
     "auth": {
       "sessionSecret": "",
       "allowedSignupEmails": "",
-      "adminEmails": "tim.gost@gmail.com;jgudgeon.ost@gmail.com"
+      "adminEmails": "tim.gost@gmail.com;jgudgeon.ost@gmail.com",
+      "flow": "popup"
     },
     "storage": {
       "bucket": "river-go-staging.firebasestorage.app"
@@ -86,7 +88,7 @@
       "projectDomain": "river-go-prod.firebaseapp.com",
       "client": {
         "apiKey": "",
-        "authDomain": "riverlaunch.app",
+        "authDomain": "river-go-prod.firebaseapp.com",
         "projectId": "river-go-prod",
         "storageBucket": "river-go-prod.firebasestorage.app",
         "messagingSenderId": "",
@@ -97,7 +99,8 @@
     "auth": {
       "sessionSecret": "",
       "allowedSignupEmails": "",
-      "adminEmails": ""
+      "adminEmails": "",
+      "flow": "popup"
     },
     "storage": {
       "bucket": "river-go-prod.firebasestorage.app"

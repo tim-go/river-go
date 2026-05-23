@@ -220,7 +220,7 @@ Manual follow-up remains required for:
 
 - Firebase terms acceptance if your account has not accepted them
 - Blaze plan upgrade where Storage or paid GCP resources require it
-- Google sign-in OAuth provider configuration, including the custom-domain redirect URI `https://staging.riverlaunch.app/__/auth/handler` for staging and `https://riverlaunch.app/__/auth/handler` for production
+- Google sign-in OAuth provider configuration. Hosted web currently uses popup sign-in through the Firebase project helper domain; if redirect sign-in is re-enabled, also add `https://staging.riverlaunch.app/__/auth/handler` for staging and `https://riverlaunch.app/__/auth/handler` for production.
 - Cloud SQL user passwords and database grants
 - PostGIS extension enablement
 - production custom domains and DNS

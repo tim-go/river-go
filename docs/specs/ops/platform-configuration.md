@@ -117,7 +117,7 @@ Staging rollout order:
 | PLATFORM-F10 | Cloud Run API deployment script | Ops/deploy | Active | v0.3 | — | Builds API Docker image, writes `DATABASE_URL` to Secret Manager, deploys Cloud Run with invoker IAM check disabled for public staging access, and checks health. |
 | PLATFORM-F11 | Preview-first Hosting deployment | Ops/deploy | Active | v0.3 | — | Deploys API rewrite to a Firebase preview channel before live Hosting cutover. |
 | PLATFORM-F12 | Cloud SQL migration script | Ops/deploy | Active | v0.3 | — | Runs SQL migrations through Cloud SQL Auth Proxy using the migration DB URL. |
-| PLATFORM-F13 | Custom-domain Firebase Auth redirect | Ops/auth | Landed | v0.3 | — | Hosted web builds use the public Hosting domain as Firebase `authDomain` so redirect sign-in restores auth state on custom domains. |
+| PLATFORM-F13 | Hosted Firebase Auth flow | Ops/auth | Active | v0.3 | — | Hosted web builds use popup sign-in with the Firebase project helper domain while custom-domain redirect sign-in is stabilised. |
 
 ### Backlog
 

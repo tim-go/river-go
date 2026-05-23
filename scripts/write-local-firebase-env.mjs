@@ -31,6 +31,7 @@ const values = {
   VITE_FIREBASE_STORAGE_BUCKET: readClientValue("storageBucket"),
   VITE_FIREBASE_MESSAGING_SENDER_ID: readClientValue("messagingSenderId"),
   VITE_FIREBASE_APP_ID: readClientValue("appId"),
+  VITE_FIREBASE_AUTH_FLOW: readPath(runtimeConfig, `${envName}.auth.flow`) ?? "",
 };
 
 const missing = Object.entries(values)
