@@ -31,6 +31,12 @@ Start the API:
 npm run api:dev
 ```
 
+The root `api:dev` command loads local runtime values from `platform/.config/river-go-runtime.json`, including `DATABASE_URL`, `FIREBASE_PROJECT_ID`, `ADMIN_EMAILS`, and the API port. To run against the staging runtime block instead:
+
+```bash
+npm run api:dev:staging
+```
+
 Check health:
 
 ```bash

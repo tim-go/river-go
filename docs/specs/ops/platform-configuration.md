@@ -57,6 +57,7 @@ The platform configuration must:
 - provide read-only health checks that make billing/API/deployment blockers visible
 - prefer keyless GCP authentication over downloaded service account keys
 - use a Kinetiq-style two-file local config split: platform config for provisioning facts, runtime config for execution values and deployable secrets
+- load local API development values from ignored runtime config so local admin roles, Firebase project ID, database URL, and API port match the selected environment
 - deploy staging end-to-end using a backend-first, Firebase Hosting preview-channel-first workflow so the live staging site remains available until the final cutover
 - support Cloud Run public access through `--no-invoker-iam-check` when organisation policy blocks `allUsers` IAM bindings
 

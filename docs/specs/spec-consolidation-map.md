@@ -10,6 +10,7 @@ This map helps locate the owning spec for River Go work. If a durable change doe
 | --- | --- | --- |
 | Prototype delivery state | `/docs/specs/release/demo-prototype.md` | Current demo scope and delivery log. |
 | River section map | `/docs/specs/core/river-section-map.md` | Map, section list, route traces, markers, and section panel. |
+| App shell navigation | `/docs/specs/core/app-shell-navigation.md` | Desktop sidebar, mobile bottom tabs, and primary app sections. |
 | Offline mode | `/docs/specs/core/offline-mode.md` | Offline reading, offline contribution capture, local storage, sync, and future mobile offline architecture. |
 | Community contributions | `/docs/specs/community/community-contributions.md` | Add mode, saved contributions, status, and contribution UX. |
 | Trust and moderation | `/docs/specs/community/trust-and-moderation.md` | Confirmation, resolution, staleness, moderation rules. |

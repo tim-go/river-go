@@ -7,23 +7,29 @@ import {
   Droplets,
   ExternalLink,
   Flag,
+  Heart,
   LogIn,
   LogOut,
+  Map as MapIcon,
   MapPinned,
   MapPin,
   MessageSquare,
+  MoreHorizontal,
   Navigation,
   Plus,
+  RotateCcw,
   RefreshCw,
   Route,
+  Search,
   ShieldAlert,
   ShieldCheck,
   Star,
+  UserRound,
   Waves,
   X,
 } from "lucide-react";
 import L from "leaflet";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { riverSections } from "./data/demoData";
 import {
   createContributionOutboxRecord,
@@ -57,6 +63,7 @@ import type {
 
 const STORAGE_KEY = "river-go-demo-contributions";
 const HAZARD_REVIEW_STORAGE_KEY = "river-go-demo-hazard-reviews";
+const FAVOURITES_STORAGE_KEY = "river-go-demo-favourite-sections";
 
 const bandLabels = {
   "too-low": "Too low",
@@ -123,6 +130,56 @@ const categoryOptions: Record<ContributionType, string[]> = {
   feature: ["landing", "facility", "bridge", "rest stop", "navigation"],
 };
 
+type AppSection = "search" | "map" | "favourites" | "profile" | "more" | "admin";
+type AdminPage = "index" | "members" | "moderation" | "system";
+
+interface SelectedPoi {
+  id: string;
+  kind: "access" | "hazard" | "feature" | "gauge" | "contribution";
+  title: string;
+  subtitle: string;
+  summary: string;
+  sectionLabel: string;
+  location: LatLngTuple;
+  status?: string;
+  sourceLabel?: string;
+  sourceConfidence?: string;
+  navigationLocation?: LatLngTuple;
+  syncStatus?: ContributionSyncStatus;
+}
+
+const appNavItems: Array<{
+  id: AppSection;
+  label: string;
+  icon: typeof Search;
+}> = [
+  { id: "search", label: "Search", icon: Search },
+  { id: "map", label: "Map", icon: MapIcon },
+  { id: "favourites", label: "Favourites", icon: Heart },
+  { id: "profile", label: "Profile", icon: UserRound },
+  { id: "more", label: "More", icon: MoreHorizontal },
+];
+
+function syncActionLabel({
+  queuedOutboxCount,
+  isSyncingOutbox,
+}: {
+  queuedOutboxCount: number;
+  isSyncingOutbox: boolean;
+}) {
+  if (isSyncingOutbox) {
+    return "Syncing local changes";
+  }
+
+  if (queuedOutboxCount > 0) {
+    return `${queuedOutboxCount} local change${
+      queuedOutboxCount === 1 ? "" : "s"
+    } waiting to sync`;
+  }
+
+  return "All local changes synced";
+}
+
 function optionForType(type: ContributionType) {
   return contributionOptions.find((option) => option.type === type)!;
 }
@@ -145,12 +202,71 @@ function loadHazardReviews(): Record<string, HazardReview> {
   }
 }
 
+function loadFavouriteSectionIds(): string[] {
+  try {
+    const stored = localStorage.getItem(FAVOURITES_STORAGE_KEY);
+    return stored ? (JSON.parse(stored) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 function markerHtml(kind: string, label: string) {
   return `<span class="map-marker map-marker--${kind}" aria-hidden="true">${label}</span>`;
 }
 
-function midpoint(route: LatLngTuple[]): LatLngTuple {
-  return route[Math.floor(route.length / 2)];
+function createMapPopupContent({
+  title,
+  subtitle,
+  summary,
+  detailsLabel = "Details",
+  navigationLocation,
+  onDetails,
+}: {
+  title: string;
+  subtitle: string;
+  summary: string;
+  detailsLabel?: string;
+  navigationLocation?: LatLngTuple;
+  onDetails: () => void;
+}) {
+  const container = L.DomUtil.create("div", "map-popup-card");
+  L.DomEvent.disableClickPropagation(container);
+
+  const heading = L.DomUtil.create("strong", "", container);
+  heading.textContent = title;
+
+  const meta = L.DomUtil.create("span", "", container);
+  meta.textContent = subtitle;
+
+  const body = L.DomUtil.create("p", "", container);
+  body.textContent = summary;
+
+  const actions = L.DomUtil.create("div", "map-popup-actions", container);
+  const detailsButton = L.DomUtil.create("button", "", actions);
+  detailsButton.type = "button";
+  detailsButton.textContent = detailsLabel;
+  L.DomEvent.on(detailsButton, "click", (event) => {
+    L.DomEvent.stop(event);
+    onDetails();
+  });
+
+  if (navigationLocation) {
+    const link = L.DomUtil.create("a", "", actions);
+    link.href = navigationUrl(navigationLocation);
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = "Navigate";
+  }
+
+  return container;
+}
+
+function routeEndpointBounds(route: LatLngTuple[]) {
+  const start = route[0];
+  const end = route[route.length - 1] ?? start;
+
+  return L.latLngBounds([start, end]);
 }
 
 function formatLocation(location: LatLngTuple) {
@@ -181,9 +297,213 @@ function syncStatusLabel(status?: ContributionSyncStatus) {
   return labels[status];
 }
 
+function AppNavigation({
+  activeSection,
+  collapsed,
+  isAdmin,
+  onToggleCollapsed,
+  onSelectSection,
+}: {
+  activeSection: AppSection;
+  collapsed: boolean;
+  isAdmin: boolean;
+  onToggleCollapsed: () => void;
+  onSelectSection: (section: AppSection) => void;
+}) {
+  const visibleNavItems = isAdmin
+    ? [...appNavItems, { id: "admin" as const, label: "Admin", icon: ShieldCheck }]
+    : appNavItems;
+
+  return (
+    <aside className={`app-nav ${collapsed ? "app-nav--collapsed" : ""}`}>
+      <div className="app-nav__header">
+        <div className="app-nav__brand" title="RiffleMap">
+          <span className="brand-mark brand-mark--nav">
+            <Waves size={20} strokeWidth={2.3} />
+          </span>
+          <span>
+            <strong>RiffleMap</strong>
+            <small>River intelligence</small>
+          </span>
+        </div>
+        <button
+          className="app-nav__toggle"
+          type="button"
+          onClick={onToggleCollapsed}
+          title={collapsed ? "Expand navigation" : "Collapse navigation"}
+          aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+        >
+          <ChevronDown size={16} />
+        </button>
+      </div>
+      <nav aria-label="App sections">
+        {visibleNavItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              className={`app-nav__item ${
+                activeSection === item.id ? "app-nav__item--active" : ""
+              }`}
+              key={item.id}
+              type="button"
+              title={item.label}
+              onClick={() => onSelectSection(item.id)}
+            >
+              <Icon size={19} />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </aside>
+  );
+}
+
+function MobileBottomNav({
+  activeSection,
+  onSelectSection,
+}: {
+  activeSection: AppSection;
+  onSelectSection: (section: AppSection) => void;
+}) {
+  return (
+    <nav className="bottom-nav" aria-label="App sections">
+      {appNavItems.map((item) => {
+        const Icon = item.icon;
+        return (
+          <button
+            className={`bottom-nav__item ${
+              activeSection === item.id ||
+              (activeSection === "admin" && item.id === "more")
+                ? "bottom-nav__item--active"
+                : ""
+            }`}
+            key={item.id}
+            type="button"
+            onClick={() => onSelectSection(item.id)}
+          >
+            <Icon size={20} />
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function AppBrandPanel() {
+  return (
+    <div className="app-brand-panel">
+      <span className="brand-mark">
+        <Waves size={22} strokeWidth={2.3} />
+      </span>
+      <div>
+        <strong>RiffleMap</strong>
+        <span>Community river intelligence for paddlers.</span>
+      </div>
+    </div>
+  );
+}
+
+function PlaceholderPage({
+  section,
+  title,
+  children,
+}: {
+  section: AppSection;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={`app-page app-page--${section}`} aria-label={title}>
+      <div className="app-page__header">
+        <h2>{title}</h2>
+      </div>
+      <div className="app-page__content">{children}</div>
+    </section>
+  );
+}
+
+function PoiDetailPanel({
+  poi,
+  onClose,
+}: {
+  poi: SelectedPoi;
+  onClose: () => void;
+}) {
+  return (
+    <section className="poi-detail-panel" aria-label="Point of interest details">
+      <button
+        className="panel-close"
+        type="button"
+        aria-label="Close point of interest details"
+        title="Close"
+        onClick={onClose}
+      >
+        <X size={18} />
+      </button>
+      <div className="poi-detail-panel__header">
+        <p className="eyebrow">{poi.kind}</p>
+        <h2>{poi.title}</h2>
+        <span>{poi.subtitle}</span>
+      </div>
+      <div className="panel-content">
+        <div className="stat-grid">
+          <Metric icon={MapPinned} label="Section" value={poi.sectionLabel} />
+          <Metric icon={Navigation} label="Location" value={formatLocation(poi.location)} />
+          <Metric icon={ShieldCheck} label="Status" value={poi.status ?? "Info"} />
+          <Metric icon={MessageSquare} label="Source" value={poi.sourceConfidence ?? "Demo"} />
+        </div>
+        <section className="info-block">
+          <h3>Details</h3>
+          <p>{poi.summary}</p>
+        </section>
+        {poi.sourceLabel ? (
+          <section className="info-block">
+            <h3>Source</h3>
+            <p>{poi.sourceLabel}</p>
+          </section>
+        ) : null}
+        {poi.syncStatus ? (
+          <section className="info-block">
+            <h3>Sync</h3>
+            <span className={`status-chip status-chip--sync-${poi.syncStatus}`}>
+              {syncStatusLabel(poi.syncStatus)}
+            </span>
+          </section>
+        ) : null}
+        <div className="form-actions">
+          {poi.navigationLocation ? (
+            <a
+              className="compact-nav-link compact-nav-link--panel"
+              href={navigationUrl(poi.navigationLocation)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ExternalLink size={14} />
+              Navigate
+            </a>
+          ) : null}
+          <button className="ghost-button" type="button">
+            <Camera size={16} />
+            Add photo
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const outboxStore = useMemo(() => createContributionOutboxStore(), []);
+  const [activeAppSection, setActiveAppSection] =
+    useState<AppSection>("map");
+  const [activeAdminPage, setActiveAdminPage] = useState<AdminPage>("index");
+  const [isAppNavCollapsed, setIsAppNavCollapsed] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState(riverSections[0].id);
+  const [sectionFocusNonce, setSectionFocusNonce] = useState(0);
+  const [pendingUnfavouriteSection, setPendingUnfavouriteSection] =
+    useState<RiverSection | null>(null);
   const [contributions, setContributions] = useState<Contribution[]>(() =>
     loadContributions(),
   );
@@ -193,9 +513,10 @@ function App() {
   const [hazardReviews, setHazardReviews] = useState<
     Record<string, HazardReview>
   >(() => loadHazardReviews());
-  const [isPanelOpen, setIsPanelOpen] = useState(
-    () => !window.matchMedia("(max-width: 720px)").matches,
+  const [favouriteSectionIds, setFavouriteSectionIds] = useState<string[]>(() =>
+    loadFavouriteSectionIds(),
   );
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [contributionType, setContributionType] =
     useState<ContributionType>("hazard");
@@ -208,6 +529,7 @@ function App() {
   const [craftType, setCraftType] = useState("open canoe");
   const [selectedLocation, setSelectedLocation] =
     useState<LatLngTuple | null>(null);
+  const [selectedPoi, setSelectedPoi] = useState<SelectedPoi | null>(null);
   const [selectedTargetLabel, setSelectedTargetLabel] = useState(
     "Selected map location",
   );
@@ -222,7 +544,6 @@ function App() {
   const [authMessage, setAuthMessage] = useState("");
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
   const [memberMessage, setMemberMessage] = useState("");
-  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [adminMembers, setAdminMembers] = useState<MemberProfile[]>([]);
   const [isAdminLoading, setIsAdminLoading] = useState(false);
   const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
@@ -256,6 +577,10 @@ function App() {
     queuedOutboxCount > 0 &&
     !isSyncingOutbox &&
     (!isAuthConfigured || Boolean(authState.user));
+  const favouriteSections = riverSections.filter((section) =>
+    favouriteSectionIds.includes(section.id),
+  );
+  const isActiveSectionFavourite = favouriteSectionIds.includes(activeSection.id);
 
   useEffect(() => subscribeToAuthState(setAuthState), []);
 
@@ -266,7 +591,6 @@ function App() {
       setMemberProfile(null);
       setMemberMessage("");
       setAdminMembers([]);
-      setIsAdminPanelOpen(false);
       return () => {
         isMounted = false;
       };
@@ -294,8 +618,25 @@ function App() {
   }, [authState.user]);
 
   useEffect(() => {
+    if (
+      activeAppSection === "admin" &&
+      activeAdminPage === "members" &&
+      memberProfile?.role === "ADMIN"
+    ) {
+      void openAdminPanel();
+    }
+  }, [activeAppSection, activeAdminPage, memberProfile?.role]);
+
+  useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(contributions));
   }, [contributions]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      FAVOURITES_STORAGE_KEY,
+      JSON.stringify(favouriteSectionIds),
+    );
+  }, [favouriteSectionIds]);
 
   useEffect(() => {
     let isMounted = true;
@@ -488,7 +829,8 @@ function App() {
   }
 
   async function openAdminPanel() {
-    setIsAdminPanelOpen(true);
+    setActiveAppSection("admin");
+    setActiveAdminPage("members");
     setIsAdminLoading(true);
     setMemberMessage("");
 
@@ -565,7 +907,6 @@ function App() {
     if (nextType) {
       chooseContributionType(nextType);
     }
-    setIsPanelOpen(true);
     setIsFormOpen(true);
     setIsAddMode(false);
   }
@@ -600,150 +941,149 @@ function App() {
 
   function selectSection(section: RiverSection) {
     setActiveSectionId(section.id);
+    setSectionFocusNonce((current) => current + 1);
+    setIsSectionListOpen(false);
+  }
+
+  function openRouteDetails(section: RiverSection) {
+    setActiveSectionId(section.id);
+    setSectionFocusNonce((current) => current + 1);
+    setSelectedPoi(null);
     setIsPanelOpen(true);
     setIsSectionListOpen(false);
   }
 
+  function openPoiDetails(poi: SelectedPoi) {
+    setSelectedPoi(poi);
+    setIsPanelOpen(false);
+    setIsFormOpen(false);
+    setIsAddMode(false);
+  }
+
+  function toggleFavouriteSection(section: RiverSection) {
+    setFavouriteSectionIds((current) =>
+      current.includes(section.id)
+        ? current.filter((sectionId) => sectionId !== section.id)
+        : [...current, section.id],
+    );
+  }
+
   return (
-    <main className="app-shell">
-      <section className="topbar" aria-label="RiffleMap navigation">
-        <div className="brand-lockup">
-          <span className="brand-mark">
-            <Waves size={22} strokeWidth={2.3} />
-          </span>
-          <div>
-            <p className="eyebrow">UK community river intelligence</p>
-            <h1>RiffleMap</h1>
-          </div>
-        </div>
-        <div className="topbar-actions">
-          <div className="member-status" title="Contributor sign-in">
-            <span>
-              {authState.status === "loading"
-                ? "Checking sign-in"
-                : authState.user
-                  ? memberProfile
-                    ? `${memberProfile.displayName ?? authState.user.displayName} · ${
-                        memberProfile.role
-                      }`
-                    : authState.user.displayName
-                  : isAuthConfigured
-                    ? "Signed out"
-                    : "Auth not configured"}
+    <main
+      className={`app-shell ${
+        activeAppSection === "map" ? "" : "app-shell--content-only"
+      }`}
+    >
+      {activeAppSection === "map" ? (
+        <section className="topbar" aria-label="Map controls">
+          <div className="brand-lockup">
+            <span className="brand-mark">
+              <Waves size={22} strokeWidth={2.3} />
             </span>
-            {authState.user ? (
-              <button
-                className="ghost-button ghost-button--compact"
-                type="button"
-                onClick={handleSignOut}
-              >
-                <LogOut size={15} />
-                Sign out
-              </button>
-            ) : (
-              <button
-                className="ghost-button ghost-button--compact"
-                type="button"
-                onClick={handleSignIn}
-                disabled={!isAuthConfigured}
-              >
-                <LogIn size={15} />
-                Sign in
-              </button>
-            )}
+            <div>
+              <p className="eyebrow">{activeSection.riverName}</p>
+              <h1>{activeSection.sectionName}</h1>
+            </div>
           </div>
-          {memberProfile?.role === "ADMIN" ? (
+          <div className="topbar-actions">
             <button
-              className="ghost-button sync-action"
+              className={`ghost-button map-panel-toggle ${
+                isSectionListOpen ? "map-panel-toggle--active" : ""
+              }`}
               type="button"
-              onClick={openAdminPanel}
+              onClick={() => setIsSectionListOpen((current) => !current)}
+              aria-pressed={isSectionListOpen}
             >
-              <ShieldCheck size={16} />
-              Admin
+              <Route size={16} />
+              Sections
             </button>
-          ) : null}
-          <span
-            className={`sync-pill ${
-              queuedOutboxCount > 0 ? "sync-pill--queued" : ""
-            }`}
-            title="Local contribution outbox"
-          >
-            {queuedOutboxCount > 0
-              ? `${queuedOutboxCount} offline change${
-                  queuedOutboxCount === 1 ? "" : "s"
-                }`
-              : "No offline changes"}
-          </span>
-          <button
-            className="ghost-button sync-action"
-            type="button"
-            onClick={syncOutboxNow}
-            disabled={!canSyncOutbox}
-            title="Sync local contributions"
-          >
-            <RefreshCw size={16} />
-            {isSyncingOutbox
-              ? "Syncing"
-              : isAuthConfigured && !authState.user && queuedOutboxCount > 0
-                ? "Sign in to sync"
-                : "Sync now"}
-          </button>
-          <button
-            className="icon-button"
-            type="button"
-            title="Watch selected section"
-            aria-label="Watch selected section"
-          >
-            <Star size={18} />
-          </button>
-          <button
-            className="icon-button"
-            type="button"
-            title="Reset demo contributions"
-            aria-label="Reset demo contributions"
-            onClick={resetDemoContributions}
-          >
-            <RefreshCw size={18} />
-          </button>
-          <button
-            className="primary-action"
-            type="button"
-            onClick={() => startAddMode()}
-          >
-            <Plus size={18} />
-            Add local knowledge
-          </button>
-          {authMessage || authState.error || memberMessage ? (
-            <p className="topbar-message">
-              {authMessage || authState.error || memberMessage}
-            </p>
-          ) : null}
-        </div>
-      </section>
+            <button
+              className={`ghost-button map-panel-toggle ${
+                isPanelOpen ? "map-panel-toggle--active" : ""
+              }`}
+              type="button"
+              onClick={() => setIsPanelOpen((current) => !current)}
+              aria-pressed={isPanelOpen}
+            >
+              <MapPinned size={16} />
+              Route
+            </button>
+            <button
+              className={`icon-button sync-icon-button ${
+                queuedOutboxCount > 0 ? "sync-icon-button--queued" : ""
+              }`}
+              type="button"
+              onClick={syncOutboxNow}
+              disabled={!canSyncOutbox}
+              title={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
+              aria-label={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
+            >
+              <RefreshCw size={16} />
+              {queuedOutboxCount > 0 ? (
+                <span className="sync-badge">{queuedOutboxCount}</span>
+              ) : null}
+            </button>
+            <button
+              className={`icon-button ${
+                isActiveSectionFavourite ? "icon-button--active" : ""
+              }`}
+              type="button"
+              title={
+                isActiveSectionFavourite
+                  ? "Remove from favourites"
+                  : "Add to favourites"
+              }
+              aria-label={
+                isActiveSectionFavourite
+                  ? "Remove from favourites"
+                  : "Add to favourites"
+              }
+              aria-pressed={isActiveSectionFavourite}
+              onClick={() => toggleFavouriteSection(activeSection)}
+            >
+              <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
+            </button>
+            <button
+              className="primary-action"
+              type="button"
+              title="Add local knowledge"
+              onClick={() => startAddMode()}
+            >
+              <Plus size={18} />
+              Add info
+            </button>
+            {authMessage || authState.error || memberMessage ? (
+              <p className="topbar-message">
+                {authMessage || authState.error || memberMessage}
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
-      <section className="workspace">
-        <div className="mobile-map-controls" aria-label="Map panels">
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={() => setIsSectionListOpen((current) => !current)}
-          >
-            <Route size={16} />
-            Sections
-          </button>
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={() => setIsPanelOpen((current) => !current)}
-          >
-            <MapPinned size={16} />
-            Details
-          </button>
-        </div>
+      <section
+        className={`app-body ${
+          isAppNavCollapsed ? "app-body--nav-collapsed" : ""
+        }`}
+      >
+        <AppNavigation
+          activeSection={activeAppSection}
+          collapsed={isAppNavCollapsed}
+          isAdmin={memberProfile?.role === "ADMIN"}
+          onToggleCollapsed={() => setIsAppNavCollapsed((current) => !current)}
+          onSelectSection={setActiveAppSection}
+        />
 
+        <section className="app-view">
+          {activeAppSection === "map" ? (
+      <section
+        className={`workspace ${
+          isSectionListOpen ? "workspace--sections-open" : ""
+        }`}
+      >
         <aside
           className={`section-list ${
-            isSectionListOpen ? "section-list--mobile-open" : ""
+            isSectionListOpen ? "section-list--open" : "section-list--closed"
           }`}
           aria-label="River sections"
         >
@@ -778,6 +1118,9 @@ function App() {
           selectedLocation={selectedLocation}
           isAddMode={isAddMode}
           onMapClick={handleMapClick}
+          focusNonce={sectionFocusNonce}
+          onOpenPoiDetails={openPoiDetails}
+          onOpenRouteDetails={openRouteDetails}
           onSelectSection={selectSection}
         />
 
@@ -785,7 +1128,7 @@ function App() {
           <section className="quick-add-panel" aria-label="Add contribution">
             <div className="quick-add-panel__header">
               <div>
-                <p className="eyebrow">Add local knowledge</p>
+                <p className="eyebrow">Add info</p>
                 <h2>{selectedTargetLabel}</h2>
               </div>
               <button
@@ -932,14 +1275,14 @@ function App() {
                 <button
                   className="ghost-button"
                   type="button"
-                  onClick={() => setSelectedLocation(midpoint(activeSection.route))}
+                  onClick={closeContributionForm}
                 >
-                  <MapPinned size={16} />
-                  Use midpoint
+                  <X size={16} />
+                  Cancel
                 </button>
                 <button className="submit-button" type="submit">
                   <Flag size={16} />
-                  Save contribution
+                  Save
                 </button>
               </div>
             </form>
@@ -967,42 +1310,11 @@ function App() {
           </section>
         ) : null}
 
-        {isAdminPanelOpen ? (
-          <section className="admin-panel" aria-label="Admin members">
-            <div className="quick-add-panel__header">
-              <div>
-                <p className="eyebrow">Admin</p>
-                <h2>Members</h2>
-              </div>
-              <button
-                className="icon-button"
-                type="button"
-                aria-label="Close admin panel"
-                title="Close"
-                onClick={() => setIsAdminPanelOpen(false)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            {isAdminLoading ? (
-              <p className="source-note">Loading members...</p>
-            ) : (
-              <div className="member-list">
-                {adminMembers.map((member) => (
-                  <div className="member-row" key={member.id}>
-                    <div>
-                      <strong>{member.displayName ?? member.email ?? member.firebaseUid}</strong>
-                      <span>{member.email ?? "No email"}</span>
-                    </div>
-                    <span className="status-chip">{member.role}</span>
-                  </div>
-                ))}
-                {adminMembers.length === 0 ? (
-                  <p className="source-note">No members found.</p>
-                ) : null}
-              </div>
-            )}
-          </section>
+        {selectedPoi ? (
+          <PoiDetailPanel
+            poi={selectedPoi}
+            onClose={() => setSelectedPoi(null)}
+          />
         ) : null}
 
         <section
@@ -1060,7 +1372,7 @@ function App() {
 
             <section className="contribution-box contribution-box--prominent">
               <div className="block-title">
-                <h3>Add local knowledge</h3>
+                <h3>Add info</h3>
                 <span>{sectionContributions.length} local updates</span>
               </div>
               <div className="contribution-actions">
@@ -1348,6 +1660,369 @@ function App() {
           </div>
         </section>
       </section>
+          ) : activeAppSection === "search" ? (
+            <PlaceholderPage section="search" title="Search">
+              <div className="search-panel">
+                <label>
+                  River or place
+                  <input placeholder="Tryweryn, Wye, Dee" />
+                </label>
+                <div className="filter-row">
+                  <span className="status-chip">Grade I-II</span>
+                  <span className="status-chip">Grade III-IV</span>
+                  <span className="status-chip">Running now</span>
+                  <span className="status-chip">Open canoe</span>
+                </div>
+                <div className="placeholder-list">
+                  {riverSections.map((section) => (
+                    <button
+                      className="placeholder-row"
+                      key={section.id}
+                      type="button"
+                      onClick={() => {
+                        selectSection(section);
+                        setActiveAppSection("map");
+                      }}
+                    >
+                      <span>
+                        <strong>{section.riverName}</strong>
+                        <small>{section.sectionName}</small>
+                      </span>
+                      <span className={`level-pill level-pill--${section.levelBand}`}>
+                        {bandLabels[section.levelBand]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </PlaceholderPage>
+          ) : activeAppSection === "favourites" ? (
+            <PlaceholderPage section="favourites" title="Favourites">
+              <div className="placeholder-list">
+                {favouriteSections.map((section) => (
+                  <div className="placeholder-row" key={section.id}>
+                    <span>
+                      <strong>{section.riverName}</strong>
+                      <small>{section.sectionName}</small>
+                    </span>
+                    <span className={`level-pill level-pill--${section.levelBand}`}>
+                      {bandLabels[section.levelBand]}
+                    </span>
+                    <button
+                      className="ghost-button ghost-button--compact"
+                      type="button"
+                      onClick={() => {
+                        selectSection(section);
+                        setActiveAppSection("map");
+                      }}
+                    >
+                      <MapIcon size={15} />
+                      Open
+                    </button>
+                    <button
+                      className="icon-button icon-button--compact"
+                      type="button"
+                      title="Remove from favourites"
+                      aria-label={`Remove ${section.sectionName} from favourites`}
+                      onClick={() => setPendingUnfavouriteSection(section)}
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                ))}
+                {favouriteSections.length === 0 ? (
+                  <div className="placeholder-row">
+                    <span>
+                      <strong>No favourites yet</strong>
+                      <small>Use the star on the Map section to save a route here.</small>
+                    </span>
+                    <Star size={18} />
+                  </div>
+                ) : null}
+              </div>
+              {pendingUnfavouriteSection ? (
+                <section className="confirm-panel" role="dialog" aria-modal="true">
+                  <div>
+                    <p className="eyebrow">Remove favourite</p>
+                    <h3>{pendingUnfavouriteSection.sectionName}</h3>
+                    <p>
+                      Remove this route from your favourites?
+                    </p>
+                  </div>
+                  <div className="form-actions">
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={() => setPendingUnfavouriteSection(null)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="submit-button"
+                      type="button"
+                      onClick={() => {
+                        toggleFavouriteSection(pendingUnfavouriteSection);
+                        setPendingUnfavouriteSection(null);
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </section>
+              ) : null}
+            </PlaceholderPage>
+          ) : activeAppSection === "profile" ? (
+            <PlaceholderPage section="profile" title="Profile">
+              <div className="profile-grid">
+                <AppBrandPanel />
+                <div className="profile-card">
+                  <UserRound size={22} />
+                  <div>
+                    <strong>
+                      {memberProfile?.displayName ??
+                        authState.user?.displayName ??
+                        "Signed out"}
+                    </strong>
+                    <span>
+                      {memberProfile?.email ??
+                        authState.user?.email ??
+                        "Sign in to sync local knowledge"}
+                    </span>
+                  </div>
+                  <span className="status-chip">
+                    {memberProfile?.role ?? "Guest"}
+                  </span>
+                </div>
+                {authMessage || authState.error || memberMessage ? (
+                  <p className="profile-message">
+                    {authMessage || authState.error || memberMessage}
+                  </p>
+                ) : null}
+                <div className="profile-stats">
+                  <Metric
+                    icon={MessageSquare}
+                    label="Local updates"
+                    value={String(contributions.length)}
+                  />
+                  <Metric
+                    icon={RefreshCw}
+                    label="Outbox"
+                    value={String(queuedOutboxCount)}
+                  />
+                  <Metric
+                    icon={ShieldCheck}
+                    label="Trust"
+                    value={memberProfile?.trustLevel ?? "Unsigned"}
+                  />
+                  <Metric
+                    icon={MapIcon}
+                    label="Current section"
+                    value={activeSection.riverName}
+                  />
+                </div>
+                <div className="profile-actions">
+                  {authState.user ? (
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={handleSignOut}
+                    >
+                      <LogOut size={16} />
+                      Sign out
+                    </button>
+                  ) : (
+                    <button
+                      className="primary-action"
+                      type="button"
+                      onClick={handleSignIn}
+                      disabled={!isAuthConfigured}
+                    >
+                      <LogIn size={16} />
+                      Sign in
+                    </button>
+                  )}
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={syncOutboxNow}
+                    disabled={!canSyncOutbox}
+                  >
+                    <RefreshCw size={16} />
+                    Sync now
+                  </button>
+                </div>
+              </div>
+            </PlaceholderPage>
+          ) : activeAppSection === "more" ? (
+            <PlaceholderPage section="more" title="More">
+              <AppBrandPanel />
+              <div className="placeholder-list">
+                {memberProfile?.role === "ADMIN" ? (
+                  <button
+                    className="placeholder-row"
+                    type="button"
+                    onClick={() => {
+                      setActiveAdminPage("index");
+                      setActiveAppSection("admin");
+                    }}
+                  >
+                    <span>
+                      <strong>Admin</strong>
+                      <small>Members, moderation, and platform controls</small>
+                    </span>
+                    <ShieldCheck size={18} />
+                  </button>
+                ) : null}
+                <button className="placeholder-row" type="button">
+                  <span>
+                    <strong>Offline packs</strong>
+                    <small>Saved rivers for poor signal</small>
+                  </span>
+                  <RefreshCw size={18} />
+                </button>
+                <button className="placeholder-row" type="button">
+                  <span>
+                    <strong>Settings</strong>
+                    <small>Map, units, alerts, and account preferences</small>
+                  </span>
+                  <MoreHorizontal size={18} />
+                </button>
+                <button
+                  className="placeholder-row"
+                  type="button"
+                  onClick={resetDemoContributions}
+                >
+                  <span>
+                    <strong>Reset demo data</strong>
+                    <small>Clear local demo contributions and hazard confirmations</small>
+                  </span>
+                  <RotateCcw size={18} />
+                </button>
+              </div>
+            </PlaceholderPage>
+          ) : (
+            <PlaceholderPage section="admin" title="Admin">
+              {memberProfile?.role === "ADMIN" ? (
+                <div className="admin-workspace">
+                  {activeAdminPage === "index" ? (
+                    <div className="placeholder-list">
+                      <button
+                        className="placeholder-row"
+                        type="button"
+                        onClick={openAdminPanel}
+                      >
+                        <span>
+                          <strong>Members</strong>
+                          <small>Member directory, roles, and recent activity</small>
+                        </span>
+                        <UserRound size={18} />
+                      </button>
+                      <button
+                        className="placeholder-row"
+                        type="button"
+                        onClick={() => setActiveAdminPage("moderation")}
+                      >
+                        <span>
+                          <strong>Moderation</strong>
+                          <small>Contribution queue, reports, and disputes</small>
+                        </span>
+                        <Flag size={18} />
+                      </button>
+                      <button
+                        className="placeholder-row"
+                        type="button"
+                        onClick={() => setActiveAdminPage("system")}
+                      >
+                        <span>
+                          <strong>System</strong>
+                          <small>Data quality, sync health, and platform status</small>
+                        </span>
+                        <ShieldCheck size={18} />
+                      </button>
+                    </div>
+                  ) : (
+                    <section className="admin-page">
+                      <button
+                        className="ghost-button ghost-button--compact"
+                        type="button"
+                        onClick={() => setActiveAdminPage("index")}
+                      >
+                        <ChevronDown size={15} />
+                        Admin
+                      </button>
+                      {activeAdminPage === "members" ? (
+                        <>
+                          <div className="quick-add-panel__header">
+                            <div>
+                              <p className="eyebrow">Members</p>
+                              <h2>Member directory</h2>
+                            </div>
+                            <button
+                              className="ghost-button ghost-button--compact"
+                              type="button"
+                              onClick={openAdminPanel}
+                            >
+                              <RefreshCw size={15} />
+                              Refresh
+                            </button>
+                          </div>
+                          {isAdminLoading ? (
+                            <p className="source-note">Loading members...</p>
+                          ) : (
+                            <div className="member-list member-list--full">
+                              {adminMembers.map((member) => (
+                                <div className="member-row" key={member.id}>
+                                  <div>
+                                    <strong>
+                                      {member.displayName ?? member.email ?? member.firebaseUid}
+                                    </strong>
+                                    <span>{member.email ?? "No email"}</span>
+                                  </div>
+                                  <span className="status-chip">{member.role}</span>
+                                </div>
+                              ))}
+                              {adminMembers.length === 0 ? (
+                                <p className="source-note">No members found.</p>
+                              ) : null}
+                            </div>
+                          )}
+                        </>
+                      ) : activeAdminPage === "moderation" ? (
+                        <div className="placeholder-list">
+                          <div className="placeholder-row">
+                            <span>
+                              <strong>Moderation</strong>
+                              <small>Contribution queue and reporting tools will live here.</small>
+                            </span>
+                            <Flag size={18} />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="placeholder-list">
+                          <div className="placeholder-row">
+                            <span>
+                              <strong>System</strong>
+                              <small>Operational health and data-quality tools will live here.</small>
+                            </span>
+                            <ShieldCheck size={18} />
+                          </div>
+                        </div>
+                      )}
+                    </section>
+                  )}
+                </div>
+              ) : (
+                <div className="profile-message">Admin access is required.</div>
+              )}
+            </PlaceholderPage>
+          )}
+        </section>
+      </section>
+
+      <MobileBottomNav
+        activeSection={activeAppSection}
+        onSelectSection={setActiveAppSection}
+      />
     </main>
   );
 }
@@ -1359,6 +2034,9 @@ function RiverMap({
   selectedLocation,
   isAddMode,
   onMapClick,
+  focusNonce,
+  onOpenPoiDetails,
+  onOpenRouteDetails,
   onSelectSection,
 }: {
   activeSection: RiverSection;
@@ -1371,6 +2049,9 @@ function RiverMap({
     nextType?: ContributionType,
     label?: string,
   ) => void;
+  focusNonce: number;
+  onOpenPoiDetails: (poi: SelectedPoi) => void;
+  onOpenRouteDetails: (section: RiverSection) => void;
   onSelectSection: (section: RiverSection) => void;
 }) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -1378,7 +2059,10 @@ function RiverMap({
   const layerRef = useRef<L.LayerGroup | null>(null);
   const callbackRef = useRef(onSelectSection);
   const mapClickRef = useRef(onMapClick);
+  const poiDetailsRef = useRef(onOpenPoiDetails);
+  const routeDetailsRef = useRef(onOpenRouteDetails);
   const previousSectionIdRef = useRef(activeSection.id);
+  const previousFocusNonceRef = useRef(focusNonce);
   const shouldFitActiveSectionRef = useRef(true);
   const outboxByContributionId = useMemo(
     () =>
@@ -1395,6 +2079,14 @@ function RiverMap({
   useEffect(() => {
     mapClickRef.current = onMapClick;
   }, [onMapClick]);
+
+  useEffect(() => {
+    poiDetailsRef.current = onOpenPoiDetails;
+  }, [onOpenPoiDetails]);
+
+  useEffect(() => {
+    routeDetailsRef.current = onOpenRouteDetails;
+  }, [onOpenRouteDetails]);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) {
@@ -1425,7 +2117,17 @@ function RiverMap({
     mapRef.current = map;
     layerRef.current = layers;
 
+    const resizeObserver = new ResizeObserver(() => {
+      window.requestAnimationFrame(() => {
+        if (mapRef.current === map && map.getContainer().isConnected) {
+          map.invalidateSize();
+        }
+      });
+    });
+    resizeObserver.observe(mapContainerRef.current);
+
     return () => {
+      resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
       layerRef.current = null;
@@ -1487,7 +2189,13 @@ function RiverMap({
       sectionMarker
         .addTo(layers)
         .bindPopup(
-          `<strong>${section.sectionName}</strong><br/>${section.summary}`,
+          createMapPopupContent({
+            title: section.sectionName,
+            subtitle: section.riverName,
+            summary: section.summary,
+            detailsLabel: "Route details",
+            onDetails: () => routeDetailsRef.current(section),
+          }),
         )
         .on("click", (event) => {
           L.DomEvent.stop(event.originalEvent);
@@ -1508,7 +2216,26 @@ function RiverMap({
         marker
           .addTo(layers)
           .bindPopup(
-            `<strong>${accessPoint.name}</strong><br/>${accessPoint.type}<br/>${accessPoint.notes}<br/><a href="${navigationUrl(accessPoint.location)}" target="_blank" rel="noreferrer">Navigate with Google Maps</a>`,
+            createMapPopupContent({
+              title: accessPoint.name,
+              subtitle: `Access · ${accessPoint.type}`,
+              summary: accessPoint.notes,
+              navigationLocation: accessPoint.location,
+              onDetails: () =>
+                poiDetailsRef.current({
+                  id: accessPoint.id,
+                  kind: "access",
+                  title: accessPoint.name,
+                  subtitle: accessPoint.type,
+                  summary: accessPoint.notes,
+                  sectionLabel: section.sectionName,
+                  location: accessPoint.location,
+                  status: "Access point",
+                  sourceLabel: accessPoint.source?.label,
+                  sourceConfidence: accessPoint.source?.confidence,
+                  navigationLocation: accessPoint.location,
+                }),
+            }),
           )
           .on("click", (event) => {
             L.DomEvent.stop(event.originalEvent);
@@ -1530,7 +2257,24 @@ function RiverMap({
         marker
           .addTo(layers)
           .bindPopup(
-            `<strong>${hazard.title}</strong><br/>${hazard.type} · ${hazard.severity}<br/>${hazard.description}`,
+            createMapPopupContent({
+              title: hazard.title,
+              subtitle: `${hazard.type} · ${hazard.severity}`,
+              summary: hazard.description,
+              onDetails: () =>
+                poiDetailsRef.current({
+                  id: hazard.id,
+                  kind: "hazard",
+                  title: hazard.title,
+                  subtitle: `${hazard.type} · ${hazard.severity}`,
+                  summary: hazard.description,
+                  sectionLabel: section.sectionName,
+                  location: hazard.location,
+                  status: hazard.status,
+                  sourceLabel: hazard.source?.label,
+                  sourceConfidence: hazard.source?.confidence,
+                }),
+            }),
           )
           .on("click", (event) => {
             L.DomEvent.stop(event.originalEvent);
@@ -1552,7 +2296,24 @@ function RiverMap({
         marker
           .addTo(layers)
           .bindPopup(
-            `<strong>${feature.title}</strong><br/>${feature.type}<br/>${feature.description}`,
+            createMapPopupContent({
+              title: feature.title,
+              subtitle: `Feature · ${feature.type}`,
+              summary: feature.description,
+              onDetails: () =>
+                poiDetailsRef.current({
+                  id: feature.id,
+                  kind: "feature",
+                  title: feature.title,
+                  subtitle: feature.type,
+                  summary: feature.description,
+                  sectionLabel: section.sectionName,
+                  location: feature.location,
+                  status: "Feature",
+                  sourceLabel: feature.source?.label,
+                  sourceConfidence: feature.source?.confidence,
+                }),
+            }),
           )
           .on("click", (event) => {
             L.DomEvent.stop(event.originalEvent);
@@ -1573,7 +2334,24 @@ function RiverMap({
       gaugeMarker
         .addTo(layers)
         .bindPopup(
-          `<strong>${section.gauge.name}</strong><br/>${section.gauge.value}<br/>${section.gauge.observedAt}`,
+          createMapPopupContent({
+            title: section.gauge.name,
+            subtitle: "Gauge",
+            summary: `${section.gauge.value} · ${section.gauge.observedAt}`,
+            onDetails: () =>
+              poiDetailsRef.current({
+                id: section.gauge.id,
+                kind: "gauge",
+                title: section.gauge.name,
+                subtitle: "Gauge",
+                summary: `${section.gauge.value}. Trend: ${section.gauge.trend}. Observed ${section.gauge.observedAt}.`,
+                sectionLabel: section.sectionName,
+                location: section.gauge.location,
+                status: section.gauge.trend,
+                sourceLabel: section.gauge.source?.label,
+                sourceConfidence: section.gauge.source?.confidence,
+              }),
+          }),
         )
         .on("click", (event) => {
           L.DomEvent.stop(event.originalEvent);
@@ -1619,7 +2397,27 @@ function RiverMap({
       marker
         .addTo(layers)
         .bindPopup(
-          `<strong>${contribution.title}</strong><br/>${contribution.type} · ${contribution.status}<br/>${syncStatusLabel(syncStatus)}<br/>${contribution.detail}`,
+          createMapPopupContent({
+            title: contribution.title,
+            subtitle: `${contribution.type} · ${contribution.status}`,
+            summary: contribution.detail,
+            onDetails: () =>
+              poiDetailsRef.current({
+                id: contribution.id,
+                kind: "contribution",
+                title: contribution.title,
+                subtitle: `${contribution.type} · ${contribution.category}`,
+                summary: contribution.detail,
+                sectionLabel:
+                  riverSections.find((section) => section.id === contribution.sectionId)
+                    ?.sectionName ?? activeSection.sectionName,
+                location: contribution.location!,
+                status: contribution.status,
+                sourceLabel: contribution.author,
+                sourceConfidence: "community",
+                syncStatus,
+              }),
+          }),
         )
         .on("click", (event) => {
           L.DomEvent.stop(event.originalEvent);
@@ -1639,26 +2437,61 @@ function RiverMap({
         .addTo(layers);
     }
 
-    if (previousSectionIdRef.current !== activeSection.id) {
+    if (
+      previousSectionIdRef.current !== activeSection.id ||
+      previousFocusNonceRef.current !== focusNonce
+    ) {
       shouldFitActiveSectionRef.current = true;
     }
 
     if (shouldFitActiveSectionRef.current) {
-      const bounds = L.latLngBounds(activeSection.route);
-      map.fitBounds(bounds, {
-        animate: true,
-        duration: 0.7,
-        maxZoom: 13,
-        paddingTopLeft: [24, 84],
-        paddingBottomRight: [460, 48],
+      const bounds = routeEndpointBounds(activeSection.route);
+      let rafId = 0;
+      let didFit = false;
+      const timeoutIds: number[] = [];
+      const fitRoute = (attempt = 0) => {
+        if (mapRef.current !== map || !map.getContainer().isConnected) {
+          return;
+        }
+
+        const container = map.getContainer();
+        if ((container.clientWidth === 0 || container.clientHeight === 0) && attempt < 4) {
+          timeoutIds.push(window.setTimeout(() => fitRoute(attempt + 1), 80));
+          return;
+        }
+
+        map.invalidateSize();
+        map.fitBounds(bounds, {
+          animate: false,
+          maxZoom: 13,
+          paddingTopLeft: [48, 84],
+          paddingBottomRight: [48, 96],
+        });
+        didFit = true;
+        shouldFitActiveSectionRef.current = false;
+        previousSectionIdRef.current = activeSection.id;
+        previousFocusNonceRef.current = focusNonce;
+      };
+      rafId = window.requestAnimationFrame(fitRoute);
+      [80, 180, 360].forEach((delay) => {
+        timeoutIds.push(window.setTimeout(fitRoute, delay));
       });
-      shouldFitActiveSectionRef.current = false;
+
+      return () => {
+        window.cancelAnimationFrame(rafId);
+        timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+        if (!didFit) {
+          shouldFitActiveSectionRef.current = true;
+        }
+      };
     }
 
     previousSectionIdRef.current = activeSection.id;
+    previousFocusNonceRef.current = focusNonce;
   }, [
     activeSection,
     contributions,
+    focusNonce,
     outboxByContributionId,
     selectedLocation,
     isAddMode,

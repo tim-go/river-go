@@ -63,11 +63,23 @@ The map and section list should eventually allow paddlers to filter sections by:
 - recent community reports
 - hazards or access constraints
 
-Selecting a section from the left list must fit the map to that section's route bounds.
+Selecting a section from the section list or Search must fit the map to show the selected route's start and end points.
+
+The selected-section route panel should stay closed by default. Users can open it explicitly with the Route control.
+
+Sections and Route controls should live in the map header action strip and show active state when their panel is open.
 
 Clicking markers must not unexpectedly zoom out or recenter the map.
 
-Marker click popups must make clicked objects understandable.
+Marker click popups must make clicked objects understandable without becoming the full details surface.
+
+The map should distinguish three inspection surfaces:
+
+- section popup for quick route-level context and a route-details action
+- route panel for section/route information, including access, gauges, hazards, reports, and photos
+- POI detail panel for marker-specific access points, hazards, features, gauges, saved contributions, photos, source information, confirmations, and future contribution actions
+
+POI marker popups should include a `Details` action that opens the POI detail panel. Opening POI details must not open the route panel.
 
 Access point markers and access details should expose a navigation action that opens an external navigation app, starting with Google Maps directions to the access point latitude/longitude.
 
@@ -117,6 +129,7 @@ Production behaviour may differ:
 | MAP-F8 | Access navigation links | Map/detail panel | Active | v0.2 | — | Access points should open external directions using their coordinates. |
 | MAP-F9 | UK discovery overview | Map | Queued | MVP | — | Show rivers/sections from wider zooms, coloured by level/runnability and labelled with grade. |
 | MAP-F10 | Grade and runnability filters | Map | Queued | MVP | — | Let paddlers filter to sections such as grade III-IV that are running now. |
+| MAP-F11 | POI details surface | Map/POI panel | Active | prototype | — | Marker popups stay compact and open a separate POI detail panel for full marker information. |
 
 ### Backlog
 
@@ -137,3 +150,4 @@ Production behaviour may differ:
 | 2026-05-23 | Clarified inspect-only marker click behaviour. |
 | 2026-05-23 | Removed persistent map instruction panel and marker hover tooltips. |
 | 2026-05-23 | Added discovery overview, grade filtering, and access navigation requirements. |
+| 2026-05-23 | Added separate section popup, route panel, and POI detail surface model. |
