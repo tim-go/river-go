@@ -21,7 +21,7 @@ Outputs:
 
 ## Phase 1: Seeded River Guide
 
-Goal: create a useful read-only guide for a small region.
+Goal: create a useful read-only guide for a small number of river sections.
 
 Features:
 
@@ -37,6 +37,7 @@ Success:
 
 - users can plan a section from available data
 - sections have enough detail to be useful without contributions
+- the seeded sections feel meaningfully deeper than a generic gauge or map listing
 
 ## Phase 2: Community Contributions
 
@@ -57,6 +58,7 @@ Success:
 
 - users add useful updates after trips
 - old hazards get confirmed, resolved, or marked stale
+- every trip can improve the shared river knowledge layer
 
 ## Phase 3: Live River Data
 
@@ -75,6 +77,7 @@ Success:
 
 - users can interpret current levels at section level
 - watched sections produce useful alerts
+- levels support section decisions rather than becoming the whole product
 
 ## Phase 4: Trust and Clubs
 
@@ -143,4 +146,3 @@ Potential future features:
 - public transport planning
 - paid advanced alerts
 - API for clubs or organisations
-

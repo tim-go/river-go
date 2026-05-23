@@ -8,7 +8,7 @@ This document gives a clear view of the feature set we want to deliver and the c
 
 | Feature | Owning Spec | State | Current Notes |
 | --- | --- | --- | --- |
-| Product strategy docs | `/docs/strategy/product-brief.md` | Landed | UK-first community river intelligence positioning is documented. |
+| Product strategy docs | `/docs/strategy/product-brief.md` | Landed | UK-first community river intelligence positioning is documented; `/docs/strategy/strategic-positioning.md` records the decision not to build a smaller RiverApp. |
 | Community data strategy | `/docs/strategy/community-data-strategy.md` | Landed | First-party community data is defined as the core product asset. |
 | Data source strategy | `/docs/strategy/data-sources-and-gaps.md` | Landed | UK provider landscape and community-only gaps are documented. |
 | Demo app shell | `/docs/specs/release/demo-prototype.md` | Landed | React/Vite/Leaflet prototype exists. |
@@ -31,13 +31,13 @@ This document gives a clear view of the feature set we want to deliver and the c
 
 ## Recommended Next Sprint
 
-1. Confirm staging platform health after local GCP authentication is refreshed.
-2. Refresh `gcloud auth login` and populate real staging DB URLs in `platform/.config/river-go-runtime.json`.
-3. Run staging DB migrations, deploy Cloud Run API, deploy Firebase Hosting preview, and smoke-test before live Hosting cutover.
-4. Run a focused Tryweryn verification pass for the near-dam start, centre rules, release source, lower portage, and Bala finish.
-5. Run first Wye feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
-6. Verify upstream Wye and Tryweryn gauge/provider mappings, likely including NRW for Wales.
-7. Decide backend package shape, migration tooling, and offline sync-friendly IDs before writing API code.
+1. Prove the community knowledge loop on 3-5 real sections: seed, use, contribute, confirm, and refresh.
+2. Add member sign-in before accepting real public contributions.
+3. Persist community contributions end-to-end through the backend.
+4. Keep offline draft/outbox support in the critical path because paddlers may contribute from poor-signal locations.
+5. Run a focused Tryweryn verification pass for the near-dam start, centre rules, release source, lower portage, and Bala finish.
+6. Run first Wye/Tryweryn feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
+7. Verify upstream Wye and Tryweryn gauge/provider mappings, likely including NRW for Wales.
 
 ## Release Interpretation
 

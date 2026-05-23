@@ -12,7 +12,9 @@ The app should not challenge advanced competitors head-on across all features. I
 
 RiverApp is strong on river levels, gauge coverage, favorites, alerts, maps, and whitewater-style river data. It is a serious competitor for live river conditions and broad monitoring coverage.
 
-Implication: River Go should not try to beat RiverApp by being another larger gauge browser. River levels are necessary, but they are not enough to define the product.
+RiverApp's public positioning includes large-scale gauge and river coverage, real-time aggregation from many hydrological sources, push alerts, favourites, historical data, whitewater sections, put-ins, take-outs, dams, impassable rapids, parking locations, user notes, hazards, legal issues, and trip reports.
+
+Implication: RiffleMap should not try to beat RiverApp by being another larger gauge browser. River levels are necessary, but they are not enough to define the product. The stronger opportunity is to make UK canoe section knowledge more structured, local, fresh, trusted, and usable offline.
 
 Reference: https://www.riverapp.net/en
 
@@ -108,7 +110,7 @@ The gap is a structured contribution system where users add typed, reviewable, d
 
 ## Strategic Recommendation
 
-Build River Go as a UK-first community river intelligence app for canoeists.
+Build RiffleMap as a UK-first community river intelligence app for canoeists.
 
 Avoid a feature war with established apps. Instead, compete by making a smaller set of decisions much easier:
 
@@ -118,6 +120,12 @@ Avoid a feature war with established apps. Instead, compete by making a smaller 
 - what hazards exist
 - what has changed recently
 - what local access context matters
+
+The core strategic rule is:
+
+> Do not build a smaller RiverApp. Build the best local river knowledge layer for paddlers, with river levels as necessary context.
+
+See `/docs/strategy/strategic-positioning.md`.
 
 ## Risks
 
@@ -134,4 +142,3 @@ Avoid a feature war with established apps. Instead, compete by making a smaller 
 - Seed the first region manually with high-quality sections and trusted club input.
 - Keep access notes source-linked, dated, and moderated.
 - Start with one geographic region or river cluster before covering the whole UK.
-

@@ -10,7 +10,9 @@ The product is not just a gauge map. Its core value is a trusted, structured, an
 
 ## Positioning
 
-The UK river guide for canoeists: live levels, access clarity, hazards, photos, and local river knowledge in one place.
+The UK river knowledge layer for canoeists: section context, access clarity, hazards, photos, recent reports, and live levels in one place.
+
+RiffleMap should not be positioned as a smaller river-level app. River levels are important context, but the strategic product is structured local river knowledge that becomes better after every trip.
 
 ## Initial Market
 
@@ -75,6 +77,13 @@ RiffleMap should differentiate on:
 - Photos attached to real river objects.
 - Freshness indicators for changing conditions.
 - Runnable-level guidance tied to specific sections, not just raw gauge readings.
+- Offline-first contribution capture for places where paddlers may have poor signal.
+
+The working strategic line is:
+
+> Do not build a smaller RiverApp. Build the best local river knowledge layer for paddlers, with river levels as necessary context.
+
+See `/docs/strategy/strategic-positioning.md`.
 
 ## Initial Success Criteria
 

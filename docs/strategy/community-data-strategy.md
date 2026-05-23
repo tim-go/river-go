@@ -2,7 +2,7 @@
 
 ## Summary
 
-River Go depends on community data. Official sources can provide maps, gauges, river levels, warnings, and some physical features, but they do not answer the most important canoeing questions at section level:
+RiffleMap depends on community data. Official sources can provide maps, gauges, river levels, warnings, and some physical features, but they do not answer the most important canoeing questions at section level:
 
 - Is this section practical for an open canoe?
 - Which gauge actually represents this stretch?
@@ -12,13 +12,13 @@ River Go depends on community data. Official sources can provide maps, gauges, r
 - Is the portage realistic with a loaded boat?
 - Has anyone paddled it recently?
 
-The app's long-term value is a structured, trusted, and fresh community-maintained river intelligence layer.
+The app's long-term value is a structured, trusted, and fresh community-maintained river intelligence layer. This is the strategy, not a secondary content feature.
 
 ## Core Strategic Principle
 
-River Go should not rely on scraping other community sites or copying guidebook content. That creates copyright, licensing, trust, and brand risk.
+RiffleMap should not rely on scraping other community sites or copying guidebook content. That creates copyright, licensing, trust, and brand risk.
 
-Instead, River Go should build its own first-party community dataset:
+Instead, RiffleMap should build its own first-party community dataset:
 
 - contributed directly by users
 - contributed by clubs and trusted local paddlers
@@ -28,6 +28,8 @@ Instead, River Go should build its own first-party community dataset:
 - moderated and maintained over time
 
 This makes community data both the product's main value and its defensible asset.
+
+The strategic test is simple: if members do not add, confirm, correct, or refresh local river knowledge, RiffleMap becomes another thin map. If they do, the product becomes more useful after every trip.
 
 ## Why Community Data Is the Product
 
@@ -479,4 +481,3 @@ The MVP can defer:
 - Should runnable ranges be limited to trusted contributors at first?
 - How much access content should be visible before moderation?
 - Can we create a simple contributor agreement suitable for user-submitted data?
-
