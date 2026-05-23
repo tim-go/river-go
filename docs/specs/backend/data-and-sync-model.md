@@ -170,6 +170,12 @@ The backend must treat `operationId` as an idempotency key. Replaying the same o
 | `storage_path` | `text` | Firebase Storage path or future media store path. |
 | `thumbnail_path` | `text` | Thumbnail storage path when generated. |
 | `display_path` | `text` | Display-sized storage path when generated. |
+| `display_url` | `text` | Download URL for display derivative in the current Firebase Storage MVP. |
+| `thumbnail_url` | `text` | Download URL for thumbnail derivative in the current Firebase Storage MVP. |
+| `mime_type` | `text` | Browser-generated derivative content type. |
+| `width`, `height` | `integer` | Display derivative dimensions. |
+| `thumbnail_width`, `thumbnail_height` | `integer` | Thumbnail derivative dimensions. |
+| `size_bytes`, `thumbnail_size_bytes` | `bigint` | Derivative object sizes. |
 | `caption` | `text` | User caption. |
 | `status` | `text` | `pending-upload`, `uploaded`, `moderation-pending`, `accepted`, `rejected`. |
 | `payload` | `jsonb` | Flexible media metadata. |
@@ -259,10 +265,10 @@ Goal: support signed-in photo evidence once normal contribution persistence work
 
 Tasks:
 
-1. Add photo metadata table or extend `contribution_photos` to support section, POI, and contribution attachment.
-2. Add `POST /api/photos/upload-intent`.
-3. Upload binaries to Firebase Storage.
-4. Add `POST /api/photos/:id/complete`.
+1. Extend `contribution_photos` to support contribution-scoped display/thumbnail metadata.
+2. Upload display and thumbnail binaries to Firebase Storage from the PWA.
+3. Persist uploaded photo metadata through contribution sync.
+4. Add separate `POST /api/photos/upload-intent` and `POST /api/photos/:id/complete` endpoints before wider public launch if Storage path control needs to move fully server-side.
 5. Display photo thumbnails in section and POI details.
 6. Add photo moderation states and admin/moderator actions.
 

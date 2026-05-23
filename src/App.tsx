@@ -58,6 +58,11 @@ import {
   type MemberTrustLevel,
 } from "./services/memberApi";
 import { fetchEnvironmentAgencyGaugeReading } from "./services/riverLevels";
+import {
+  processContributionPhoto,
+  type ProcessedContributionPhoto,
+} from "./services/imageProcessing";
+import { uploadContributionPhoto } from "./services/photoUpload";
 import type {
   Contribution,
   ContributionOutboxRecord,
@@ -751,6 +756,12 @@ function App() {
   const [severity, setSeverity] = useState<HazardSeverity>("caution");
   const [dateObserved, setDateObserved] = useState(defaultObservedDate);
   const [craftType, setCraftType] = useState("open canoe");
+  const [selectedPhoto, setSelectedPhoto] =
+    useState<ProcessedContributionPhoto | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
+  const [photoFileName, setPhotoFileName] = useState("");
+  const [isPhotoProcessing, setIsPhotoProcessing] = useState(false);
+  const [isSubmittingContribution, setIsSubmittingContribution] = useState(false);
   const [selectedLocation, setSelectedLocation] =
     useState<LatLngTuple | null>(null);
   const [selectedPoi, setSelectedPoi] = useState<SelectedPoi | null>(null);
@@ -850,6 +861,14 @@ function App() {
   }, [adminMembers, memberRoleFilter, memberSearch, memberTrustFilter]);
 
   useEffect(() => subscribeToAuthState(setAuthState), []);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl);
+      }
+    };
+  }, [photoPreviewUrl]);
 
   useEffect(() => {
     if (authState.status === "loading") {
@@ -1033,12 +1052,44 @@ function App() {
       return;
     }
 
+    if (isPhotoProcessing || isSubmittingContribution) {
+      return;
+    }
+
+    if (contributionType === "photo" && !selectedPhoto) {
+      setFormError("Choose a photo before saving this contribution.");
+      return;
+    }
+
     const location = currentContributionOption.locationRequired
       ? selectedLocation!
       : (selectedLocation ?? undefined);
+    const contributionId = crypto.randomUUID();
+    setIsSubmittingContribution(true);
+    setFormError("");
+
+    let photos: Contribution["photos"] = [];
+
+    try {
+      if (contributionType === "photo" && selectedPhoto) {
+        photos = [
+          await uploadContributionPhoto(
+            contributionId,
+            selectedPhoto,
+            safeDetail,
+          ),
+        ];
+      }
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Could not upload this photo.",
+      );
+      setIsSubmittingContribution(false);
+      return;
+    }
 
     const nextContribution: Contribution = {
-      id: crypto.randomUUID(),
+      id: contributionId,
       sectionId: activeSection.id,
       type: contributionType,
       title: safeTitle,
@@ -1057,6 +1108,7 @@ function App() {
       lastConfirmed: contributionType === "hazard" ? undefined : "Just now",
       createdAt: "Just now",
       location,
+      photos,
     };
 
     const outboxRecord = createContributionOutboxRecord(nextContribution);
@@ -1088,12 +1140,51 @@ function App() {
 
     setTitle("");
     setDetail("");
+    clearSelectedPhoto();
     setFormError("");
     setSelectedLocation(null);
     setIsFormOpen(false);
+    setIsSubmittingContribution(false);
     if (!authState.user && isAuthConfigured) {
       setSyncMessage("Saved locally. Sign in to sync this contribution.");
     }
+  }
+
+  async function handlePhotoSelection(file: File | undefined) {
+    clearSelectedPhoto();
+
+    if (!file) {
+      return;
+    }
+
+    setIsPhotoProcessing(true);
+    setFormError("");
+
+    try {
+      const processedPhoto = await processContributionPhoto(file);
+      setSelectedPhoto(processedPhoto);
+      setPhotoPreviewUrl(URL.createObjectURL(processedPhoto.display.blob));
+      setPhotoFileName(file.name);
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Could not prepare this photo.",
+      );
+    } finally {
+      setIsPhotoProcessing(false);
+    }
+  }
+
+  function clearSelectedPhoto() {
+    setSelectedPhoto(null);
+    setPhotoFileName("");
+    setPhotoPreviewUrl((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+      return "";
+    });
   }
 
   function resetDemoContributions() {
@@ -1376,12 +1467,16 @@ function App() {
     setSelectedLocation(null);
     setSelectedTargetLabel("Selected map location");
     setFormError("");
+    clearSelectedPhoto();
   }
 
   function chooseContributionType(nextType: ContributionType) {
     setContributionType(nextType);
     setCategory(categoryOptions[nextType][0]);
     setFormError("");
+    if (nextType !== "photo") {
+      clearSelectedPhoto();
+    }
   }
 
   function startAddMode(nextType: ContributionType = contributionType) {
@@ -1736,6 +1831,43 @@ function App() {
                 </label>
               ) : null}
 
+              {contributionType === "photo" ? (
+                <div className="photo-input-panel">
+                  <label>
+                    Photo
+                    <input
+                      accept="image/*"
+                      type="file"
+                      onChange={(event) =>
+                        void handlePhotoSelection(event.target.files?.[0])
+                      }
+                    />
+                  </label>
+                  <p>
+                    Photos are resized in this browser before upload. Exact EXIF
+                    metadata is not kept in the resized image.
+                  </p>
+                  {isPhotoProcessing ? (
+                    <span className="source-note">Preparing photo...</span>
+                  ) : null}
+                  {photoPreviewUrl ? (
+                    <figure className="photo-preview">
+                      <img src={photoPreviewUrl} alt="" />
+                      <figcaption>
+                        <strong>{photoFileName}</strong>
+                        <span>
+                          {selectedPhoto
+                            ? `${Math.round(
+                                selectedPhoto.display.sizeBytes / 1024,
+                              )} KB upload image`
+                            : "Ready to upload"}
+                        </span>
+                      </figcaption>
+                    </figure>
+                  ) : null}
+                </div>
+              ) : null}
+
               <label>
                 Detail
                 <textarea
@@ -1769,9 +1901,13 @@ function App() {
                   <X size={16} />
                   Cancel
                 </button>
-                <button className="submit-button" type="submit">
+                <button
+                  className="submit-button"
+                  type="submit"
+                  disabled={isPhotoProcessing || isSubmittingContribution}
+                >
                   <Flag size={16} />
-                  Save
+                  {isSubmittingContribution ? "Saving..." : "Save"}
                 </button>
               </div>
             </form>
@@ -2051,6 +2187,17 @@ function App() {
                         <span>{formatLocation(contribution.location)}</span>
                       ) : null}
                       <p>{contribution.detail}</p>
+                      {contribution.photos?.length ? (
+                        <div className="contribution-photo-strip">
+                          {contribution.photos.map((photo) => (
+                            <img
+                              key={photo.id}
+                              src={photo.thumbnailUrl || photo.displayUrl}
+                              alt=""
+                            />
+                          ))}
+                        </div>
+                      ) : null}
                       <div className="verification-row">
                         <span
                           className={`status-chip status-chip--${
@@ -2137,9 +2284,13 @@ function App() {
                   .filter((contribution) => contribution.type === "photo")
                   .map((photo) => (
                     <figure key={photo.id}>
-                      <div className="photo-placeholder">
-                        <Camera size={24} />
-                      </div>
+                      {photo.photos?.[0]?.displayUrl ? (
+                        <img src={photo.photos[0].displayUrl} alt="" />
+                      ) : (
+                        <div className="photo-placeholder">
+                          <Camera size={24} />
+                        </div>
+                      )}
                       <figcaption>
                         <strong>{photo.title}</strong>
                         <span>{photo.detail}</span>

@@ -1,6 +1,6 @@
 import type { PoolClient } from "pg";
 import {
-  mapContributionRow,
+  getContributionById,
   type ApiContribution,
   type ContributionRow,
 } from "./contributions.js";
@@ -55,6 +55,24 @@ interface ContributionCreatePayload {
     createdOffline?: boolean;
     appVersion?: string;
   };
+}
+
+interface ContributionPhotoPayload {
+  id: string;
+  caption?: string;
+  storagePath?: string;
+  displayPath?: string;
+  thumbnailPath?: string;
+  displayUrl?: string;
+  thumbnailUrl?: string;
+  width?: number;
+  height?: number;
+  thumbnailWidth?: number;
+  thumbnailHeight?: number;
+  sizeBytes?: number;
+  thumbnailSizeBytes?: number;
+  mimeType?: string;
+  originalName?: string;
 }
 
 export async function pushSyncOperations(
@@ -228,6 +246,7 @@ async function insertContribution(
         ELSE ST_AsGeoJSON(geometry)::json
       END AS geometry,
       payload,
+      '[]'::jsonb AS photos,
       observed_at,
       created_at,
       updated_at,
@@ -254,13 +273,111 @@ async function insertContribution(
     ],
   );
 
+  await insertContributionPhotos(
+    client,
+    contribution.id,
+    contribution.sectionId ?? null,
+    actor.memberId,
+    parsePhotoPayloads(payload.photos),
+  );
+  const savedContribution = await getContributionById(contribution.id, client);
+
   return {
     operationId: operation.operationId,
     entityId: operation.entityId,
     status: "accepted",
     revision: Number(result.rows[0].revision),
-    contribution: mapContributionRow(result.rows[0]),
+    contribution: savedContribution,
   };
+}
+
+async function insertContributionPhotos(
+  client: PoolClient,
+  contributionId: string,
+  sectionId: string | null,
+  memberId: string | null,
+  photos: ContributionPhotoPayload[],
+) {
+  for (const photo of photos) {
+    await client.query(
+      `INSERT INTO contribution_photos (
+        id,
+        contribution_id,
+        member_id,
+        section_id,
+        storage_path,
+        display_path,
+        thumbnail_path,
+        display_url,
+        thumbnail_url,
+        caption,
+        status,
+        moderation_status,
+        mime_type,
+        width,
+        height,
+        thumbnail_width,
+        thumbnail_height,
+        size_bytes,
+        thumbnail_size_bytes,
+        original_name,
+        payload
+      ) VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10,
+        'uploaded',
+        'pending',
+        $11,
+        $12,
+        $13,
+        $14,
+        $15,
+        $16,
+        $17,
+        $18,
+        $19::jsonb
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        storage_path = EXCLUDED.storage_path,
+        display_path = EXCLUDED.display_path,
+        thumbnail_path = EXCLUDED.thumbnail_path,
+        display_url = EXCLUDED.display_url,
+        thumbnail_url = EXCLUDED.thumbnail_url,
+        caption = EXCLUDED.caption,
+        status = EXCLUDED.status,
+        updated_at = now(),
+        payload = EXCLUDED.payload`,
+      [
+        photo.id,
+        contributionId,
+        memberId,
+        sectionId,
+        photo.storagePath ?? photo.displayPath ?? null,
+        photo.displayPath ?? null,
+        photo.thumbnailPath ?? null,
+        photo.displayUrl ?? null,
+        photo.thumbnailUrl ?? null,
+        photo.caption ?? "",
+        photo.mimeType ?? null,
+        photo.width ?? null,
+        photo.height ?? null,
+        photo.thumbnailWidth ?? null,
+        photo.thumbnailHeight ?? null,
+        photo.sizeBytes ?? null,
+        photo.thumbnailSizeBytes ?? null,
+        photo.originalName ?? null,
+        JSON.stringify(photo),
+      ],
+    );
+  }
 }
 
 function parseOperation(
@@ -353,6 +470,42 @@ function initialModerationStatus(type: string): string {
   if (type === "hazard") return "needs-confirmation";
   if (type === "photo" || type === "access") return "pending";
   return "reported";
+}
+
+function parsePhotoPayloads(value: unknown): ContributionPhotoPayload[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter(isRecord)
+    .map((photo) => ({
+      id: readString(photo.id) ?? "",
+      caption: readString(photo.caption) ?? undefined,
+      storagePath: readString(photo.storagePath) ?? undefined,
+      displayPath: readString(photo.displayPath) ?? undefined,
+      thumbnailPath: readString(photo.thumbnailPath) ?? undefined,
+      displayUrl: readString(photo.displayUrl) ?? undefined,
+      thumbnailUrl: readString(photo.thumbnailUrl) ?? undefined,
+      width: readFiniteNumber(photo.width),
+      height: readFiniteNumber(photo.height),
+      thumbnailWidth: readFiniteNumber(photo.thumbnailWidth),
+      thumbnailHeight: readFiniteNumber(photo.thumbnailHeight),
+      sizeBytes: readFiniteNumber(photo.sizeBytes),
+      thumbnailSizeBytes: readFiniteNumber(photo.thumbnailSizeBytes),
+      mimeType: readString(photo.mimeType) ?? undefined,
+      originalName: readString(photo.originalName) ?? undefined,
+    }))
+    .filter(
+      (photo) =>
+        photo.id &&
+        (photo.storagePath || photo.displayPath) &&
+        photo.thumbnailPath,
+    );
+}
+
+function readFiniteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

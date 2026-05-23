@@ -79,6 +79,7 @@ function createContributionOperation(
         craftType: contribution.craftType,
         status: contribution.status,
         confirmations: contribution.confirmations,
+        photos: contribution.photos ?? [],
       },
       client: {
         deviceId: getOrCreateDeviceId(),

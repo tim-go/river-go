@@ -1328,6 +1328,26 @@ h1 {
   gap: 12px;
 }
 
+.photo-input-panel {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f7f8f4;
+}
+
+.photo-input-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.photo-preview img {
+  display: block;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1625,6 +1645,21 @@ h1 {
 .report-item p {
   margin: 6px 0 0;
   font-size: 0.92rem;
+}
+
+.contribution-photo-strip {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.contribution-photo-strip img {
+  width: 74px;
+  height: 56px;
+  flex: 0 0 auto;
+  border-radius: 7px;
+  object-fit: cover;
 }
 
 .hazard-item > div,

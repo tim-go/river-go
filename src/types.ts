@@ -141,6 +141,25 @@ export interface Contribution {
   createdAt: string;
   location?: LatLngTuple;
   serverRevision?: number;
+  photos?: ContributionPhoto[];
+}
+
+export interface ContributionPhoto {
+  id: string;
+  caption: string;
+  storagePath: string;
+  displayPath: string;
+  thumbnailPath: string;
+  displayUrl: string;
+  thumbnailUrl: string;
+  width: number;
+  height: number;
+  thumbnailWidth: number;
+  thumbnailHeight: number;
+  sizeBytes: number;
+  thumbnailSizeBytes: number;
+  mimeType: string;
+  originalName?: string;
 }
 
 export type ContributionSyncStatus =

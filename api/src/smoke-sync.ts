@@ -32,6 +32,25 @@ const operation = {
       title: "Smoke test hazard",
       detail: "Created by api sync smoke test",
       severity: "caution",
+      photos: [
+        {
+          id: randomUUID(),
+          caption: "Smoke test photo metadata",
+          storagePath: "contribution-photos/smoke/display.jpg",
+          displayPath: "contribution-photos/smoke/display.jpg",
+          thumbnailPath: "contribution-photos/smoke/thumb.jpg",
+          displayUrl: "https://example.test/display.jpg",
+          thumbnailUrl: "https://example.test/thumb.jpg",
+          width: 1200,
+          height: 900,
+          thumbnailWidth: 480,
+          thumbnailHeight: 360,
+          sizeBytes: 250000,
+          thumbnailSizeBytes: 42000,
+          mimeType: "image/jpeg",
+          originalName: "smoke.jpg",
+        },
+      ],
     },
     client: {
       deviceId: "smoke-test",
@@ -84,6 +103,10 @@ try {
 
   if (contributions[0]?.contributor.id !== member.id) {
     throw new Error("Smoke sync did not prove authenticated member linkage");
+  }
+
+  if (contributions[0]?.photos.length !== 1) {
+    throw new Error("Smoke sync did not prove photo metadata readback");
   }
 
   if (!moderationQueue.some((contribution) => contribution.id === contributionId)) {

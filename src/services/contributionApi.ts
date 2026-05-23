@@ -1,5 +1,6 @@
 import type {
   Contribution,
+  ContributionPhoto,
   ContributionStatus,
   ContributionType,
   HazardSeverity,
@@ -14,6 +15,7 @@ interface ApiContribution {
   type: ContributionType;
   geometry: { type: string; coordinates: unknown } | null;
   payload: Record<string, unknown>;
+  photos?: ApiContributionPhoto[];
   observedAt: string | null;
   createdAt: string;
   moderationStatus: ContributionStatus;
@@ -24,6 +26,24 @@ interface ApiContribution {
     email: string | null;
     trustLevel: string | null;
   };
+}
+
+interface ApiContributionPhoto {
+  id: string;
+  caption: string;
+  storagePath: string | null;
+  displayPath: string | null;
+  thumbnailPath: string | null;
+  displayUrl: string | null;
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
+  thumbnailWidth: number | null;
+  thumbnailHeight: number | null;
+  sizeBytes: number | null;
+  thumbnailSizeBytes: number | null;
+  mimeType: string | null;
+  originalName: string | null;
 }
 
 export async function fetchSectionContributions(
@@ -106,7 +126,32 @@ function mapApiContribution(contribution: ApiContribution): Contribution {
     createdAt: formatRelativeDate(contribution.createdAt),
     location: mapPointGeometry(contribution.geometry),
     serverRevision: contribution.revision,
+    photos: mapApiContributionPhotos(contribution.photos),
   };
+}
+
+function mapApiContributionPhotos(
+  photos: ApiContributionPhoto[] | undefined,
+): ContributionPhoto[] {
+  return (photos ?? [])
+    .map((photo) => ({
+      id: photo.id,
+      caption: photo.caption,
+      storagePath: photo.storagePath ?? photo.displayPath ?? "",
+      displayPath: photo.displayPath ?? photo.storagePath ?? "",
+      thumbnailPath: photo.thumbnailPath ?? "",
+      displayUrl: photo.displayUrl ?? "",
+      thumbnailUrl: photo.thumbnailUrl ?? photo.displayUrl ?? "",
+      width: photo.width ?? 0,
+      height: photo.height ?? 0,
+      thumbnailWidth: photo.thumbnailWidth ?? 0,
+      thumbnailHeight: photo.thumbnailHeight ?? 0,
+      sizeBytes: photo.sizeBytes ?? 0,
+      thumbnailSizeBytes: photo.thumbnailSizeBytes ?? 0,
+      mimeType: photo.mimeType ?? "image/jpeg",
+      originalName: photo.originalName ?? undefined,
+    }))
+    .filter((photo) => photo.id && photo.displayUrl);
 }
 
 async function fetchContributionEndpoint<T>(

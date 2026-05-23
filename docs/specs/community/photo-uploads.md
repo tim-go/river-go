@@ -8,7 +8,7 @@ maturity: Draft
 
 # Photo Uploads
 
-**Work state:** Queued
+**Work state:** Active
 **Last updated:** 2026-05-23
 **Scope:** The signed-in workflow, storage model, moderation state, and offline handling for member-uploaded river photos.
 
@@ -49,13 +49,14 @@ The user flow should be:
 
 1. Signed-in user opens a section, POI, or add-info flow.
 2. User chooses or captures a photo.
-3. Client strips sensitive EXIF metadata and compresses/resizes the image before upload where practical.
-4. Client asks the backend for a controlled upload intent.
-5. Backend verifies Firebase Auth, creates a photo metadata record, and returns a signed upload target or storage instruction.
-6. Client uploads the binary to Firebase Storage.
-7. Client calls the backend to mark the upload complete.
-8. Backend marks the photo `moderation-pending` or `visible`, depending on the launch moderation policy.
-9. UI shows the photo on the related section/POI/contribution with contributor, caption, source, date, and moderation state where relevant.
+3. Client strips sensitive EXIF metadata through browser canvas re-encoding and compresses/resizes the image before upload.
+4. Client uploads display and thumbnail derivatives to Firebase Storage under a signed-in-user path.
+5. Client stores uploaded photo metadata in the contribution sync payload.
+6. Backend verifies Firebase Auth during contribution sync and persists contribution-scoped photo metadata.
+7. Backend marks the photo metadata `pending` for moderation.
+8. UI shows the photo on the related contribution and section photo grid with contributor, caption, source, date, and moderation state where relevant.
+
+The first implementation uses contribution sync as the metadata persistence path rather than a separate upload-intent endpoint. Separate upload-intent and completion endpoints remain the target shape before wider public launch.
 
 Required photo metadata:
 
@@ -96,6 +97,8 @@ Offline rules:
 - failed uploads must be retryable without creating duplicate photo metadata
 - the PWA should warn users before relying on offline media storage for long periods
 
+The MVP browser implementation requires network connectivity for photo binary upload. Offline binary queueing remains queued because it needs IndexedDB blob retention, retry UX, and storage quota warnings.
+
 ## API Shape
 
 Initial backend endpoints:
@@ -126,6 +129,12 @@ Minimum table shape:
 | `storage_path` | Private/original storage object path. |
 | `thumbnail_path` | Thumbnail storage object path. |
 | `display_path` | Display-sized storage object path. |
+| `display_url` | Download URL for the display derivative in the Firebase Storage MVP. |
+| `thumbnail_url` | Download URL for the thumbnail derivative in the Firebase Storage MVP. |
+| `width`, `height` | Display derivative dimensions. |
+| `thumbnail_width`, `thumbnail_height` | Thumbnail derivative dimensions. |
+| `size_bytes`, `thumbnail_size_bytes` | Derivative object sizes. |
+| `mime_type` | Browser-generated derivative content type. |
 | `caption` | User-provided description. |
 | `geometry` | Optional map location. |
 | `taken_at` | Date/time photo was taken when available and safe. |
@@ -147,20 +156,21 @@ Minimum table shape:
 
 | Key | Feature | Surface | Status | Target | Delivered | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| PHOTO-F1 | Signed-in photo action | Section/POI/detail | Queued | MVP | — | Upload is blocked for guests and prompts sign-in. |
-| PHOTO-F2 | Controlled upload intent | Backend/storage | Queued | MVP | — | Backend verifies user and creates upload target before binary transfer. |
-| PHOTO-F3 | Photo metadata persistence | Backend/data | Queued | MVP | — | PostgreSQL stores relationships, contributor, status, and audit metadata. |
-| PHOTO-F4 | Firebase Storage binary upload | Storage | Queued | MVP | — | Store original/display/thumbnail objects outside the database. |
-| PHOTO-F5 | Photo display in details | UI | Queued | MVP | — | Section and POI details show thumbnails with captions and dates. |
+| PHOTO-F1 | Signed-in photo action | Section/POI/detail | Landed | MVP | v0.4 | Photo contribution save requires signed-in user. |
+| PHOTO-F2 | Controlled upload intent | Backend/storage | Queued | MVP | — | Separate upload intent remains queued; MVP controls Storage path client-side with Firebase Auth rules and persists metadata during contribution sync. |
+| PHOTO-F3 | Photo metadata persistence | Backend/data | Landed | MVP | v0.4 | PostgreSQL stores contribution-scoped photo paths, URLs, dimensions, sizes, contributor, status, and metadata. |
+| PHOTO-F4 | Firebase Storage binary upload | Storage | Landed | MVP | v0.4 | Browser uploads resized display and thumbnail objects to Firebase Storage. |
+| PHOTO-F5 | Photo display in details | UI | Landed | MVP | v0.4 | Section updates and photo grid show uploaded contribution photos. |
 | PHOTO-F6 | Photo moderation | Admin | Queued | MVP | — | Admins can approve, reject, hide, and inspect uploaded photos. |
 | PHOTO-F7 | Offline photo queue | PWA/mobile | Queued | MVP | — | Queue metadata and pending binary upload when the user is offline. |
+| PHOTO-F8 | Browser image processing | PWA | Landed | MVP | v0.4 | Browser resizes selected photos to display and thumbnail JPEG derivatives before upload. |
 
 ### Backlog
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
 | PHOTO-B1 | decision | Moderation default | Open | MVP | Decide pre-moderation vs trusted-member instant publish. |
-| PHOTO-B2 | decision | Image derivatives | Open | MVP | Decide thumbnail/display generation approach. |
+| PHOTO-B2 | decision | Image derivatives | Resolved | MVP | MVP generates display and thumbnail derivatives in the browser; server-side generation remains a later hardening option. |
 | PHOTO-B3 | risk | Privacy-sensitive media | Open | MVP | Need admin guidance and contributor copy for people, plates, private land, and access disputes. |
 | PHOTO-B4 | dependency | Contributor licence | Open | MVP | Required before accepting real public uploads. |
 | PHOTO-B5 | dependency | POI backend model | Open | MVP | Needed for clean POI-specific photo attachment. |

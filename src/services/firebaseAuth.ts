@@ -93,7 +93,7 @@ export async function getCurrentUserIdToken(): Promise<string | null> {
   return auth.currentUser.getIdToken();
 }
 
-function getClientAuth(): Auth | null {
+export function getClientAuth(): Auth | null {
   if (authInstance !== undefined) {
     return authInstance;
   }

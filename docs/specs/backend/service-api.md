@@ -124,7 +124,7 @@ Moderation:
 | API-F1 | API contract | Backend | Landed | v0.2 | — | Defines first backend endpoints and boundaries. |
 | API-F2 | Firebase Auth integration | Backend/auth | Active | MVP | — | Sync endpoint can verify Firebase ID tokens and attach the verified user ID as actor; hard write enforcement is feature-flagged. |
 | API-F3 | PostgreSQL/PostGIS persistence | Backend/data | Queued | MVP | — | Durable storage for river/community data. |
-| API-F4 | Firebase Storage photo flow | Backend/media | Queued | MVP | — | Controlled upload intent, completion endpoint, metadata persistence, and photo moderation; see `/docs/specs/community/photo-uploads.md`. |
+| API-F4 | Firebase Storage photo flow | Backend/media | Active | MVP | v0.4 | MVP persists photo metadata during contribution sync after browser-side Firebase Storage upload; separate upload intent/completion endpoints remain queued. |
 | API-F5 | Moderation queue | Backend/admin | Landed | MVP | — | Admins and contribution moderators can list queued contributions and apply approve/confirm/challenge/hide/reject/resolve decisions. |
 | API-F6 | Provider ingestion cache | Backend/data | Queued | MVP | — | Move live river-level ingestion server-side. |
 | API-F7 | Offline sync contracts | Backend/sync | Queued | MVP | — | Support client-generated IDs, idempotent pushes, pull tokens, and offline pack downloads. |

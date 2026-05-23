@@ -118,7 +118,7 @@ Offline requirements:
 | CON-F7 | Validation feedback | Form | Landed | prototype | — | Required fields and inline error avoid silent save failure. |
 | CON-F8 | Separate contribution flows | UX | Landed | v0.2 | — | Panel actions and form prompts now separate condition, hazard, access, photo, and feature contributions. |
 | CON-F9 | Authenticated contributors | Backend/auth | Active | MVP | — | Signed-out users can browse only; save/contribution actions prompt for sign-in before local draft creation or sync. |
-| CON-F10 | Photo upload | Media | Queued | MVP | — | Owned by `/docs/specs/community/photo-uploads.md`; contribution flow should link section/POI/contribution metadata to uploaded media. |
+| CON-F10 | Photo upload | Media | Landed | MVP | v0.4 | Photo contribution flow resizes/uploads a display image and thumbnail, then syncs photo metadata with the contribution. |
 | CON-F11 | Offline contribution outbox | PWA/mobile | Active | MVP | — | Form save writes queued sync operations locally and a manual sync action pushes them to the backend. |
 | CON-F12 | Backend-persisted contribution loop | API/frontend | Landed | MVP | — | Uses `/docs/specs/backend/data-and-sync-model.md` Phase 1: signed-in save, sync, readback, merge, and status labels. |
 
