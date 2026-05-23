@@ -48,7 +48,7 @@ Cloud Run API
 | Secret Manager | Database URLs, service credentials, API tokens, and webhook secrets. |
 | GitHub Actions | Build, test, deploy, and environment-scoped secret delivery. |
 
-Hosted web sign-in currently uses Firebase popup sign-in with the Firebase project helper domain as the SDK `authDomain`. This avoids the custom-domain redirect path while the OAuth project configuration is being stabilised. The platform auth diagnostic prints the exact Google OAuth client and redirect URI before switching an environment back to inline redirect. If RiverLaunch.app switches back to redirect sign-in later, staging should use `staging.riverlaunch.app` and production should use `riverlaunch.app` as `authDomain`, with both domains listed in Firebase Auth authorised domains and as Google OAuth redirect URIs using the `/__/auth/handler` suffix.
+Hosted web sign-in uses Firebase redirect sign-in with the public Hosting domain as the SDK `authDomain`. Staging uses `staging.riverlaunch.app` and production uses `riverlaunch.app`; both domains must remain listed in Firebase Auth authorised domains and as Google OAuth redirect URIs using the `/__/auth/handler` suffix. Popup sign-in with the Firebase project helper domain is the rollback path if a custom-domain OAuth provider blocks redirect sign-in.
 
 ## Repository Boundary
 

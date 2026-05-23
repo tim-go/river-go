@@ -220,7 +220,7 @@ Manual follow-up remains required for:
 
 - Firebase terms acceptance if your account has not accepted them
 - Blaze plan upgrade where Storage or paid GCP resources require it
-- Google sign-in OAuth provider configuration. Hosted web currently uses popup sign-in through the Firebase project helper domain; if redirect sign-in is re-enabled, also add `https://staging.riverlaunch.app/__/auth/handler` for staging and `https://riverlaunch.app/__/auth/handler` for production.
+- Google sign-in OAuth provider configuration, including `https://staging.riverlaunch.app/__/auth/handler` for staging and `https://riverlaunch.app/__/auth/handler` for production.
 - Cloud SQL user passwords and database grants
 - PostGIS extension enablement
 - production custom domains and DNS
@@ -283,32 +283,7 @@ If live Hosting needs to be rolled back, use the Firebase Console Hosting releas
 
 ## Hosted Web Auth Flow
 
-Staging currently uses popup sign-in because it is known to work with the Firebase project helper domain:
-
-```json
-{
-  "staging": {
-    "firebase": {
-      "client": {
-        "authDomain": "river-go-staging.firebaseapp.com"
-      }
-    },
-    "auth": {
-      "flow": "popup"
-    }
-  }
-}
-```
-
-Before attempting inline redirect sign-in, run:
-
-```bash
-npm run platform:auth:inline:staging
-```
-
-That command prints the exact Firebase authorised domain, Google OAuth JavaScript origin, OAuth redirect URI, generated Google client ID, and generated redirect URI that must match the Google Cloud OAuth client.
-
-The inline staging cutover is:
+Staging currently uses inline redirect sign-in through the custom Hosting domain:
 
 ```json
 {
@@ -325,13 +300,38 @@ The inline staging cutover is:
 }
 ```
 
+Before deploying auth changes, run:
+
+```bash
+npm run platform:auth:inline:staging
+```
+
+That command prints the exact Firebase authorised domain, Google OAuth JavaScript origin, OAuth redirect URI, generated Google client ID, and generated redirect URI that must match the Google Cloud OAuth client.
+
+The popup rollback values are:
+
+```json
+{
+  "staging": {
+    "firebase": {
+      "client": {
+        "authDomain": "river-go-staging.firebaseapp.com"
+      }
+    },
+    "auth": {
+      "flow": "popup"
+    }
+  }
+}
+```
+
 Then deploy Hosting:
 
 ```bash
 npm run platform:deploy-web:staging
 ```
 
-If Google rejects the request or users cannot complete sign-in, roll back those two values to `river-go-staging.firebaseapp.com` and `popup`, then redeploy Hosting.
+If Google rejects the request or users cannot complete sign-in, roll back to those two values, then redeploy Hosting.
 
 ## Provisioning Roadmap
 
