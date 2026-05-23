@@ -13,6 +13,7 @@ This map helps locate the owning spec for River Go work. If a durable change doe
 | App shell navigation | `/docs/specs/core/app-shell-navigation.md` | Desktop sidebar, mobile bottom tabs, and primary app sections. |
 | Offline mode | `/docs/specs/core/offline-mode.md` | Offline reading, offline contribution capture, local storage, sync, and future mobile offline architecture. |
 | Community contributions | `/docs/specs/community/community-contributions.md` | Add mode, saved contributions, status, and contribution UX. |
+| Photo uploads | `/docs/specs/community/photo-uploads.md` | Signed-in photo upload workflow, media storage, metadata, moderation, and offline upload queue. |
 | Trust and moderation | `/docs/specs/community/trust-and-moderation.md` | Confirmation, resolution, staleness, moderation rules. |
 | River Wye seed data | `/docs/specs/data/river-wye-seed-data.md` | Wye pilot sections, seed geometry, and validation status. |
 | River Tryweryn seed data | `/docs/specs/data/river-tryweryn-seed-data.md` | Tryweryn dam-release demo sections, route geometry, release context, and validation status. |

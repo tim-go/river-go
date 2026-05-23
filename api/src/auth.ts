@@ -1,7 +1,7 @@
 import type { IncomingHttpHeaders } from "node:http";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { getFirebaseProjectId, isWriteAuthRequired } from "./config.js";
+import { getFirebaseProjectId } from "./config.js";
 import { HttpError } from "./http.js";
 
 export interface AuthContext {
@@ -11,10 +11,10 @@ export interface AuthContext {
   picture?: string;
 }
 
-export async function getWriteAuthContext(
+export async function getOptionalAuthContext(
   headers: IncomingHttpHeaders,
 ): Promise<AuthContext | null> {
-  return getAuthContext(headers, { required: isWriteAuthRequired() });
+  return getAuthContext(headers, { required: false });
 }
 
 export async function requireAuthContext(

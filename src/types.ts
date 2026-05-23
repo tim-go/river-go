@@ -15,8 +15,13 @@ export type ContributionType =
 
 export type ContributionStatus =
   | "active"
+  | "reported"
+  | "pending"
   | "needs-confirmation"
   | "confirmed"
+  | "challenged"
+  | "hidden"
+  | "rejected"
   | "resolved";
 
 export type SourceConfidence = "seed" | "low" | "medium" | "high";
@@ -135,6 +140,7 @@ export interface Contribution {
   lastConfirmed?: string;
   createdAt: string;
   location?: LatLngTuple;
+  serverRevision?: number;
 }
 
 export type ContributionSyncStatus =

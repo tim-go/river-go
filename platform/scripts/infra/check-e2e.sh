@@ -16,6 +16,11 @@ NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "Checking $BASE_URL/api/health"
 curl -fsS "$BASE_URL/api/health" | jq .
 
+if [[ -z "${RIVER_GO_E2E_AUTH_TOKEN:-}" ]]; then
+  echo "Skipping authenticated sync smoke; set RIVER_GO_E2E_AUTH_TOKEN to test writes"
+  exit 0
+fi
+
 echo "Posting idempotent sync smoke operation"
 PAYLOAD="$(jq -n \
   --arg operationId "$OPERATION_ID" \
@@ -55,12 +60,14 @@ PAYLOAD="$(jq -n \
 
 FIRST="$(curl -fsS \
   -H "content-type: application/json" \
+  -H "authorization: Bearer $RIVER_GO_E2E_AUTH_TOKEN" \
   --data "$PAYLOAD" \
   "$BASE_URL/api/sync/push")"
 echo "$FIRST" | jq .
 
 SECOND="$(curl -fsS \
   -H "content-type: application/json" \
+  -H "authorization: Bearer $RIVER_GO_E2E_AUTH_TOKEN" \
   --data "$PAYLOAD" \
   "$BASE_URL/api/sync/push")"
 echo "$SECOND" | jq .

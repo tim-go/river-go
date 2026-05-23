@@ -1512,6 +1512,16 @@ h1 {
   color: #9b1c12;
 }
 
+.status-chip--reported {
+  background: #e8edff;
+  color: #3730a3;
+}
+
+.status-chip--pending {
+  background: #fff3d7;
+  color: #7c4a03;
+}
+
 .status-chip--needs-confirmation {
   background: #fff3d7;
   color: #7c4a03;
@@ -1524,6 +1534,17 @@ h1 {
 
 .status-chip--resolved {
   background: #e7edf3;
+  color: #52606d;
+}
+
+.status-chip--challenged {
+  background: #fff1ef;
+  color: #9b1c12;
+}
+
+.status-chip--hidden,
+.status-chip--rejected {
+  background: #edf1f4;
   color: #52606d;
 }
 

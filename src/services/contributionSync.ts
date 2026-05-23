@@ -8,6 +8,7 @@ interface SyncPushResponse {
     entityId: string;
     status: "accepted" | "duplicate";
     revision: number;
+    contribution?: unknown;
   }>;
   failed?: Array<{
     operationId: string | null;

@@ -22,22 +22,24 @@ This document gives a clear view of the feature set we want to deliver and the c
 | Platform configuration | `/docs/specs/ops/platform-configuration.md` | Active | In-repo `/platform` subproject created for Firebase/GCP config templates, planning scripts, and first-pass provisioning scripts. |
 | Source/confidence metadata | `/docs/specs/data/river-wye-seed-data.md` | Queued | Needed before serious external feedback. |
 | Feedback capture workflow | `/docs/product/wye-pilot-feedback-template.md` | Active | Structured Wye pilot feedback template exists; real sessions still needed. |
-| Backend persistence | `/docs/specs/backend/service-api.md` | Queued | Cloud Run, Firebase Auth, Firebase Storage, PostgreSQL/PostGIS, and moderation API boundaries are specced. |
+| Backend persistence | `/docs/specs/backend/service-api.md` | Active | Authenticated contribution sync now persists to Postgres and reads back by section; broader section/rivers API and moderation actions remain queued. |
 | Backend data and sync model | `/docs/specs/backend/data-and-sync-model.md` | Landed | Hybrid relational/JSONB contribution model and idempotent offline sync push are implemented locally against PostGIS. |
 | Staging end-to-end deployment | `/docs/specs/ops/platform-configuration.md` | Active | Cloud Run API deploy, Cloud SQL migration, Firebase preview/live deploy, and E2E smoke scripts exist; deploy is blocked until local GCP auth and staging runtime DB URLs are refreshed. |
 | Auth and contributor identity | `/docs/specs/community/community-contributions.md` | Queued | Needed before real community data collection. |
-| Photo uploads | `/docs/specs/community/community-contributions.md` | Queued | Currently represented as placeholder/photo contribution metadata only. |
-| Moderation dashboard | `/docs/specs/community/trust-and-moderation.md` | Queued | Needed before public community launch. |
+| Photo uploads | `/docs/specs/community/photo-uploads.md` | Queued | Signed-in upload workflow, Firebase Storage, metadata, moderation, and offline queue requirements are now specified; implementation not started. |
+| Community trust and moderation | `/docs/specs/community/trust-and-moderation.md` | Active | Community validation model now avoids an admin-only publishing gate; needs backend roles, visibility states, and moderator tooling. |
 
 ## Recommended Next Sprint
 
 1. Prove the community knowledge loop on 3-5 real sections: seed, use, contribute, confirm, and refresh.
 2. Add member sign-in before accepting real public contributions.
-3. Persist community contributions end-to-end through the backend.
-4. Keep offline draft/outbox support in the critical path because paddlers may contribute from poor-signal locations.
-5. Run a focused Tryweryn verification pass for the near-dam start, centre rules, release source, lower portage, and Bala finish.
-6. Run first Wye/Tryweryn feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
-7. Verify upstream Wye and Tryweryn gauge/provider mappings, likely including NRW for Wales.
+3. Persist community contributions end-to-end through the backend using `/docs/specs/backend/data-and-sync-model.md` Phase 1.
+4. Add community trust states so useful hazards/reports/POIs can publish quickly with confidence labels while access notes/photos receive stricter review.
+5. Add the first signed-in photo upload slice for section/POI evidence once contribution persistence is live.
+6. Keep offline draft/outbox support in the critical path because paddlers may contribute from poor-signal locations.
+7. Run a focused Tryweryn verification pass for the near-dam start, centre rules, release source, lower portage, and Bala finish.
+8. Run first Wye/Tryweryn feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
+9. Verify upstream Wye and Tryweryn gauge/provider mappings, likely including NRW for Wales.
 
 ## Release Interpretation
 

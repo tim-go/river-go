@@ -31,6 +31,7 @@ import {
 import L from "leaflet";
 import { FormEvent, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { riverSections } from "./data/demoData";
+import { fetchSectionContributions } from "./services/contributionApi";
 import {
   createContributionOutboxRecord,
   createContributionOutboxStore,
@@ -301,7 +302,7 @@ function defaultObservedDate() {
 
 function syncStatusLabel(status?: ContributionSyncStatus) {
   if (!status) {
-    return "local demo";
+    return "saved";
   }
 
   const labels: Record<ContributionSyncStatus, string> = {
@@ -313,6 +314,54 @@ function syncStatusLabel(status?: ContributionSyncStatus) {
   };
 
   return labels[status];
+}
+
+function contributionStatusLabel(status: Contribution["status"]) {
+  const labels: Record<Contribution["status"], string> = {
+    active: "active",
+    reported: "reported",
+    pending: "pending review",
+    "needs-confirmation": "needs confirmation",
+    confirmed: "confirmed",
+    challenged: "challenged",
+    hidden: "hidden",
+    rejected: "rejected",
+    resolved: "resolved",
+  };
+
+  return labels[status] ?? status;
+}
+
+function mergeSectionContributions(
+  current: Contribution[],
+  sectionId: string,
+  backendContributions: Contribution[],
+  outboxRecords: ContributionOutboxRecord[],
+) {
+  const outboxByContributionId = new Map(
+    outboxRecords.map((record) => [record.contribution.id, record] as const),
+  );
+  const backendIds = new Set(backendContributions.map((contribution) => contribution.id));
+  const otherSectionContributions = current.filter(
+    (contribution) => contribution.sectionId !== sectionId,
+  );
+  const localSectionContributions = current.filter((contribution) => {
+    if (contribution.sectionId !== sectionId || backendIds.has(contribution.id)) {
+      return false;
+    }
+
+    const outboxRecord = outboxByContributionId.get(contribution.id);
+    return (
+      ["queued", "syncing", "failed"].includes(outboxRecord?.syncStatus ?? "") ||
+      (!outboxRecord && !contribution.serverRevision)
+    );
+  });
+
+  return [
+    ...backendContributions,
+    ...localSectionContributions,
+    ...otherSectionContributions,
+  ];
 }
 
 function AppNavigation({
@@ -793,6 +842,37 @@ function App() {
   }, [contributions]);
 
   useEffect(() => {
+    let isMounted = true;
+
+    fetchSectionContributions(activeSection.id)
+      .then((backendContributions) => {
+        if (isMounted) {
+          setContributions((current) =>
+            mergeSectionContributions(
+              current,
+              activeSection.id,
+              backendContributions,
+              outboxRecords,
+            ),
+          );
+        }
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setSyncMessage(
+            error instanceof Error
+              ? `Could not load backend contributions: ${error.message}`
+              : "Could not load backend contributions.",
+          );
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeSection.id, authState.user?.uid, outboxRecords]);
+
+  useEffect(() => {
     localStorage.setItem(
       FAVOURITES_STORAGE_KEY,
       JSON.stringify(favouriteSectionIds),
@@ -956,6 +1036,15 @@ function App() {
       });
       const nextRecords = await outboxStore.list();
       setOutboxRecords(nextRecords);
+      const backendContributions = await fetchSectionContributions(activeSection.id);
+      setContributions((current) =>
+        mergeSectionContributions(
+          current,
+          activeSection.id,
+          backendContributions,
+          nextRecords,
+        ),
+      );
 
       if (summary.attempted === 0) {
         setSyncMessage("No local changes to sync.");
@@ -1794,7 +1883,9 @@ function App() {
                             contribution.status ?? "confirmed"
                           }`}
                         >
-                          {contribution.status ?? "confirmed"}
+                          {contributionStatusLabel(
+                            contribution.status ?? "confirmed",
+                          )}
                         </span>
                         <span>
                           {contribution.confirmations ?? 0} confirmations
@@ -2670,7 +2761,7 @@ function RiverMap({
         .bindPopup(
           createMapPopupContent({
             title: contribution.title,
-            subtitle: `${contribution.type} · ${contribution.status}`,
+            subtitle: `${contribution.type} · ${contributionStatusLabel(contribution.status)}`,
             summary: contribution.detail,
             onDetails: () =>
               poiDetailsRef.current({

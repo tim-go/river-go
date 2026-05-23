@@ -1,9 +1,11 @@
 import { getApps, initializeApp, type FirebaseOptions } from "firebase/app";
 import {
   getAuth,
+  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   type Auth,
   type User,
@@ -23,6 +25,7 @@ export type AuthState =
   | { status: "error"; user: null; error: string };
 
 let authInstance: Auth | null | undefined;
+let redirectResultHandled = false;
 
 export function subscribeToAuthState(
   callback: (state: AuthState) => void,
@@ -35,6 +38,8 @@ export function subscribeToAuthState(
   }
 
   callback({ status: "loading", user: null, error: null });
+
+  void handleRedirectResult(auth, callback);
 
   return onAuthStateChanged(
     auth,
@@ -58,7 +63,14 @@ export async function signInWithGoogle(): Promise<void> {
     throw new Error("Firebase Auth is not configured for this build.");
   }
 
-  await signInWithPopup(auth, new GoogleAuthProvider());
+  const provider = new GoogleAuthProvider();
+
+  if (shouldUseRedirectSignIn()) {
+    await signInWithRedirect(auth, provider);
+    return;
+  }
+
+  await signInWithPopup(auth, provider);
 }
 
 export async function signOutCurrentUser(): Promise<void> {
@@ -121,6 +133,45 @@ function getFirebaseConfig(): FirebaseOptions | null {
   }
 
   return config;
+}
+
+async function handleRedirectResult(
+  auth: Auth,
+  callback: (state: AuthState) => void,
+) {
+  if (redirectResultHandled) {
+    return;
+  }
+
+  redirectResultHandled = true;
+
+  try {
+    await getRedirectResult(auth);
+  } catch (error) {
+    callback({
+      status: "error",
+      user: null,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not complete redirected sign-in.",
+    });
+  }
+}
+
+function shouldUseRedirectSignIn() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const hostname = window.location.hostname;
+  return !(
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname.startsWith("192.168.") ||
+    hostname.startsWith("10.") ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+  );
 }
 
 function mapAuthUser(user: User): AuthUser {

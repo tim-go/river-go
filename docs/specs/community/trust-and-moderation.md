@@ -3,31 +3,34 @@ roadmap_community_feature_group: Community
 roadmap_community_feature_item: Trust and Moderation
 roadmap_community_feature_phase: Soon
 spec_schema: 4
-maturity: Draft
+maturity: Buildable
 ---
 
 # Trust and Moderation
 
 **Work state:** Active
-**Last updated:** 2026-05-21
-**Scope:** Contribution confidence, freshness, confirmation, resolution, and moderation behaviour.
+**Last updated:** 2026-05-23
+**Scope:** Contribution confidence, freshness, confirmation, community validation, role-based review, and moderation behaviour.
 
 ## Purpose
 
-Community data is only useful if users can judge freshness, confidence, and credibility. River Go should make trust visible without implying that a section is safe.
+Community data is only useful if users can judge freshness, confidence, and credibility. RiffleMap.com should make trust visible without implying that a section is safe.
+
+Moderation should not be an admin-only publishing gate. The product should make it easy for members to add useful POIs, hazards, reports, access notes, and photos, while using trust, confidence labels, community confirmation, and lightweight moderator roles to manage risk.
 
 ## Product Role
 
 - `Primary user objective:` Decide how much confidence to place in community river knowledge.
 - `Classification:` Core
 - `Loop step:` Review
-- `Why this matters:` River Go depends on community data. Without visible trust and moderation, the data layer will decay or become risky.
+- `Why this matters:` RiffleMap.com depends on community data. If useful contributions wait behind a tiny admin gate, the community loop will fail; if risky content publishes without context, the trust layer will fail.
 
 ## References
 
 - `/docs/strategy/community-data-strategy.md`
 - `/docs/strategy/community-model.md`
 - `/docs/specs/community/community-contributions.md`
+- `/docs/specs/community/photo-uploads.md`
 - `/src/types.ts`
 - `/src/App.tsx`
 
@@ -54,6 +57,7 @@ Production should add:
 
 - contributor identity
 - contributor role
+- contributor trust level
 - date observed
 - evidence photos
 - confirmation count
@@ -63,11 +67,109 @@ Production should add:
 - edit history
 - source/confidence metadata
 
-Initial roles:
+## Community Trust Model
+
+The default product pattern should be community validation, not admin approval for every item.
+
+Core flow:
+
+1. A signed-in member contributes local knowledge.
+2. The backend records contributor, type, section, location, payload, and initial moderation/visibility state.
+3. Low-risk items can become visible quickly with clear labels such as `reported`, `unverified`, or `new`.
+4. Other members can confirm, challenge, update, or add evidence.
+5. Trusted members and community moderators can accelerate publication, hide problematic items, and resolve disputes.
+6. Admins retain platform-level control, but are not the normal path for day-to-day contribution review.
+
+Initial roles should be:
 
 - `MEMBER` can sign in and contribute local knowledge.
-- `ADMIN` can access the admin area and view/manage platform-level user/member data.
-- `CONTRIB_ADMIN` is reserved for future contribution moderation workflows, such as reviewing hazards, access notes, disputes, and stale content.
+- `TRUSTED_MEMBER` can have lower-friction publication for low-risk contribution types and stronger confirmation weight.
+- `CONTRIB_MODERATOR` can review, approve, hide, edit, merge, and resolve community contributions in assigned scopes.
+- `ADMIN` can access platform-level administration, manage users/roles, and override moderation decisions.
+
+`TRUSTED_MEMBER` is a contribution trust role, not a platform administration role. `CONTRIB_MODERATOR` should be scoped by river, region, club, or contribution type when the backend model is ready, rather than always being global.
+
+Trust level should remain separate from role:
+
+- `NEW` for recently joined members
+- `KNOWN` for members with accepted/confirmed activity
+- `TRUSTED` for members whose contributions have a strong acceptance history or offline/community validation
+
+Role grants permission. Trust level informs default visibility, confidence, and review priority.
+
+## Contribution Visibility
+
+Contributions should have separate moderation and visibility states.
+
+Moderation states:
+
+- `draft` exists only on the client before save
+- `queued` exists locally while waiting to sync
+- `reported` means backend accepted and community-visible with low confidence
+- `pending` means accepted but waiting for review before public visibility
+- `needs-confirmation` means visible but explicitly unverified
+- `confirmed` means community or trusted users have confirmed the item
+- `challenged` means one or more users dispute accuracy, safety, legality, or relevance
+- `hidden` means not visible publicly but retained for audit/moderation
+- `rejected` means not accepted as public community data
+- `resolved` means no longer active, but retained historically
+
+Visibility states:
+
+- `private` for local drafts and failed saves
+- `contributor` for the contributor plus admins/moderators
+- `community` for signed-in users with labels
+- `public` for signed-out and signed-in users
+
+The default should be optimistic for useful low-risk knowledge and stricter for sensitive knowledge.
+
+| Contribution type | New member default | Trusted member default | Notes |
+| --- | --- | --- | --- |
+| Recent condition report | `reported` / public | `reported` / public | Time-sensitive; show age and unverified label. |
+| Hazard | `reported` or `needs-confirmation` / public | `reported` / public | Safety-relevant, so hide only if spam/abuse; label clearly until confirmed. |
+| Feature / POI | `reported` / community or public | `reported` / public | Low risk unless misleading, duplicate, or sensitive. |
+| Photo | `pending` or `reported` depending on sensitivity | `reported` / public for low-risk images | Needs privacy controls and report/hide flow. |
+| Access note | `pending` | `pending` or `reported` for trusted scoped contributors | Access claims can create legal/community conflict. |
+| Deletion or major edit | `pending` | `pending` or moderator action | Avoid silent loss of useful public knowledge. |
+
+Hazards should normally be visible quickly as `reported` rather than blocked behind review, unless the item is clearly abusive, duplicated, or unsafe to display. The UI must avoid presenting reported hazards as verified facts.
+
+Access notes and privacy-sensitive photos should be the strictest categories because they can affect landowner relations, legal interpretation, and personal privacy.
+
+## Community Validation
+
+Members should be able to:
+
+- confirm an existing contribution
+- challenge an existing contribution
+- add an update or evidence photo
+- mark condition reports as stale or no longer applicable
+- suggest resolution of hazards
+- report abuse, spam, privacy issues, or access sensitivity
+
+Trusted members should additionally be able to:
+
+- apply stronger confirmations
+- publish low-risk feature/POI/photo contributions faster
+- suggest merges for duplicate POIs
+- resolve low-risk stale items where there is enough evidence
+
+Community moderators should be able to:
+
+- approve pending photos, access notes, and disputed items
+- hide or reject spam, abuse, duplicate, misleading, or privacy-sensitive items
+- edit text for clarity without changing meaning
+- merge duplicate POIs or hazards
+- resolve hazards when evidence supports it
+- request more detail from the contributor
+
+Admin-only actions should be limited to:
+
+- assigning/removing roles
+- platform user/member management
+- global policy overrides
+- handling serious abuse, legal, or safety escalation
+- managing system configuration
 
 Moderation priority should be highest for:
 

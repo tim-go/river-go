@@ -9,7 +9,7 @@ maturity: Draft
 # Data And Sync Model
 
 **Work state:** Active
-**Last updated:** 2026-05-22
+**Last updated:** 2026-05-23
 **Scope:** Backend persistence and offline sync data model for community contributions, media metadata, and idempotent client operations.
 
 ## Purpose
@@ -30,6 +30,7 @@ The model should combine structured relational columns for identity, sync, moder
 - `/docs/specs/core/offline-mode.md`
 - `/docs/specs/backend/service-api.md`
 - `/docs/specs/community/community-contributions.md`
+- `/docs/specs/community/photo-uploads.md`
 - `/docs/specs/community/trust-and-moderation.md`
 - `/docs/specs/ops/platform-configuration.md`
 
@@ -119,8 +120,8 @@ The backend must treat `operationId` as an idempotency key. Replaying the same o
 | `email` | `text` | Latest verified email from Firebase token claims. |
 | `display_name` | `text` | Latest display name from Firebase token claims. |
 | `photo_url` | `text` | Latest profile photo URL from Firebase token claims. |
-| `role` | `text` | `MEMBER`, `ADMIN`, or future `CONTRIB_ADMIN`. |
-| `trust_level` | `text` | Initial trust/reputation state. |
+| `role` | `text` | `MEMBER`, `TRUSTED_MEMBER`, `CONTRIB_MODERATOR`, or `ADMIN`. |
+| `trust_level` | `text` | Contribution trust state such as `NEW`, `KNOWN`, or `TRUSTED`. |
 | `created_at` | `timestamptz` | First time the member was seen. |
 | `updated_at` | `timestamptz` | Last profile update time. |
 | `last_seen_at` | `timestamptz` | Last authenticated API call. |
@@ -138,7 +139,7 @@ The backend must treat `operationId` as an idempotency key. Replaying the same o
 | `created_at` | `timestamptz` | Server creation time or supplied client creation time where safe. |
 | `created_by` | `text` | Contributor identity, nullable until Firebase Auth is wired. |
 | `member_id` | `uuid` | Authenticated member reference when available. |
-| `moderation_status` | `text` | `pending`, `needs-confirmation`, `accepted`, `rejected`, or later states. |
+| `moderation_status` | `text` | `reported`, `pending`, `needs-confirmation`, `confirmed`, `challenged`, `hidden`, `rejected`, `resolved`, or later states. |
 | `sync_status` | `text` | Server-side sync acceptance state. |
 | `sync_source` | `text` | `online`, `offline-pwa`, `offline-mobile`, or similar. |
 | `revision` | `bigint` | Monotonic revision for later pull sync/conflict detection. |
@@ -167,9 +168,13 @@ The backend must treat `operationId` as an idempotency key. Replaying the same o
 | `id` | `uuid primary key` | Photo metadata ID. |
 | `contribution_id` | `uuid` | Parent contribution. |
 | `storage_path` | `text` | Firebase Storage path or future media store path. |
+| `thumbnail_path` | `text` | Thumbnail storage path when generated. |
+| `display_path` | `text` | Display-sized storage path when generated. |
 | `caption` | `text` | User caption. |
 | `status` | `text` | `pending-upload`, `uploaded`, `moderation-pending`, `accepted`, `rejected`. |
 | `payload` | `jsonb` | Flexible media metadata. |
+
+The first public photo implementation may replace or extend this contribution-scoped table with a more general photo metadata table if section-level and POI-level photos need to exist without a parent contribution. The durable product workflow is defined in `/docs/specs/community/photo-uploads.md`.
 
 ## Initial API Behaviour
 
@@ -206,6 +211,72 @@ The response should report accepted and failed operations separately:
 }
 ```
 
+## Implementation Plan
+
+The next implementation slice should persist member contributions across sessions and devices before adding photo upload or richer moderation tools.
+
+### Phase 1: Backend-Persisted Contributions
+
+Goal: a signed-in member can add local knowledge, sync it to the backend, refresh the app or use another device, and still see the contribution.
+
+Tasks:
+
+1. Extend API serialization so contribution rows can be returned to the frontend with `id`, `sectionId`, `type`, `geometry`, `payload`, `observedAt`, `createdAt`, `moderationStatus`, `syncStatus`, `revision`, and contributor summary.
+2. Add a read endpoint for backend contributions, initially scoped by section:
+   - `GET /api/sections/:sectionId/contributions`
+3. Ensure `POST /api/sync/push` requires Firebase Auth for real writes and always links accepted contributions to the authenticated member.
+4. Apply initial moderation defaults by contribution type:
+   - `report`: `reported`
+   - `feature`: `reported`
+   - `hazard`: `needs-confirmation`
+   - `access`: `pending`
+   - `photo`: `pending`
+5. Return accepted contribution state from sync so the frontend can replace local queued status with backend state.
+6. Update frontend load/merge behaviour:
+   - load backend contributions for the active section
+   - merge with local queued/failed records
+   - avoid duplicate display when a local outbox record has synced
+   - show state labels such as `Queued`, `Reported`, `Needs confirmation`, and `Pending review`
+7. Add backend/API tests or smoke checks proving idempotent create, authenticated member linkage, section readback, and duplicate retry behaviour.
+
+This phase deliberately does not include photo binary upload, admin moderation screens, or full pull-sync/offline-pack support.
+
+### Phase 2: Trust Roles And Review Controls
+
+Goal: avoid an admin-only bottleneck while keeping sensitive content controlled.
+
+Tasks:
+
+1. Migrate member role constraints to support `MEMBER`, `TRUSTED_MEMBER`, `CONTRIB_MODERATOR`, and `ADMIN`.
+2. Keep `trust_level` separate from role and support at least `NEW`, `KNOWN`, and `TRUSTED`.
+3. Add admin-only member role/trust editing in the existing admin member area.
+4. Add moderator read permissions for pending/challenged contribution queues.
+5. Add approve, hide, reject, challenge, and confirm actions for moderators/admins.
+
+### Phase 3: Photo Upload
+
+Goal: support signed-in photo evidence once normal contribution persistence works.
+
+Tasks:
+
+1. Add photo metadata table or extend `contribution_photos` to support section, POI, and contribution attachment.
+2. Add `POST /api/photos/upload-intent`.
+3. Upload binaries to Firebase Storage.
+4. Add `POST /api/photos/:id/complete`.
+5. Display photo thumbnails in section and POI details.
+6. Add photo moderation states and admin/moderator actions.
+
+### Phase 4: Pull Sync And Offline Packs
+
+Goal: support poor-signal usage beyond manual outbox push.
+
+Tasks:
+
+1. Add revision-based `GET /api/sync/pull`.
+2. Add compact offline pack downloads.
+3. Reconcile local queued, synced, hidden, rejected, and changed records.
+4. Add storage warnings and retry UX for large offline media uploads.
+
 ## Open Questions
 
 - Which validation library should own runtime API validation as the schema grows?
@@ -222,9 +293,12 @@ The response should report accepted and failed operations separately:
 | SYNC-F1 | Hybrid contribution schema | Backend/data | Landed | v0.3 | — | Relational identity/query fields plus JSONB payload. |
 | SYNC-F2 | Sync operation envelope | Backend/sync | Landed | v0.3 | — | Idempotent operation model for offline retries. |
 | SYNC-F3 | Initial SQL migrations | Backend/data | Landed | v0.3 | — | PostGIS-backed schema plus app-user grants for contribution sync. |
-| SYNC-F4 | Sync push endpoint | Backend/API | Landed | v0.3 | — | First implementation accepts `contribution.create` operations and is called by manual frontend sync. |
-| SYNC-F5 | Photo metadata schema | Backend/media | Queued | MVP | — | Metadata table exists before binary upload flow is implemented. |
+| SYNC-F4 | Sync push endpoint | Backend/API | Landed | v0.3 | — | Accepts authenticated `contribution.create` operations, stores member linkage, and is called by manual frontend sync. |
+| SYNC-F5 | Photo metadata schema | Backend/media | Queued | MVP | — | Metadata table exists before binary upload flow is implemented; must support section, POI, and contribution attachment. |
 | SYNC-F6 | Member identity schema | Backend/auth | Active | MVP | — | Members are keyed by Firebase UID and linked to synced contributions. |
+| SYNC-F7 | Community trust roles | Backend/auth | Queued | MVP | — | Extend member role/trust model for `TRUSTED_MEMBER` and `CONTRIB_MODERATOR` without relying on `ADMIN` for normal contribution review. |
+| SYNC-F8 | Contribution readback API | Backend/API | Landed | MVP | — | Phase 1 read endpoint returns backend contributions by section for frontend load/merge. |
+| SYNC-F9 | Frontend backend contribution merge | Frontend/sync | Landed | MVP | — | Phase 1 frontend merges backend contributions with local queued outbox records and shows moderation/sync labels. |
 
 ### Backlog
 
@@ -232,14 +306,17 @@ The response should report accepted and failed operations separately:
 | --- | --- | --- | --- | --- | --- |
 | SYNC-B1 | decision | Runtime validation library | Open | v0.3 | Hand-written validation is acceptable for first slice; revisit before API expands. |
 | SYNC-B2 | decision | Pull sync revision model | Open | MVP | Required before offline packs can incrementally update. |
-| SYNC-B3 | task | Firebase Auth actor binding | Active | MVP | Replace nullable actor with verified Firebase user and member row. |
+| SYNC-B3 | task | Firebase Auth actor binding | Resolved | MVP | HTTP sync writes require Firebase Auth and link accepted contributions to member rows. |
 | SYNC-B4 | task | IndexedDB outbox implementation | Open | MVP | Client-side peer to the sync operation envelope. |
+| SYNC-B5 | task | Phase 1 persisted contribution loop | Resolved | MVP | Backend section readback, authenticated sync writes, moderation defaults, smoke readback, and frontend merge are implemented. |
 
 ## Change Log
 
 | Date | Change |
 | --- | --- |
 | 2026-05-23 | Added app-user table and sequence grants for deployed sync API runtime. |
+| 2026-05-23 | Added implementation plan for backend-persisted contributions, trust roles, photo upload, and pull sync sequencing. |
+| 2026-05-23 | Implemented Phase 1 backend-persisted contribution loop. |
 | 2026-05-22 | Created backend data and sync model spec. |
 | 2026-05-22 | Added first API package, SQL migration, and idempotent sync push smoke test. |
 | 2026-05-22 | Wired frontend manual sync to the sync push endpoint. |

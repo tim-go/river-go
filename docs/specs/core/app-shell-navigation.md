@@ -52,6 +52,8 @@ Branding should be present without delaying startup. When auth resolves and no u
 
 Anonymous users may browse the map, search, route details, POIs, photos, levels, and navigation links. Savable actions require sign-in, including favourites, add local knowledge, add photo, sync, admin, and future offline packs.
 
+Hosted environments such as staging and production should use Firebase redirect sign-in so browser popup blockers do not prevent Google OAuth. Localhost and LAN development may use popup sign-in for faster testing.
+
 Desktop navigation should include a compact account footer. Signed-in users should see their account label, role, and a route to `Profile`; signed-out users should see `Guest` state and a sign-in action. The account footer should collapse to an icon-only affordance with the desktop nav rail.
 
 The `Map` section remains the default first view and contains the river map, section list, selected-section panel, contribution workflow, and map-specific controls.

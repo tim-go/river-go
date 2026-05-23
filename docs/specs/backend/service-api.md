@@ -28,6 +28,7 @@ The backend should preserve the current prototype's section-first map and contri
 ## References
 
 - `/docs/specs/community/community-contributions.md`
+- `/docs/specs/community/photo-uploads.md`
 - `/docs/specs/community/trust-and-moderation.md`
 - `/docs/specs/core/offline-mode.md`
 - `/docs/specs/backend/data-and-sync-model.md`
@@ -52,6 +53,7 @@ Initial endpoints:
 | `GET` | `/api/rivers` | River list. |
 | `GET` | `/api/rivers/:riverId/sections` | Section list with route summaries. |
 | `GET` | `/api/sections/:sectionId` | Section detail, hazards, access, features, reports, photos, and current gauge context. |
+| `GET` | `/api/sections/:sectionId/contributions` | List backend-persisted community contributions for a section, including contributor summary and moderation/sync state. |
 | `POST` | `/api/sections/:sectionId/contributions` | Create hazard/report/access/photo/feature contribution. |
 | `POST` | `/api/contributions/:id/confirmations` | Confirm existing contribution or seeded hazard. |
 | `POST` | `/api/contributions/:id/resolution` | Mark contribution resolved with evidence. |
@@ -73,11 +75,10 @@ Auth:
 - Firebase Auth verifies signed-in contributors.
 - Anonymous read access is allowed for public river/section data.
 - Write access requires a verified Firebase user.
-- The first sync endpoint accepts Firebase bearer tokens and records the verified user as the operation actor when present.
+- The sync push endpoint requires a Firebase bearer token and records the verified user as the operation actor.
 - Authenticated calls upsert a `members` record keyed by Firebase UID.
-- Roles start with `MEMBER` and `ADMIN`; `CONTRIB_ADMIN` is reserved for contribution moderation/admin workflows.
+- Roles start with `MEMBER`, `TRUSTED_MEMBER`, `CONTRIB_MODERATOR`, and `ADMIN`; contribution moderation should not depend on platform admins for normal day-to-day review.
 - `ADMIN` is assigned from the environment's `ADMIN_EMAILS` allowlist, sourced from runtime config during Cloud Run deployment.
-- Backend hard enforcement of signed writes can be enabled with `REQUIRE_AUTH_FOR_WRITES=true` after staging smoke tests can provide an auth token.
 - Moderator endpoints require a role claim or backend role table.
 
 Storage:
@@ -85,8 +86,9 @@ Storage:
 - PostgreSQL stores rivers, sections, route geometries, access points, hazards, features, reports, moderation state, provider readings, and audit history.
 - PostGIS stores and queries route and point geometry.
 - Contribution tables should support client-generated IDs, idempotency keys, sync status, and revision/version metadata so offline retries do not create duplicate records.
-- Firebase Storage stores uploaded photos.
-- Photo metadata and moderation status live in PostgreSQL.
+- Firebase Storage stores uploaded photo binaries and generated derivatives.
+- Photo metadata, relationships, moderation status, and audit fields live in PostgreSQL.
+- Photo uploads should use a backend-created upload intent so Firebase Storage paths, contributor identity, section/POI/contribution attachment, and moderation state are controlled server-side.
 
 Provider ingestion:
 
@@ -119,13 +121,14 @@ Moderation:
 | API-F1 | API contract | Backend | Landed | v0.2 | — | Defines first backend endpoints and boundaries. |
 | API-F2 | Firebase Auth integration | Backend/auth | Active | MVP | — | Sync endpoint can verify Firebase ID tokens and attach the verified user ID as actor; hard write enforcement is feature-flagged. |
 | API-F3 | PostgreSQL/PostGIS persistence | Backend/data | Queued | MVP | — | Durable storage for river/community data. |
-| API-F4 | Firebase Storage photo flow | Backend/media | Queued | MVP | — | Controlled upload intent and photo moderation. |
+| API-F4 | Firebase Storage photo flow | Backend/media | Queued | MVP | — | Controlled upload intent, completion endpoint, metadata persistence, and photo moderation; see `/docs/specs/community/photo-uploads.md`. |
 | API-F5 | Moderation queue | Backend/admin | Queued | MVP | — | Review and promote community data. |
 | API-F6 | Provider ingestion cache | Backend/data | Queued | MVP | — | Move live river-level ingestion server-side. |
 | API-F7 | Offline sync contracts | Backend/sync | Queued | MVP | — | Support client-generated IDs, idempotent pushes, pull tokens, and offline pack downloads. |
 | API-F8 | Initial sync push implementation | Backend/sync | Landed | v0.3 | — | First backend slice proves `GET /api/health` and idempotent `POST /api/sync/push`. |
 | API-F9 | Cloud Run deploy package | Backend/ops | Active | v0.3 | — | Adds Dockerfile and deployment support for Cloud Run plus Cloud SQL. |
 | API-F10 | Member identity API | Backend/auth | Active | MVP | — | Adds `/api/me`, member upsert, and admin member list endpoint. |
+| API-F11 | Contribution readback API | Backend/API | Landed | MVP | — | Implements `GET /api/sections/:sectionId/contributions` for the persisted contribution loop. |
 
 ### Backlog
 

@@ -1,7 +1,11 @@
 import { createServer } from "node:http";
 import type { IncomingHttpHeaders } from "node:http";
-import { getWriteAuthContext, requireAuthContext } from "./auth.js";
+import {
+  getOptionalAuthContext,
+  requireAuthContext,
+} from "./auth.js";
 import { getPort } from "./config.js";
+import { listContributionsForSection } from "./contributions.js";
 import { closePool, pool } from "./db.js";
 import { HttpError, readJsonBody, sendJson } from "./http.js";
 import {
@@ -45,12 +49,25 @@ async function route(
     return { status: 200, body: { members } };
   }
 
-  if (method === "POST" && url.pathname === "/api/sync/push") {
-    const authContext = await getWriteAuthContext(headers);
+  const sectionContributionsMatch = url.pathname.match(
+    /^\/api\/sections\/([^/]+)\/contributions$/,
+  );
+  if (method === "GET" && sectionContributionsMatch) {
+    const authContext = await getOptionalAuthContext(headers);
     const member = authContext ? await upsertMemberFromAuth(authContext) : null;
+    const contributions = await listContributionsForSection(
+      decodeURIComponent(sectionContributionsMatch[1]),
+      member?.id ?? null,
+    );
+    return { status: 200, body: { contributions } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/sync/push") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
     const result = await pushSyncOperations(body, {
-      firebaseUid: authContext?.userId ?? null,
-      memberId: member?.id ?? null,
+      firebaseUid: authContext.userId,
+      memberId: member.id,
     });
     return { status: result.failed.length ? 207 : 200, body: result };
   }

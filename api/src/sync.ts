@@ -1,4 +1,9 @@
 import type { PoolClient } from "pg";
+import {
+  mapContributionRow,
+  type ApiContribution,
+  type ContributionRow,
+} from "./contributions.js";
 import { pool } from "./db.js";
 
 const contributionTypes = new Set(["hazard", "report", "photo", "feature", "access"]);
@@ -13,6 +18,7 @@ export interface SyncAcceptedOperation {
   entityId: string;
   status: "accepted" | "duplicate";
   revision: number;
+  contribution?: ApiContribution;
 }
 
 export interface SyncFailedOperation {
@@ -181,7 +187,7 @@ async function insertContribution(
   const payload = contribution.payload ?? {};
   const syncSource = contribution.client?.createdOffline ? "offline-pwa" : "online";
 
-  const result = await client.query<{ revision: string }>(
+  const result = await client.query<ContributionRow>(
     `INSERT INTO contributions (
       id,
       client_id,
@@ -213,7 +219,25 @@ async function insertContribution(
     )
     ON CONFLICT (id) DO UPDATE SET
       updated_at = now()
-    RETURNING revision`,
+    RETURNING
+      id,
+      section_id,
+      type,
+      CASE
+        WHEN geometry IS NULL THEN NULL
+        ELSE ST_AsGeoJSON(geometry)::json
+      END AS geometry,
+      payload,
+      observed_at,
+      created_at,
+      updated_at,
+      moderation_status,
+      sync_status,
+      revision,
+      member_id,
+      NULL::text AS display_name,
+      NULL::text AS email,
+      NULL::text AS trust_level`,
     [
       contribution.id,
       contribution.client?.deviceId ?? null,
@@ -235,6 +259,7 @@ async function insertContribution(
     entityId: operation.entityId,
     status: "accepted",
     revision: Number(result.rows[0].revision),
+    contribution: mapContributionRow(result.rows[0]),
   };
 }
 
@@ -327,7 +352,7 @@ function parseContributionPayload(
 function initialModerationStatus(type: string): string {
   if (type === "hazard") return "needs-confirmation";
   if (type === "photo" || type === "access") return "pending";
-  return "pending";
+  return "reported";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

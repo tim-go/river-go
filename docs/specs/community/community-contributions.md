@@ -30,6 +30,7 @@ The contribution model should collect structured data, not loose comments.
 - `/docs/strategy/community-data-strategy.md`
 - `/docs/strategy/community-model.md`
 - `/docs/specs/community/trust-and-moderation.md`
+- `/docs/specs/community/photo-uploads.md`
 - `/docs/specs/core/river-section-map.md`
 - `/docs/specs/core/offline-mode.md`
 - `/src/App.tsx`
@@ -73,6 +74,8 @@ Expected user flow:
 6. User saves.
 7. Saved contribution appears on the map and section update list.
 
+For the backend-persisted MVP, save should create a local outbox record first and then sync to the backend. Once the backend accepts the operation, the contribution should reload from `GET /api/sections/:sectionId/contributions` and remain visible across sessions/devices according to its moderation and visibility state.
+
 Existing seeded and saved information markers remain inspect-only, even while add mode is active. A future explicit `Add update here` action can be added inside marker popups if updating existing map objects becomes a priority.
 
 Required fields:
@@ -90,7 +93,7 @@ Offline requirements:
 - users must sign in before saving or syncing queued contributions
 - contribution IDs should be generated client-side before sync
 - sync should be retryable without duplicating the contribution
-- photos should be queued separately from contribution metadata
+- photos should be queued separately from contribution metadata as defined in `/docs/specs/community/photo-uploads.md`
 - saved local observations should not be lost if the browser/app closes before sync
 
 ## Open Questions
@@ -115,8 +118,9 @@ Offline requirements:
 | CON-F7 | Validation feedback | Form | Landed | prototype | — | Required fields and inline error avoid silent save failure. |
 | CON-F8 | Separate contribution flows | UX | Landed | v0.2 | — | Panel actions and form prompts now separate condition, hazard, access, photo, and feature contributions. |
 | CON-F9 | Authenticated contributors | Backend/auth | Active | MVP | — | Signed-out users can browse only; save/contribution actions prompt for sign-in before local draft creation or sync. |
-| CON-F10 | Photo upload | Media | Queued | MVP | — | Requires storage and moderation. |
+| CON-F10 | Photo upload | Media | Queued | MVP | — | Owned by `/docs/specs/community/photo-uploads.md`; contribution flow should link section/POI/contribution metadata to uploaded media. |
 | CON-F11 | Offline contribution outbox | PWA/mobile | Active | MVP | — | Form save writes queued sync operations locally and a manual sync action pushes them to the backend. |
+| CON-F12 | Backend-persisted contribution loop | API/frontend | Landed | MVP | — | Uses `/docs/specs/backend/data-and-sync-model.md` Phase 1: signed-in save, sync, readback, merge, and status labels. |
 
 ### Backlog
 
