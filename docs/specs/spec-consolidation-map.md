@@ -14,6 +14,7 @@ This map helps locate the owning spec for River Go work. If a durable change doe
 | Community contributions | `/docs/specs/community/community-contributions.md` | Add mode, saved contributions, status, and contribution UX. |
 | Trust and moderation | `/docs/specs/community/trust-and-moderation.md` | Confirmation, resolution, staleness, moderation rules. |
 | River Wye seed data | `/docs/specs/data/river-wye-seed-data.md` | Wye pilot sections, seed geometry, and validation status. |
+| River Tryweryn seed data | `/docs/specs/data/river-tryweryn-seed-data.md` | Tryweryn dam-release demo sections, route geometry, release context, and validation status. |
 | River level providers | `/docs/specs/data/river-level-providers.md` | EA-first provider model and future backend ingestion. |
 | Platform configuration | `/docs/specs/ops/platform-configuration.md` | In-repo Firebase/GCP configuration, publishing targets, and operational scripts. |
 | Backend service API | `/docs/specs/backend/service-api.md` | Cloud Run API, Firebase Auth, PostGIS persistence, media, and moderation boundaries. |

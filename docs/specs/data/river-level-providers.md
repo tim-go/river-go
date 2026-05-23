@@ -9,8 +9,8 @@ maturity: Buildable
 # River Level Providers
 
 **Work state:** Active
-**Last updated:** 2026-05-22
-**Scope:** Provider integration model for live river level data, starting with Environment Agency data for Wye gauge candidates.
+**Last updated:** 2026-05-23
+**Scope:** Provider integration model for live river level and release data, starting with Environment Agency data for Wye gauge candidates and release-aware Tryweryn requirements.
 
 ## Purpose
 
@@ -29,6 +29,7 @@ Provider data should be normalised into River Go's section/gauge model.
 
 - `/docs/strategy/data-sources-and-gaps.md`
 - `/docs/specs/data/river-wye-seed-data.md`
+- `/docs/specs/data/river-tryweryn-seed-data.md`
 - `/docs/specs/core/river-section-map.md`
 - `/docs/specs/core/offline-mode.md`
 - `/src/services/riverLevels.ts`
@@ -67,6 +68,8 @@ Client-side live lookup is acceptable only as a temporary prototype step. Long-t
 
 The first provider should be Environment Agency river-level data for England.
 
+Dam-release rivers such as the Tryweryn need a release-aware provider model as well as conventional gauge readings. The active demo represents Tryweryn release status as a seed/fallback value pointing to the National White Water Centre water-level information; production should normalise release availability, release timing, flow value where available, provider/source, and stale/offline state.
+
 The first implementation should:
 
 - fetch station/measure readings for selected Wye gauge candidates
@@ -75,6 +78,7 @@ The first implementation should:
 - fail gracefully back to seed/demo values
 - keep provider-specific details out of UI components where possible
 - mark cached/offline readings clearly with observed time and stale state
+- avoid presenting dam-release fallback values as live readings
 
 Target frontend shape:
 
@@ -104,6 +108,7 @@ Target frontend shape:
 - Should the prototype fetch direct from the client or use a lightweight local backend before production?
 - How should trend be calculated if provider data does not provide it directly?
 - How should missing/outage states appear in the UI?
+- Should dam-release rivers use a separate `release` provider shape or extend the normal gauge model?
 
 ## Tracking
 
@@ -117,6 +122,7 @@ Target frontend shape:
 | LEVEL-F4 | Gauge display replacement | UI | Landed | v0.2 | — | Gauge card prefers live EA reading when available and shows fallback state otherwise. |
 | LEVEL-F5 | Backend ingestion design | Backend | Queued | MVP | — | Move provider logic server-side before production. |
 | LEVEL-F6 | Offline/stale level display | UI/data | Queued | MVP | — | Cached provider readings must be labelled as stale/offline when connectivity is unavailable. |
+| LEVEL-F7 | Tryweryn release provider model | Data/service | Queued | v0.2 | — | Decide how centre/NRW release information maps into River Go level state. |
 
 ### Backlog
 
@@ -127,6 +133,7 @@ Target frontend shape:
 | LEVEL-B3 | enhancement | Trend calculation | Open | v0.2 | Could compare latest readings if provider trend unavailable. |
 | LEVEL-B4 | enhancement | NRW/SEPA/DfI providers | Parked | Europe/UK expansion | Add after EA adapter model is proven. |
 | LEVEL-B5 | risk | Offline river-level safety | Open | MVP | Cached readings must not be mistaken for current conditions. |
+| LEVEL-B6 | dependency | Identify Tryweryn release source | Open | v0.2 | Centre page exposes public release information; production needs source stability and permission review. |
 
 ## Change Log
 
@@ -134,4 +141,5 @@ Target frontend shape:
 | --- | --- |
 | 2026-05-21 | Added temporary EA live-level adapter and lower Wye candidate mapping. |
 | 2026-05-22 | Added offline stale-reading requirements. |
+| 2026-05-23 | Added Tryweryn dam-release provider requirements. |
 | 2026-05-21 | Migrated to spec schema v4. |

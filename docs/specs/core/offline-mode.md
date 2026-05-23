@@ -250,9 +250,9 @@ The product should frame offline data as planning and community context, not a s
 | OFF-F1 | Offline product requirement | Product/spec | Landed | v0.3 | — | Defines offline use as a core requirement rather than a mobile-only future feature. |
 | OFF-F2 | App-shell cache | PWA | Queued | MVP | — | Cache the app shell so the PWA can reopen without connectivity. |
 | OFF-F3 | Offline river data pack | Map/data | Queued | MVP | — | Save selected river/section geometry and River Go features for offline reading. |
-| OFF-F4 | Offline contribution outbox | Community | Active | MVP | — | IndexedDB/localStorage outbox service exists; contribution UI wiring and sync trigger remain next. |
+| OFF-F4 | Offline contribution outbox | Community | Active | MVP | — | Add form saves queued contribution operations locally and exposes a manual sync trigger. |
 | OFF-F5 | Offline photo queue | Media | Queued | MVP | — | Queue media locally and upload separately when connectivity returns. |
-| OFF-F6 | Sync API model | Backend | Queued | MVP | — | Add idempotent pull/push contracts and client-generated IDs. |
+| OFF-F6 | Sync API model | Backend | Active | MVP | — | Idempotent push endpoint exists and frontend can manually push queued outbox operations. |
 | OFF-F7 | Native offline architecture | Mobile | Parked | Mobile | — | Use this spec to guide the later native app storage/sync design. |
 
 ### Backlog
@@ -272,3 +272,5 @@ The product should frame offline data as planning and community context, not a s
 | --- | --- |
 | 2026-05-22 | Created offline mode spec and architecture implications. |
 | 2026-05-22 | Added first contribution outbox storage service. |
+| 2026-05-22 | Wired contribution form saves into the local outbox and exposed queued status in the UI. |
+| 2026-05-22 | Added manual outbox sync trigger to push queued operations to the API. |

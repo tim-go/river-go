@@ -13,8 +13,9 @@ This document gives a clear view of the feature set we want to deliver and the c
 | Data source strategy | `/docs/strategy/data-sources-and-gaps.md` | Landed | UK provider landscape and community-only gaps are documented. |
 | Demo app shell | `/docs/specs/release/demo-prototype.md` | Landed | React/Vite/Leaflet prototype exists. |
 | River section map | `/docs/specs/core/river-section-map.md` | Landed | Section list, map, section panel, route lines, and markers exist. |
-| Offline mode | `/docs/specs/core/offline-mode.md` | Active | Offline use is a core requirement; initial contribution outbox storage exists, but UI wiring, app-shell cache, and full sync are not complete. |
+| Offline mode | `/docs/specs/core/offline-mode.md` | Active | Contribution saves now queue local outbox operations and can be manually synced; app-shell cache and automatic/background sync are not complete. |
 | River Wye pilot dataset | `/docs/specs/data/river-wye-seed-data.md` | Active | Seven Wye sections are seeded with OSM-derived route traces and source/confidence metadata; access/hazard data remains unverified. |
+| River Tryweryn active sample | `/docs/specs/data/river-tryweryn-seed-data.md` | Active | Active demo fixture now starts near the Llyn Celyn dam release/stilling-basin outflow and follows the Tryweryn to the centre and Bala. |
 | Community add mode | `/docs/specs/community/community-contributions.md` | Active | Add mode, map placement, saved markers, popups, and clearer contribution-type prompts exist in localStorage demo form. |
 | Hazard confirmation/resolution | `/docs/specs/community/trust-and-moderation.md` | Active | Demo supports confirm/resolve for seeded and user-added hazards; no real moderation backend yet. |
 | Environment Agency live levels | `/docs/specs/data/river-level-providers.md` | Active | Temporary frontend EA adapter exists for mapped lower Wye gauge candidates and falls back for unmapped sections. |
@@ -30,11 +31,12 @@ This document gives a clear view of the feature set we want to deliver and the c
 ## Recommended Next Sprint
 
 1. Resolve GCP billing account project-link quota so staging can finish setup.
-2. Run first Wye feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
-3. Verify upstream Wye gauge/provider mappings, likely including NRW for Wales.
-4. Decide backend package shape, migration tooling, and offline sync-friendly IDs before writing API code.
-5. Design the first local/offline contribution outbox before replacing localStorage with API-only persistence.
-6. Add deploy workflow only after billing is linked and staging health check is green.
+2. Run a focused Tryweryn verification pass for the near-dam start, centre rules, release source, lower portage, and Bala finish.
+3. Run first Wye feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
+4. Verify upstream Wye and Tryweryn gauge/provider mappings, likely including NRW for Wales.
+5. Decide backend package shape, migration tooling, and offline sync-friendly IDs before writing API code.
+6. Design the first local/offline contribution outbox before replacing localStorage with API-only persistence.
+7. Add deploy workflow only after billing is linked and staging health check is green.
 
 ## Release Interpretation
 

@@ -204,7 +204,7 @@ The response should report accepted and failed operations separately:
 | SYNC-F1 | Hybrid contribution schema | Backend/data | Landed | v0.3 | — | Relational identity/query fields plus JSONB payload. |
 | SYNC-F2 | Sync operation envelope | Backend/sync | Landed | v0.3 | — | Idempotent operation model for offline retries. |
 | SYNC-F3 | Initial SQL migrations | Backend/data | Landed | v0.3 | — | Local PostGIS-backed schema for contribution sync. |
-| SYNC-F4 | Sync push endpoint | Backend/API | Landed | v0.3 | — | First implementation accepts `contribution.create` operations. |
+| SYNC-F4 | Sync push endpoint | Backend/API | Landed | v0.3 | — | First implementation accepts `contribution.create` operations and is called by manual frontend sync. |
 | SYNC-F5 | Photo metadata schema | Backend/media | Queued | MVP | — | Metadata table exists before binary upload flow is implemented. |
 
 ### Backlog
@@ -222,3 +222,4 @@ The response should report accepted and failed operations separately:
 | --- | --- |
 | 2026-05-22 | Created backend data and sync model spec. |
 | 2026-05-22 | Added first API package, SQL migration, and idempotent sync push smoke test. |
+| 2026-05-22 | Wired frontend manual sync to the sync push endpoint. |

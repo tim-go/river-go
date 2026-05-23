@@ -41,6 +41,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .app-shell {
   display: grid;
   grid-template-rows: 72px minmax(0, calc(100vh - 72px));
@@ -104,6 +109,32 @@ h1 {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.sync-pill {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #f4f7f5;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.sync-pill--queued {
+  border-color: #abc2b5;
+  background: #e6f3ed;
+  color: var(--river-dark);
+}
+
+.sync-action {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.78rem;
 }
 
 .icon-button,
@@ -364,6 +395,16 @@ h1 {
 
 .map-marker--community {
   background: #303a47;
+}
+
+.map-marker--queued {
+  background: var(--river-dark);
+  outline: 5px solid rgba(15, 95, 85, 0.24);
+}
+
+.map-marker--failed {
+  background: var(--danger);
+  outline: 5px solid rgba(180, 35, 24, 0.22);
 }
 
 .map-marker--draft {
@@ -729,6 +770,35 @@ h1 {
   color: #52606d;
 }
 
+.status-chip--sync-local,
+.status-chip--sync-draft {
+  background: #edf1f4;
+  color: #52606d;
+}
+
+.status-chip--sync-queued,
+.status-chip--sync-syncing {
+  background: #e6f3ed;
+  color: var(--river-dark);
+}
+
+.status-chip--sync-synced {
+  background: #e4f5ee;
+  color: #0f5f55;
+}
+
+.status-chip--sync-failed {
+  background: #fff1ef;
+  color: #9b1c12;
+}
+
+.sync-error {
+  margin-top: 6px;
+  color: #9b1c12;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
 .inline-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1002,6 +1072,17 @@ textarea {
 
   .topbar-actions {
     width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .sync-pill {
+    width: 100%;
+    justify-content: center;
+    order: -1;
+  }
+
+  .sync-action {
+    flex: 1;
   }
 
   .primary-action {

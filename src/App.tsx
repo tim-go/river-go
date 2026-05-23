@@ -21,9 +21,16 @@ import {
 import L from "leaflet";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { riverSections } from "./data/demoData";
+import {
+  createContributionOutboxRecord,
+  createContributionOutboxStore,
+} from "./services/contributionOutbox";
+import { syncContributionOutbox } from "./services/contributionSync";
 import { fetchEnvironmentAgencyGaugeReading } from "./services/riverLevels";
 import type {
   Contribution,
+  ContributionOutboxRecord,
+  ContributionSyncStatus,
   ContributionType,
   HazardSeverity,
   HazardReview,
@@ -138,10 +145,30 @@ function defaultObservedDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function syncStatusLabel(status?: ContributionSyncStatus) {
+  if (!status) {
+    return "local demo";
+  }
+
+  const labels: Record<ContributionSyncStatus, string> = {
+    draft: "draft",
+    queued: "queued offline",
+    syncing: "syncing",
+    synced: "synced",
+    failed: "sync failed",
+  };
+
+  return labels[status];
+}
+
 function App() {
+  const outboxStore = useMemo(() => createContributionOutboxStore(), []);
   const [activeSectionId, setActiveSectionId] = useState(riverSections[0].id);
   const [contributions, setContributions] = useState<Contribution[]>(() =>
     loadContributions(),
+  );
+  const [outboxRecords, setOutboxRecords] = useState<ContributionOutboxRecord[]>(
+    [],
   );
   const [hazardReviews, setHazardReviews] = useState<
     Record<string, HazardReview>
@@ -165,6 +192,8 @@ function App() {
     "Selected map location",
   );
   const [isAddMode, setIsAddMode] = useState(false);
+  const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
   const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
   const [isGaugeLoading, setIsGaugeLoading] = useState(false);
   const [isSectionListOpen, setIsSectionListOpen] = useState(false);
@@ -181,10 +210,34 @@ function App() {
   );
 
   const currentContributionOption = optionForType(contributionType);
+  const outboxByContributionId = useMemo(
+    () =>
+      new Map(
+        outboxRecords.map((record) => [record.contribution.id, record] as const),
+      ),
+    [outboxRecords],
+  );
+  const queuedOutboxCount = outboxRecords.filter((record) =>
+    ["draft", "queued", "syncing", "failed"].includes(record.syncStatus),
+  ).length;
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(contributions));
   }, [contributions]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    outboxStore.list().then((records) => {
+      if (isMounted) {
+        setOutboxRecords(records);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [outboxStore]);
 
   useEffect(() => {
     localStorage.setItem(
@@ -215,7 +268,7 @@ function App() {
     };
   }, [activeSection]);
 
-  function submitContribution(event: FormEvent<HTMLFormElement>) {
+  async function submitContribution(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const safeTitle = title.trim();
     const safeDetail = detail.trim();
@@ -256,7 +309,33 @@ function App() {
       location,
     };
 
+    const outboxRecord = createContributionOutboxRecord(nextContribution);
+
     setContributions((current) => [nextContribution, ...current]);
+    setOutboxRecords((current) => [
+      outboxRecord,
+      ...current.filter((record) => record.id !== outboxRecord.id),
+    ]);
+
+    try {
+      await outboxStore.save(outboxRecord);
+    } catch (error) {
+      const failedRecord: ContributionOutboxRecord = {
+        ...outboxRecord,
+        syncStatus: "failed",
+        updatedAt: new Date().toISOString(),
+        lastSyncError:
+          error instanceof Error
+            ? error.message
+            : "Could not save contribution to offline outbox.",
+      };
+      setOutboxRecords((current) =>
+        current.map((record) =>
+          record.id === failedRecord.id ? failedRecord : record,
+        ),
+      );
+    }
+
     setTitle("");
     setDetail("");
     setFormError("");
@@ -266,7 +345,44 @@ function App() {
 
   function resetDemoContributions() {
     setContributions([]);
+    outboxRecords.forEach((record) => {
+      void outboxStore.remove(record.id);
+    });
+    setOutboxRecords([]);
     setHazardReviews({});
+    setSyncMessage("");
+  }
+
+  async function syncOutboxNow() {
+    if (queuedOutboxCount === 0 || isSyncingOutbox) {
+      return;
+    }
+
+    setIsSyncingOutbox(true);
+    setSyncMessage("Syncing local changes...");
+
+    try {
+      const summary = await syncContributionOutbox(outboxStore);
+      const nextRecords = await outboxStore.list();
+      setOutboxRecords(nextRecords);
+
+      if (summary.attempted === 0) {
+        setSyncMessage("No local changes to sync.");
+      } else if (summary.failed > 0) {
+        setSyncMessage(
+          `${summary.synced} synced, ${summary.failed} need retry.`,
+        );
+      } else {
+        setSyncMessage(`${summary.synced} synced.`);
+      }
+    } catch (error) {
+      setSyncMessage(
+        error instanceof Error ? error.message : "Could not sync changes.",
+      );
+      setOutboxRecords(await outboxStore.list());
+    } finally {
+      setIsSyncingOutbox(false);
+    }
   }
 
   function confirmSeedHazard(hazardId: string) {
@@ -375,6 +491,28 @@ function App() {
           </div>
         </div>
         <div className="topbar-actions">
+          <span
+            className={`sync-pill ${
+              queuedOutboxCount > 0 ? "sync-pill--queued" : ""
+            }`}
+            title="Local contribution outbox"
+          >
+            {queuedOutboxCount > 0
+              ? `${queuedOutboxCount} offline change${
+                  queuedOutboxCount === 1 ? "" : "s"
+                }`
+              : "No offline changes"}
+          </span>
+          <button
+            className="ghost-button sync-action"
+            type="button"
+            onClick={syncOutboxNow}
+            disabled={queuedOutboxCount === 0 || isSyncingOutbox}
+            title="Sync local contributions"
+          >
+            <RefreshCw size={16} />
+            {isSyncingOutbox ? "Syncing" : "Sync now"}
+          </button>
           <button
             className="icon-button"
             type="button"
@@ -456,6 +594,7 @@ function App() {
         <RiverMap
           activeSection={activeSection}
           contributions={contributions}
+          outboxRecords={outboxRecords}
           selectedLocation={selectedLocation}
           isAddMode={isAddMode}
           onMapClick={handleMapClick}
@@ -704,7 +843,7 @@ function App() {
             <section className="contribution-box contribution-box--prominent">
               <div className="block-title">
                 <h3>Add local knowledge</h3>
-                <span>{sectionContributions.length} demo updates</span>
+                <span>{sectionContributions.length} local updates</span>
               </div>
               <div className="contribution-actions">
                 {contributionOptions.slice(0, 4).map((option) => {
@@ -838,8 +977,11 @@ function App() {
             <section className="info-block">
               <div className="block-title">
                 <h3>Community Updates</h3>
-                <span>{sectionContributions.length} demo</span>
+                <span>{sectionContributions.length} local</span>
               </div>
+              {syncMessage ? (
+                <p className="source-note">{syncMessage}</p>
+              ) : null}
               <div className="report-list">
                 {activeSection.reports.map((report) => (
                   <div className="report-item" key={report.id}>
@@ -891,7 +1033,27 @@ function App() {
                         <span>
                           {contribution.confirmations ?? 0} confirmations
                         </span>
+                        <span
+                          className={`status-chip status-chip--sync-${
+                            outboxByContributionId.get(contribution.id)
+                              ?.syncStatus ?? "local"
+                          }`}
+                        >
+                          {syncStatusLabel(
+                            outboxByContributionId.get(contribution.id)
+                              ?.syncStatus,
+                          )}
+                        </span>
                       </div>
+                      {outboxByContributionId.get(contribution.id)
+                        ?.lastSyncError ? (
+                        <p className="sync-error">
+                          {
+                            outboxByContributionId.get(contribution.id)
+                              ?.lastSyncError
+                          }
+                        </p>
+                      ) : null}
                       {contribution.type === "hazard" ? (
                         <div className="inline-actions">
                           <button
@@ -966,6 +1128,7 @@ function App() {
 function RiverMap({
   activeSection,
   contributions,
+  outboxRecords,
   selectedLocation,
   isAddMode,
   onMapClick,
@@ -973,6 +1136,7 @@ function RiverMap({
 }: {
   activeSection: RiverSection;
   contributions: Contribution[];
+  outboxRecords: ContributionOutboxRecord[];
   selectedLocation: LatLngTuple | null;
   isAddMode: boolean;
   onMapClick: (
@@ -989,6 +1153,13 @@ function RiverMap({
   const mapClickRef = useRef(onMapClick);
   const previousSectionIdRef = useRef(activeSection.id);
   const shouldFitActiveSectionRef = useRef(true);
+  const outboxByContributionId = useMemo(
+    () =>
+      new Map(
+        outboxRecords.map((record) => [record.contribution.id, record] as const),
+      ),
+    [outboxRecords],
+  );
 
   useEffect(() => {
     callbackRef.current = onSelectSection;
@@ -1158,7 +1329,15 @@ function RiverMap({
         return;
       }
 
-      const kind = contribution.type === "hazard" ? "hazard" : "community";
+      const syncStatus = outboxByContributionId.get(contribution.id)?.syncStatus;
+      const kind =
+        syncStatus === "failed"
+          ? "failed"
+          : syncStatus && syncStatus !== "synced"
+            ? "queued"
+            : contribution.type === "hazard"
+              ? "hazard"
+              : "community";
       const label =
         contribution.type === "hazard"
           ? "!"
@@ -1182,7 +1361,7 @@ function RiverMap({
         .addTo(layers)
         .bindTooltip(contribution.title)
         .bindPopup(
-          `<strong>${contribution.title}</strong><br/>${contribution.type} · ${contribution.status}<br/>${contribution.detail}`,
+          `<strong>${contribution.title}</strong><br/>${contribution.type} · ${contribution.status}<br/>${syncStatusLabel(syncStatus)}<br/>${contribution.detail}`,
         )
         .on("click", () => {
           if (isAddMode && contribution.location) {
@@ -1225,7 +1404,13 @@ function RiverMap({
     }
 
     previousSectionIdRef.current = activeSection.id;
-  }, [activeSection, contributions, selectedLocation, isAddMode]);
+  }, [
+    activeSection,
+    contributions,
+    outboxByContributionId,
+    selectedLocation,
+    isAddMode,
+  ]);
 
   return (
     <section className="map-stage" aria-label="River map">
