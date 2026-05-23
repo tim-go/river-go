@@ -83,6 +83,8 @@ Storage rules:
 
 Moderation rules:
 
+- moderation queues must show attached photo thumbnails or previews before a moderator can approve, confirm, challenge, hide, or reject the contribution
+- contribution-level moderation decisions must update attached photo visibility metadata so an approved photo contribution becomes visible in route, section, and POI details
 - access-point photos and hazard evidence can become public after light moderation or trusted-member promotion
 - privacy-sensitive images, faces, number plates, private land, signage, and disputed access locations need stricter review
 - rejected photos should remain auditable but not public
@@ -160,8 +162,8 @@ Minimum table shape:
 | PHOTO-F2 | Controlled upload intent | Backend/storage | Queued | MVP | — | Separate upload intent remains queued; MVP controls Storage path client-side with Firebase Auth rules and persists metadata during contribution sync. |
 | PHOTO-F3 | Photo metadata persistence | Backend/data | Landed | MVP | v0.4 | PostgreSQL stores contribution-scoped photo paths, URLs, dimensions, sizes, contributor, status, and metadata. |
 | PHOTO-F4 | Firebase Storage binary upload | Storage | Landed | MVP | v0.4 | Browser uploads resized display and thumbnail objects to Firebase Storage. |
-| PHOTO-F5 | Photo display in details | UI | Landed | MVP | v0.4 | Section updates and photo grid show uploaded contribution photos. |
-| PHOTO-F6 | Photo moderation | Admin | Queued | MVP | — | Admins can approve, reject, hide, and inspect uploaded photos. |
+| PHOTO-F5 | Photo display in details | UI | Landed | MVP | v0.4 | Section updates, section photo grid, and POI detail panels show uploaded contribution photos. |
+| PHOTO-F6 | Photo moderation | Admin | Landed | MVP | v0.4 | Moderation queue shows attached photo previews before decision, and decisions update contribution and photo visibility metadata. |
 | PHOTO-F7 | Offline photo queue | PWA/mobile | Queued | MVP | — | Queue metadata and pending binary upload when the user is offline. |
 | PHOTO-F8 | Browser image processing | PWA | Landed | MVP | v0.4 | Browser resizes selected photos to display and thumbnail JPEG derivatives before upload. |
 

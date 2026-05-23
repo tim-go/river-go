@@ -1257,6 +1257,38 @@ h1 {
   line-height: 1.4;
 }
 
+.moderation-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 160px));
+  gap: 8px;
+  margin: 10px 0 8px;
+}
+
+.moderation-photo-grid a {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.moderation-photo-grid img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  object-fit: cover;
+  background: #dde8e2;
+}
+
+.moderation-photo-grid span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .moderation-status {
   grid-area: status;
   display: flex;
@@ -1660,6 +1692,12 @@ h1 {
   flex: 0 0 auto;
   border-radius: 7px;
   object-fit: cover;
+}
+
+.poi-photo-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .hazard-item > div,

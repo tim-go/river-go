@@ -116,6 +116,10 @@ try {
   if (moderatedContribution.moderationStatus !== "confirmed") {
     throw new Error("Smoke sync did not prove moderation decision update");
   }
+
+  if (moderatedContribution.photos[0]?.moderationStatus !== "visible") {
+    throw new Error("Smoke sync did not prove photo moderation state update");
+  }
 } finally {
   await closePool();
 }

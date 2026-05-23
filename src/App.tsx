@@ -65,6 +65,7 @@ import {
 import { uploadContributionPhoto } from "./services/photoUpload";
 import type {
   Contribution,
+  ContributionPhoto,
   ContributionOutboxRecord,
   ContributionSyncStatus,
   ContributionType,
@@ -185,6 +186,7 @@ interface SelectedPoi {
   sourceConfidence?: string;
   navigationLocation?: LatLngTuple;
   syncStatus?: ContributionSyncStatus;
+  photos?: ContributionPhoto[];
 }
 
 const appNavItems: Array<{
@@ -701,6 +703,22 @@ function PoiDetailPanel({
             </span>
           </section>
         ) : null}
+        {poi.photos?.length ? (
+          <section className="info-block">
+            <h3>Photos</h3>
+            <div className="poi-photo-grid">
+              {poi.photos.map((photo) => (
+                <figure key={photo.id}>
+                  <img src={photo.displayUrl || photo.thumbnailUrl} alt="" />
+                  <figcaption>
+                    <strong>{photo.caption || poi.title}</strong>
+                    {photo.originalName ? <span>{photo.originalName}</span> : null}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </section>
+        ) : null}
         <div className="form-actions">
           {poi.navigationLocation ? (
             <a
@@ -810,6 +828,9 @@ function App() {
 
   const sectionContributions = contributions.filter(
     (contribution) => contribution.sectionId === activeSection.id,
+  );
+  const sectionContributionPhotos = sectionContributions.flatMap((contribution) =>
+    (contribution.photos ?? []).map((photo) => ({ contribution, photo })),
   );
 
   const currentContributionOption = optionForType(contributionType);
@@ -2280,23 +2301,21 @@ function App() {
                     </figcaption>
                   </figure>
                 ))}
-                {sectionContributions
-                  .filter((contribution) => contribution.type === "photo")
-                  .map((photo) => (
-                    <figure key={photo.id}>
-                      {photo.photos?.[0]?.displayUrl ? (
-                        <img src={photo.photos[0].displayUrl} alt="" />
-                      ) : (
-                        <div className="photo-placeholder">
-                          <Camera size={24} />
-                        </div>
-                      )}
-                      <figcaption>
-                        <strong>{photo.title}</strong>
-                        <span>{photo.detail}</span>
-                      </figcaption>
-                    </figure>
-                  ))}
+                {sectionContributionPhotos.map(({ contribution, photo }) => (
+                  <figure key={photo.id}>
+                    {photo.displayUrl ? (
+                      <img src={photo.displayUrl} alt="" />
+                    ) : (
+                      <div className="photo-placeholder">
+                        <Camera size={24} />
+                      </div>
+                    )}
+                    <figcaption>
+                      <strong>{contribution.title}</strong>
+                      <span>{photo.caption || contribution.detail}</span>
+                    </figcaption>
+                  </figure>
+                ))}
               </div>
             </section>
 
@@ -2814,6 +2833,28 @@ function App() {
                                         · {contribution.sectionId}
                                       </span>
                                       <p>{contribution.detail}</p>
+                                      {contribution.photos?.length ? (
+                                        <div className="moderation-photo-grid">
+                                          {contribution.photos.map((photo) => (
+                                            <a
+                                              key={photo.id}
+                                              href={photo.displayUrl}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                            >
+                                              <img
+                                                src={photo.thumbnailUrl || photo.displayUrl}
+                                                alt={photo.caption || contribution.title}
+                                              />
+                                              <span>
+                                                {photo.caption ||
+                                                  photo.originalName ||
+                                                  "Photo"}
+                                              </span>
+                                            </a>
+                                          ))}
+                                        </div>
+                                      ) : null}
                                       <small className="moderation-row__meta">
                                         {contribution.author} · observed{" "}
                                         {contribution.dateObserved}
@@ -3313,6 +3354,7 @@ function RiverMap({
                 sourceLabel: contribution.author,
                 sourceConfidence: "community",
                 syncStatus,
+                photos: contribution.photos,
               }),
           }),
         )

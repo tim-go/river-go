@@ -221,37 +221,13 @@ export async function applyModerationDecision(
   client: PoolClient | typeof pool = pool,
 ): Promise<ApiContribution> {
   const nextStatus = moderationStatusForDecision(decision);
-  const result = await client.query<ContributionRow>(
-    `WITH updated AS (
-      UPDATE contributions
-      SET moderation_status = $2,
-        updated_at = now(),
-        revision = revision + 1
-      WHERE id = $1
-      RETURNING *
-    )
-    SELECT
-      updated.id,
-      updated.section_id,
-      updated.type,
-      CASE
-        WHEN updated.geometry IS NULL THEN NULL
-        ELSE ST_AsGeoJSON(updated.geometry)::json
-      END AS geometry,
-      updated.payload,
-      ${photoAggregateSql("updated.id")} AS photos,
-      updated.observed_at,
-      updated.created_at,
-      updated.updated_at,
-      updated.moderation_status,
-      updated.sync_status,
-      updated.revision,
-      updated.member_id,
-      m.display_name,
-      m.email,
-      m.trust_level
-    FROM updated
-    LEFT JOIN members m ON m.id = updated.member_id`,
+  const nextPhotoStatus = photoModerationStatusForDecision(decision);
+  const result = await client.query(
+    `UPDATE contributions
+    SET moderation_status = $2,
+      updated_at = now(),
+      revision = revision + 1
+    WHERE id = $1`,
     [contributionId, nextStatus],
   );
 
@@ -259,7 +235,16 @@ export async function applyModerationDecision(
     throw new HttpError(404, "Contribution not found.");
   }
 
-  return mapContributionRow(result.rows[0]);
+  if (nextPhotoStatus) {
+    await client.query(
+      `UPDATE contribution_photos
+      SET moderation_status = $2
+      WHERE contribution_id = $1`,
+      [contributionId, nextPhotoStatus],
+    );
+  }
+
+  return getContributionById(contributionId, client);
 }
 
 export function mapContributionRow(row: ContributionRow): ApiContribution {
@@ -376,4 +361,16 @@ function moderationStatusForDecision(
   if (decision === "hide") return "hidden";
   if (decision === "reject") return "rejected";
   return "resolved";
+}
+
+function photoModerationStatusForDecision(decision: ModerationDecision): string | null {
+  if (decision === "approve" || decision === "confirm" || decision === "resolve") {
+    return "visible";
+  }
+
+  if (decision === "hide") return "hidden";
+  if (decision === "reject") return "rejected";
+  if (decision === "challenge") return "pending";
+
+  return null;
 }
