@@ -34,6 +34,7 @@ import {
 import L from "leaflet";
 import { FormEvent, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { riverSections } from "./data/demoData";
+import { getSeedPoiWhat3Words } from "./data/seedLocationReferences";
 import {
   applyContributionModerationDecision,
   deleteContribution,
@@ -110,12 +111,29 @@ const SEARCH_FOCUS_ZOOM = 15;
 const LIVE_LOCATION_FOCUS_ZOOM = 16;
 const NEARBY_POI_MAX_KM = 5;
 
+type RouteDetailsTab =
+  | "details"
+  | "levels"
+  | "access"
+  | "hazards"
+  | "updates"
+  | "photos";
+
 const bandLabels = {
   "too-low": "Too low",
   good: "Good",
   high: "High",
   unknown: "Unknown",
 };
+
+const routeDetailsTabs: Array<{ id: RouteDetailsTab; label: string }> = [
+  { id: "details", label: "Details" },
+  { id: "levels", label: "Levels" },
+  { id: "access", label: "Access" },
+  { id: "hazards", label: "Hazards" },
+  { id: "updates", label: "Updates" },
+  { id: "photos", label: "Photos" },
+];
 
 const contributionOptions: Array<{
   type: ContributionType;
@@ -501,6 +519,8 @@ function createMapPopupContent({
   title,
   subtitle,
   summary,
+  imageUrl,
+  imageAlt,
   detailsLabel = "Details",
   navigationLocation,
   navigationLabel = "Maps",
@@ -510,6 +530,8 @@ function createMapPopupContent({
   title: string;
   subtitle: string;
   summary: string;
+  imageUrl?: string;
+  imageAlt?: string;
   detailsLabel?: string;
   navigationLocation?: LatLngTuple;
   navigationLabel?: string;
@@ -524,6 +546,16 @@ function createMapPopupContent({
 
   const meta = L.DomUtil.create("span", "", container);
   meta.textContent = subtitle;
+
+  if (imageUrl) {
+    const image = L.DomUtil.create(
+      "img",
+      "map-popup-card__image",
+      container,
+    );
+    image.src = imageUrl;
+    image.alt = imageAlt ?? "";
+  }
 
   const body = L.DomUtil.create("p", "", container);
   body.textContent = summary;
@@ -1386,6 +1418,8 @@ function App() {
     loadFavouriteSectionIds(),
   );
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [routeDetailsTab, setRouteDetailsTab] =
+    useState<RouteDetailsTab>("details");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [contributionType, setContributionType] =
     useState<ContributionType>("hazard");
@@ -2774,8 +2808,20 @@ function App() {
     setActiveSectionId(section.id);
     setSectionFocusNonce((current) => current + 1);
     setSelectedPoi(null);
+    setRouteDetailsTab("details");
     setIsPanelOpen(true);
     setIsSectionListOpen(false);
+  }
+
+  function toggleRouteDetailsPanel() {
+    setSelectedPoi(null);
+    setIsPanelOpen((current) => {
+      const next = !current;
+      if (next) {
+        setRouteDetailsTab("details");
+      }
+      return next;
+    });
   }
 
   function openPoiDetails(poi: SelectedPoi) {
@@ -2928,7 +2974,7 @@ function App() {
                 isPanelOpen ? "map-panel-toggle--active" : ""
               }`}
               type="button"
-              onClick={() => setIsPanelOpen((current) => !current)}
+              onClick={toggleRouteDetailsPanel}
               aria-pressed={isPanelOpen}
             >
               <MapPinned size={16} />
@@ -3056,7 +3102,15 @@ function App() {
         >
           <div className="section-list__header">
             <span>Sections</span>
-            <ChevronDown size={16} />
+            <button
+              className="icon-button icon-button--compact section-list__close"
+              type="button"
+              aria-label="Close sections"
+              title="Close"
+              onClick={() => setIsSectionListOpen(false)}
+            >
+              <X size={16} />
+            </button>
           </div>
           {riverSections.map((section) => (
             <button
@@ -3354,339 +3408,389 @@ function App() {
             </div>
           </div>
 
-          <div className="panel-content">
-            <div className="stat-grid">
-              <Metric
-                icon={Navigation}
-                label="Distance"
-                value={`${activeSection.distanceKm} km`}
-              />
-              <Metric
-                icon={Clock3}
-                label="Time"
-                value={activeSection.estimatedTime}
-              />
-              <Metric
-                icon={Droplets}
-                label="Level"
-                value={activeSection.levelLabel}
-              />
-              <Metric
-                icon={ShieldAlert}
-                label="Difficulty"
-                value={activeSection.difficulty}
-              />
+          <div className="panel-content panel-content--tabbed">
+            <div
+              className="segmented-control route-detail-tabs"
+              role="tablist"
+              aria-label="Route details"
+            >
+              {routeDetailsTabs.map((tab) => (
+                <button
+                  className={routeDetailsTab === tab.id ? "active" : ""}
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={routeDetailsTab === tab.id}
+                  onClick={() => setRouteDetailsTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
-            <p className="section-summary">{activeSection.summary}</p>
-
-            <div className="notice">
-              <AlertTriangle size={18} />
-              <span>{activeSection.runnableGuidance}</span>
-            </div>
-
-            <section className="contribution-box contribution-box--prominent">
-              <div className="block-title">
-                <h3>Add info</h3>
-                <span>{sectionContributions.length} local updates</span>
-              </div>
-              <div className="contribution-actions">
-                {contributionOptions.slice(0, 4).map((option) => {
-                  const Icon = option.icon;
-                  return (
-                    <button
-                      className="ghost-button"
-                      key={option.type}
-                      type="button"
-                      onClick={() => startAddMode(option.type)}
-                    >
-                      <Icon size={16} />
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="info-block">
-              <h3>Gauge</h3>
-              <div className="gauge-card">
-                <div>
-                  <strong>{liveGauge?.gauge.name ?? activeSection.gauge.name}</strong>
-                  <span>
-                    {isGaugeLoading
-                      ? "Checking Environment Agency"
-                      : liveGauge?.gauge.observedAt
-                        ? new Date(liveGauge.gauge.observedAt).toLocaleString()
-                        : activeSection.gauge.observedAt}
-                  </span>
+            {routeDetailsTab === "details" ? (
+              <div className="route-tab-panel" role="tabpanel">
+                <div className="route-summary-panel" aria-label="Route summary">
+                  <div className="route-summary-item">
+                    <Navigation size={15} />
+                    <span>Distance</span>
+                    <strong>{activeSection.distanceKm} km</strong>
+                  </div>
+                  <div className="route-summary-item">
+                    <Clock3 size={15} />
+                    <span>Time</span>
+                    <strong>{activeSection.estimatedTime}</strong>
+                  </div>
+                  <div className="route-summary-item">
+                    <Droplets size={15} />
+                    <span>Level</span>
+                    <strong>{activeSection.levelLabel}</strong>
+                  </div>
+                  <div className="route-summary-item">
+                    <ShieldAlert size={15} />
+                    <span>Difficulty</span>
+                    <strong>{activeSection.difficulty}</strong>
+                  </div>
                 </div>
-                <div>
-                  <strong>
-                    {liveGauge?.gauge.latestValue != null
-                      ? `${liveGauge.gauge.latestValue.toFixed(2)} ${liveGauge.gauge.unit}`
-                      : activeSection.gauge.value}
-                  </strong>
-                  <span>{liveGauge?.state ?? activeSection.gauge.trend}</span>
+
+                <p className="section-summary">{activeSection.summary}</p>
+
+                <div className="notice">
+                  <AlertTriangle size={18} />
+                  <span>{activeSection.runnableGuidance}</span>
                 </div>
-              </div>
-              <p className="source-note">
-                {liveGauge?.message ??
-                  "Seed gauge context only. Provider mapping is still being verified."}
-              </p>
-            </section>
 
-            <section className="info-block">
-              <div className="block-title">
-                <h3>Source confidence</h3>
-                <span>{activeSection.source?.confidence ?? "demo"}</span>
+                <section className="info-block">
+                  <div className="block-title">
+                    <h3>Source confidence</h3>
+                    <span>{activeSection.source?.confidence ?? "demo"}</span>
+                  </div>
+                  <p>
+                    {activeSection.source?.notes ??
+                      "Demo fixture data. Verify before using for public trip planning."}
+                  </p>
+                </section>
               </div>
-              <p>
-                {activeSection.source?.notes ??
-                  "Demo fixture data. Verify before using for public trip planning."}
-              </p>
-            </section>
+            ) : null}
 
-            <section className="info-block">
-              <h3>Access</h3>
-              <p>{activeSection.accessSummary}</p>
-              <div className="access-list">
-                {activeSection.accessPoints.map((accessPoint) => (
-                  <div className="compact-item" key={accessPoint.id}>
-                    <MapPin size={16} />
+            {routeDetailsTab === "levels" ? (
+              <div className="route-tab-panel" role="tabpanel">
+                <section className="info-block info-block--first">
+                  <h3>Gauge</h3>
+                  <div className="gauge-card">
                     <div>
-                      <strong>{accessPoint.name}</strong>
-                      <span>{accessPoint.notes}</span>
-                      <a
-                        className="compact-nav-link"
-                        href={navigationUrl(accessPoint.location)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <ExternalLink size={14} />
-                        Navigate
-                      </a>
+                      <strong>{liveGauge?.gauge.name ?? activeSection.gauge.name}</strong>
+                      <span>
+                        {isGaugeLoading
+                          ? "Checking Environment Agency"
+                          : liveGauge?.gauge.observedAt
+                            ? new Date(liveGauge.gauge.observedAt).toLocaleString()
+                            : activeSection.gauge.observedAt}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>
+                        {liveGauge?.gauge.latestValue != null
+                          ? `${liveGauge.gauge.latestValue.toFixed(2)} ${liveGauge.gauge.unit}`
+                          : activeSection.gauge.value}
+                      </strong>
+                      <span>{liveGauge?.state ?? activeSection.gauge.trend}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </section>
+                  <p className="source-note">
+                    {liveGauge?.message ??
+                      "Seed gauge context only. Provider mapping is still being verified."}
+                  </p>
+                </section>
 
-            <section className="info-block">
-              <div className="block-title">
-                <h3>Hazards</h3>
-                <span>{activeSection.hazards.length} seeded</span>
+                <section className="info-block">
+                  <h3>Runnable guidance</h3>
+                  <div className="notice">
+                    <AlertTriangle size={18} />
+                    <span>{activeSection.runnableGuidance}</span>
+                  </div>
+                </section>
               </div>
-              {activeSection.hazards.map((hazard) => {
-                const review = hazardReviews[hazard.id];
-                const status = review?.status ?? hazard.status;
-                const lastConfirmed =
-                  review?.lastConfirmed ?? hazard.lastConfirmed;
-                const confirmations = review?.confirmations ?? 0;
+            ) : null}
 
-                return (
-                  <div className="hazard-item" key={hazard.id}>
-                    <AlertTriangle size={17} />
-                    <div>
-                      <strong>{hazard.title}</strong>
-                      <span>
-                        {hazard.severity} · {status} · confirmed{" "}
-                        {lastConfirmed}
-                      </span>
-                      <p>{hazard.description}</p>
-                      <div className="verification-row">
-                        <span className={`status-chip status-chip--${status}`}>
-                          {status}
-                        </span>
-                        {confirmations > 0 ? (
-                          <span>{confirmations} demo confirmations</span>
+            {routeDetailsTab === "access" ? (
+              <div className="route-tab-panel" role="tabpanel">
+                <section className="info-block info-block--first">
+                  <h3>Access</h3>
+                  <p>{activeSection.accessSummary}</p>
+                  <div className="access-list">
+                    {activeSection.accessPoints.map((accessPoint) => (
+                      <div className="compact-item" key={accessPoint.id}>
+                        <MapPin size={16} />
+                        <div>
+                          <strong>{accessPoint.name}</strong>
+                          <span>{accessPoint.notes}</span>
+                          <a
+                            className="compact-nav-link"
+                            href={navigationUrl(accessPoint.location)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <ExternalLink size={14} />
+                            Navigate
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            ) : null}
+
+            {routeDetailsTab === "hazards" ? (
+              <div className="route-tab-panel" role="tabpanel">
+                <section className="info-block info-block--first">
+                  <div className="block-title">
+                    <h3>Hazards</h3>
+                    <span>{activeSection.hazards.length} seeded</span>
+                  </div>
+                  {activeSection.hazards.map((hazard) => {
+                    const review = hazardReviews[hazard.id];
+                    const status = review?.status ?? hazard.status;
+                    const lastConfirmed =
+                      review?.lastConfirmed ?? hazard.lastConfirmed;
+                    const confirmations = review?.confirmations ?? 0;
+
+                    return (
+                      <div className="hazard-item" key={hazard.id}>
+                        <AlertTriangle size={17} />
+                        <div>
+                          <strong>{hazard.title}</strong>
+                          <span>
+                            {hazard.severity} · {status} · confirmed{" "}
+                            {lastConfirmed}
+                          </span>
+                          <p>{hazard.description}</p>
+                          <div className="verification-row">
+                            <span className={`status-chip status-chip--${status}`}>
+                              {status}
+                            </span>
+                            {confirmations > 0 ? (
+                              <span>{confirmations} demo confirmations</span>
+                            ) : (
+                              <span>needs local confirmation</span>
+                            )}
+                          </div>
+                          <div className="inline-actions">
+                            <button
+                              className="ghost-button ghost-button--compact"
+                              type="button"
+                              onClick={() => confirmSeedHazard(hazard.id)}
+                            >
+                              <CheckCircle2 size={15} />
+                              Confirm
+                            </button>
+                            <button
+                              className="ghost-button ghost-button--compact"
+                              type="button"
+                              onClick={() => resolveSeedHazard(hazard.id)}
+                            >
+                              <Flag size={15} />
+                              Resolve
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </section>
+              </div>
+            ) : null}
+
+            {routeDetailsTab === "updates" ? (
+              <div className="route-tab-panel" role="tabpanel">
+                <section className="contribution-box contribution-box--prominent">
+                  <div className="block-title">
+                    <h3>Add info</h3>
+                    <span>{sectionContributions.length} local updates</span>
+                  </div>
+                  <div className="contribution-actions">
+                    {contributionOptions.slice(0, 4).map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <button
+                          className="ghost-button"
+                          key={option.type}
+                          type="button"
+                          onClick={() => startAddMode(option.type)}
+                        >
+                          <Icon size={16} />
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="info-block">
+                  <div className="block-title">
+                    <h3>Community Updates</h3>
+                    <span>{sectionContributions.length} local</span>
+                  </div>
+                  {syncMessage ? (
+                    <p className="source-note">{syncMessage}</p>
+                  ) : null}
+                  <div className="report-list">
+                    {activeSection.reports.map((report) => (
+                      <div className="report-item" key={report.id}>
+                        <MessageSquare size={16} />
+                        <div>
+                          <strong>{report.type}</strong>
+                          <span>
+                            {report.author} · {report.dateObserved}
+                          </span>
+                          <p>{report.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {sectionContributions.map((contribution) => (
+                      <div className="report-item" key={contribution.id}>
+                        {contribution.type === "hazard" ? (
+                          <AlertTriangle size={16} />
+                        ) : contribution.type === "photo" ? (
+                          <Camera size={16} />
+                        ) : contribution.type === "feature" ? (
+                          <MapPin size={16} />
+                        ) : contribution.type === "access" ? (
+                          <MapPinned size={16} />
                         ) : (
-                          <span>needs local confirmation</span>
+                          <MessageSquare size={16} />
                         )}
-                      </div>
-                      <div className="inline-actions">
-                        <button
-                          className="ghost-button ghost-button--compact"
-                          type="button"
-                          onClick={() => confirmSeedHazard(hazard.id)}
-                        >
-                          <CheckCircle2 size={15} />
-                          Confirm
-                        </button>
-                        <button
-                          className="ghost-button ghost-button--compact"
-                          type="button"
-                          onClick={() => resolveSeedHazard(hazard.id)}
-                        >
-                          <Flag size={15} />
-                          Resolve
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </section>
-
-            <section className="info-block">
-              <div className="block-title">
-                <h3>Community Updates</h3>
-                <span>{sectionContributions.length} local</span>
-              </div>
-              {syncMessage ? (
-                <p className="source-note">{syncMessage}</p>
-              ) : null}
-              <div className="report-list">
-                {activeSection.reports.map((report) => (
-                  <div className="report-item" key={report.id}>
-                    <MessageSquare size={16} />
-                    <div>
-                      <strong>{report.type}</strong>
-                      <span>
-                        {report.author} · {report.dateObserved}
-                      </span>
-                      <p>{report.text}</p>
-                    </div>
-                  </div>
-                ))}
-                {sectionContributions.map((contribution) => (
-                  <div className="report-item" key={contribution.id}>
-                    {contribution.type === "hazard" ? (
-                      <AlertTriangle size={16} />
-                    ) : contribution.type === "photo" ? (
-                      <Camera size={16} />
-                    ) : contribution.type === "feature" ? (
-                      <MapPin size={16} />
-                    ) : contribution.type === "access" ? (
-                      <MapPinned size={16} />
-                    ) : (
-                      <MessageSquare size={16} />
-                    )}
-                    <div>
-                      <strong>{contribution.title}</strong>
-                      <span>
-                        {contribution.author} · {contribution.type} · observed{" "}
-                        {contribution.dateObserved ?? "today"} ·{" "}
-                        {contribution.createdAt}
-                      </span>
-                      {contribution.craftType ? (
-                        <span>{contribution.craftType}</span>
-                      ) : null}
-                      {contribution.location ? (
-                        <span>{formatLocation(contribution.location)}</span>
-                      ) : null}
-                      <p>{contribution.detail}</p>
-                      {contribution.photos?.length ? (
-                        <div className="contribution-photo-strip">
-                          {contribution.photos.map((photo) => (
-                            <img
-                              key={photo.id}
-                              src={photo.thumbnailUrl || photo.displayUrl}
-                              alt=""
-                            />
-                          ))}
+                        <div>
+                          <strong>{contribution.title}</strong>
+                          <span>
+                            {contribution.author} · {contribution.type} · observed{" "}
+                            {contribution.dateObserved ?? "today"} ·{" "}
+                            {contribution.createdAt}
+                          </span>
+                          {contribution.craftType ? (
+                            <span>{contribution.craftType}</span>
+                          ) : null}
+                          {contribution.location ? (
+                            <span>{formatLocation(contribution.location)}</span>
+                          ) : null}
+                          <p>{contribution.detail}</p>
+                          {contribution.photos?.length ? (
+                            <div className="contribution-photo-strip">
+                              {contribution.photos.map((photo) => (
+                                <img
+                                  key={photo.id}
+                                  src={photo.thumbnailUrl || photo.displayUrl}
+                                  alt=""
+                                />
+                              ))}
+                            </div>
+                          ) : null}
+                          <div className="verification-row">
+                            <span
+                              className={`status-chip status-chip--${
+                                contribution.status ?? "confirmed"
+                              }`}
+                            >
+                              {contributionStatusLabel(
+                                contribution.status ?? "confirmed",
+                              )}
+                            </span>
+                            <span>
+                              {contribution.confirmations ?? 0} confirmations
+                            </span>
+                            <span
+                              className={`status-chip status-chip--sync-${
+                                outboxByContributionId.get(contribution.id)
+                                  ?.syncStatus ?? "local"
+                              }`}
+                            >
+                              {syncStatusLabel(
+                                outboxByContributionId.get(contribution.id)
+                                  ?.syncStatus,
+                              )}
+                            </span>
+                          </div>
+                          {outboxByContributionId.get(contribution.id)
+                            ?.lastSyncError ? (
+                            <p className="sync-error">
+                              {
+                                outboxByContributionId.get(contribution.id)
+                                  ?.lastSyncError
+                              }
+                            </p>
+                          ) : null}
+                          {contribution.type === "hazard" ? (
+                            <div className="inline-actions">
+                              <button
+                                className="ghost-button ghost-button--compact"
+                                type="button"
+                                onClick={() =>
+                                  updateContributionStatus(
+                                    contribution.id,
+                                    "confirmed",
+                                  )
+                                }
+                              >
+                                <CheckCircle2 size={15} />
+                                Confirm
+                              </button>
+                              <button
+                                className="ghost-button ghost-button--compact"
+                                type="button"
+                                onClick={() =>
+                                  updateContributionStatus(
+                                    contribution.id,
+                                    "resolved",
+                                  )
+                                }
+                              >
+                                <Flag size={15} />
+                                Resolve
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
-                      ) : null}
-                      <div className="verification-row">
-                        <span
-                          className={`status-chip status-chip--${
-                            contribution.status ?? "confirmed"
-                          }`}
-                        >
-                          {contributionStatusLabel(
-                            contribution.status ?? "confirmed",
-                          )}
-                        </span>
-                        <span>
-                          {contribution.confirmations ?? 0} confirmations
-                        </span>
-                        <span
-                          className={`status-chip status-chip--sync-${
-                            outboxByContributionId.get(contribution.id)
-                              ?.syncStatus ?? "local"
-                          }`}
-                        >
-                          {syncStatusLabel(
-                            outboxByContributionId.get(contribution.id)
-                              ?.syncStatus,
-                          )}
-                        </span>
                       </div>
-                      {outboxByContributionId.get(contribution.id)
-                        ?.lastSyncError ? (
-                        <p className="sync-error">
-                          {
-                            outboxByContributionId.get(contribution.id)
-                              ?.lastSyncError
-                          }
-                        </p>
-                      ) : null}
-                      {contribution.type === "hazard" ? (
-                        <div className="inline-actions">
-                          <button
-                            className="ghost-button ghost-button--compact"
-                            type="button"
-                            onClick={() =>
-                              updateContributionStatus(
-                                contribution.id,
-                                "confirmed",
-                              )
-                            }
-                          >
-                            <CheckCircle2 size={15} />
-                            Confirm
-                          </button>
-                          <button
-                            className="ghost-button ghost-button--compact"
-                            type="button"
-                            onClick={() =>
-                              updateContributionStatus(
-                                contribution.id,
-                                "resolved",
-                              )
-                            }
-                          >
-                            <Flag size={15} />
-                            Resolve
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
+                    ))}
                   </div>
-                ))}
+                </section>
               </div>
-            </section>
+            ) : null}
 
-            <section className="info-block">
-              <h3>Photos</h3>
-              <div className="photo-grid">
-                {activeSection.photos.map((photo) => (
-                  <figure key={photo.id}>
-                    <img src={photo.url} alt="" />
-                    <figcaption>
-                      <strong>{photo.title}</strong>
-                      <span>{photo.caption}</span>
-                    </figcaption>
-                  </figure>
-                ))}
-                {sectionContributionPhotos.map(({ contribution, photo }) => (
-                  <figure key={photo.id}>
-                    {photo.displayUrl ? (
-                      <img src={photo.displayUrl} alt="" />
-                    ) : (
-                      <div className="photo-placeholder">
-                        <Camera size={24} />
-                      </div>
-                    )}
-                    <figcaption>
-                      <strong>{contribution.title}</strong>
-                      <span>{photo.caption || contribution.detail}</span>
-                    </figcaption>
-                  </figure>
-                ))}
+            {routeDetailsTab === "photos" ? (
+              <div className="route-tab-panel" role="tabpanel">
+                <section className="info-block info-block--first">
+                  <h3>Photos</h3>
+                  <div className="photo-grid">
+                    {activeSection.photos.map((photo) => (
+                      <figure key={photo.id}>
+                        <img src={photo.url} alt="" />
+                        <figcaption>
+                          <strong>{photo.title}</strong>
+                          <span>{photo.caption}</span>
+                        </figcaption>
+                      </figure>
+                    ))}
+                    {sectionContributionPhotos.map(({ contribution, photo }) => (
+                      <figure key={photo.id}>
+                        {photo.displayUrl ? (
+                          <img src={photo.displayUrl} alt="" />
+                        ) : (
+                          <div className="photo-placeholder">
+                            <Camera size={24} />
+                          </div>
+                        )}
+                        <figcaption>
+                          <strong>{contribution.title}</strong>
+                          <span>{photo.caption || contribution.detail}</span>
+                        </figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                </section>
               </div>
-            </section>
-
+            ) : null}
           </div>
         </section>
       </section>
@@ -5524,6 +5628,7 @@ function RiverMap({
                   sourceLabel: accessPoint.source?.label,
                   sourceConfidence: accessPoint.source?.confidence,
                   navigationLocation: accessPoint.location,
+                  what3words: getSeedPoiWhat3Words(section.id, accessPoint.id),
                 }),
             }),
           )
@@ -5565,6 +5670,7 @@ function RiverMap({
                 sourceLabel: hazard.source?.label,
                 sourceConfidence: hazard.source?.confidence,
                 navigationLocation: hazard.location,
+                what3words: getSeedPoiWhat3Words(section.id, hazard.id),
               }),
           }),
           )
@@ -5606,6 +5712,7 @@ function RiverMap({
                 sourceLabel: feature.source?.label,
                 sourceConfidence: feature.source?.confidence,
                 navigationLocation: feature.location,
+                what3words: getSeedPoiWhat3Words(section.id, feature.id),
               }),
           }),
           )
@@ -5646,6 +5753,7 @@ function RiverMap({
                 sourceLabel: section.gauge.source?.label,
                 sourceConfidence: section.gauge.source?.confidence,
                 navigationLocation: section.gauge.location,
+                what3words: getSeedPoiWhat3Words(section.id, section.gauge.id),
               }),
           }),
         )
@@ -5697,6 +5805,15 @@ function RiverMap({
             title: contribution.title,
             subtitle: `${contribution.type} · ${contributionStatusLabel(contribution.status)}`,
             summary: contribution.detail,
+            imageUrl:
+              contribution.type === "photo"
+                ? contribution.photos?.[0]?.thumbnailUrl ||
+                  contribution.photos?.[0]?.displayUrl
+                : undefined,
+            imageAlt:
+              contribution.type === "photo"
+                ? contribution.photos?.[0]?.caption || contribution.title
+                : undefined,
             navigationLocation: contribution.location,
             onDetails: () =>
               poiDetailsRef.current({
