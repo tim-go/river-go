@@ -238,7 +238,13 @@ type AppSection = "search" | "map" | "groups" | "profile" | "more" | "admin";
 type AdminPage = "index" | "members" | "member-detail" | "moderation" | "system";
 type AuthSheetMode = "welcome" | "save-required";
 type SearchMode = "name" | "point" | "favourites";
-type ProfileMode = "account" | "activity";
+type ProfileMode =
+  | "account"
+  | "public"
+  | "emergency"
+  | "sync"
+  | "activity"
+  | "photos";
 
 const memberRoleOptions: MemberRole[] = [
   "MEMBER",
@@ -2149,7 +2155,7 @@ function App() {
   useEffect(() => {
     let isMounted = true;
 
-    if (!authState.user || profileMode !== "account") {
+    if (!authState.user || profileMode !== "emergency") {
       return () => {
         isMounted = false;
       };
@@ -4536,7 +4542,37 @@ function App() {
                     onClick={() => setProfileMode("account")}
                   >
                     <UserRound size={16} />
-                    My Account
+                    Account
+                  </button>
+                  <button
+                    className={profileMode === "public" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={profileMode === "public"}
+                    onClick={() => setProfileMode("public")}
+                  >
+                    <UserRound size={16} />
+                    Public
+                  </button>
+                  <button
+                    className={profileMode === "emergency" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={profileMode === "emergency"}
+                    onClick={() => setProfileMode("emergency")}
+                  >
+                    <ShieldCheck size={16} />
+                    ICE
+                  </button>
+                  <button
+                    className={profileMode === "sync" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={profileMode === "sync"}
+                    onClick={() => setProfileMode("sync")}
+                  >
+                    <RefreshCw size={16} />
+                    Sync
                   </button>
                   <button
                     className={profileMode === "activity" ? "active" : ""}
@@ -4546,7 +4582,17 @@ function App() {
                     onClick={() => setProfileMode("activity")}
                   >
                     <MapPin size={16} />
-                    Points & Photos
+                    Points
+                  </button>
+                  <button
+                    className={profileMode === "photos" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={profileMode === "photos"}
+                    onClick={() => setProfileMode("photos")}
+                  >
+                    <Camera size={16} />
+                    Photos
                   </button>
                 </div>
                 {profileMode === "account" ? (
@@ -4597,7 +4643,65 @@ function App() {
                     {authMessage || authState.error || memberMessage}
                   </p>
                     ) : null}
-                    {isSignedIn ? (
+                    <div className="profile-stats">
+                  <Metric
+                    icon={MessageSquare}
+                    label="Local updates"
+                    value={String(contributions.length)}
+                  />
+                  <Metric
+                    icon={RefreshCw}
+                    label="Outbox"
+                    value={String(queuedOutboxCount)}
+                  />
+                  <Metric
+                    icon={ShieldCheck}
+                    label="Trust"
+                    value={memberProfile?.trustLevel ?? "Unsigned"}
+                  />
+                  <Metric
+                    icon={MapIcon}
+                    label="Current section"
+                    value={activeSection.riverName}
+                  />
+                    </div>
+                    <div className="profile-actions">
+                  {isSignedIn ? (
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={handleSignOut}
+                    >
+                      <LogOut size={16} />
+                      Sign out
+                    </button>
+                  ) : null}
+                    </div>
+                  </section>
+                ) : null}
+                {profileMode === "public" ? (
+                  <section className="profile-mode-panel" aria-label="Public profile">
+                    {!isSignedIn ? (
+                      <section className="sign-in-card">
+                        <LogIn size={22} />
+                        <div>
+                          <h3>Sign in to edit your public name</h3>
+                          <p>
+                            Your public contributor name is shown beside local
+                            knowledge, photos, and confirmations.
+                          </p>
+                        </div>
+                        <button
+                          className="primary-action"
+                          type="button"
+                          onClick={handleSignIn}
+                          disabled={!isAuthConfigured}
+                        >
+                          <LogIn size={16} />
+                          Sign in
+                        </button>
+                      </section>
+                    ) : (
                       <section className="profile-card profile-card--stacked">
                         <div className="block-title">
                           <div>
@@ -4628,6 +4732,9 @@ function App() {
                           wording, impersonation, or organisation names you do not
                           represent.
                         </p>
+                        {memberMessage ? (
+                          <p className="profile-message">{memberMessage}</p>
+                        ) : null}
                         <div className="profile-actions">
                           <button
                             className="primary-action"
@@ -4640,8 +4747,33 @@ function App() {
                           </button>
                         </div>
                       </section>
-                    ) : null}
-                    {isSignedIn ? (
+                    )}
+                  </section>
+                ) : null}
+
+                {profileMode === "emergency" ? (
+                  <section className="profile-mode-panel" aria-label="Emergency contact">
+                    {!isSignedIn ? (
+                      <section className="sign-in-card">
+                        <LogIn size={22} />
+                        <div>
+                          <h3>Sign in to manage emergency contact</h3>
+                          <p>
+                            Emergency contact details are private account data for
+                            future group sessions.
+                          </p>
+                        </div>
+                        <button
+                          className="primary-action"
+                          type="button"
+                          onClick={handleSignIn}
+                          disabled={!isAuthConfigured}
+                        >
+                          <LogIn size={16} />
+                          Sign in
+                        </button>
+                      </section>
+                    ) : (
                       <section className="profile-card profile-card--stacked">
                         <div className="block-title">
                           <div>
@@ -4702,6 +4834,9 @@ function App() {
                               whether to share this emergency contact with the
                               organiser.
                             </p>
+                            {memberMessage ? (
+                              <p className="profile-message">{memberMessage}</p>
+                            ) : null}
                             <div className="profile-actions">
                               <button
                                 className="primary-action"
@@ -4718,71 +4853,68 @@ function App() {
                           </>
                         )}
                       </section>
-                    ) : null}
+                    )}
+                  </section>
+                ) : null}
+
+                {profileMode === "sync" ? (
+                  <section className="profile-mode-panel" aria-label="Sync">
                     <SyncOutboxBanner
-                  queuedOutboxCount={queuedOutboxCount}
-                  failedOutboxCount={failedOutboxCount}
-                  isDismissed={isSyncBannerDismissed}
-                  isOnline={isOnline}
-                  isSyncingOutbox={isSyncingOutbox}
-                  canSyncOutbox={canSyncOutbox}
-                  onDismiss={dismissSyncBanner}
-                  onSync={syncOutboxNow}
-                />
+                      queuedOutboxCount={queuedOutboxCount}
+                      failedOutboxCount={failedOutboxCount}
+                      isDismissed={isSyncBannerDismissed}
+                      isOnline={isOnline}
+                      isSyncingOutbox={isSyncingOutbox}
+                      canSyncOutbox={canSyncOutbox}
+                      onDismiss={dismissSyncBanner}
+                      onSync={syncOutboxNow}
+                    />
                     <div className="profile-stats">
-                  <Metric
-                    icon={MessageSquare}
-                    label="Local updates"
-                    value={String(contributions.length)}
-                  />
-                  <Metric
-                    icon={RefreshCw}
-                    label="Outbox"
-                    value={String(queuedOutboxCount)}
-                  />
-                  <Metric
-                    icon={ShieldCheck}
-                    label="Trust"
-                    value={memberProfile?.trustLevel ?? "Unsigned"}
-                  />
-                  <Metric
-                    icon={MapIcon}
-                    label="Current section"
-                    value={activeSection.riverName}
-                  />
+                      <Metric
+                        icon={MessageSquare}
+                        label="Local updates"
+                        value={String(contributions.length)}
+                      />
+                      <Metric
+                        icon={RefreshCw}
+                        label="Queued outbox"
+                        value={String(queuedOutboxCount)}
+                      />
+                      <Metric
+                        icon={AlertTriangle}
+                        label="Failed syncs"
+                        value={String(failedOutboxCount)}
+                      />
+                      <Metric
+                        icon={MapIcon}
+                        label="Current section"
+                        value={activeSection.riverName}
+                      />
                     </div>
                     <div className="profile-actions">
-                  {isSignedIn ? (
-                    <button
-                      className="ghost-button"
-                      type="button"
-                      onClick={handleSignOut}
-                    >
-                      <LogOut size={16} />
-                      Sign out
-                    </button>
-                  ) : null}
-                  <button
-                    className="ghost-button"
-                    type="button"
-                    onClick={syncOutboxNow}
-                    disabled={!canSyncOutbox}
-                  >
-                    <RefreshCw size={16} />
-                    Sync now
-                  </button>
+                      <button
+                        className="ghost-button"
+                        type="button"
+                        onClick={syncOutboxNow}
+                        disabled={!canSyncOutbox}
+                      >
+                        <RefreshCw size={16} />
+                        Sync now
+                      </button>
                     </div>
                   </section>
-                ) : (
-                  <section className="profile-mode-panel" aria-label="Points and photos">
+                ) : null}
+
+                {profileMode === "activity" ? (
+                  <section className="profile-mode-panel" aria-label="Points">
                     {!isSignedIn ? (
                       <section className="sign-in-card">
                         <LogIn size={22} />
                         <div>
-                          <h3>Sign in to manage your points and photos</h3>
+                          <h3>Sign in to manage your points</h3>
                           <p>
-                            Synced local knowledge and uploaded photos are attached
-                            to your RiverLaunch.app account.
+                            Synced local knowledge is attached to your
+                            RiverLaunch.app account.
                           </p>
                         </div>
                         <button
@@ -4886,6 +5018,32 @@ function App() {
                     )}
                   </section>
                 ) : null}
+                  </section>
+                ) : null}
+
+                {profileMode === "photos" ? (
+                  <section className="profile-mode-panel" aria-label="Photos">
+                    {!isSignedIn ? (
+                      <section className="sign-in-card">
+                        <LogIn size={22} />
+                        <div>
+                          <h3>Sign in to manage your photos</h3>
+                          <p>
+                            Uploaded photos are attached to your
+                            RiverLaunch.app account.
+                          </p>
+                        </div>
+                        <button
+                          className="primary-action"
+                          type="button"
+                          onClick={handleSignIn}
+                          disabled={!isAuthConfigured}
+                        >
+                          <LogIn size={16} />
+                          Sign in
+                        </button>
+                      </section>
+                    ) : null}
                 {isSignedIn ? (
                   <section className="profile-card profile-card--stacked">
                     <div className="block-title">
@@ -4959,7 +5117,7 @@ function App() {
                   </section>
                 ) : null}
                   </section>
-                )}
+                ) : null}
               </div>
             </PlaceholderPage>
           ) : activeAppSection === "more" ? (

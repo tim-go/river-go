@@ -39,7 +39,9 @@ export function subscribeToAuthState(
 
   callback({ status: "loading", user: null, error: null });
 
-  void handleRedirectResult(auth, callback);
+  if (shouldUseRedirectSignIn()) {
+    void handleRedirectResult(auth, callback);
+  }
 
   return onAuthStateChanged(
     auth,
@@ -160,6 +162,10 @@ async function handleRedirectResult(
 }
 
 function shouldUseRedirectSignIn() {
+  if (isLocalBrowserOrigin()) {
+    return false;
+  }
+
   const configuredFlow = (
     import.meta.env.VITE_FIREBASE_AUTH_FLOW as string | undefined
   )?.trim();
@@ -173,6 +179,22 @@ function shouldUseRedirectSignIn() {
   }
 
   return import.meta.env.PROD;
+}
+
+function isLocalBrowserOrigin() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const hostname = window.location.hostname.toLowerCase();
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    /^192\.168\./.test(hostname) ||
+    /^10\./.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+  );
 }
 
 function mapAuthUser(user: User): AuthUser {

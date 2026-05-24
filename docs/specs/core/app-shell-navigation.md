@@ -52,7 +52,7 @@ Branding should be present without delaying startup. When auth resolves and no u
 
 Anonymous users may browse the map, search, route details, POIs, photos, levels, and navigation links. Savable actions require sign-in, including favourites, add local knowledge, add photo, sync, admin, and future offline packs.
 
-Production builds, including staging and production hosting, should use Firebase redirect sign-in so browser popup blockers do not prevent Google OAuth. Development builds may use popup sign-in for faster testing unless explicitly configured to use redirect.
+Production builds, including staging and production hosting, should use Firebase redirect sign-in so browser popup blockers do not prevent Google OAuth. Local development on localhost or private LAN hosts should use popup sign-in even when the copied staging Firebase config uses redirect for hosted builds.
 
 Desktop navigation should include a compact account footer. Signed-in users should see their account label, role, and a route to `Profile`; signed-out users should see `Guest` state and a sign-in action. The account footer should collapse to an icon-only affordance with the desktop nav rail.
 
@@ -68,12 +68,16 @@ The map action strip should remain compact. Sync should be represented as an ico
 
 `Groups` should be a placeholder primary section for future group activity planning. The placeholder should make clear that it will be used for arranging paddling activities, including trip plans, member coordination, meeting points, and activity updates.
 
-`Profile` should show signed-in member state, role, trust level, local contribution counts, and sync controls as soon as member identity exists. Profile should be split into subpages/tabs so account/sync state is separate from member-owned content management.
+`Profile` should show signed-in member state, role, trust level, local contribution counts, and sync controls as soon as member identity exists. Profile should be split into focused subpages/tabs so account identity, public contributor identity, emergency contact, sync state, and member-owned content management do not become one long account page.
 
 Initial Profile subpages:
 
-- `My Account`
-- `Points & Photos`
+- `Account`
+- `Public`
+- `ICE`
+- `Sync`
+- `Points`
+- `Photos`
 
 `My Account` should distinguish between:
 
@@ -112,7 +116,7 @@ Member-detail admin pages should allow admins to inspect account metadata, updat
 | --- | --- | --- | --- | --- | --- | --- |
 | NAV-F1 | Desktop app navigation | Web shell | Active | prototype | — | Persistent left nav with collapsible icon rail. |
 | NAV-F2 | Mobile bottom tabs | PWA/mobile shell | Active | prototype | — | Bottom tabs mirror primary app sections. |
-| NAV-F3 | Profile section | Member shell | Active | prototype | — | Uses tabs for My Account and Points & Photos so account state is separate from owned content. |
+| NAV-F3 | Profile section | Member shell | Active | prototype | — | Uses focused tabs for Account, Public, ICE, Sync, Points, and Photos so account state is separate from owned content. |
 | NAV-F4 | Placeholder sections | Search/groups/more | Active | prototype | — | Lightweight placeholders preserve the final information architecture, including future Groups. |
 | NAV-F5 | Account-gated favourite sections | Search/favourites | Active | prototype | — | Star prompts signed-out users to sign in; signed-in favourites remain local in the prototype until backend persistence exists. |
 | NAV-F6 | Signed-out welcome sheet | App shell/auth | Active | prototype | — | Welcome sheet appears on signed-out startup and explains guest browsing versus account-backed save/contribute actions. |

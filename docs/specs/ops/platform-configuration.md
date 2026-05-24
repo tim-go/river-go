@@ -118,7 +118,7 @@ Staging rollout order:
 | PLATFORM-F10 | Cloud Run API deployment script | Ops/deploy | Active | v0.3 | — | Builds API Docker image, writes `DATABASE_URL` plus configured integration secrets to Secret Manager, deploys Cloud Run with invoker IAM check disabled for public staging access, and checks health. |
 | PLATFORM-F11 | Preview-first Hosting deployment | Ops/deploy | Active | v0.3 | — | Deploys API rewrite to a Firebase preview channel before live Hosting cutover. |
 | PLATFORM-F12 | Cloud SQL migration script | Ops/deploy | Active | v0.3 | — | Runs SQL migrations through Cloud SQL Auth Proxy using the migration DB URL. |
-| PLATFORM-F13 | Hosted Firebase Auth flow | Ops/auth | Landed | v0.3 | — | Hosted web builds use inline redirect sign-in with the public Hosting domain as Firebase `authDomain`; auth diagnostics print the exact OAuth client and redirect URI before deploys. |
+| PLATFORM-F13 | Hosted Firebase Auth flow | Ops/auth | Landed | v0.3 | — | Hosted web builds use inline redirect sign-in with the public Hosting domain as Firebase `authDomain`; local dev uses popup sign-in; auth diagnostics print the exact OAuth client and redirect URI before deploys. |
 | PLATFORM-F14 | what3words backfill script | Ops/data | Active | MVP | — | Runs an operator-controlled Cloud SQL backfill for point contributions missing stored what3words metadata. |
 
 ### Backlog
