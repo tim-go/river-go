@@ -83,6 +83,21 @@ export async function listMembersForAdmin(): Promise<Member[]> {
   return result.rows.map(mapMember);
 }
 
+export async function getMemberForAdmin(memberId: string): Promise<Member> {
+  const result = await pool.query<MemberRow>(
+    `SELECT *
+    FROM members
+    WHERE id = $1`,
+    [memberId],
+  );
+
+  if (!result.rowCount) {
+    throw new HttpError(404, "Member not found.");
+  }
+
+  return mapMember(result.rows[0]);
+}
+
 export async function updateMemberAccessForAdmin(
   memberId: string,
   role: MemberRole,

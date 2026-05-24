@@ -58,6 +58,27 @@ Implication: RiverLaunch.app should be careful with legal claims and should pres
 
 Reference: https://paddleuk.org.uk
 
+### PaddlePoints / Go Paddling
+
+PaddlePoints, delivered through Go Paddling and powered by Paddle UK, is the closest UK analogue to the RiverLaunch.app community route and POI concept.
+
+Its public surface already supports browsing a map, mapped rivers and canals, launch points, hazards, comments, image uploads, public and private routes, direct map drawing, GPX route import, user accounts, personal markers, filters, and access/licence context.
+
+Implication: RiverLaunch.app should not position itself as simply "a place to add paddling routes and points". PaddlePoints already occupies much of that space with national governing body credibility.
+
+The viable wedge is narrower and more demanding:
+
+- mobile-first field contribution
+- offline-first capture and sync
+- live river levels integrated into section context
+- section-level runnable interpretation by craft and ability
+- freshness, confidence, verification, stale, and disputed states on routes and POIs
+- photos as evidence attached to specific river objects
+- community moderation and trust workflows
+- group activity planning, messaging, and member history as extended value
+
+Reference: https://gopaddling.info/paddlepoints/
+
 ## Gap Analysis
 
 ### Gap 1: Section-Level Canoe Planning

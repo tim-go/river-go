@@ -36,8 +36,8 @@ The app should keep the map as the primary working surface while making search, 
 
 Primary app sections:
 
-- `Search`
 - `Map`
+- `Search`
 - `Groups`
 - `Profile`
 - `More`
@@ -46,7 +46,7 @@ Admins should also see a role-gated `Admin` section on desktop. On mobile/PWA, a
 
 Desktop and larger tablet layouts should use a persistent left navigation rail/sidebar. The sidebar may collapse to icon-only form.
 
-Mobile and PWA layouts should use a bottom tab bar for the same primary sections.
+Mobile and PWA layouts should use a bottom tab bar for the same primary sections. `Map` should be the first bottom-tab item because browsing the river map is the primary entry point; `Search` remains a helper for targeted lookup.
 
 Branding should be present without delaying startup. When auth resolves and no user is signed in, the app should show a welcome sheet with `Sign in` and `Continue as guest`. Continuing as guest dismisses the sheet for the current browser/PWA session using session storage, so refreshes and sign-out in the same session do not immediately re-show it. The desktop nav and secondary mobile surfaces such as `Profile` and `More` should carry compact RiverLaunch.app branding while the map header stays contextual.
 
@@ -56,9 +56,9 @@ Production builds, including staging and production hosting, should use Firebase
 
 Desktop navigation should include a compact account footer. Signed-in users should see their account label, role, and a route to `Profile`; signed-out users should see `Guest` state and a sign-in action. The account footer should collapse to an icon-only affordance with the desktop nav rail.
 
-The `Map` section remains the default first view and contains the river map, section list, selected-section panel, contribution workflow, and map-specific controls.
+The `Map` section remains the default first view and contains the river map, section list, selected-section panel, contribution workflow, and map-specific controls. Over time, the map should behave as a browse-first surface: users can pan and zoom around the wider catalogue, then selecting a visible river/section enters section-detail context.
 
-The existing river section list is contextual map content, not global app navigation.
+The existing river section list is contextual map content, not global app navigation. Section context means a selected working river stretch for detail, contributions, photos, offline packs, and moderation; it should be entered by selecting a river/section from map or search, not treated as a prerequisite for simply browsing the map.
 
 Global header actions should be minimal. Map-specific actions such as compact sync state, watch section, and add local knowledge should only appear while the `Map` section is active. Demo reset tools belong in the admin `System` area so they are not confused with personal account controls.
 
@@ -83,9 +83,11 @@ Settings should include explicit map preferences, starting with an opt-in live-l
 
 `Search` should support both river/section discovery and location-reference lookup using explicit modes/tabs so mobile users are not forced through a long mixed workflow. Location-reference lookup should accept coordinates and what3words addresses, resolve them to a map point, show a direct open-point action, and show clearly labelled nearby points of interest only when they are plausibly nearby in the current catalogue. Opening a nearby POI from Search should zoom to that existing POI on the map rather than creating a separate searched-location marker. Search should not silently switch map context or start contribution capture without a user action on the map.
 
-Admin tools should remain role-gated and should not appear for ordinary members. Admin should be its own section with an index of admin options. Each option should open a separate full-page admin surface with a link back to the Admin index, starting with `Members` and later expanding to moderation, reports, data quality, and system status.
+Admin tools should remain role-gated and should not appear for ordinary members. Admin should be its own section with an index of admin options. Each option should open a separate full-page admin surface with breadcrumb navigation back to the Admin index, starting with `Members` and later expanding to moderation, reports, data quality, and system status.
 
-The member directory should support search plus role/trust filtering. Member rows should keep identity, role, trust, and access controls visually grouped so role/trust editing remains clear on desktop and mobile.
+The member directory should support search plus role/trust filtering. Directory rows should behave like a scannable list with identity, role/trust summary, and a `View` action only. Role, trust, approval/status controls, signup dates, activity counts, contribution lists, and photo lists belong on a separate member-detail admin page.
+
+Member-detail admin pages should allow admins to inspect account metadata, update role/trust controls, review contribution and photo counts, and jump from a contribution or photo row to the related map object where the item has a known section/location.
 
 ## Open Questions
 
@@ -108,6 +110,7 @@ The member directory should support search plus role/trust filtering. Member row
 | NAV-F8 | Location-reference search | Search/map | Active | prototype | — | Search accepts coordinates or what3words, shows nearby points of interest, and opens map context by explicit action. |
 | NAV-F9 | Live-location setting | More/map shell | Active | prototype | — | More exposes an opt-in live-location setting; Map exposes a compact enable/recentre action. |
 | NAV-F10 | Groups primary section | Groups | Active | future placeholder | — | Bottom nav includes Groups as the future activity-planning surface. |
+| NAV-F11 | Admin member detail pages | Admin/members | Active | MVP | — | Member directory is a simple list; detailed member metadata, access controls, contributions, and photos live on a per-member admin page. |
 
 ### Backlog
 

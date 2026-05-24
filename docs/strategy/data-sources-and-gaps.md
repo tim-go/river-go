@@ -21,6 +21,36 @@ RiverLaunch.app should not try to own every data source directly at the start. I
 
 The primary product object remains the river section. External data is useful only when it helps users understand a specific section.
 
+## Route Source Principle
+
+The hardest data problem is not maps, gauges, weather, or basemaps. Those can come from trusted public, open, or licensed providers. The hard problem is paddleable route knowledge: whether a river section is actually used, suitable, accessible, and represented responsibly.
+
+RiverLaunch.app must not create paddling routes purely from map analysis. A river line in OpenStreetMap, OS Open Rivers, or any other map source only proves that a watercourse exists. It does not prove:
+
+- the section is paddleable
+- access is practical or permitted
+- the section is suitable for a canoe, kayak, SUP, or a given ability level
+- hazards, weirs, strainers, sluices, fences, or low bridges are known
+- the section has a safe get-on or get-off
+- the section is runnable at a given level
+- the route is current or locally accepted
+
+Map geometry may be used to help draw, snap, simplify, or display a route after there is independent paddling evidence for that section. It must not be used as the authority for creating route recommendations.
+
+Licensed third-party paddling data should also be treated cautiously. A licence proves permission to use data; it does not prove that the data is authoritative, current, complete, or safe. Imported route data should enter the system with source metadata, age, licence terms, limitations, and verification status. It should not become canonical only because RiverLaunch.app has paid for it.
+
+Canonical RiverLaunch.app route records should therefore be built from a combination of:
+
+- direct community route submissions
+- clubs and trusted local paddlers
+- regional or national paddling organisations where partnership or permission exists
+- official canoe trails or navigation authority material where reuse is allowed
+- licensed guidebook or partner data where provenance and update process are understood
+- field evidence such as photos, recent reports, confirmations, and moderator review
+- map geometry used only as a supporting geometry/reference layer
+
+Route confidence should be explicit. Suggested, imported, community-reviewed, verified, stale, and disputed routes should be distinguishable in the data model and UI.
+
 ## UK Baseline Sources
 
 ## River Levels and Flow
@@ -180,6 +210,125 @@ Notes:
 Reference:
 
 https://docs.os.uk/os-downloads/products/water-portfolio/os-open-rivers/os-open-rivers-overview/os-open-rivers-data
+
+## UK Paddling Route Sources
+
+There does not appear to be a simple open national UK dataset of canoe/kayak river routes that RiverLaunch.app can ingest and treat as authoritative.
+
+Relevant organisations and sources to investigate:
+
+### Paddle UK / Go Paddling
+
+Paddle UK appears to be the strongest national route and access data candidate through Go Paddling and PaddlePoints.
+
+Potential value:
+
+- launches
+- hazards
+- rapids
+- weirs
+- routes and trails
+- user-created public/private routes
+- photos and comments
+- GPX import/export-style route workflows
+- licence/access context
+
+Notes:
+
+- Paddle UK data should be treated as partnership/licence material, not a scraping source.
+- An Environment Agency recreational water-use report used Paddle UK PaddlePoints data with permission, which suggests structured data exists.
+- Paddle UK is likely the first organisation to approach for a data/partnership conversation.
+
+References:
+
+https://gopaddling.info/paddlepoints/
+
+https://gopaddling.info/find-paddling-trails/
+
+### Paddle Cymru / Canoe Wales
+
+Paddle Cymru publishes paddling trails with practical paddling detail.
+
+Potential value:
+
+- Welsh touring and easier-grade paddling trails
+- start and finish points
+- distances
+- grades
+- portages
+- maps
+- GPX downloads
+- permits and accessibility notes
+
+Notes:
+
+- Useful for Welsh route discovery and pilot data.
+- Treat as permission/partnership material unless explicit reuse terms allow data import.
+
+Reference:
+
+https://www.paddlecymru.org.uk/paddling-trails
+
+### Paddle Scotland and Recognised Scottish Trails
+
+Paddle Scotland and recognised trail projects provide route/trail context for Scotland.
+
+Potential value:
+
+- national/regional paddling guidance
+- release information and water-level resources
+- recognised trails such as the Great Glen Canoe Trail
+- regional route resources such as the Argyll Sea Kayak Trail
+
+Notes:
+
+- Data is fragmented across organisations and trail projects.
+- Treat as partnership/licence material.
+
+References:
+
+https://www.paddlescotland.org.uk/
+
+https://www.scotlandsgreattrails.com/trail/great-glen-canoe-trail/
+
+https://paddle-argyll.co.uk/
+
+### Paddle Northern Ireland / Outmore NI
+
+Northern Ireland has published canoe trail material through Paddle NI and Outmore NI.
+
+Potential value:
+
+- canoe trail sections
+- access and camping facilities
+- inland canoe trail network context
+
+Notes:
+
+- Useful for later UK-wide coverage.
+- Treat as permission/partnership material.
+
+References:
+
+https://www.paddleni.org.uk/
+
+https://outmoreni.com/blog/canoe-trails/
+
+### Guidebooks and Existing Community Sites
+
+Guidebooks and community sites can identify candidate sections and the types of information paddlers need, but their content should not be copied without permission.
+
+Potential value:
+
+- candidate section discovery
+- taxonomy and data-model design
+- partnership/licensing conversations
+
+Avoid:
+
+- scraping route descriptions
+- copying grades, hazards, access notes, photos, or curated structure
+- treating guidebook text as reusable data without an explicit licence
 
 ## Navigation, Closures, and Stoppages
 
@@ -593,4 +742,3 @@ Then add NRW, SEPA, and DfI Rivers as separate providers once the model is prove
 - How should the app display contested access without creating legal risk?
 - Should clubs be able to steward sections from the first public release?
 - Should runnable ranges be curated by trusted users only, or inferred from repeated reports?
-

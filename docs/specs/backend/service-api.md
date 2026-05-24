@@ -54,6 +54,7 @@ Initial endpoints:
 | `GET` | `/api/me/contributions` | List the signed-in member's synced contributions with section, moderation, and photo context. |
 | `GET` | `/api/me/photos` | List the signed-in member's uploaded photos with section and contribution context. |
 | `GET` | `/api/admin/members` | List member profiles for admins. |
+| `GET` | `/api/admin/members/:memberId` | Admin-only member detail with profile metadata, activity counts, contributions, and photos. |
 | `POST` | `/api/admin/members/:memberId/access` | Admin-only update of member role and trust level. |
 | `GET` | `/api/rivers` | River list. |
 | `GET` | `/api/rivers/:riverId/sections` | Section list with route summaries. |

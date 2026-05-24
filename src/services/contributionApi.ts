@@ -9,7 +9,7 @@ import type {
 import { getApiBaseUrl } from "./apiConfig";
 import { getCurrentUserIdToken } from "./firebaseAuth";
 
-interface ApiContribution {
+export interface ApiContribution {
   id: string;
   sectionId: string | null;
   type: ContributionType;
@@ -115,7 +115,7 @@ export async function applyContributionModerationDecision(
   return mapApiContribution(result.contribution);
 }
 
-function mapApiContribution(contribution: ApiContribution): Contribution {
+export function mapApiContribution(contribution: ApiContribution): Contribution {
   const payload = contribution.payload ?? {};
   const dateObserved = contribution.observedAt
     ? contribution.observedAt.slice(0, 10)

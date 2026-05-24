@@ -16,6 +16,7 @@ import {
 import { closePool, pool } from "./db.js";
 import { HttpError, readJsonBody, sendJson } from "./http.js";
 import {
+  getMemberForAdmin,
   listMembersForAdmin,
   isMemberRole,
   isMemberTrustLevel,
@@ -85,6 +86,32 @@ async function route(
     requireAdmin(member);
     const members = await listMembersForAdmin();
     return { status: 200, body: { members } };
+  }
+
+  const adminMemberDetailMatch = url.pathname.match(
+    /^\/api\/admin\/members\/([^/]+)$/,
+  );
+  if (method === "GET" && adminMemberDetailMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireAdmin(member);
+    const targetMemberId = decodeURIComponent(adminMemberDetailMatch[1]);
+    const targetMember = await getMemberForAdmin(targetMemberId);
+    const contributions = await listContributionsForMember(targetMember.id);
+    const photos = await listPhotosForMember(targetMember.id);
+
+    return {
+      status: 200,
+      body: {
+        member: targetMember,
+        stats: {
+          contributionCount: contributions.length,
+          photoCount: photos.length,
+        },
+        contributions,
+        photos,
+      },
+    };
   }
 
   if (method === "GET" && url.pathname === "/api/me/photos") {

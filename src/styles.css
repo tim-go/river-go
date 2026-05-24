@@ -1451,6 +1451,29 @@ h1 {
   gap: 14px;
 }
 
+.admin-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.admin-breadcrumb button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--river-dark);
+  cursor: pointer;
+  font: inherit;
+}
+
+.admin-breadcrumb strong {
+  color: var(--ink);
+}
+
 .member-list {
   display: grid;
   gap: 8px;
@@ -1490,13 +1513,18 @@ h1 {
 .member-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: start;
   gap: 12px;
   min-height: 88px;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #f7f8f4;
+}
+
+.member-row > .ghost-button {
+  align-self: start;
+  justify-self: end;
 }
 
 .member-identity {
@@ -1516,6 +1544,11 @@ h1 {
   grid-template-columns: 190px 130px;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.member-access-controls--detail {
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  justify-content: stretch;
 }
 
 .member-access-controls label {
@@ -1545,6 +1578,25 @@ h1 {
 .member-row span {
   color: var(--muted);
   font-size: 0.78rem;
+}
+
+.member-detail-page {
+  display: grid;
+  gap: 12px;
+}
+
+.member-detail-grid,
+.member-detail-stat-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.member-detail-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.member-detail-stat-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .moderation-list {
@@ -1848,6 +1900,13 @@ h1 {
 }
 
 .metric {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon value";
+  align-content: center;
+  column-gap: 10px;
   min-height: 86px;
   padding: 12px;
   border: 1px solid var(--line);
@@ -1856,6 +1915,9 @@ h1 {
 }
 
 .metric svg {
+  grid-area: icon;
+  align-self: start;
+  justify-self: center;
   color: var(--river-dark);
 }
 
@@ -1865,13 +1927,14 @@ h1 {
 }
 
 .metric span {
-  margin-top: 8px;
+  grid-area: label;
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 800;
 }
 
 .metric strong {
+  grid-area: value;
   margin-top: 2px;
   line-height: 1.2;
 }
@@ -2440,6 +2503,21 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .member-directory-filters,
+  .member-detail-grid,
+  .member-detail-stat-grid,
+  .member-access-controls--detail {
+    grid-template-columns: 1fr;
+  }
+
+  .member-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .member-row .ghost-button {
+    width: fit-content;
+  }
+
   .profile-photo-row {
     grid-template-columns: 76px minmax(0, 1fr);
   }
@@ -2705,7 +2783,6 @@ textarea {
   }
 
   .member-directory-filters,
-  .member-row,
   .member-access-controls,
   .moderation-row {
     grid-template-columns: 1fr;

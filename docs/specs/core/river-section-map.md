@@ -56,6 +56,8 @@ The map should support two browsing levels:
 - a UK overview mode where river sections can be discovered from far out
 - a section-detail mode where a selected section shows route, access, hazards, photos, features, reports, and level context
 
+The overview mode should not require a selected section. It should let users pan, zoom, inspect available river sections, and apply discovery filters. Selecting a section line, section marker, or search result should set the active section context and switch the relevant controls into section-detail behaviour.
+
 Overview route styling should use level/runnability state as the primary colour channel. Difficulty or whitewater grade should be shown as a compact badge/label rather than competing route colour.
 
 The map and section list should eventually allow paddlers to filter sections by:

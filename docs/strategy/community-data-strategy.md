@@ -31,6 +31,25 @@ This makes community data both the product's main value and its defensible asset
 
 The strategic test is simple: if members do not add, confirm, correct, or refresh local river knowledge, RiverLaunch.app becomes another thin map. If they do, the product becomes more useful after every trip.
 
+## Route Data Is Community Data
+
+Route coverage is part of the community problem, not only a seed-data problem.
+
+Trusted public sources can provide maps, river lines, weather, levels, rainfall, flood warnings, and broad context. They cannot, on their own, prove that a section is a suitable paddling route. A watercourse geometry line does not establish access, hazards, grade, craft suitability, runnable range, local sensitivity, or current condition.
+
+RiverLaunch.app should therefore treat paddling routes as evidence-backed section records:
+
+- `River geometry:` A mapped watercourse exists. This is not a paddling route.
+- `Suggested section:` A member, club, or source says this section is paddled. It is visible with caution and needs review.
+- `Imported section:` A licensed or partner source has supplied route data. It is legally usable but still needs source review and local confidence.
+- `Community-reviewed section:` Trusted contributors or multiple credible users have checked the route, access, and key notes.
+- `Verified section:` RiverLaunch.app treats this as the best current section record after trusted review, while still showing caveats and freshness.
+- `Stale or disputed section:` The route has aged, changed, or been challenged and should not be presented confidently.
+
+This means the app should eventually let members suggest missing river sections. Otherwise RiverLaunch.app would have to map every route itself, which is not realistic and would undermine the community-led model.
+
+Suggested routes should not immediately become canonical. They should enter moderation and review, carry clear confidence/status labels, and invite local improvement through photos, confirmations, corrections, hazards, and runnable-level reports.
+
 ## Why Community Data Is the Product
 
 River data alone is not enough. A gauge reading only becomes useful when someone knows what it means for a specific section, craft, and group.
@@ -298,6 +317,10 @@ Seed a small pilot area manually:
 - invite local paddlers to fill gaps
 
 Do not attempt full UK coverage before the data model and contribution workflow are proven.
+
+Do not seed paddleable sections purely from map geometry. Map sources such as OpenStreetMap and OS Open Rivers can help draw or snap a line once a route is known, but route existence and suitability must come from paddling evidence, trusted local review, official trail material, licensed partner material, or direct community submission.
+
+Third-party route datasets should not bypass this rule. A licence grants usage rights; it does not guarantee authority. Imported data should still be reviewed for source age, authorship, update process, hazards, access assumptions, and local confidence.
 
 ## Reference Sources Without Copying
 

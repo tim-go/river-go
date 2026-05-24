@@ -30,6 +30,10 @@ RiverApp is a strong competitor. Its public site positions it as a global river-
 
 That means a direct gauge-app feature war would be weak strategy. RiverLaunch.app should assume competitors will remain better at broad coverage for some time.
 
+PaddlePoints / Go Paddling is the closest UK product analogue for routes and points. It already supports map browsing, mapped rivers and canals, launches, hazards, comments, photos, public/private routes, direct route drawing, GPX import, personal markers, and access/licence context, backed by Paddle UK.
+
+That means RiverLaunch.app should not become a generic "PaddlePoints but ours" product. PaddlePoints validates the need, but also raises the bar for differentiation. RiverLaunch.app must be meaningfully stronger in field use, live section intelligence, contribution trust, and group/member workflows.
+
 The better gap is depth and trust around local section knowledge:
 
 - UK-first rather than global-first
@@ -39,11 +43,16 @@ The better gap is depth and trust around local section knowledge:
 - offline-first field use rather than always-online planning only
 - freshness and confidence indicators as first-class product features
 
+The core route-data constraint is strategic, not technical. RiverLaunch.app can use trusted providers for maps, levels, weather, rainfall, and warnings, but it must not manufacture paddling routes from map geometry. A mapped river is not evidence that a section is suitable, accessible, current, or safe to paddle.
+
+Route existence and suitability must come from paddling evidence: community submissions, clubs, trusted local paddlers, official trails, licensed partner data, field photos, recent reports, and moderator review. Even licensed third-party route data should enter as sourced baseline data, not automatic truth.
+
 References:
 
 - RiverApp: https://www.riverapp.net/en
 - RiverApp rivers and gauge coverage: https://www.riverapp.net/en/rivers
 - RiverApp gauge map: https://www.riverapp.net/en/map
+- PaddlePoints: https://gopaddling.info/paddlepoints/
 
 ## Product Thesis
 
@@ -70,6 +79,8 @@ RiverLaunch.app should not start as:
 - a complete Europe-wide river database
 - a generic river-level browser
 - a safety certification product
+- an automatically generated paddling-route catalogue based on river map lines
+- a generic duplicate of PaddlePoints / Go Paddling
 
 RiverLaunch.app should start as:
 
@@ -79,6 +90,7 @@ RiverLaunch.app should start as:
 - a trust model for community data
 - a field-ready offline contribution workflow
 - live levels where they help interpret a section
+- a clear confidence model for suggested, imported, reviewed, verified, stale, and disputed sections
 
 ## Initial Wedge
 

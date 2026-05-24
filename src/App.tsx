@@ -56,8 +56,10 @@ import {
 } from "./services/firebaseAuth";
 import {
   fetchAdminMembers,
+  fetchAdminMemberDetail,
   fetchCurrentMember,
   updateAdminMemberAccess,
+  type AdminMemberDetail,
   type MemberProfile,
   type MemberRole,
   type MemberTrustLevel,
@@ -194,7 +196,7 @@ const categoryOptions: Record<ContributionType, string[]> = {
 };
 
 type AppSection = "search" | "map" | "groups" | "profile" | "more" | "admin";
-type AdminPage = "index" | "members" | "moderation" | "system";
+type AdminPage = "index" | "members" | "member-detail" | "moderation" | "system";
 type AuthSheetMode = "welcome" | "save-required";
 type SearchMode = "name" | "point" | "favourites";
 type ProfileMode = "account" | "activity";
@@ -285,8 +287,8 @@ const appNavItems: Array<{
   label: string;
   icon: typeof Search;
 }> = [
-  { id: "search", label: "Search", icon: Search },
   { id: "map", label: "Map", icon: MapIcon },
+  { id: "search", label: "Search", icon: Search },
   { id: "groups", label: "Groups", icon: UsersRound },
   { id: "profile", label: "Profile", icon: UserRound },
   { id: "more", label: "More", icon: MoreHorizontal },
@@ -595,6 +597,20 @@ function routeEndpointBounds(route: LatLngTuple[]) {
 
 function formatLocation(location: LatLngTuple) {
   return `${location[0].toFixed(4)}, ${location[1].toFixed(4)}`;
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) {
+    return "Not recorded";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString();
 }
 
 function parseCoordinateSearch(value: string): LatLngTuple | null {
@@ -1432,6 +1448,11 @@ function App() {
     useState<PendingPointDelete | null>(null);
   const [adminMembers, setAdminMembers] = useState<MemberProfile[]>([]);
   const [isAdminLoading, setIsAdminLoading] = useState(false);
+  const [selectedAdminMemberDetail, setSelectedAdminMemberDetail] =
+    useState<AdminMemberDetail | null>(null);
+  const [isAdminMemberDetailLoading, setIsAdminMemberDetailLoading] =
+    useState(false);
+  const [adminMemberDetailMessage, setAdminMemberDetailMessage] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   const [memberRoleFilter, setMemberRoleFilter] =
     useState<MemberRoleFilter>("all");
@@ -2214,6 +2235,36 @@ function App() {
     }
   }
 
+  function selectedPoiForContribution(
+    contribution: Contribution,
+    section: RiverSection,
+  ): SelectedPoi | null {
+    if (!contribution.location) {
+      return null;
+    }
+
+    return {
+      id: contribution.id,
+      kind: "contribution",
+      title: contribution.title,
+      subtitle: `${contribution.type} · ${contribution.category}`,
+      summary: contribution.detail,
+      sectionLabel: section.sectionName,
+      location: contribution.location,
+      status: contribution.status,
+      sourceLabel: contribution.author,
+      sourceConfidence: "community",
+      navigationLocation: contribution.location,
+      what3words: contribution.what3words,
+      photos: contribution.photos,
+      category: contribution.category,
+      author: contribution.author,
+      dateObserved: contribution.dateObserved,
+      createdAt: contribution.createdAt,
+      contributionType: contribution.type,
+    };
+  }
+
   function openSectionOnMap(sectionId: string | null | undefined) {
     const section = riverSections.find((item) => item.id === sectionId);
 
@@ -2234,14 +2285,37 @@ function App() {
   }
 
   function openPhotoOnMap(photo: MemberPhoto) {
+    const relatedContribution = [
+      ...memberContributions,
+      ...(selectedAdminMemberDetail?.contributions ?? []),
+    ].find((contribution) => contribution.id === photo.contributionId);
+
+    if (relatedContribution) {
+      openContributionOnMap(relatedContribution);
+      return;
+    }
+
     if (!openSectionOnMap(photo.sectionId)) {
       setPhotoMessage("This photo is not attached to a known map section.");
+      setAdminMemberDetailMessage("This photo is not attached to a known map section.");
     }
   }
 
   function openContributionOnMap(contribution: Contribution) {
-    if (!openSectionOnMap(contribution.sectionId)) {
+    const section = openSectionOnMap(contribution.sectionId);
+
+    if (!section) {
       setPointMessage("This item is not attached to a known map section.");
+      setAdminMemberDetailMessage("This item is not attached to a known map section.");
+      return;
+    }
+
+    if (contribution.location) {
+      setSearchFocusLocation(contribution.location);
+      setSearchFocusLabel(contribution.title);
+      setShowSearchFocusMarker(false);
+      setSearchFocusNonce((current) => current + 1);
+      setSelectedPoi(selectedPoiForContribution(contribution, section));
     }
   }
 
@@ -2350,6 +2424,26 @@ function App() {
     }
   }
 
+  async function openAdminMemberDetail(member: MemberProfile) {
+    setActiveAppSection("admin");
+    setActiveAdminPage("member-detail");
+    setSelectedAdminMemberDetail(null);
+    setIsAdminMemberDetailLoading(true);
+    setAdminMemberDetailMessage("");
+
+    try {
+      setSelectedAdminMemberDetail(await fetchAdminMemberDetail(member.id));
+    } catch (error) {
+      setAdminMemberDetailMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load member details.",
+      );
+    } finally {
+      setIsAdminMemberDetailLoading(false);
+    }
+  }
+
   async function openModerationPanel() {
     setActiveAppSection("admin");
     setActiveAdminPage("moderation");
@@ -2383,6 +2477,11 @@ function App() {
       });
       setAdminMembers((current) =>
         current.map((item) => (item.id === updatedMember.id ? updatedMember : item)),
+      );
+      setSelectedAdminMemberDetail((current) =>
+        current && current.member.id === updatedMember.id
+          ? { ...current, member: updatedMember }
+          : current,
       );
       if (memberProfile?.id === updatedMember.id) {
         setMemberProfile(updatedMember);
@@ -4230,14 +4329,43 @@ function App() {
                     </div>
                   ) : (
                     <section className="admin-page">
-                      <button
-                        className="ghost-button ghost-button--compact"
-                        type="button"
-                        onClick={() => setActiveAdminPage("index")}
-                      >
-                        <ChevronDown size={15} />
-                        Admin
-                      </button>
+                      <nav className="admin-breadcrumb" aria-label="Admin breadcrumb">
+                        <button
+                          type="button"
+                          onClick={() => setActiveAdminPage("index")}
+                        >
+                          Admin
+                        </button>
+                        {activeAdminPage === "members" ? (
+                          <>
+                            <span>/</span>
+                            <strong>Members</strong>
+                          </>
+                        ) : activeAdminPage === "member-detail" ? (
+                          <>
+                            <span>/</span>
+                            <button type="button" onClick={openAdminPanel}>
+                              Members
+                            </button>
+                            <span>/</span>
+                            <strong>
+                              {selectedAdminMemberDetail?.member.displayName ??
+                                selectedAdminMemberDetail?.member.email ??
+                                "Member"}
+                            </strong>
+                          </>
+                        ) : activeAdminPage === "moderation" ? (
+                          <>
+                            <span>/</span>
+                            <strong>Moderation</strong>
+                          </>
+                        ) : activeAdminPage === "system" ? (
+                          <>
+                            <span>/</span>
+                            <strong>System</strong>
+                          </>
+                        ) : null}
+                      </nav>
                       {activeAdminPage === "members" && canManageMembers ? (
                         <>
                           <div className="quick-add-panel__header">
@@ -4326,43 +4454,14 @@ function App() {
                                         </span>
                                       </div>
                                     </div>
-                                    <div className="member-access-controls">
-                                      <label>
-                                        <span>Role</span>
-                                        <select
-                                          value={member.role}
-                                          onChange={(event) =>
-                                            void updateMemberAccess(member, {
-                                              role: event.target.value as MemberRole,
-                                            })
-                                          }
-                                        >
-                                          {memberRoleOptions.map((role) => (
-                                            <option key={role} value={role}>
-                                              {role}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </label>
-                                      <label>
-                                        <span>Trust</span>
-                                        <select
-                                          value={member.trustLevel}
-                                          onChange={(event) =>
-                                            void updateMemberAccess(member, {
-                                              trustLevel: event.target
-                                                .value as MemberTrustLevel,
-                                            })
-                                          }
-                                        >
-                                          {memberTrustOptions.map((trustLevel) => (
-                                            <option key={trustLevel} value={trustLevel}>
-                                              {trustLevel}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </label>
-                                    </div>
+                                    <button
+                                      className="ghost-button ghost-button--compact"
+                                      type="button"
+                                      onClick={() => void openAdminMemberDetail(member)}
+                                    >
+                                      <ExternalLink size={15} />
+                                      View
+                                    </button>
                                   </div>
                                 ))}
                                 {adminMembers.length === 0 ? (
@@ -4374,6 +4473,301 @@ function App() {
                                 ) : null}
                               </div>
                             </>
+                          )}
+                        </>
+                      ) : activeAdminPage === "member-detail" && canManageMembers ? (
+                        <>
+                          <div className="quick-add-panel__header">
+                            <div>
+                              <p className="eyebrow">Members</p>
+                              <h2>
+                                {selectedAdminMemberDetail?.member.displayName ??
+                                  selectedAdminMemberDetail?.member.email ??
+                                  "Member details"}
+                              </h2>
+                            </div>
+                            <div className="profile-actions">
+                              <button
+                                className="ghost-button ghost-button--compact"
+                                type="button"
+                                onClick={openAdminPanel}
+                              >
+                                Members
+                              </button>
+                              {selectedAdminMemberDetail ? (
+                                <button
+                                  className="ghost-button ghost-button--compact"
+                                  type="button"
+                                  onClick={() =>
+                                    void openAdminMemberDetail(
+                                      selectedAdminMemberDetail.member,
+                                    )
+                                  }
+                                >
+                                  <RefreshCw size={15} />
+                                  Refresh
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                          {adminMemberDetailMessage ? (
+                            <p className="profile-message">
+                              {adminMemberDetailMessage}
+                            </p>
+                          ) : null}
+                          {isAdminMemberDetailLoading ? (
+                            <p className="source-note">Loading member details...</p>
+                          ) : selectedAdminMemberDetail ? (
+                            <div className="member-detail-page">
+                              <section className="profile-card profile-card--stacked">
+                                <div className="block-title">
+                                  <div>
+                                    <h3>Account</h3>
+                                    <span>
+                                      {selectedAdminMemberDetail.member.email ??
+                                        "No email"}
+                                    </span>
+                                  </div>
+                                  <span className="status-chip">
+                                    {selectedAdminMemberDetail.member.role}
+                                  </span>
+                                </div>
+                                <div className="member-detail-grid">
+                                  <Metric
+                                    icon={UserRound}
+                                    label="Display name"
+                                    value={
+                                      selectedAdminMemberDetail.member.displayName ??
+                                      "Not set"
+                                    }
+                                  />
+                                  <Metric
+                                    icon={Clock3}
+                                    label="Signed up"
+                                    value={formatDateTime(
+                                      selectedAdminMemberDetail.member.createdAt,
+                                    )}
+                                  />
+                                  <Metric
+                                    icon={RefreshCw}
+                                    label="Last seen"
+                                    value={formatDateTime(
+                                      selectedAdminMemberDetail.member.lastSeenAt,
+                                    )}
+                                  />
+                                  <Metric
+                                    icon={ShieldCheck}
+                                    label="Approval"
+                                    value="Active account"
+                                  />
+                                </div>
+                              </section>
+
+                              <section className="profile-card profile-card--stacked">
+                                <div className="block-title">
+                                  <div>
+                                    <h3>Access controls</h3>
+                                    <span>Role and trust apply immediately</span>
+                                  </div>
+                                  <span className="status-chip">
+                                    {selectedAdminMemberDetail.member.trustLevel}
+                                  </span>
+                                </div>
+                                <div className="member-access-controls member-access-controls--detail">
+                                  <label>
+                                    <span>Role</span>
+                                    <select
+                                      value={selectedAdminMemberDetail.member.role}
+                                      onChange={(event) =>
+                                        void updateMemberAccess(
+                                          selectedAdminMemberDetail.member,
+                                          {
+                                            role: event.target.value as MemberRole,
+                                          },
+                                        )
+                                      }
+                                    >
+                                      {memberRoleOptions.map((role) => (
+                                        <option key={role} value={role}>
+                                          {role}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <label>
+                                    <span>Trust</span>
+                                    <select
+                                      value={
+                                        selectedAdminMemberDetail.member.trustLevel
+                                      }
+                                      onChange={(event) =>
+                                        void updateMemberAccess(
+                                          selectedAdminMemberDetail.member,
+                                          {
+                                            trustLevel: event.target
+                                              .value as MemberTrustLevel,
+                                          },
+                                        )
+                                      }
+                                    >
+                                      {memberTrustOptions.map((trustLevel) => (
+                                        <option key={trustLevel} value={trustLevel}>
+                                          {trustLevel}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <label>
+                                    <span>Approval</span>
+                                    <select value="active" disabled>
+                                      <option value="active">Active</option>
+                                    </select>
+                                  </label>
+                                </div>
+                              </section>
+
+                              <div className="member-detail-stat-grid">
+                                <Metric
+                                  icon={MapPin}
+                                  label="Contributions"
+                                  value={`${selectedAdminMemberDetail.stats.contributionCount}`}
+                                />
+                                <Metric
+                                  icon={Camera}
+                                  label="Photos"
+                                  value={`${selectedAdminMemberDetail.stats.photoCount}`}
+                                />
+                              </div>
+
+                              <section className="profile-card profile-card--stacked">
+                                <div className="block-title">
+                                  <div>
+                                    <h3>Contributions</h3>
+                                    <span>
+                                      {selectedAdminMemberDetail.contributions.length} items
+                                    </span>
+                                  </div>
+                                </div>
+                                {selectedAdminMemberDetail.contributions.length ? (
+                                  <div className="profile-photo-list">
+                                    {selectedAdminMemberDetail.contributions.map(
+                                      (contribution) => {
+                                        const section = riverSections.find(
+                                          (item) =>
+                                            item.id === contribution.sectionId,
+                                        );
+
+                                        return (
+                                          <article
+                                            className="profile-point-row"
+                                            key={contribution.id}
+                                          >
+                                            <div className="profile-point-icon">
+                                              <MapPin size={18} />
+                                            </div>
+                                            <div>
+                                              <strong>{contribution.title}</strong>
+                                              <span>{contribution.detail}</span>
+                                              <small>
+                                                {section?.sectionName ??
+                                                  contribution.sectionId}{" "}
+                                                · {contribution.type} ·{" "}
+                                                {contributionStatusLabel(
+                                                  contribution.status,
+                                                )}
+                                              </small>
+                                            </div>
+                                            <div className="profile-photo-actions">
+                                              <button
+                                                className="ghost-button ghost-button--compact"
+                                                type="button"
+                                                onClick={() =>
+                                                  openContributionOnMap(
+                                                    contribution,
+                                                  )
+                                                }
+                                              >
+                                                <MapIcon size={15} />
+                                                Map
+                                              </button>
+                                            </div>
+                                          </article>
+                                        );
+                                      },
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="source-note">
+                                    This member has no synced contributions.
+                                  </p>
+                                )}
+                              </section>
+
+                              <section className="profile-card profile-card--stacked">
+                                <div className="block-title">
+                                  <div>
+                                    <h3>Photos</h3>
+                                    <span>
+                                      {selectedAdminMemberDetail.photos.length} uploads
+                                    </span>
+                                  </div>
+                                </div>
+                                {selectedAdminMemberDetail.photos.length ? (
+                                  <div className="profile-photo-list">
+                                    {selectedAdminMemberDetail.photos.map((photo) => (
+                                      <article
+                                        className="profile-photo-row"
+                                        key={photo.id}
+                                      >
+                                        <img
+                                          src={
+                                            photo.thumbnailUrl ??
+                                            photo.displayUrl ??
+                                            ""
+                                          }
+                                          alt={
+                                            photo.caption ||
+                                            photo.contributionTitle
+                                          }
+                                        />
+                                        <div>
+                                          <strong>
+                                            {photo.contributionTitle}
+                                          </strong>
+                                          <span>
+                                            {photo.caption ||
+                                              photo.contributionDetail}
+                                          </span>
+                                          <small>
+                                            {photo.sectionId ?? "No section"} ·{" "}
+                                            {photo.photoModerationStatus} ·{" "}
+                                            {new Date(
+                                              photo.createdAt,
+                                            ).toLocaleDateString()}
+                                          </small>
+                                        </div>
+                                        <div className="profile-photo-actions">
+                                          <button
+                                            className="ghost-button ghost-button--compact"
+                                            type="button"
+                                            onClick={() => openPhotoOnMap(photo)}
+                                          >
+                                            <MapIcon size={15} />
+                                            Map
+                                          </button>
+                                        </div>
+                                      </article>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="source-note">
+                                    This member has no uploaded photos.
+                                  </p>
+                                )}
+                              </section>
+                            </div>
+                          ) : (
+                            <p className="source-note">No member selected.</p>
                           )}
                         </>
                       ) : activeAdminPage === "moderation" ? (
