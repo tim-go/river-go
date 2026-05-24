@@ -119,12 +119,31 @@ The backend must treat `operationId` as an idempotency key. Replaying the same o
 | `firebase_uid` | `text unique not null` | Stable Firebase Auth user identifier. |
 | `email` | `text` | Latest verified email from Firebase token claims. |
 | `display_name` | `text` | Latest display name from Firebase token claims. |
+| `public_name` | `text` | Member-chosen public contributor name used on public contributions instead of real name or email. |
+| `public_name_status` | `text` | Moderation state for public name, for example `pending`, `active`, `rejected`, or `admin-set`. |
 | `photo_url` | `text` | Latest profile photo URL from Firebase token claims. |
 | `role` | `text` | `MEMBER`, `TRUSTED_MEMBER`, `CONTRIB_MODERATOR`, or `ADMIN`. |
 | `trust_level` | `text` | Contribution trust state such as `NEW`, `KNOWN`, or `TRUSTED`. |
 | `created_at` | `timestamptz` | First time the member was seen. |
 | `updated_at` | `timestamptz` | Last profile update time. |
 | `last_seen_at` | `timestamptz` | Last authenticated API call. |
+
+### `member_emergency_profiles`
+
+Emergency profile data is sensitive and should be separated from ordinary public profile fields.
+
+V1 should store emergency contact details only. Do not collect health or medical information in this table until there is a specific legal, privacy, consent, and operational reason to do so.
+
+| Column | Type | Purpose |
+| --- | --- | --- |
+| `member_id` | `uuid primary key references members(id)` | Owner member. |
+| `emergency_contact_name` | `text` | Primary ICE contact name. |
+| `emergency_contact_phone` | `text` | Primary ICE contact phone. |
+| `emergency_contact_relationship` | `text` | Relationship to the member. |
+| `visibility_default` | `text` | Default sharing posture, initially `private`; future group-session sharing must be explicit. |
+| `updated_at` | `timestamptz` | Last profile edit time. |
+
+ICE data must not be returned in public member summaries or public contribution responses. It should only be returned to the owner, admins with a defined support need, or future authorised group/session participants according to an explicit consent record.
 
 ### `contributions`
 
@@ -305,6 +324,7 @@ Tasks:
 | SYNC-F7 | Community trust roles | Backend/auth | Landed | MVP | — | Extends member role/trust model for `TRUSTED_MEMBER` and `CONTRIB_MODERATOR` without relying on `ADMIN` for normal contribution review. |
 | SYNC-F8 | Contribution readback API | Backend/API | Landed | MVP | — | Phase 1 read endpoint returns backend contributions by section for frontend load/merge. |
 | SYNC-F9 | Frontend backend contribution merge | Frontend/sync | Landed | MVP | — | Phase 1 frontend merges backend contributions with local queued outbox records and shows moderation/sync labels. |
+| SYNC-F10 | Public identity and ICE schema | Backend/profile | Active | MVP | — | Adds member public-name fields and a private emergency-contact-only profile table. |
 
 ### Backlog
 
@@ -327,3 +347,4 @@ Tasks:
 | 2026-05-22 | Created backend data and sync model spec. |
 | 2026-05-22 | Added first API package, SQL migration, and idempotent sync push smoke test. |
 | 2026-05-22 | Wired frontend manual sync to the sync push endpoint. |
+| 2026-05-24 | Added public contributor name and emergency-contact-only ICE schema. |

@@ -138,7 +138,7 @@ function photoSelectSql() {
     p.original_name,
     p.created_at,
     p.member_id,
-    m.display_name,
+    COALESCE(m.public_name, m.display_name) AS display_name,
     m.email
   FROM contribution_photos p
   JOIN contributions c ON c.id = p.contribution_id

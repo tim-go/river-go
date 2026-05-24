@@ -17,12 +17,15 @@ import { closePool, pool } from "./db.js";
 import { HttpError, readJsonBody, sendJson } from "./http.js";
 import {
   getMemberForAdmin,
+  getMemberEmergencyProfile,
   listMembersForAdmin,
   isMemberRole,
   isMemberTrustLevel,
+  updateMemberProfile,
   requireAdmin,
   requireModerator,
   updateMemberAccessForAdmin,
+  upsertMemberEmergencyProfile,
   upsertMemberFromAuth,
 } from "./members.js";
 import { listPhotosForMember, softDeletePhoto } from "./photos.js";
@@ -56,6 +59,49 @@ async function route(
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
     return { status: 200, body: { member } };
+  }
+
+  if (method === "PATCH" && url.pathname === "/api/me/profile") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+
+    if (!isRecord(body) || typeof body.publicName !== "string") {
+      throw new HttpError(400, "publicName is required.");
+    }
+
+    const updatedMember = await updateMemberProfile(member.id, body.publicName);
+    return { status: 200, body: { member: updatedMember } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/emergency-profile") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const emergencyProfile = await getMemberEmergencyProfile(member.id);
+    return { status: 200, body: { emergencyProfile } };
+  }
+
+  if (method === "PUT" && url.pathname === "/api/me/emergency-profile") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+
+    if (
+      !isRecord(body) ||
+      typeof body.emergencyContactName !== "string" ||
+      typeof body.emergencyContactPhone !== "string" ||
+      typeof body.emergencyContactRelationship !== "string"
+    ) {
+      throw new HttpError(
+        400,
+        "emergencyContactName, emergencyContactPhone, and emergencyContactRelationship are required.",
+      );
+    }
+
+    const emergencyProfile = await upsertMemberEmergencyProfile(member.id, {
+      emergencyContactName: body.emergencyContactName,
+      emergencyContactPhone: body.emergencyContactPhone,
+      emergencyContactRelationship: body.emergencyContactRelationship,
+    });
+    return { status: 200, body: { emergencyProfile } };
   }
 
   if (method === "GET" && url.pathname === "/api/locations/what3words") {
@@ -228,7 +274,9 @@ async function route(
 export function createApiServer() {
   return createServer(async (request, response) => {
     try {
-      const body = request.method === "POST" ? await readJsonBody(request) : {};
+      const body = ["PATCH", "POST", "PUT"].includes(request.method ?? "")
+        ? await readJsonBody(request)
+        : {};
       const result = await route(
         request.url ?? "/",
         request.method ?? "GET",

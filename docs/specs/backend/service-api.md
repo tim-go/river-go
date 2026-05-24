@@ -49,6 +49,9 @@ Initial endpoints:
 | --- | --- | --- |
 | `GET` | `/api/health` | Runtime health check. |
 | `GET` | `/api/me` | Upsert and return the authenticated member profile. |
+| `PATCH` | `/api/me/profile` | Update editable member profile fields such as public contributor name. |
+| `GET` | `/api/me/emergency-profile` | Return the signed-in member's private ICE profile. |
+| `PUT` | `/api/me/emergency-profile` | Create or update the signed-in member's private ICE profile. |
 | `GET` | `/api/locations/what3words?lat=...&lng=...` | Convert coordinates to a what3words address when the integration key is configured. |
 | `GET` | `/api/locations/what3words?words=...` | Convert a what3words address back to coordinates for future search/share flows. |
 | `GET` | `/api/me/contributions` | List the signed-in member's synced contributions with section, moderation, and photo context. |
@@ -90,6 +93,8 @@ Auth:
 - Roles start with `MEMBER`, `TRUSTED_MEMBER`, `CONTRIB_MODERATOR`, and `ADMIN`; contribution moderation should not depend on platform admins for normal day-to-day review.
 - `ADMIN` is assigned from the environment's `ADMIN_EMAILS` allowlist, sourced from runtime config during Cloud Run deployment.
 - Moderator endpoints require a role claim or backend role table.
+- Public contribution responses should use `members.public_name` once available, not email, Firebase display name, or other real identity fields.
+- ICE/emergency profile endpoints must be owner-only until a dedicated group-session sharing model exists.
 
 Storage:
 
@@ -150,6 +155,7 @@ Moderation:
 | API-F13 | Photo management API | Backend/media | Active | MVP | — | Supports member photo listing and owner/moderator soft-delete. |
 | API-F14 | Member contribution management API | Backend/community | Active | MVP | — | Supports member contribution listing and owner/moderator soft-delete. |
 | API-F15 | what3words location API | Backend/integration | Active | MVP | — | Server-side coordinate/address conversion with optional sync-time contribution enrichment. |
+| API-F16 | Profile public name and ICE API | Backend/profile | Active | MVP | — | Supports member public-name updates and owner-only emergency-contact profile read/write. |
 
 ### Backlog
 
@@ -171,3 +177,4 @@ Moderation:
 | 2026-05-22 | Linked initial data/sync model and backend package decisions. |
 | 2026-05-23 | Added Cloud Run packaging and deployment path for the first API slice. |
 | 2026-05-23 | Started Firebase Auth verification path for sync writes. |
+| 2026-05-24 | Added public-name and emergency-contact profile endpoints. |

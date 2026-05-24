@@ -58,8 +58,12 @@ import {
   fetchAdminMembers,
   fetchAdminMemberDetail,
   fetchCurrentMember,
+  fetchMyEmergencyProfile,
+  saveMyEmergencyProfile,
+  updateMyProfile,
   updateAdminMemberAccess,
   type AdminMemberDetail,
+  type MemberEmergencyProfile,
   type MemberProfile,
   type MemberRole,
   type MemberTrustLevel,
@@ -1433,6 +1437,18 @@ function App() {
   const [authMessage, setAuthMessage] = useState("");
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
   const [memberMessage, setMemberMessage] = useState("");
+  const [publicNameDraft, setPublicNameDraft] = useState("");
+  const [emergencyProfile, setEmergencyProfile] =
+    useState<MemberEmergencyProfile | null>(null);
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  const [emergencyContactRelationship, setEmergencyContactRelationship] =
+    useState("");
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [isEmergencyProfileLoading, setIsEmergencyProfileLoading] =
+    useState(false);
+  const [isEmergencyProfileSaving, setIsEmergencyProfileSaving] =
+    useState(false);
   const [memberPhotos, setMemberPhotos] = useState<MemberPhoto[]>([]);
   const [isMemberPhotosLoading, setIsMemberPhotosLoading] = useState(false);
   const [photoMessage, setPhotoMessage] = useState("");
@@ -1702,6 +1718,11 @@ function App() {
     if (!authState.user) {
       setMemberProfile(null);
       setMemberMessage("");
+      setPublicNameDraft("");
+      setEmergencyProfile(null);
+      setEmergencyContactName("");
+      setEmergencyContactPhone("");
+      setEmergencyContactRelationship("");
       setAdminMembers([]);
       setMemberPhotos([]);
       setPhotoMessage("");
@@ -1721,6 +1742,7 @@ function App() {
       .then((member) => {
         if (isMounted) {
           setMemberProfile(member);
+          setPublicNameDraft(member.publicName ?? member.displayName ?? "");
           setMemberMessage("");
         }
       })
@@ -1737,6 +1759,45 @@ function App() {
       isMounted = false;
     };
   }, [authState.user]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!authState.user || profileMode !== "account") {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    setIsEmergencyProfileLoading(true);
+    fetchMyEmergencyProfile()
+      .then((profile) => {
+        if (isMounted) {
+          setEmergencyProfile(profile);
+          setEmergencyContactName(profile.emergencyContactName);
+          setEmergencyContactPhone(profile.emergencyContactPhone);
+          setEmergencyContactRelationship(profile.emergencyContactRelationship);
+        }
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setMemberMessage(
+            error instanceof Error
+              ? error.message
+              : "Could not load emergency contact.",
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsEmergencyProfileLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authState.user, profileMode]);
 
   useEffect(() => {
     if (
@@ -2232,6 +2293,64 @@ function App() {
       );
     } finally {
       setIsMemberContributionsLoading(false);
+    }
+  }
+
+  async function savePublicName() {
+    if (!authState.user) {
+      requireSignInForSave();
+      return;
+    }
+
+    setIsProfileSaving(true);
+    setMemberMessage("");
+
+    try {
+      const updatedMember = await updateMyProfile({
+        publicName: publicNameDraft,
+      });
+      setMemberProfile(updatedMember);
+      setPublicNameDraft(updatedMember.publicName ?? "");
+      setMemberMessage("Public profile name saved.");
+    } catch (error) {
+      setMemberMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not save public profile name.",
+      );
+    } finally {
+      setIsProfileSaving(false);
+    }
+  }
+
+  async function saveEmergencyContact() {
+    if (!authState.user) {
+      requireSignInForSave();
+      return;
+    }
+
+    setIsEmergencyProfileSaving(true);
+    setMemberMessage("");
+
+    try {
+      const savedProfile = await saveMyEmergencyProfile({
+        emergencyContactName,
+        emergencyContactPhone,
+        emergencyContactRelationship,
+      });
+      setEmergencyProfile(savedProfile);
+      setEmergencyContactName(savedProfile.emergencyContactName);
+      setEmergencyContactPhone(savedProfile.emergencyContactPhone);
+      setEmergencyContactRelationship(savedProfile.emergencyContactRelationship);
+      setMemberMessage("Emergency contact saved.");
+    } catch (error) {
+      setMemberMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not save emergency contact.",
+      );
+    } finally {
+      setIsEmergencyProfileSaving(false);
     }
   }
 
@@ -2765,7 +2884,10 @@ function App() {
   }
 
   const accountLabel =
-    memberProfile?.displayName ?? authState.user?.displayName ?? "Guest";
+    memberProfile?.publicName ??
+    memberProfile?.displayName ??
+    authState.user?.displayName ??
+    "Guest";
   const accountMeta =
     memberProfile?.email ??
     authState.user?.email ??
@@ -3927,7 +4049,8 @@ function App() {
                   <UserRound size={22} />
                   <div>
                     <strong>
-                      {memberProfile?.displayName ??
+                      {memberProfile?.publicName ??
+                        memberProfile?.displayName ??
                         authState.user?.displayName ??
                         "Signed out"}
                     </strong>
@@ -3966,6 +4089,128 @@ function App() {
                   <p className="profile-message">
                     {authMessage || authState.error || memberMessage}
                   </p>
+                    ) : null}
+                    {isSignedIn ? (
+                      <section className="profile-card profile-card--stacked">
+                        <div className="block-title">
+                          <div>
+                            <h3>Public profile name</h3>
+                            <span>Shown beside your public contributions</span>
+                          </div>
+                          <span className="status-chip">
+                            {memberProfile?.publicNameStatus ?? "active"}
+                          </span>
+                        </div>
+                        <div className="form-grid">
+                          <label>
+                            <span>Public name</span>
+                            <input
+                              type="text"
+                              value={publicNameDraft}
+                              onChange={(event) =>
+                                setPublicNameDraft(event.target.value)
+                              }
+                              placeholder="Tim, Joe G, Sarah Canoe"
+                              maxLength={40}
+                            />
+                          </label>
+                        </div>
+                        <p className="source-note">
+                          Most paddlers use a real first name or recognisable
+                          paddling name. Do not use an email address, offensive
+                          wording, impersonation, or organisation names you do not
+                          represent.
+                        </p>
+                        <div className="profile-actions">
+                          <button
+                            className="primary-action"
+                            type="button"
+                            onClick={() => void savePublicName()}
+                            disabled={isProfileSaving}
+                          >
+                            <UserRound size={16} />
+                            {isProfileSaving ? "Saving" : "Save name"}
+                          </button>
+                        </div>
+                      </section>
+                    ) : null}
+                    {isSignedIn ? (
+                      <section className="profile-card profile-card--stacked">
+                        <div className="block-title">
+                          <div>
+                            <h3>Emergency contact</h3>
+                            <span>Private ICE details for future group sessions</span>
+                          </div>
+                          <span className="status-chip">
+                            {emergencyProfile?.visibilityDefault ?? "private"}
+                          </span>
+                        </div>
+                        {isEmergencyProfileLoading ? (
+                          <p className="source-note">
+                            Loading emergency contact...
+                          </p>
+                        ) : (
+                          <>
+                            <div className="form-grid">
+                              <label>
+                                <span>Contact name</span>
+                                <input
+                                  type="text"
+                                  value={emergencyContactName}
+                                  onChange={(event) =>
+                                    setEmergencyContactName(event.target.value)
+                                  }
+                                  maxLength={80}
+                                />
+                              </label>
+                              <label>
+                                <span>Contact phone</span>
+                                <input
+                                  type="tel"
+                                  value={emergencyContactPhone}
+                                  onChange={(event) =>
+                                    setEmergencyContactPhone(event.target.value)
+                                  }
+                                  maxLength={40}
+                                />
+                              </label>
+                              <label>
+                                <span>Relationship</span>
+                                <input
+                                  type="text"
+                                  value={emergencyContactRelationship}
+                                  onChange={(event) =>
+                                    setEmergencyContactRelationship(
+                                      event.target.value,
+                                    )
+                                  }
+                                  placeholder="Partner, parent, friend"
+                                  maxLength={60}
+                                />
+                              </label>
+                            </div>
+                            <p className="source-note">
+                              Stored privately. Do not enter medical information
+                              here. In future group sessions you will choose
+                              whether to share this emergency contact with the
+                              organiser.
+                            </p>
+                            <div className="profile-actions">
+                              <button
+                                className="primary-action"
+                                type="button"
+                                onClick={() => void saveEmergencyContact()}
+                                disabled={isEmergencyProfileSaving}
+                              >
+                                <ShieldCheck size={16} />
+                                {isEmergencyProfileSaving
+                                  ? "Saving"
+                                  : "Save emergency contact"}
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </section>
                     ) : null}
                     <SyncOutboxBanner
                   queuedOutboxCount={queuedOutboxCount}

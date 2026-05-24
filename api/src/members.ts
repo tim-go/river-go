@@ -12,6 +12,8 @@ export interface Member {
   firebaseUid: string;
   email: string | null;
   displayName: string | null;
+  publicName: string | null;
+  publicNameStatus: string;
   photoUrl: string | null;
   role: MemberRole;
   trustLevel: MemberTrustLevel;
@@ -25,12 +27,31 @@ interface MemberRow {
   firebase_uid: string;
   email: string | null;
   display_name: string | null;
+  public_name: string | null;
+  public_name_status: string;
   photo_url: string | null;
   role: MemberRole;
   trust_level: MemberTrustLevel;
   created_at: Date;
   updated_at: Date;
   last_seen_at: Date | null;
+}
+
+export interface MemberEmergencyProfile {
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  emergencyContactRelationship: string;
+  visibilityDefault: "private";
+  updatedAt: string | null;
+}
+
+interface MemberEmergencyProfileRow {
+  member_id: string;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_relationship: string | null;
+  visibility_default: "private";
+  updated_at: Date;
 }
 
 export async function upsertMemberFromAuth(
@@ -45,10 +66,11 @@ export async function upsertMemberFromAuth(
       firebase_uid,
       email,
       display_name,
+      public_name,
       photo_url,
       role,
       last_seen_at
-    ) VALUES ($1, $2, $3, $4, $5, now())
+    ) VALUES ($1, $2, $3, $4, $5, $6, now())
     ON CONFLICT (firebase_uid) DO UPDATE SET
       email = EXCLUDED.email,
       display_name = EXCLUDED.display_name,
@@ -64,6 +86,7 @@ export async function upsertMemberFromAuth(
       authContext.userId,
       authContext.email ?? null,
       authContext.name ?? null,
+      defaultPublicName(authContext.name),
       authContext.picture ?? null,
       desiredRole,
     ],
@@ -83,6 +106,28 @@ export async function listMembersForAdmin(): Promise<Member[]> {
   return result.rows.map(mapMember);
 }
 
+export async function updateMemberProfile(
+  memberId: string,
+  publicName: string,
+): Promise<Member> {
+  const normalisedPublicName = normalisePublicName(publicName);
+  const result = await pool.query<MemberRow>(
+    `UPDATE members
+    SET public_name = $2,
+      public_name_status = 'active',
+      updated_at = now()
+    WHERE id = $1
+    RETURNING *`,
+    [memberId, normalisedPublicName],
+  );
+
+  if (!result.rowCount) {
+    throw new HttpError(404, "Member not found.");
+  }
+
+  return mapMember(result.rows[0]);
+}
+
 export async function getMemberForAdmin(memberId: string): Promise<Member> {
   const result = await pool.query<MemberRow>(
     `SELECT *
@@ -96,6 +141,58 @@ export async function getMemberForAdmin(memberId: string): Promise<Member> {
   }
 
   return mapMember(result.rows[0]);
+}
+
+export async function getMemberEmergencyProfile(
+  memberId: string,
+): Promise<MemberEmergencyProfile> {
+  const result = await pool.query<MemberEmergencyProfileRow>(
+    `SELECT *
+    FROM member_emergency_profiles
+    WHERE member_id = $1`,
+    [memberId],
+  );
+
+  if (!result.rowCount) {
+    return emptyEmergencyProfile();
+  }
+
+  return mapEmergencyProfile(result.rows[0]);
+}
+
+export async function upsertMemberEmergencyProfile(
+  memberId: string,
+  input: {
+    emergencyContactName: string;
+    emergencyContactPhone: string;
+    emergencyContactRelationship: string;
+  },
+): Promise<MemberEmergencyProfile> {
+  const result = await pool.query<MemberEmergencyProfileRow>(
+    `INSERT INTO member_emergency_profiles (
+      member_id,
+      emergency_contact_name,
+      emergency_contact_phone,
+      emergency_contact_relationship,
+      visibility_default,
+      updated_at
+    ) VALUES ($1, $2, $3, $4, 'private', now())
+    ON CONFLICT (member_id) DO UPDATE SET
+      emergency_contact_name = EXCLUDED.emergency_contact_name,
+      emergency_contact_phone = EXCLUDED.emergency_contact_phone,
+      emergency_contact_relationship = EXCLUDED.emergency_contact_relationship,
+      visibility_default = 'private',
+      updated_at = now()
+    RETURNING *`,
+    [
+      memberId,
+      cleanOptionalText(input.emergencyContactName, 80),
+      cleanOptionalText(input.emergencyContactPhone, 40),
+      cleanOptionalText(input.emergencyContactRelationship, 60),
+    ],
+  );
+
+  return mapEmergencyProfile(result.rows[0]);
 }
 
 export async function updateMemberAccessForAdmin(
@@ -157,17 +254,92 @@ function isAdminEmail(email: string | undefined): boolean {
   return getAdminEmails().includes(email.trim().toLowerCase());
 }
 
+function defaultPublicName(displayName: string | undefined) {
+  try {
+    return normalisePublicName(displayName ?? "");
+  } catch {
+    return `RiverLaunch member ${Math.floor(1000 + Math.random() * 9000)}`;
+  }
+}
+
+function normalisePublicName(value: string) {
+  const cleaned = value.replace(/\s+/g, " ").trim();
+
+  if (cleaned.length < 2 || cleaned.length > 40) {
+    throw new HttpError(400, "Public name must be 2-40 characters.");
+  }
+
+  if (/[<>{}[\]\\/@]|https?:|www\.|\.com\b/i.test(cleaned)) {
+    throw new HttpError(400, "Public name cannot include contact details or links.");
+  }
+
+  if (!/^[\p{L}\p{N} .'-]+$/u.test(cleaned)) {
+    throw new HttpError(
+      400,
+      "Public name can use letters, numbers, spaces, apostrophes, hyphens, and full stops.",
+    );
+  }
+
+  const lower = cleaned.toLowerCase();
+  const blockedTerms = [
+    "admin",
+    "moderator",
+    "riverlaunch",
+    "paddle uk",
+    "paddleuk",
+    "fuck",
+    "shit",
+    "cunt",
+    "nazi",
+  ];
+
+  if (blockedTerms.some((term) => lower.includes(term))) {
+    throw new HttpError(400, "Choose a public name that does not imply staff or organisation status.");
+  }
+
+  return cleaned;
+}
+
+function cleanOptionalText(value: string, maxLength: number) {
+  const cleaned = value.replace(/\s+/g, " ").trim();
+  return cleaned ? cleaned.slice(0, maxLength) : null;
+}
+
 function mapMember(row: MemberRow): Member {
   return {
     id: row.id,
     firebaseUid: row.firebase_uid,
     email: row.email,
     displayName: row.display_name,
+    publicName: row.public_name,
+    publicNameStatus: row.public_name_status,
     photoUrl: row.photo_url,
     role: row.role,
     trustLevel: row.trust_level,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     lastSeenAt: row.last_seen_at?.toISOString() ?? null,
+  };
+}
+
+function emptyEmergencyProfile(): MemberEmergencyProfile {
+  return {
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    emergencyContactRelationship: "",
+    visibilityDefault: "private",
+    updatedAt: null,
+  };
+}
+
+function mapEmergencyProfile(
+  row: MemberEmergencyProfileRow,
+): MemberEmergencyProfile {
+  return {
+    emergencyContactName: row.emergency_contact_name ?? "",
+    emergencyContactPhone: row.emergency_contact_phone ?? "",
+    emergencyContactRelationship: row.emergency_contact_relationship ?? "",
+    visibilityDefault: row.visibility_default,
+    updatedAt: row.updated_at.toISOString(),
   };
 }

@@ -154,7 +154,35 @@ Every contribution should show:
 - whether it has evidence photos
 - whether the contributor is trusted, club-affiliated, or new
 
+Public contribution identity should use a member-controlled public contributor name, not real name or email address. This protects privacy while still giving the community enough continuity to recognise useful contributors.
+
+Public names need moderation controls. They should be:
+
+- screened for profanity, abuse, impersonation, hate terms, and obvious trolling
+- change-limited to avoid reputation laundering
+- reportable by other users
+- reviewable and overridable by moderators
+- stored separately from the private account name/email
+
+The first implementation should prefer conservative generated public names until the moderation workflow is ready.
+
 Old data should not disappear automatically, but it should lose visual confidence.
+
+## Emergency Profile / ICE Data
+
+In-case-of-emergency data is useful for future group paddling features, but it is sensitive personal data and must not be treated as ordinary profile content.
+
+V1 should only store emergency contact data:
+
+- emergency contact name
+- emergency contact phone
+- emergency contact relationship
+
+V1 should not collect medical conditions, allergies, medications, disabilities, swimming ability, rescue capability, or free-text health/support notes. If a paddler needs to share medical or support information with a trip leader, the app can remind them to do that directly outside RiverLaunch.app.
+
+Default visibility should be private. Future group-session features may allow members to share emergency contact details with confirmed trip participants, trip leaders, or group organisers. That sharing should be explicit, scoped to a trip/session, revocable, and auditable.
+
+ICE data should never appear beside public contributions, public profiles, search results, or general member directories.
 
 ## Suggested Status Values
 
@@ -254,4 +282,3 @@ Avoid:
 - approved
 - risk-free
 - definitely passable
-

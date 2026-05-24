@@ -101,7 +101,7 @@ export async function listContributionsForSection(
       c.sync_status,
       c.revision,
       c.member_id,
-      m.display_name,
+      COALESCE(m.public_name, m.display_name) AS display_name,
       m.email,
       m.trust_level
     FROM contributions c
@@ -146,7 +146,7 @@ export async function listModerationContributions(
       c.sync_status,
       c.revision,
       c.member_id,
-      m.display_name,
+      COALESCE(m.public_name, m.display_name) AS display_name,
       m.email,
       m.trust_level
     FROM contributions c
@@ -193,7 +193,7 @@ export async function listContributionsForMember(
       c.sync_status,
       c.revision,
       c.member_id,
-      m.display_name,
+      COALESCE(m.public_name, m.display_name) AS display_name,
       m.email,
       m.trust_level
     FROM contributions c
@@ -230,7 +230,7 @@ export async function getContributionById(
       c.sync_status,
       c.revision,
       c.member_id,
-      m.display_name,
+      COALESCE(m.public_name, m.display_name) AS display_name,
       m.email,
       m.trust_level
     FROM contributions c

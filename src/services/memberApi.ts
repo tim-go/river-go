@@ -15,12 +15,22 @@ export interface MemberProfile {
   firebaseUid: string;
   email: string | null;
   displayName: string | null;
+  publicName: string | null;
+  publicNameStatus: string;
   photoUrl: string | null;
   role: MemberRole;
   trustLevel: MemberTrustLevel;
   createdAt: string;
   updatedAt: string;
   lastSeenAt: string | null;
+}
+
+export interface MemberEmergencyProfile {
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  emergencyContactRelationship: string;
+  visibilityDefault: "private";
+  updatedAt: string | null;
 }
 
 export interface AdminMemberDetail {
@@ -37,6 +47,38 @@ export async function fetchCurrentMember(): Promise<MemberProfile> {
   return fetchMemberEndpoint<{ member: MemberProfile }>("/api/me").then(
     (result) => result.member,
   );
+}
+
+export async function updateMyProfile(input: {
+  publicName: string;
+}): Promise<MemberProfile> {
+  return fetchMemberEndpoint<{ member: MemberProfile }>("/api/me/profile", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  }).then((result) => result.member);
+}
+
+export async function fetchMyEmergencyProfile(): Promise<MemberEmergencyProfile> {
+  return fetchMemberEndpoint<{ emergencyProfile: MemberEmergencyProfile }>(
+    "/api/me/emergency-profile",
+  ).then((result) => result.emergencyProfile);
+}
+
+export async function saveMyEmergencyProfile(
+  emergencyProfile: Pick<
+    MemberEmergencyProfile,
+    | "emergencyContactName"
+    | "emergencyContactPhone"
+    | "emergencyContactRelationship"
+  >,
+): Promise<MemberEmergencyProfile> {
+  return fetchMemberEndpoint<{ emergencyProfile: MemberEmergencyProfile }>(
+    "/api/me/emergency-profile",
+    {
+      method: "PUT",
+      body: JSON.stringify(emergencyProfile),
+    },
+  ).then((result) => result.emergencyProfile);
 }
 
 export async function fetchAdminMembers(): Promise<MemberProfile[]> {

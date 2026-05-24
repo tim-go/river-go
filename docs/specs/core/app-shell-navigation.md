@@ -75,6 +75,16 @@ Initial Profile subpages:
 - `My Account`
 - `Points & Photos`
 
+`My Account` should distinguish between:
+
+- private account identity from Firebase/Auth, such as verified email and provider display name
+- public contributor identity shown beside public contributions
+- private emergency information for future group-session use
+
+The public contributor name should be editable by the member and used for publicly visible contributions instead of real name or email. It should be treated as moderated profile content: unique enough to reduce confusion, screened for profanity/offensive terms, rate-limited for changes, and reviewable/reportable by moderators. Until the moderation model is implemented, default public names should be conservative, for example `RiverLaunch member` plus a short generated suffix rather than an email-derived name.
+
+ICE / in-case-of-emergency data should live in `Profile` as private, explicit opt-in data. V1 ICE data should be limited to emergency contact name, phone, and relationship. The app should not collect medical conditions, allergies, medication, disabilities, fitness notes, or free-text health/support notes in V1. ICE data should not be public and should not appear on contributions. Future `Groups` features may allow a member to share selected emergency-contact fields with confirmed participants or group leaders for a specific trip/session. Sharing must be consent-based, revocable, auditable, and clearly labelled with who can see it.
+
 Member identity should not be persistently shown in the global header because it consumes high-value map and mobile space. Identity and sign-in/out controls belong in `Profile`.
 
 `More` should contain secondary tools such as admin entry, settings, offline packs, and future support/feedback surfaces.
@@ -111,6 +121,7 @@ Member-detail admin pages should allow admins to inspect account metadata, updat
 | NAV-F9 | Live-location setting | More/map shell | Active | prototype | — | More exposes an opt-in live-location setting; Map exposes a compact enable/recentre action. |
 | NAV-F10 | Groups primary section | Groups | Active | future placeholder | — | Bottom nav includes Groups as the future activity-planning surface. |
 | NAV-F11 | Admin member detail pages | Admin/members | Active | MVP | — | Member directory is a simple list; detailed member metadata, access controls, contributions, and photos live on a per-member admin page. |
+| NAV-F12 | Profile safety and public identity | Profile/groups | Active | MVP | — | Profile exposes Strava-style public contributor name and private V1 emergency contact fields; future group sharing remains queued. |
 
 ### Backlog
 
@@ -119,6 +130,8 @@ Member-detail admin pages should allow admins to inspect account metadata, updat
 | NAV-B1 | decision | Top bar responsibility | Resolved | v0.3 | Keep identity in `Profile`; show map-specific action strip only on `Map`. |
 | NAV-B2 | enhancement | Durable favourites model | Open | MVP | Move signed-in favourites from browser localStorage into member-backed backend data. |
 | NAV-B3 | enhancement | Search and discovery | Open | MVP | Connect search to river/section discovery, filters, and grade/runnability state. |
+| NAV-B4 | decision | ICE sharing consent model | Open | MVP | V1 stores emergency contact only; decide who can see it during a group activity and how consent/revocation/audit should work. |
+| NAV-B5 | risk | Public-name moderation | Open | MVP | Need profanity/offensive-name controls, reporting, change limits, and moderator override before relying on user-chosen public names. |
 
 ## Change Log
 
@@ -128,3 +141,4 @@ Member-detail admin pages should allow admins to inspect account metadata, updat
 | 2026-05-23 | Added signed-out startup welcome sheet and sign-in requirement for savable actions. |
 | 2026-05-24 | Added opt-in browser live-location setting and map action. |
 | 2026-05-24 | Moved favourites into Search, added Groups nav placeholder, and split Profile into tabs. |
+| 2026-05-24 | Added Profile public contributor name and V1 emergency-contact-only ICE model. |
