@@ -16,6 +16,7 @@
     "api:dev:staging": "node scripts/start-api-dev.mjs staging",
     "api:start": "npm --prefix api run start",
     "api:migrate": "npm --prefix api run db:migrate",
+    "api:seed:map-pois": "npm --prefix api run seed:map-pois",
     "api:backfill:w3w": "node scripts/run-api-runtime-command.mjs local npm --prefix api run backfill:w3w --",
     "api:sync:smoke": "npm --prefix api run sync:smoke",
     "platform:check": "npm --prefix platform run check",

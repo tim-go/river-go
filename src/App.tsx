@@ -81,6 +81,14 @@ import {
   type MemberPhoto,
 } from "./services/photoApi";
 import {
+  fetchModerationMapPoiReviews,
+  fetchSectionMapPois,
+  reviewMapPoi,
+  updateMapPoiVerificationStatus,
+  type MapPoiCorrectionReview,
+  type MapPoiReviewDecision,
+} from "./services/mapPoiApi";
+import {
   fetchCoordinatesForWhat3Words,
   fetchWhat3WordsAddress,
   formatWhat3Words,
@@ -94,14 +102,14 @@ import type {
   ContributionSyncStatus,
   ContributionType,
   HazardSeverity,
-  HazardReview,
   LatLngTuple,
   LiveGaugeReading,
+  MapPoi,
+  MapPoiKind,
   RiverSection,
 } from "./types";
 
 const STORAGE_KEY = "river-go-demo-contributions";
-const HAZARD_REVIEW_STORAGE_KEY = "river-go-demo-hazard-reviews";
 const FAVOURITES_STORAGE_KEY = "river-go-demo-favourite-sections";
 const WELCOME_SESSION_STORAGE_KEY = "riverlaunch-welcome-dismissed-session";
 const SYNC_BANNER_DISMISSAL_STORAGE_KEY = "riverlaunch-sync-banner-dismissal";
@@ -119,6 +127,8 @@ type RouteDetailsTab =
   | "updates"
   | "photos";
 
+type PoiDetailsTab = "details" | "location" | "verification" | "photos";
+
 const bandLabels = {
   "too-low": "Too low",
   good: "Good",
@@ -132,6 +142,13 @@ const routeDetailsTabs: Array<{ id: RouteDetailsTab; label: string }> = [
   { id: "access", label: "Access" },
   { id: "hazards", label: "Hazards" },
   { id: "updates", label: "Updates" },
+  { id: "photos", label: "Photos" },
+];
+
+const poiDetailsTabs: Array<{ id: PoiDetailsTab; label: string }> = [
+  { id: "details", label: "Details" },
+  { id: "location", label: "Location" },
+  { id: "verification", label: "Verify" },
   { id: "photos", label: "Photos" },
 ];
 
@@ -284,7 +301,7 @@ type LocationSearchResult = {
 
 interface SelectedPoi {
   id: string;
-  kind: "access" | "hazard" | "feature" | "gauge" | "contribution";
+  kind: MapPoiKind | "contribution";
   title: string;
   subtitle: string;
   summary: string;
@@ -302,6 +319,7 @@ interface SelectedPoi {
   dateObserved?: string;
   createdAt?: string;
   contributionType?: ContributionType;
+  mapPoi?: MapPoi;
 }
 
 const appNavItems: Array<{
@@ -422,15 +440,6 @@ function loadContributions(): Contribution[] {
     return stored ? (JSON.parse(stored) as Contribution[]) : [];
   } catch {
     return [];
-  }
-}
-
-function loadHazardReviews(): Record<string, HazardReview> {
-  try {
-    const stored = localStorage.getItem(HAZARD_REVIEW_STORAGE_KEY);
-    return stored ? (JSON.parse(stored) as Record<string, HazardReview>) : {};
-  } catch {
-    return {};
   }
 }
 
@@ -818,6 +827,134 @@ function navigationUrl(location: LatLngTuple) {
   return googleMapsDirectionsUrl(location);
 }
 
+function fallbackMapPoisForSection(section: RiverSection): MapPoi[] {
+  const source = section.source;
+  const sourceFor = (itemSource = source) => itemSource;
+
+  return [
+    {
+      id: `${section.id}:${section.gauge.id}`,
+      sectionId: section.id,
+      kind: "gauge",
+      title: section.gauge.name,
+      subtitle: "Gauge",
+      summary: `${section.gauge.value}. Trend: ${section.gauge.trend}. Observed ${section.gauge.observedAt}.`,
+      location: section.gauge.location,
+      source: sourceFor(section.gauge.source),
+      verificationStatus: "needs-confirmation",
+      confirmations: 0,
+      corrections: 0,
+      viewerReview: {
+        confirmed: false,
+        suggestedCorrection: false,
+        correctionNote: null,
+      },
+      payload: {
+        value: section.gauge.value,
+        trend: section.gauge.trend,
+        observedAt: section.gauge.observedAt,
+        what3wordsAddress: getSeedPoiWhat3Words(section.id, section.gauge.id),
+      },
+    },
+    ...section.accessPoints.map((accessPoint): MapPoi => ({
+      id: `${section.id}:${accessPoint.id}`,
+      sectionId: section.id,
+      kind: "access",
+      title: accessPoint.name,
+      subtitle: `Access · ${accessPoint.type}`,
+      summary: accessPoint.notes,
+      location: accessPoint.location,
+      source: sourceFor(accessPoint.source),
+      verificationStatus: "needs-confirmation",
+      confirmations: 0,
+      corrections: 0,
+      viewerReview: {
+        confirmed: false,
+        suggestedCorrection: false,
+        correctionNote: null,
+      },
+      payload: {
+        accessType: accessPoint.type,
+        what3wordsAddress: getSeedPoiWhat3Words(section.id, accessPoint.id),
+      },
+    })),
+    ...section.hazards.map((hazard): MapPoi => ({
+      id: `${section.id}:${hazard.id}`,
+      sectionId: section.id,
+      kind: "hazard",
+      title: hazard.title,
+      subtitle: `${hazard.type} · ${hazard.severity}`,
+      summary: hazard.description,
+      location: hazard.location,
+      source: sourceFor(hazard.source),
+      verificationStatus:
+        hazard.status === "resolved" ? "resolved" : "needs-confirmation",
+      confirmations: 0,
+      corrections: 0,
+      viewerReview: {
+        confirmed: false,
+        suggestedCorrection: false,
+        correctionNote: null,
+      },
+      payload: {
+        hazardType: hazard.type,
+        severity: hazard.severity,
+        sourceStatus: hazard.status,
+        lastConfirmed: hazard.lastConfirmed,
+        what3wordsAddress: getSeedPoiWhat3Words(section.id, hazard.id),
+      },
+    })),
+    ...section.features.map((feature): MapPoi => ({
+      id: `${section.id}:${feature.id}`,
+      sectionId: section.id,
+      kind: "feature",
+      title: feature.title,
+      subtitle: feature.type,
+      summary: feature.description,
+      location: feature.location,
+      source: sourceFor(feature.source),
+      verificationStatus: "needs-confirmation",
+      confirmations: 0,
+      corrections: 0,
+      viewerReview: {
+        confirmed: false,
+        suggestedCorrection: false,
+        correctionNote: null,
+      },
+      payload: {
+        featureType: feature.type,
+        what3wordsAddress: getSeedPoiWhat3Words(section.id, feature.id),
+      },
+    })),
+  ];
+}
+
+function readPayloadString(
+  payload: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = payload[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function mapPoiToSelectedPoi(poi: MapPoi, section: RiverSection): SelectedPoi {
+  return {
+    id: poi.id,
+    kind: poi.kind,
+    title: poi.title,
+    subtitle: poi.subtitle,
+    summary: poi.summary,
+    sectionLabel: section.sectionName,
+    location: poi.location,
+    status: poi.verificationStatus,
+    sourceLabel: poi.source?.label,
+    sourceConfidence: poi.source?.confidence,
+    navigationLocation: poi.location,
+    what3words: readPayloadString(poi.payload, "what3wordsAddress"),
+    mapPoi: poi,
+  };
+}
+
 function defaultObservedDate() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -1067,9 +1204,14 @@ function AuthPromptSheet({
   const isWelcome = mode === "welcome";
 
   return (
-    <div className="auth-sheet-backdrop" role="presentation">
+    <div
+      className={`auth-sheet-backdrop ${
+        isWelcome ? "auth-sheet-backdrop--welcome" : ""
+      }`}
+      role="presentation"
+    >
       <section
-        className="auth-sheet"
+        className={`auth-sheet ${isWelcome ? "auth-sheet--welcome" : "auth-sheet--required"}`}
         role="dialog"
         aria-modal="true"
         aria-label={isWelcome ? "Welcome to RiverLaunch.app" : "Sign in required"}
@@ -1154,10 +1296,21 @@ function PoiDetailPanel({
   poi,
   onClose,
   onAddPhoto,
+  onReviewMapPoi,
+  reviewMessage,
+  isReviewSaving,
 }: {
   poi: SelectedPoi;
   onClose: () => void;
   onAddPhoto: () => void;
+  onReviewMapPoi: (
+    poi: MapPoi,
+    decision: MapPoiReviewDecision,
+    action?: "add" | "remove",
+    note?: string,
+  ) => void;
+  reviewMessage: string;
+  isReviewSaving: boolean;
 }) {
   const [what3wordsAddress, setWhat3WordsAddress] = useState(
     poi.what3words ?? "",
@@ -1165,6 +1318,10 @@ function PoiDetailPanel({
   const [isWhat3WordsLoading, setIsWhat3WordsLoading] = useState(false);
   const [what3wordsUnavailable, setWhat3WordsUnavailable] = useState(false);
   const [copiedLocationLabel, setCopiedLocationLabel] = useState("");
+  const [isCorrectionFormOpen, setIsCorrectionFormOpen] = useState(false);
+  const [correctionNote, setCorrectionNote] = useState("");
+  const [activePoiDetailsTab, setActivePoiDetailsTab] =
+    useState<PoiDetailsTab>("details");
 
   function resetWhat3WordsState() {
     setCopiedLocationLabel("");
@@ -1175,6 +1332,9 @@ function PoiDetailPanel({
 
   useEffect(() => {
     resetWhat3WordsState();
+    setIsCorrectionFormOpen(false);
+    setCorrectionNote(poi.mapPoi?.viewerReview?.correctionNote ?? "");
+    setActivePoiDetailsTab("details");
   }, [poi.id, poi.location, poi.what3words]);
 
   async function loadWhat3WordsAddress() {
@@ -1210,6 +1370,11 @@ function PoiDetailPanel({
   const formattedWhat3Words = what3wordsAddress
     ? formatWhat3Words(what3wordsAddress)
     : "";
+  const viewerCorrectionNote =
+    poi.mapPoi?.viewerReview?.correctionNote?.trim() ?? "";
+  const visiblePoiDetailsTabs = poiDetailsTabs.filter(
+    (tab) => tab.id !== "verification" || poi.mapPoi,
+  );
 
   return (
     <section className="poi-detail-panel" aria-label="Point of interest details">
@@ -1227,168 +1392,337 @@ function PoiDetailPanel({
         <h2>{poi.title}</h2>
         <span>{poi.subtitle}</span>
       </div>
-      <div className="panel-content">
-        <div className="stat-grid">
-          <Metric icon={MapPinned} label="Section" value={poi.sectionLabel} />
-          <Metric icon={Navigation} label="Location" value={formatLocation(poi.location)} />
-          <Metric icon={ShieldCheck} label="Status" value={poi.status ?? "Info"} />
-          <Metric icon={MessageSquare} label="Source" value={poi.sourceConfidence ?? "Demo"} />
-        </div>
-        <section className="info-block">
-          <h3>Details</h3>
-          <p>{poi.summary}</p>
-        </section>
-        <section className="info-block">
-          <h3>Location</h3>
-          <div className="detail-list">
-            <span>
-              <strong>Coordinates</strong>
-              {coordinateText}
-            </span>
-            {formattedWhat3Words ? (
-              <span>
-                <strong>what3words</strong>
-                {formattedWhat3Words}
-              </span>
-            ) : isWhat3WordsLoading ? (
-              <span>
-                <strong>what3words</strong>
-                Looking up...
-              </span>
-            ) : what3wordsUnavailable ? (
-              <span>
-                <strong>what3words</strong>
-                Unavailable
-              </span>
-            ) : null}
-          </div>
-          <div className="location-actions">
-            <a
-              className="ghost-button ghost-button--compact"
-              href={googleMapsSearchUrl(poi.location)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <MapIcon size={15} />
-              Maps
-            </a>
-            {poi.navigationLocation ? (
-              <a
-                className="ghost-button ghost-button--compact"
-                href={googleMapsDirectionsUrl(poi.navigationLocation)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Navigation size={15} />
-                Navigate
-              </a>
-            ) : null}
+      <div className="panel-content panel-content--tabbed">
+        <div
+          className="segmented-control route-detail-tabs poi-detail-tabs"
+          role="tablist"
+          aria-label="Point details"
+        >
+          {visiblePoiDetailsTabs.map((tab) => (
             <button
-              className="ghost-button ghost-button--compact"
+              className={activePoiDetailsTab === tab.id ? "active" : ""}
+              key={tab.id}
               type="button"
-              onClick={() => void copyLocationText("Coordinates", coordinateText)}
+              role="tab"
+              aria-selected={activePoiDetailsTab === tab.id}
+              onClick={() => setActivePoiDetailsTab(tab.id)}
             >
-              <Copy size={15} />
-              Copy
+              {tab.label}
             </button>
-            {formattedWhat3Words ? (
-              <button
-                className="ghost-button ghost-button--compact"
-                type="button"
-                onClick={() =>
-                  void copyLocationText("what3words", formattedWhat3Words)
-                }
-              >
-                <Copy size={15} />
-                W3W
-              </button>
-            ) : !isWhat3WordsLoading ? (
-              <button
-                className="ghost-button ghost-button--compact"
-                type="button"
-                onClick={retryWhat3WordsAddress}
-              >
-                <RefreshCw size={15} />
-                Fetch W3W
-              </button>
+          ))}
+        </div>
+
+        {activePoiDetailsTab === "details" ? (
+          <div className="route-tab-panel" role="tabpanel">
+            <div className="compact-summary-panel" aria-label="Point summary">
+              <div className="compact-summary-item">
+                <MapPinned size={15} />
+                <span>Section</span>
+                <strong>{poi.sectionLabel}</strong>
+              </div>
+              <div className="compact-summary-item">
+                <Navigation size={15} />
+                <span>Location</span>
+                <strong>{formatLocation(poi.location)}</strong>
+              </div>
+              <div className="compact-summary-item">
+                <ShieldCheck size={15} />
+                <span>Status</span>
+                <strong>{poi.status ?? "Info"}</strong>
+              </div>
+              <div className="compact-summary-item">
+                <MessageSquare size={15} />
+                <span>Source</span>
+                <strong>{poi.sourceConfidence ?? "Demo"}</strong>
+              </div>
+            </div>
+            <section className="info-block">
+              <h3>Details</h3>
+              <p>{poi.summary}</p>
+            </section>
+            {poi.sourceLabel ? (
+              <section className="info-block">
+                <h3>Source</h3>
+                <p>{poi.sourceLabel}</p>
+              </section>
+            ) : null}
+            {poi.kind === "contribution" ? (
+              <section className="info-block">
+                <h3>Contribution</h3>
+                <div className="detail-list">
+                  {poi.contributionType ? (
+                    <span>
+                      <strong>Type</strong>
+                      {poi.contributionType}
+                    </span>
+                  ) : null}
+                  {poi.category ? (
+                    <span>
+                      <strong>Category</strong>
+                      {poi.category}
+                    </span>
+                  ) : null}
+                  {poi.author ? (
+                    <span>
+                      <strong>Added by</strong>
+                      {poi.author}
+                    </span>
+                  ) : null}
+                  {poi.dateObserved ? (
+                    <span>
+                      <strong>Observed</strong>
+                      {poi.dateObserved}
+                    </span>
+                  ) : null}
+                  {poi.createdAt ? (
+                    <span>
+                      <strong>Added</strong>
+                      {poi.createdAt}
+                    </span>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+            {poi.syncStatus ? (
+              <section className="info-block">
+                <h3>Sync</h3>
+                <span className={`status-chip status-chip--sync-${poi.syncStatus}`}>
+                  {syncStatusLabel(poi.syncStatus)}
+                </span>
+              </section>
             ) : null}
           </div>
-          {copiedLocationLabel ? (
-            <p className="source-note">{copiedLocationLabel}</p>
-          ) : null}
-        </section>
-        {poi.sourceLabel ? (
-          <section className="info-block">
-            <h3>Source</h3>
-            <p>{poi.sourceLabel}</p>
-          </section>
         ) : null}
-        <div className="form-actions form-actions--inline">
-          <button className="ghost-button" type="button" onClick={onAddPhoto}>
-            <Camera size={16} />
-            Add photo
-          </button>
-        </div>
-        {poi.kind === "contribution" ? (
-          <section className="info-block">
-            <h3>Contribution</h3>
-            <div className="detail-list">
-              {poi.contributionType ? (
+
+        {activePoiDetailsTab === "location" ? (
+          <div className="route-tab-panel" role="tabpanel">
+            <section className="info-block info-block--first">
+              <h3>Location</h3>
+              <div className="detail-list">
                 <span>
-                  <strong>Type</strong>
-                  {poi.contributionType}
+                  <strong>Coordinates</strong>
+                  {coordinateText}
                 </span>
+                {formattedWhat3Words ? (
+                  <span>
+                    <strong>what3words</strong>
+                    {formattedWhat3Words}
+                  </span>
+                ) : isWhat3WordsLoading ? (
+                  <span>
+                    <strong>what3words</strong>
+                    Looking up...
+                  </span>
+                ) : what3wordsUnavailable ? (
+                  <span>
+                    <strong>what3words</strong>
+                    Unavailable
+                  </span>
+                ) : null}
+              </div>
+              <div className="location-actions">
+                <a
+                  className="ghost-button ghost-button--compact"
+                  href={googleMapsSearchUrl(poi.location)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <MapIcon size={15} />
+                  Maps
+                </a>
+                {poi.navigationLocation ? (
+                  <a
+                    className="ghost-button ghost-button--compact"
+                    href={googleMapsDirectionsUrl(poi.navigationLocation)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Navigation size={15} />
+                    Navigate
+                  </a>
+                ) : null}
+                <button
+                  className="ghost-button ghost-button--compact"
+                  type="button"
+                  onClick={() => void copyLocationText("Coordinates", coordinateText)}
+                >
+                  <Copy size={15} />
+                  Copy
+                </button>
+                {formattedWhat3Words ? (
+                  <button
+                    className="ghost-button ghost-button--compact"
+                    type="button"
+                    onClick={() =>
+                      void copyLocationText("what3words", formattedWhat3Words)
+                    }
+                  >
+                    <Copy size={15} />
+                    W3W
+                  </button>
+                ) : !isWhat3WordsLoading ? (
+                  <button
+                    className="ghost-button ghost-button--compact"
+                    type="button"
+                    onClick={retryWhat3WordsAddress}
+                  >
+                    <RefreshCw size={15} />
+                    Fetch W3W
+                  </button>
+                ) : null}
+              </div>
+              {copiedLocationLabel ? (
+                <p className="source-note">{copiedLocationLabel}</p>
               ) : null}
-              {poi.category ? (
-                <span>
-                  <strong>Category</strong>
-                  {poi.category}
-                </span>
-              ) : null}
-              {poi.author ? (
-                <span>
-                  <strong>Added by</strong>
-                  {poi.author}
-                </span>
-              ) : null}
-              {poi.dateObserved ? (
-                <span>
-                  <strong>Observed</strong>
-                  {poi.dateObserved}
-                </span>
-              ) : null}
-              {poi.createdAt ? (
-                <span>
-                  <strong>Added</strong>
-                  {poi.createdAt}
-                </span>
-              ) : null}
-            </div>
-          </section>
+            </section>
+          </div>
         ) : null}
-        {poi.syncStatus ? (
-          <section className="info-block">
-            <h3>Sync</h3>
-            <span className={`status-chip status-chip--sync-${poi.syncStatus}`}>
-              {syncStatusLabel(poi.syncStatus)}
-            </span>
-          </section>
+
+        {activePoiDetailsTab === "verification" && poi.mapPoi ? (
+          <div className="route-tab-panel" role="tabpanel">
+            <section className="info-block info-block--first">
+              <div className="block-title">
+                <h3>Verification</h3>
+                <span className={`status-chip status-chip--${poi.mapPoi.verificationStatus}`}>
+                  {poi.mapPoi.verificationStatus}
+                </span>
+              </div>
+              <div className="detail-list">
+                <span>
+                  <strong>Confirmations</strong>
+                  {poi.mapPoi.confirmations}
+                </span>
+                <span>
+                  <strong>Correction suggestions</strong>
+                  {poi.mapPoi.corrections}
+                </span>
+              </div>
+              <div className="inline-actions">
+                <button
+                  className={`ghost-button ghost-button--compact ${
+                    poi.mapPoi.viewerReview?.confirmed ? "is-selected" : ""
+                  }`}
+                  type="button"
+                  disabled={isReviewSaving}
+                  aria-pressed={poi.mapPoi.viewerReview?.confirmed ?? false}
+                  onClick={() =>
+                    onReviewMapPoi(
+                      poi.mapPoi!,
+                      "confirm",
+                      poi.mapPoi!.viewerReview?.confirmed ? "remove" : "add",
+                    )
+                  }
+                >
+                  <CheckCircle2 size={15} />
+                  {poi.mapPoi.viewerReview?.confirmed ? "Confirmed" : "Confirm"}
+                </button>
+                <button
+                  className={`ghost-button ghost-button--compact ${
+                    poi.mapPoi.viewerReview?.suggestedCorrection ? "is-selected" : ""
+                  }`}
+                  type="button"
+                  disabled={isReviewSaving}
+                  aria-pressed={poi.mapPoi.viewerReview?.suggestedCorrection ?? false}
+                  onClick={() => {
+                    setCorrectionNote(poi.mapPoi?.viewerReview?.correctionNote ?? "");
+                    setIsCorrectionFormOpen(true);
+                  }}
+                >
+                  <Flag size={15} />
+                  {poi.mapPoi.viewerReview?.suggestedCorrection
+                    ? "Correction suggested"
+                    : "Suggest correction"}
+                </button>
+              </div>
+              {!isCorrectionFormOpen && viewerCorrectionNote ? (
+                <div className="inline-correction-note">
+                  <span>Your correction</span>
+                  <p>{viewerCorrectionNote}</p>
+                </div>
+              ) : null}
+              {isCorrectionFormOpen ? (
+                <div className="inline-correction-form">
+                  <label>
+                    <span>Correction note</span>
+                    <textarea
+                      rows={3}
+                      value={correctionNote}
+                      onChange={(event) => setCorrectionNote(event.target.value)}
+                      placeholder="What needs correcting?"
+                    />
+                  </label>
+                  <div className="inline-actions">
+                    <button
+                      className="ghost-button ghost-button--compact"
+                      type="button"
+                      disabled={isReviewSaving || correctionNote.trim().length < 3}
+                      onClick={() => {
+                        const note = correctionNote.trim();
+
+                        if (note) {
+                          onReviewMapPoi(
+                            poi.mapPoi!,
+                            "correction",
+                            "add",
+                            note,
+                          );
+                          setIsCorrectionFormOpen(false);
+                        }
+                      }}
+                    >
+                      Submit
+                    </button>
+                    <button
+                      className="ghost-button ghost-button--compact"
+                      type="button"
+                      disabled={isReviewSaving}
+                      onClick={() => {
+                        setIsCorrectionFormOpen(false);
+                        setCorrectionNote(
+                          poi.mapPoi?.viewerReview?.correctionNote ?? "",
+                        );
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              {reviewMessage ? <p className="source-note">{reviewMessage}</p> : null}
+            </section>
+          </div>
         ) : null}
-        {poi.photos?.length ? (
-          <section className="info-block">
-            <h3>Photos</h3>
-            <div className="poi-photo-grid">
-              {poi.photos.map((photo) => (
-                <figure key={photo.id}>
-                  <img src={photo.displayUrl || photo.thumbnailUrl} alt="" />
-                  <figcaption>
-                    <strong>{photo.caption || poi.title}</strong>
-                    {photo.originalName ? <span>{photo.originalName}</span> : null}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </section>
+
+        {activePoiDetailsTab === "photos" ? (
+          <div className="route-tab-panel" role="tabpanel">
+            <section className="info-block info-block--first">
+              <div className="block-title">
+                <h3>Photos</h3>
+                <span>{poi.photos?.length ?? 0} attached</span>
+              </div>
+              <button className="ghost-button" type="button" onClick={onAddPhoto}>
+                <Camera size={16} />
+                Add photo
+              </button>
+              {poi.photos?.length ? (
+                <div className="poi-photo-grid">
+                  {poi.photos.map((photo) => (
+                    <figure key={photo.id}>
+                      <img src={photo.displayUrl || photo.thumbnailUrl} alt="" />
+                      <figcaption>
+                        <strong>{photo.caption || poi.title}</strong>
+                        {photo.originalName ? (
+                          <span>{photo.originalName}</span>
+                        ) : null}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              ) : (
+                <p className="source-note">No photos have been added to this point yet.</p>
+              )}
+            </section>
+          </div>
         ) : null}
       </div>
     </section>
@@ -1411,9 +1745,6 @@ function App() {
   const [outboxRecords, setOutboxRecords] = useState<ContributionOutboxRecord[]>(
     [],
   );
-  const [hazardReviews, setHazardReviews] = useState<
-    Record<string, HazardReview>
-  >(() => loadHazardReviews());
   const [favouriteSectionIds, setFavouriteSectionIds] = useState<string[]>(() =>
     loadFavouriteSectionIds(),
   );
@@ -1511,6 +1842,9 @@ function App() {
   const [moderationContributions, setModerationContributions] = useState<
     Contribution[]
   >([]);
+  const [moderationMapPoiReviews, setModerationMapPoiReviews] = useState<
+    MapPoiCorrectionReview[]
+  >([]);
   const [moderationDraftDecisions, setModerationDraftDecisions] = useState<
     Record<string, ModerationDraftDecision>
   >({});
@@ -1518,6 +1852,10 @@ function App() {
   const [moderationMessage, setModerationMessage] = useState("");
   const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
   const [isGaugeLoading, setIsGaugeLoading] = useState(false);
+  const [sectionMapPois, setSectionMapPois] = useState<MapPoi[]>([]);
+  const [isSectionMapPoisLoaded, setIsSectionMapPoisLoaded] = useState(false);
+  const [mapPoiReviewMessage, setMapPoiReviewMessage] = useState("");
+  const [isMapPoiReviewSaving, setIsMapPoiReviewSaving] = useState(false);
   const [isSectionListOpen, setIsSectionListOpen] = useState(false);
   const [authSheetMode, setAuthSheetMode] = useState<AuthSheetMode | null>(null);
   const [isWelcomeDismissedForSession, setIsWelcomeDismissedForSession] =
@@ -1542,6 +1880,20 @@ function App() {
 
   const sectionContributions = contributions.filter(
     (contribution) => contribution.sectionId === activeSection.id,
+  );
+  const fallbackSectionMapPois = useMemo(
+    () => fallbackMapPoisForSection(activeSection),
+    [activeSection],
+  );
+  const visibleSectionMapPois =
+    isSectionMapPoisLoaded && sectionMapPois.length
+      ? sectionMapPois
+      : fallbackSectionMapPois;
+  const visibleAccessPois = visibleSectionMapPois.filter(
+    (poi) => poi.kind === "access",
+  );
+  const visibleHazardPois = visibleSectionMapPois.filter(
+    (poi) => poi.kind === "hazard",
   );
   const sectionContributionPhotos = sectionContributions.flatMap((contribution) =>
     (contribution.photos ?? []).map((photo) => ({ contribution, photo })),
@@ -1869,6 +2221,31 @@ function App() {
   useEffect(() => {
     let isMounted = true;
 
+    setIsSectionMapPoisLoaded(false);
+    setSectionMapPois([]);
+    setMapPoiReviewMessage("");
+    fetchSectionMapPois(activeSection.id)
+      .then((pois) => {
+        if (isMounted) {
+          setSectionMapPois(pois);
+          setIsSectionMapPoisLoaded(true);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSectionMapPois([]);
+          setIsSectionMapPoisLoaded(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeSection.id]);
+
+  useEffect(() => {
+    let isMounted = true;
+
     fetchSectionContributions(activeSection.id)
       .then((backendContributions) => {
         if (isMounted) {
@@ -1917,13 +2294,6 @@ function App() {
       isMounted = false;
     };
   }, [outboxStore]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      HAZARD_REVIEW_STORAGE_KEY,
-      JSON.stringify(hazardReviews),
-    );
-  }, [hazardReviews]);
 
   useEffect(() => {
     let isMounted = true;
@@ -2119,7 +2489,6 @@ function App() {
       void outboxStore.remove(record.id);
     });
     setOutboxRecords([]);
-    setHazardReviews({});
     setSyncMessage("");
     clearSyncBannerDismissal();
   }
@@ -2603,9 +2972,15 @@ function App() {
     setIsModerationLoading(true);
     setModerationMessage("");
     setModerationDraftDecisions({});
+    setModerationMapPoiReviews([]);
 
     try {
-      setModerationContributions(await fetchModerationContributions());
+      const [contributions, mapPoiReviews] = await Promise.all([
+        fetchModerationContributions(),
+        fetchModerationMapPoiReviews(),
+      ]);
+      setModerationContributions(contributions);
+      setModerationMapPoiReviews(mapPoiReviews);
     } catch (error) {
       setModerationMessage(
         error instanceof Error
@@ -2684,30 +3059,33 @@ function App() {
     }
   }
 
-  function confirmSeedHazard(hazardId: string) {
-    setHazardReviews((current) => {
-      const existing = current[hazardId];
+  async function applyMapPoiVerificationStatus(
+    poi: MapPoi,
+    status: MapPoi["verificationStatus"],
+  ) {
+    setModerationMessage("");
 
-      return {
-        ...current,
-        [hazardId]: {
-          status: "confirmed",
-          confirmations: (existing?.confirmations ?? 0) + 1,
-          lastConfirmed: "Just now",
-        },
-      };
-    });
-  }
-
-  function resolveSeedHazard(hazardId: string) {
-    setHazardReviews((current) => ({
-      ...current,
-      [hazardId]: {
-        status: "resolved",
-        confirmations: current[hazardId]?.confirmations ?? 0,
-        lastConfirmed: "Just now",
-      },
-    }));
+    try {
+      const updatedPoi = await updateMapPoiVerificationStatus(poi.id, status);
+      setModerationMapPoiReviews((current) =>
+        current.filter((item) => item.poi.id !== updatedPoi.id),
+      );
+      setSectionMapPois((current) =>
+        current.map((item) => (item.id === updatedPoi.id ? updatedPoi : item)),
+      );
+      setSelectedPoi((current) =>
+        current?.mapPoi?.id === updatedPoi.id
+          ? mapPoiToSelectedPoi(updatedPoi, activeSection)
+          : current,
+      );
+      setModerationMessage(`Updated ${updatedPoi.title}.`);
+    } catch (error) {
+      setModerationMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not update map point verification state.",
+      );
+    }
   }
 
   function updateContributionStatus(
@@ -2829,9 +3207,55 @@ function App() {
     setIsPanelOpen(false);
     setIsFormOpen(false);
     setIsAddMode(false);
+    setMapPoiReviewMessage("");
     setSearchFocusLocation(null);
     setSearchFocusLabel("Searched location");
     setShowSearchFocusMarker(false);
+  }
+
+  async function submitMapPoiReview(
+    poi: MapPoi,
+    decision: MapPoiReviewDecision,
+    action: "add" | "remove" = "add",
+    note?: string,
+  ) {
+    if (!isSignedIn) {
+      requireSignInForSave();
+      return;
+    }
+
+    setIsMapPoiReviewSaving(true);
+    setMapPoiReviewMessage("");
+
+    try {
+      const updatedPoi = await reviewMapPoi(poi.id, decision, action, note);
+      setSectionMapPois((current) =>
+        current.map((item) => (item.id === updatedPoi.id ? updatedPoi : item)),
+      );
+      setSelectedPoi((current) => {
+        if (!current?.mapPoi || current.mapPoi.id !== updatedPoi.id) {
+          return current;
+        }
+
+        const section =
+          riverSections.find((item) => item.id === updatedPoi.sectionId) ??
+          activeSection;
+        return mapPoiToSelectedPoi(updatedPoi, section);
+      });
+      setMapPoiReviewMessage(
+        decision === "confirm"
+          ? action === "remove"
+            ? "Your confirmation was removed."
+            : "Thanks. This point is marked as confirmed."
+          : "Thanks. This point is marked as needing correction.",
+      );
+    } catch (error) {
+      setMapPoiReviewMessage(
+        error instanceof Error ? error.message : "Could not review this point.",
+      );
+    } finally {
+      setIsMapPoiReviewSaving(false);
+    }
   }
 
   async function handleLocationReferenceSearch(event: FormEvent<HTMLFormElement>) {
@@ -3134,6 +3558,7 @@ function App() {
 
         <RiverMap
           activeSection={activeSection}
+          mapPois={visibleSectionMapPois}
           contributions={contributions}
           outboxRecords={outboxRecords}
           selectedLocation={selectedLocation}
@@ -3383,6 +3808,11 @@ function App() {
             poi={selectedPoi}
             onClose={() => setSelectedPoi(null)}
             onAddPhoto={() => startAddMode("photo")}
+            onReviewMapPoi={(poi, decision, action, note) =>
+              void submitMapPoiReview(poi, decision, action, note)
+            }
+            reviewMessage={mapPoiReviewMessage}
+            isReviewSaving={isMapPoiReviewSaving}
           />
         ) : null}
 
@@ -3519,12 +3949,12 @@ function App() {
                   <h3>Access</h3>
                   <p>{activeSection.accessSummary}</p>
                   <div className="access-list">
-                    {activeSection.accessPoints.map((accessPoint) => (
+                    {visibleAccessPois.map((accessPoint) => (
                       <div className="compact-item" key={accessPoint.id}>
                         <MapPin size={16} />
                         <div>
-                          <strong>{accessPoint.name}</strong>
-                          <span>{accessPoint.notes}</span>
+                          <strong>{accessPoint.title}</strong>
+                          <span>{accessPoint.summary}</span>
                           <a
                             className="compact-nav-link"
                             href={navigationUrl(accessPoint.location)}
@@ -3547,57 +3977,30 @@ function App() {
                 <section className="info-block info-block--first">
                   <div className="block-title">
                     <h3>Hazards</h3>
-                    <span>{activeSection.hazards.length} seeded</span>
+                    <span>{visibleHazardPois.length} seeded</span>
                   </div>
-                  {activeSection.hazards.map((hazard) => {
-                    const review = hazardReviews[hazard.id];
-                    const status = review?.status ?? hazard.status;
-                    const lastConfirmed =
-                      review?.lastConfirmed ?? hazard.lastConfirmed;
-                    const confirmations = review?.confirmations ?? 0;
-
-                    return (
-                      <div className="hazard-item" key={hazard.id}>
-                        <AlertTriangle size={17} />
-                        <div>
-                          <strong>{hazard.title}</strong>
-                          <span>
-                            {hazard.severity} · {status} · confirmed{" "}
-                            {lastConfirmed}
+                  {visibleHazardPois.map((hazard) => (
+                    <div className="hazard-item" key={hazard.id}>
+                      <AlertTriangle size={17} />
+                      <div>
+                        <strong>{hazard.title}</strong>
+                        <span>{hazard.subtitle}</span>
+                        <p>{hazard.summary}</p>
+                        <div className="verification-row">
+                          <span
+                            className={`status-chip status-chip--${hazard.verificationStatus}`}
+                          >
+                            {hazard.verificationStatus}
                           </span>
-                          <p>{hazard.description}</p>
-                          <div className="verification-row">
-                            <span className={`status-chip status-chip--${status}`}>
-                              {status}
-                            </span>
-                            {confirmations > 0 ? (
-                              <span>{confirmations} demo confirmations</span>
-                            ) : (
-                              <span>needs local confirmation</span>
-                            )}
-                          </div>
-                          <div className="inline-actions">
-                            <button
-                              className="ghost-button ghost-button--compact"
-                              type="button"
-                              onClick={() => confirmSeedHazard(hazard.id)}
-                            >
-                              <CheckCircle2 size={15} />
-                              Confirm
-                            </button>
-                            <button
-                              className="ghost-button ghost-button--compact"
-                              type="button"
-                              onClick={() => resolveSeedHazard(hazard.id)}
-                            >
-                              <Flag size={15} />
-                              Resolve
-                            </button>
-                          </div>
+                          {hazard.confirmations > 0 ? (
+                            <span>{hazard.confirmations} confirmations</span>
+                          ) : (
+                            <span>needs local confirmation</span>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </section>
               </div>
             ) : null}
@@ -5268,7 +5671,69 @@ function App() {
                                   </article>
                                 );
                               })}
-                              {moderationContributions.length === 0 ? (
+                              {moderationMapPoiReviews.length ? (
+                                <>
+                                  <div className="moderation-section-heading">
+                                    <h3>Map point corrections</h3>
+                                    <span>{moderationMapPoiReviews.length} items</span>
+                                  </div>
+                                  {moderationMapPoiReviews.map((review) => (
+                                    <article
+                                      className="moderation-row"
+                                      key={review.id}
+                                    >
+                                      <div className="moderation-row__content">
+                                        <strong>{review.poi.title}</strong>
+                                        <span className="moderation-row__meta">
+                                          {review.poi.kind} · {review.poi.sectionId}
+                                        </span>
+                                        <p>{review.note}</p>
+                                        <small className="moderation-row__meta">
+                                          Suggested by{" "}
+                                          {review.reviewer.displayName ??
+                                            review.reviewer.email ??
+                                            "RiverLaunch.app member"}
+                                        </small>
+                                      </div>
+                                      <div className="moderation-status">
+                                        <span
+                                          className={`status-chip status-chip--${review.poi.verificationStatus}`}
+                                        >
+                                          {review.poi.verificationStatus}
+                                        </span>
+                                      </div>
+                                      <div className="moderation-actions">
+                                        <button
+                                          className="ghost-button ghost-button--compact"
+                                          type="button"
+                                          onClick={() =>
+                                            void applyMapPoiVerificationStatus(
+                                              review.poi,
+                                              "confirmed",
+                                            )
+                                          }
+                                        >
+                                          Confirm point
+                                        </button>
+                                        <button
+                                          className="ghost-button ghost-button--compact"
+                                          type="button"
+                                          onClick={() =>
+                                            void applyMapPoiVerificationStatus(
+                                              review.poi,
+                                              "resolved",
+                                            )
+                                          }
+                                        >
+                                          Mark resolved
+                                        </button>
+                                      </div>
+                                    </article>
+                                  ))}
+                                </>
+                              ) : null}
+                              {moderationContributions.length === 0 &&
+                              moderationMapPoiReviews.length === 0 ? (
                                 <p className="source-note">
                                   No contributions need moderation.
                                 </p>
@@ -5407,6 +5872,7 @@ function App() {
 
 function RiverMap({
   activeSection,
+  mapPois,
   contributions,
   outboxRecords,
   selectedLocation,
@@ -5424,6 +5890,7 @@ function RiverMap({
   onSelectSection,
 }: {
   activeSection: RiverSection;
+  mapPois: MapPoi[];
   contributions: Contribution[];
   outboxRecords: ContributionOutboxRecord[];
   selectedLocation: LatLngTuple | null;
@@ -5594,14 +6061,27 @@ function RiverMap({
           sectionMarker.openPopup();
         });
 
-      section.accessPoints.forEach((accessPoint) => {
-        const marker = L.marker(accessPoint.location, {
+      mapPois
+        .filter((poi) => poi.sectionId === section.id)
+        .forEach((poi) => {
+        const markerLabel =
+          poi.kind === "hazard"
+            ? "!"
+            : poi.kind === "feature"
+              ? "*"
+              : poi.kind === "gauge"
+                ? "~"
+                : readPayloadString(poi.payload, "accessType") === "put-in"
+                  ? "I"
+                  : "O";
+        const markerSize = poi.kind === "hazard" ? 30 : poi.kind === "feature" ? 26 : 28;
+        const marker = L.marker(poi.location, {
           bubblingMouseEvents: false,
           icon: L.divIcon({
             className: "",
-            html: markerHtml("access", accessPoint.type === "put-in" ? "I" : "O"),
-            iconSize: [28, 28],
-            iconAnchor: [14, 14],
+            html: markerHtml(poi.kind, markerLabel),
+            iconSize: [markerSize, markerSize],
+            iconAnchor: [markerSize / 2, markerSize / 2],
           }),
         });
 
@@ -5609,27 +6089,14 @@ function RiverMap({
           .addTo(layers)
           .bindPopup(
             createMapPopupContent({
-              title: accessPoint.name,
-              subtitle: `Access · ${accessPoint.type}`,
-            summary: accessPoint.notes,
-            navigationLocation: accessPoint.location,
-            navigationLabel: "Directions",
-            navigationMode: "directions",
-            onDetails: () =>
-              poiDetailsRef.current({
-                  id: accessPoint.id,
-                  kind: "access",
-                  title: accessPoint.name,
-                  subtitle: accessPoint.type,
-                  summary: accessPoint.notes,
-                  sectionLabel: section.sectionName,
-                  location: accessPoint.location,
-                  status: "Access point",
-                  sourceLabel: accessPoint.source?.label,
-                  sourceConfidence: accessPoint.source?.confidence,
-                  navigationLocation: accessPoint.location,
-                  what3words: getSeedPoiWhat3Words(section.id, accessPoint.id),
-                }),
+              title: poi.title,
+              subtitle: poi.subtitle,
+              summary: poi.summary,
+              navigationLocation: poi.location,
+              navigationLabel: poi.kind === "access" ? "Directions" : "Maps",
+              navigationMode: poi.kind === "access" ? "directions" : "map",
+              onDetails: () =>
+                poiDetailsRef.current(mapPoiToSelectedPoi(poi, section)),
             }),
           )
           .on("click", (event) => {
@@ -5637,130 +6104,6 @@ function RiverMap({
             marker.openPopup();
           });
       });
-
-      section.hazards.forEach((hazard) => {
-        const marker = L.marker(hazard.location, {
-          bubblingMouseEvents: false,
-          icon: L.divIcon({
-            className: "",
-            html: markerHtml("hazard", "!"),
-            iconSize: [30, 30],
-            iconAnchor: [15, 15],
-          }),
-        });
-
-        marker
-          .addTo(layers)
-          .bindPopup(
-            createMapPopupContent({
-            title: hazard.title,
-            subtitle: `${hazard.type} · ${hazard.severity}`,
-            summary: hazard.description,
-            navigationLocation: hazard.location,
-            onDetails: () =>
-              poiDetailsRef.current({
-                  id: hazard.id,
-                  kind: "hazard",
-                  title: hazard.title,
-                  subtitle: `${hazard.type} · ${hazard.severity}`,
-                  summary: hazard.description,
-                  sectionLabel: section.sectionName,
-                  location: hazard.location,
-                  status: hazard.status,
-                sourceLabel: hazard.source?.label,
-                sourceConfidence: hazard.source?.confidence,
-                navigationLocation: hazard.location,
-                what3words: getSeedPoiWhat3Words(section.id, hazard.id),
-              }),
-          }),
-          )
-          .on("click", (event) => {
-            L.DomEvent.stop(event.originalEvent);
-            marker.openPopup();
-          });
-      });
-
-      section.features.forEach((feature) => {
-        const marker = L.marker(feature.location, {
-          bubblingMouseEvents: false,
-          icon: L.divIcon({
-            className: "",
-            html: markerHtml("feature", "*"),
-            iconSize: [26, 26],
-            iconAnchor: [13, 13],
-          }),
-        });
-
-        marker
-          .addTo(layers)
-          .bindPopup(
-            createMapPopupContent({
-            title: feature.title,
-            subtitle: `Feature · ${feature.type}`,
-            summary: feature.description,
-            navigationLocation: feature.location,
-            onDetails: () =>
-              poiDetailsRef.current({
-                  id: feature.id,
-                  kind: "feature",
-                  title: feature.title,
-                  subtitle: feature.type,
-                  summary: feature.description,
-                  sectionLabel: section.sectionName,
-                  location: feature.location,
-                  status: "Feature",
-                sourceLabel: feature.source?.label,
-                sourceConfidence: feature.source?.confidence,
-                navigationLocation: feature.location,
-                what3words: getSeedPoiWhat3Words(section.id, feature.id),
-              }),
-          }),
-          )
-          .on("click", (event) => {
-            L.DomEvent.stop(event.originalEvent);
-            marker.openPopup();
-          });
-      });
-
-      const gaugeMarker = L.marker(section.gauge.location, {
-        bubblingMouseEvents: false,
-        icon: L.divIcon({
-          className: "",
-          html: markerHtml("gauge", "~"),
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
-        }),
-      });
-
-      gaugeMarker
-        .addTo(layers)
-        .bindPopup(
-          createMapPopupContent({
-            title: section.gauge.name,
-            subtitle: "Gauge",
-            summary: `${section.gauge.value} · ${section.gauge.observedAt}`,
-            navigationLocation: section.gauge.location,
-            onDetails: () =>
-              poiDetailsRef.current({
-                id: section.gauge.id,
-                kind: "gauge",
-                title: section.gauge.name,
-                subtitle: "Gauge",
-                summary: `${section.gauge.value}. Trend: ${section.gauge.trend}. Observed ${section.gauge.observedAt}.`,
-                sectionLabel: section.sectionName,
-                location: section.gauge.location,
-                status: section.gauge.trend,
-                sourceLabel: section.gauge.source?.label,
-                sourceConfidence: section.gauge.source?.confidence,
-                navigationLocation: section.gauge.location,
-                what3words: getSeedPoiWhat3Words(section.id, section.gauge.id),
-              }),
-          }),
-        )
-        .on("click", (event) => {
-          L.DomEvent.stop(event.originalEvent);
-          gaugeMarker.openPopup();
-        });
     });
 
     contributions.forEach((contribution) => {
@@ -5964,6 +6307,7 @@ function RiverMap({
     contributions,
     focusNonce,
     liveLocation,
+    mapPois,
     outboxByContributionId,
     searchFocusLocation,
     showSearchFocusMarker,

@@ -100,6 +100,36 @@ export interface ConditionReport {
   source?: SourceMetadata;
 }
 
+export type MapPoiKind = "access" | "hazard" | "feature" | "gauge";
+
+export type MapPoiVerificationStatus =
+  | "needs-confirmation"
+  | "confirmed"
+  | "needs-correction"
+  | "resolved";
+
+export interface MapPoi {
+  id: string;
+  sectionId: string;
+  kind: MapPoiKind;
+  title: string;
+  subtitle: string;
+  summary: string;
+  location: LatLngTuple;
+  source?: SourceMetadata;
+  verificationStatus: MapPoiVerificationStatus;
+  confirmations: number;
+  corrections: number;
+  viewerReview?: {
+    confirmed: boolean;
+    suggestedCorrection: boolean;
+    correctionNote?: string | null;
+  };
+  payload: Record<string, unknown>;
+  revision?: number;
+  updatedAt?: string;
+}
+
 export interface RiverSection {
   id: string;
   riverName: string;

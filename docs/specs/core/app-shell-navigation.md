@@ -48,7 +48,7 @@ Desktop and larger tablet layouts should use a persistent left navigation rail/s
 
 Mobile and PWA layouts should use a bottom tab bar for the same primary sections. `Map` should be the first bottom-tab item because browsing the river map is the primary entry point; `Search` remains a helper for targeted lookup.
 
-Branding should be present without delaying startup. When auth resolves and no user is signed in, the app should show a welcome sheet with `Sign in` and `Continue as guest`. Continuing as guest dismisses the sheet for the current browser/PWA session using session storage, so refreshes and sign-out in the same session do not immediately re-show it. The desktop nav and secondary mobile surfaces such as `Profile` and `More` should carry compact RiverLaunch.app branding while the map header stays contextual.
+Branding should be present without delaying startup. When auth resolves and no user is signed in, the app should show a welcome sheet with `Sign in` and `Continue as guest`. On mobile/PWA viewports, this startup welcome sheet should cover the full viewport rather than appearing as a small centered modal. Continuing as guest dismisses the sheet for the current browser/PWA session using session storage, so refreshes and sign-out in the same session do not immediately re-show it. The desktop nav and secondary mobile surfaces such as `Profile` and `More` should carry compact RiverLaunch.app branding while the map header stays contextual.
 
 Anonymous users may browse the map, search, route details, POIs, photos, levels, and navigation links. Savable actions require sign-in, including favourites, add local knowledge, add photo, sync, admin, and future offline packs.
 

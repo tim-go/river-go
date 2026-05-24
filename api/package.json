@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "db:migrate": "tsx src/migrate.ts",
+    "seed:map-pois": "tsx src/seed-map-pois.ts",
     "backfill:w3w": "tsx src/backfill-what3words.ts",
     "sync:smoke": "tsx src/smoke-sync.ts"
   },

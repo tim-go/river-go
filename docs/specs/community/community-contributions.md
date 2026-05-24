@@ -80,6 +80,8 @@ For the backend-persisted MVP, save should create a local outbox record first an
 
 Existing seeded and saved information markers remain inspect-only, even while add mode is active. A future explicit `Add update here` action can be added inside marker popups if updating existing map objects becomes a priority.
 
+Seeded and curated map points should be backed by server records rather than frontend-only fixture objects once the backend is available. Members should be able to confirm that a seed point is correct or suggest that it needs correction through inline UI, not browser/system dialogs. Confirmation should behave like a signed-in toggle: one active confirmation per member per POI, with a second click removing that member's confirmation. A member's active correction note should remain visible to that member while the point is still awaiting correction review, and the same inline form should allow them to edit the note. Correction suggestions should move the point into a needs-correction state for moderator or trusted-member review. Moderators should see correction suggestions in the moderation area and clear them by confirming the point or marking the correction as resolved after follow-up. These review actions are not full replacement route authoring; they are the first trust loop for turning seed data into community-verified data.
+
 Signed-in members should be able to review their own synced points from Profile, return to the related map section, and delete items they created. Deletion is a soft-delete in the MVP: the contribution moves to `hidden`, attached photos are hidden, and audit/storage metadata is retained. Admins and contribution moderators may use the same delete path as an override.
 
 Point contributions should retain practical location references where available. The client always stores coordinates in the contribution geometry, and the PWA should enrich a new point with `what3wordsAddress` once at save time when online. The backend should also enrich synced point payloads at create/sync time when the server-side integration is configured, so offline saves and older clients still get stored location references. This avoids spending provider requests every time a user opens the same POI details.
@@ -132,6 +134,7 @@ Offline requirements:
 | CON-F13 | Member point management | Profile/backend | Active | MVP | — | Members can list synced contributions, return to the map section, and soft-delete their own points. |
 | CON-F14 | Prominent sync state | Map/Profile | Active | MVP | — | Shows a banner for queued, failed, or offline outbox changes with sync/retry action. |
 | CON-F15 | Location reference enrichment | Backend/sync | Active | MVP | — | Synced point contributions may store server-generated what3words metadata alongside coordinates. |
+| CON-F16 | Seed POI verification | Map/POI panel | Active | MVP | — | Signed-in members can confirm or suggest corrections for backend-backed seed POIs. |
 
 ### Backlog
 

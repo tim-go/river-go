@@ -16,6 +16,15 @@ import {
 import { closePool, pool } from "./db.js";
 import { HttpError, readJsonBody, sendJson } from "./http.js";
 import {
+  isMapPoiVerificationStatus,
+  isMapPoiReviewAction,
+  isMapPoiReviewDecision,
+  listMapPoiCorrectionReviews,
+  listMapPoisForSection,
+  reviewMapPoi,
+  updateMapPoiVerificationStatus,
+} from "./map-pois.js";
+import {
   getMemberForAdmin,
   getMemberEmergencyProfile,
   listMembersForAdmin,
@@ -226,6 +235,14 @@ async function route(
     return { status: 200, body: { contributions } };
   }
 
+  if (method === "GET" && url.pathname === "/api/moderation/map-poi-reviews") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+    const reviews = await listMapPoiCorrectionReviews();
+    return { status: 200, body: { reviews } };
+  }
+
   const moderationDecisionMatch = url.pathname.match(
     /^\/api\/moderation\/contributions\/([^/]+)\/decision$/,
   );
@@ -245,6 +262,25 @@ async function route(
     return { status: 200, body: { contribution } };
   }
 
+  const mapPoiVerificationMatch = url.pathname.match(
+    /^\/api\/moderation\/map-pois\/([^/]+)\/verification$/,
+  );
+  if (method === "POST" && mapPoiVerificationMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+
+    if (!isRecord(body) || !isMapPoiVerificationStatus(body.status)) {
+      throw new HttpError(400, "status is required.");
+    }
+
+    const poi = await updateMapPoiVerificationStatus(
+      decodeURIComponent(mapPoiVerificationMatch[1]),
+      body.status,
+    );
+    return { status: 200, body: { poi } };
+  }
+
   const sectionContributionsMatch = url.pathname.match(
     /^\/api\/sections\/([^/]+)\/contributions$/,
   );
@@ -256,6 +292,41 @@ async function route(
       member?.id ?? null,
     );
     return { status: 200, body: { contributions } };
+  }
+
+  const sectionMapPoisMatch = url.pathname.match(
+    /^\/api\/sections\/([^/]+)\/map-pois$/,
+  );
+  if (method === "GET" && sectionMapPoisMatch) {
+    const authContext = await getOptionalAuthContext(headers);
+    const member = authContext ? await upsertMemberFromAuth(authContext) : null;
+    const pois = await listMapPoisForSection(
+      decodeURIComponent(sectionMapPoisMatch[1]),
+      member?.id,
+    );
+    return { status: 200, body: { pois } };
+  }
+
+  const mapPoiReviewMatch = url.pathname.match(
+    /^\/api\/map-pois\/([^/]+)\/reviews$/,
+  );
+  if (method === "POST" && mapPoiReviewMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+
+    if (!isRecord(body) || !isMapPoiReviewDecision(body.decision)) {
+      throw new HttpError(400, "decision is required.");
+    }
+
+    const action = isMapPoiReviewAction(body.action) ? body.action : "add";
+    const poi = await reviewMapPoi(
+      decodeURIComponent(mapPoiReviewMatch[1]),
+      member,
+      body.decision,
+      action,
+      typeof body.note === "string" ? body.note : null,
+    );
+    return { status: 200, body: { poi } };
   }
 
   if (method === "POST" && url.pathname === "/api/sync/push") {

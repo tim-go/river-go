@@ -86,6 +86,7 @@ The map should distinguish three inspection surfaces:
 
 - section popup for quick route-level context and a route-details action
 - route panel for section/route information, grouped into compact tabs for details, levels, access, hazards, updates, and photos
+- POI details panel grouped into compact tabs for details, location, verification, and photos so community review controls do not make the first view too long
 - POI detail panel for marker-specific access points, hazards, features, gauges, saved contributions, photos, source information, confirmations, and future contribution actions
 
 POI marker popups should include a `Details` action that opens the POI detail panel. Opening POI details must not open the route panel.
@@ -98,9 +99,11 @@ POI details should expose practical location-sharing actions for all marker type
 
 Seeded gauges, access points, hazards, and features should use checked-in location reference data keyed by section and marker id, so prototype fixtures behave like enriched records without making provider calls during normal map viewing.
 
+When the backend is available, seeded gauges, access points, hazards, and features should load from DB-backed map POI records rather than frontend-only fixture arrays. Frontend fixtures remain an offline/dev fallback until the section catalogue itself is fully backend-driven.
+
 If the what3words provider is configured but temporarily unavailable, blocked, or otherwise unable to return an address, the UI should show neutral unavailable copy and continue to expose coordinates and Google Maps actions. It should not expose provider billing, quota, key, or plan details to ordinary users.
 
-On mobile, Sections, Add Info, route details, and POI details should use full-screen overlays above the map, app title bar, and bottom navigation rather than cramped bottom sheets. Route details should open as a full-screen inspection surface with compact tab navigation so the app title bar, section image, and tabs do not consume most of the usable viewport.
+On mobile, Sections, Add Info, route details, and POI details should use full-screen overlays above the map, app title bar, and bottom navigation rather than cramped bottom sheets. Route details and POI details should open as full-screen inspection surfaces with compact tab navigation so the app title bar, section image/header, and tabs do not consume most of the usable viewport.
 
 Hover tooltips should not duplicate marker popups in the prototype because they create two simultaneous information surfaces.
 

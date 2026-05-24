@@ -201,6 +201,37 @@ ICE data must not be returned in public member summaries or public contribution 
 
 The first public photo implementation may replace or extend this contribution-scoped table with a more general photo metadata table if section-level and POI-level photos need to exist without a parent contribution. The durable product workflow is defined in `/docs/specs/community/photo-uploads.md`.
 
+### `map_pois`
+
+Seeded and curated map points should be stored separately from community contributions. They are catalogue objects that users can verify, correct, or discuss; they are not themselves first-party observations by a member.
+
+| Column | Type | Purpose |
+| --- | --- | --- |
+| `id` | `text primary key` | Stable seed/catalogue POI ID, usually scoped as `section-id:source-id`. |
+| `section_id` | `text not null` | River section association. |
+| `kind` | `text` | `access`, `hazard`, `feature`, or `gauge`. |
+| `geometry` | `geometry(Point, 4326)` | Map location. |
+| `title` | `text` | Display title. |
+| `subtitle` | `text` | Short type/metadata label. |
+| `summary` | `text` | Display summary. |
+| `source_*` | `text` | Seed/provider/source metadata and confidence. |
+| `verification_status` | `text` | `needs-confirmation`, `confirmed`, `needs-correction`, or `resolved`. |
+| `payload` | `jsonb` | Type-specific seed metadata, including what3words when available. |
+| `revision` | `bigint` | Monotonic revision for client refreshes. |
+
+### `map_poi_reviews`
+
+Member review actions for seed/catalogue POIs should be audited separately from the source POI record.
+
+| Column | Type | Purpose |
+| --- | --- | --- |
+| `id` | `uuid primary key` | Review action ID. |
+| `poi_id` | `text references map_pois(id)` | Reviewed POI. |
+| `member_id` | `uuid references members(id)` | Reviewing member. |
+| `decision` | `text` | `confirm` or `correction`. |
+| `note` | `text` | Optional correction context. |
+| `created_at` | `timestamptz` | Review time. |
+
 ## Initial API Behaviour
 
 The first implementation should include:
