@@ -9,7 +9,7 @@ maturity: Trial
 # River Section Map
 
 **Work state:** Active
-**Last updated:** 2026-05-23
+**Last updated:** 2026-05-24
 **Scope:** The map, section list, route traces, markers, and selected-section panel for browsing river sections.
 
 ## Purpose
@@ -49,6 +49,7 @@ The map must display:
 - saved contribution markers
 - draft contribution marker
 - searched-location marker opened from Search
+- opt-in browser live-location marker and accuracy circle
 
 The map should support two browsing levels:
 
@@ -68,6 +69,8 @@ The map and section list should eventually allow paddlers to filter sections by:
 Selecting a section from the section list or Search must fit the map to show the selected route's start and end points.
 
 Opening a location reference from Search should centre and zoom the map to the searched point, without creating a draft contribution marker.
+
+Live location should use the browser/PWA geolocation permission model. The app must not track location until the user explicitly enables it. When enabled, the map should render the latest browser-provided location locally as a current-location marker with an accuracy circle. Location should not be sent to the backend as part of this feature.
 
 The selected-section route panel should stay closed by default. Users can open it explicitly with the Route control.
 
@@ -145,6 +148,7 @@ Production behaviour may differ:
 | MAP-F12 | Multi-river sample catalogue | Map/search | Active | prototype | — | Active demo includes Tryweryn, Wye, and a schematic UK kayaking sample catalogue. |
 | MAP-F13 | POI location actions | Map/POI panel | Active | MVP | — | POIs expose Google Maps, coordinate copy, and what3words display/copy when configured. |
 | MAP-F14 | Searched-location marker | Search/map | Active | prototype | — | Location-reference search can place a distinct searched-location marker without entering add mode. |
+| MAP-F15 | Opt-in live location | Map/PWA | Active | prototype | — | Browser geolocation can show the user's current location and accuracy circle locally on the map. |
 
 ### Backlog
 
@@ -169,3 +173,4 @@ Production behaviour may differ:
 | 2026-05-23 | Added separate section popup, route panel, and POI detail surface model. |
 | 2026-05-23 | Added active multi-river sample catalogue context. |
 | 2026-05-23 | Added Google Maps, coordinate copy, what3words, and mobile full-height POI overlay requirements. |
+| 2026-05-24 | Added opt-in browser live-location map marker requirement. |

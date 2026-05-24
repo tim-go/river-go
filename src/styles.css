@@ -612,10 +612,15 @@ h1 {
 }
 
 .search-mode-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.profile-mode-tabs {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.search-mode-panel {
+.search-mode-panel,
+.profile-mode-panel {
   display: grid;
   gap: 14px;
 }
@@ -659,6 +664,70 @@ h1 {
 .placeholder-row small {
   margin-top: 3px;
   color: var(--muted);
+}
+
+.favourite-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+}
+
+.favourite-row__actions {
+  display: grid;
+  min-width: 92px;
+  gap: 6px;
+}
+
+.favourite-row__actions .ghost-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.settings-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.settings-panel__header,
+.setting-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-panel__header strong,
+.settings-panel__header small,
+.setting-toggle strong,
+.setting-toggle small {
+  display: block;
+}
+
+.settings-panel__header small,
+.setting-toggle small {
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+.setting-toggle {
+  cursor: pointer;
+}
+
+.setting-toggle input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--river-dark);
+}
+
+.setting-toggle span {
+  min-width: 0;
+  flex: 1;
 }
 
 .location-search-card {
@@ -1235,6 +1304,19 @@ h1 {
 .map-marker--search {
   background: #277da1;
   outline: 5px solid rgba(39, 125, 161, 0.22);
+}
+
+.map-marker--user-location {
+  background: #277da1;
+  outline: 6px solid rgba(39, 125, 161, 0.22);
+}
+
+.map-marker--user-location::after {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
+  content: "";
 }
 
 .map-marker--queued {
@@ -2607,6 +2689,14 @@ textarea {
   }
 
   .segmented-control {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .search-mode-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .profile-mode-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

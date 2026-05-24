@@ -27,6 +27,7 @@ import {
   Star,
   Trash2,
   UserRound,
+  UsersRound,
   Waves,
   X,
 } from "lucide-react";
@@ -97,8 +98,10 @@ const HAZARD_REVIEW_STORAGE_KEY = "river-go-demo-hazard-reviews";
 const FAVOURITES_STORAGE_KEY = "river-go-demo-favourite-sections";
 const WELCOME_SESSION_STORAGE_KEY = "riverlaunch-welcome-dismissed-session";
 const SYNC_BANNER_DISMISSAL_STORAGE_KEY = "riverlaunch-sync-banner-dismissal";
+const LIVE_LOCATION_STORAGE_KEY = "riverlaunch-live-location-enabled";
 const SYNC_BANNER_DISMISS_MS = 60 * 60 * 1000;
 const SEARCH_FOCUS_ZOOM = 15;
+const LIVE_LOCATION_FOCUS_ZOOM = 16;
 const NEARBY_POI_MAX_KM = 5;
 
 const bandLabels = {
@@ -190,10 +193,11 @@ const categoryOptions: Record<ContributionType, string[]> = {
   ],
 };
 
-type AppSection = "search" | "map" | "favourites" | "profile" | "more" | "admin";
+type AppSection = "search" | "map" | "groups" | "profile" | "more" | "admin";
 type AdminPage = "index" | "members" | "moderation" | "system";
 type AuthSheetMode = "welcome" | "save-required";
-type SearchMode = "name" | "point";
+type SearchMode = "name" | "point" | "favourites";
+type ProfileMode = "account" | "activity";
 
 const memberRoleOptions: MemberRole[] = [
   "MEMBER",
@@ -223,6 +227,18 @@ type SyncBannerDismissal = {
   queuedOutboxCount: number;
   failedOutboxCount: number;
   expiresAt: number;
+};
+type LiveLocationStatus =
+  | "idle"
+  | "locating"
+  | "watching"
+  | "denied"
+  | "unavailable"
+  | "error";
+type LiveLocationSnapshot = {
+  location: LatLngTuple;
+  accuracyMeters: number | null;
+  updatedAt: number;
 };
 type NearbyPoiResult = {
   id: string;
@@ -271,7 +287,7 @@ const appNavItems: Array<{
 }> = [
   { id: "search", label: "Search", icon: Search },
   { id: "map", label: "Map", icon: MapIcon },
-  { id: "favourites", label: "Favourites", icon: Heart },
+  { id: "groups", label: "Groups", icon: UsersRound },
   { id: "profile", label: "Profile", icon: UserRound },
   { id: "more", label: "More", icon: MoreHorizontal },
 ];
@@ -419,6 +435,22 @@ function rememberWelcomeDismissedForSession() {
   }
 }
 
+function loadLiveLocationEnabled() {
+  try {
+    return localStorage.getItem(LIVE_LOCATION_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function saveLiveLocationEnabled(enabled: boolean) {
+  try {
+    localStorage.setItem(LIVE_LOCATION_STORAGE_KEY, enabled ? "true" : "false");
+  } catch {
+    // Non-critical; live location can still run for the current session.
+  }
+}
+
 function loadSyncBannerDismissal(): SyncBannerDismissal | null {
   try {
     const stored = sessionStorage.getItem(SYNC_BANNER_DISMISSAL_STORAGE_KEY);
@@ -532,6 +564,24 @@ function createSearchedLocationPopup(location: LatLngTuple, title: string) {
   link.target = "_blank";
   link.rel = "noreferrer";
   link.textContent = "Maps";
+
+  return container;
+}
+
+function createLiveLocationPopup(location: LiveLocationSnapshot) {
+  const container = L.DomUtil.create("div", "map-popup-card");
+  L.DomEvent.disableClickPropagation(container);
+
+  const heading = L.DomUtil.create("strong", "", container);
+  heading.textContent = "Your location";
+
+  const meta = L.DomUtil.create("span", "", container);
+  meta.textContent = formatLocation(location.location);
+
+  const body = L.DomUtil.create("p", "", container);
+  body.textContent = location.accuracyMeters
+    ? `Accuracy about ${Math.round(location.accuracyMeters)} m.`
+    : "Accuracy unavailable.";
 
   return container;
 }
@@ -686,6 +736,30 @@ function formatDistanceKm(distanceKm: number) {
   return distanceKm < 1
     ? `${Math.round(distanceKm * 1000)} m`
     : `${distanceKm.toFixed(1)} km`;
+}
+
+function liveLocationStatusLabel(status: LiveLocationStatus) {
+  const labels: Record<LiveLocationStatus, string> = {
+    idle: "Off",
+    locating: "Locating",
+    watching: "On",
+    denied: "Permission denied",
+    unavailable: "Unavailable",
+    error: "Error",
+  };
+
+  return labels[status];
+}
+
+function liveLocationUpdatedLabel(location: LiveLocationSnapshot | null) {
+  if (!location) {
+    return "No location fix yet.";
+  }
+
+  return `Updated ${new Date(location.updatedAt).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
 }
 
 function navigationUrl(location: LatLngTuple) {
@@ -1325,6 +1399,16 @@ function App() {
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
+  const [isLiveLocationEnabled, setIsLiveLocationEnabled] = useState(
+    loadLiveLocationEnabled,
+  );
+  const [liveLocation, setLiveLocation] =
+    useState<LiveLocationSnapshot | null>(null);
+  const [liveLocationStatus, setLiveLocationStatus] =
+    useState<LiveLocationStatus>("idle");
+  const [liveLocationMessage, setLiveLocationMessage] = useState("");
+  const [liveLocationFocusNonce, setLiveLocationFocusNonce] = useState(0);
+  const [, setPendingLiveLocationFocus] = useState(false);
   const [authState, setAuthState] = useState<AuthState>({
     status: "loading",
     user: null,
@@ -1370,6 +1454,7 @@ function App() {
   const [syncBannerDismissal, setSyncBannerDismissal] =
     useState<SyncBannerDismissal | null>(() => loadSyncBannerDismissal());
   const [searchMode, setSearchMode] = useState<SearchMode>("name");
+  const [profileMode, setProfileMode] = useState<ProfileMode>("account");
   const [riverSearchTerm, setRiverSearchTerm] = useState("");
   const [locationSearchInput, setLocationSearchInput] = useState("");
   const [locationSearchResult, setLocationSearchResult] =
@@ -1407,6 +1492,14 @@ function App() {
   ).length;
   const isAuthConfigured = authState.status !== "unconfigured";
   const isSignedIn = Boolean(authState.user);
+  const isLiveLocationSupported =
+    typeof navigator !== "undefined" && "geolocation" in navigator;
+  const liveLocationAlert =
+    liveLocationStatus === "denied" ||
+    liveLocationStatus === "unavailable" ||
+    liveLocationStatus === "error"
+      ? liveLocationMessage
+      : "";
   const canSyncOutbox =
     queuedOutboxCount > 0 &&
     !isSyncingOutbox &&
@@ -1481,6 +1574,78 @@ function App() {
       window.removeEventListener("offline", updateOnlineState);
     };
   }, []);
+
+  useEffect(() => {
+    saveLiveLocationEnabled(isLiveLocationEnabled);
+  }, [isLiveLocationEnabled]);
+
+  useEffect(() => {
+    if (!isLiveLocationEnabled) {
+      setLiveLocation(null);
+      setLiveLocationStatus("idle");
+      setLiveLocationMessage("");
+      setPendingLiveLocationFocus(false);
+      return;
+    }
+
+    if (!isLiveLocationSupported) {
+      setLiveLocation(null);
+      setLiveLocationStatus("unavailable");
+      setLiveLocationMessage("Location sharing is not available in this browser.");
+      return;
+    }
+
+    setLiveLocationStatus("locating");
+    setLiveLocationMessage("Waiting for browser location permission.");
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const nextLocation: LiveLocationSnapshot = {
+          location: [position.coords.latitude, position.coords.longitude],
+          accuracyMeters: Number.isFinite(position.coords.accuracy)
+            ? position.coords.accuracy
+            : null,
+          updatedAt: position.timestamp || Date.now(),
+        };
+
+        setLiveLocation(nextLocation);
+        setLiveLocationStatus("watching");
+        setLiveLocationMessage("Live location is visible on the map.");
+        setPendingLiveLocationFocus((shouldFocus) => {
+          if (shouldFocus) {
+            setLiveLocationFocusNonce((current) => current + 1);
+          }
+
+          return false;
+        });
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setLiveLocationStatus("denied");
+          setLiveLocationMessage("Location permission was denied by the browser.");
+          return;
+        }
+
+        setLiveLocationStatus(
+          error.code === error.POSITION_UNAVAILABLE ? "unavailable" : "error",
+        );
+        setLiveLocationMessage(
+          error.code === error.TIMEOUT
+            ? "Location timed out. Try again with a clearer signal."
+            : "Could not get your current location.",
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000,
+        timeout: 15000,
+      },
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [isLiveLocationEnabled, isLiveLocationSupported]);
 
   useEffect(() => {
     return () => {
@@ -1945,6 +2110,53 @@ function App() {
     setAuthMessage("");
     setIsWelcomeDismissedForSession(true);
     setAuthSheetMode("save-required");
+  }
+
+  function enableLiveLocation(shouldFocus = false) {
+    if (!isLiveLocationSupported) {
+      setLiveLocationStatus("unavailable");
+      setLiveLocationMessage("Location sharing is not available in this browser.");
+      return;
+    }
+
+    setPendingLiveLocationFocus(shouldFocus);
+    setIsLiveLocationEnabled(true);
+
+    if (shouldFocus && liveLocation) {
+      setLiveLocationFocusNonce((current) => current + 1);
+      setPendingLiveLocationFocus(false);
+    }
+  }
+
+  function disableLiveLocation() {
+    setIsLiveLocationEnabled(false);
+    setLiveLocation(null);
+    setLiveLocationStatus("idle");
+    setLiveLocationMessage("");
+    setPendingLiveLocationFocus(false);
+  }
+
+  function handleLiveLocationToggle(enabled: boolean) {
+    if (enabled) {
+      enableLiveLocation(false);
+      return;
+    }
+
+    disableLiveLocation();
+  }
+
+  function handleLiveLocationButtonClick() {
+    if (!isLiveLocationEnabled) {
+      enableLiveLocation(true);
+      return;
+    }
+
+    if (liveLocation) {
+      setLiveLocationFocusNonce((current) => current + 1);
+      return;
+    }
+
+    setPendingLiveLocationFocus(true);
   }
 
   function dismissSyncBanner() {
@@ -2541,6 +2753,27 @@ function App() {
               <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
             </button>
             <button
+              className={`icon-button ${
+                isLiveLocationEnabled ? "icon-button--active" : ""
+              }`}
+              type="button"
+              title={
+                isLiveLocationEnabled
+                  ? "Centre on my live location"
+                  : "Show my live location"
+              }
+              aria-label={
+                isLiveLocationEnabled
+                  ? "Centre on my live location"
+                  : "Show my live location"
+              }
+              aria-pressed={isLiveLocationEnabled}
+              onClick={handleLiveLocationButtonClick}
+              disabled={!isLiveLocationSupported}
+            >
+              <Navigation size={18} />
+            </button>
+            <button
               className="primary-action"
               type="button"
               title="Add local knowledge"
@@ -2549,9 +2782,9 @@ function App() {
               <Plus size={18} />
               Add info
             </button>
-            {authMessage || authState.error || memberMessage ? (
+            {authMessage || authState.error || memberMessage || liveLocationAlert ? (
               <p className="topbar-message">
-                {authMessage || authState.error || memberMessage}
+                {authMessage || authState.error || memberMessage || liveLocationAlert}
               </p>
             ) : null}
           </div>
@@ -2629,6 +2862,8 @@ function App() {
           contributions={contributions}
           outboxRecords={outboxRecords}
           selectedLocation={selectedLocation}
+          liveLocation={liveLocation}
+          liveLocationFocusNonce={liveLocationFocusNonce}
           searchFocusLocation={searchFocusLocation}
           searchFocusLabel={searchFocusLabel}
           showSearchFocusMarker={showSearchFocusMarker}
@@ -3258,6 +3493,16 @@ function App() {
                     <MapPin size={16} />
                     Point
                   </button>
+                  <button
+                    className={searchMode === "favourites" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={searchMode === "favourites"}
+                    onClick={() => setSearchMode("favourites")}
+                  >
+                    <Heart size={16} />
+                    Favourites
+                  </button>
                 </div>
 
                 {searchMode === "name" ? (
@@ -3301,7 +3546,7 @@ function App() {
                       ) : null}
                     </div>
                   </section>
-                ) : (
+                ) : searchMode === "point" ? (
                   <form
                     className="location-search-card"
                     onSubmit={(event) => void handleLocationReferenceSearch(event)}
@@ -3405,111 +3650,181 @@ function App() {
                     </div>
                   ) : null}
                   </form>
+                ) : (
+                  <section className="search-mode-panel" aria-label="Favourite routes">
+                    {!isSignedIn ? (
+                      <section className="sign-in-card">
+                        <Star size={22} />
+                        <div>
+                          <h3>Sign in to save favourites</h3>
+                          <p>
+                            RiverLaunch.app treats favourites as account-only saved
+                            routes, so sign in before saving sections.
+                          </p>
+                        </div>
+                        <button
+                          className="primary-action"
+                          type="button"
+                          onClick={requireSignInForSave}
+                          disabled={!isAuthConfigured}
+                        >
+                          <LogIn size={16} />
+                          Sign in
+                        </button>
+                      </section>
+                    ) : (
+                      <div className="placeholder-list">
+                        {favouriteSections.map((section) => (
+                          <div
+                            className="placeholder-row favourite-row"
+                            key={section.id}
+                          >
+                            <span>
+                              <strong>{section.riverName}</strong>
+                              <small>{section.sectionName}</small>
+                            </span>
+                            <span className={`level-pill level-pill--${section.levelBand}`}>
+                              {bandLabels[section.levelBand]}
+                            </span>
+                            <div className="favourite-row__actions">
+                              <button
+                                className="ghost-button ghost-button--compact"
+                                type="button"
+                                onClick={() => {
+                                  selectSection(section);
+                                  setActiveAppSection("map");
+                                }}
+                              >
+                                <MapIcon size={15} />
+                                Open
+                              </button>
+                              <button
+                                className="ghost-button ghost-button--compact"
+                                type="button"
+                                title="Remove from favourites"
+                                aria-label={`Remove ${section.sectionName} from favourites`}
+                                onClick={() => setPendingUnfavouriteSection(section)}
+                              >
+                                <X size={15} />
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {favouriteSections.length === 0 ? (
+                          <div className="placeholder-row">
+                            <span>
+                              <strong>No favourites yet</strong>
+                              <small>
+                                Use the star on the Map section to save a route here.
+                              </small>
+                            </span>
+                            <Star size={18} />
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+                    {isSignedIn && pendingUnfavouriteSection ? (
+                      <section className="confirm-panel" role="dialog" aria-modal="true">
+                        <div>
+                          <p className="eyebrow">Remove favourite</p>
+                          <h3>{pendingUnfavouriteSection.sectionName}</h3>
+                          <p>Remove this route from your favourites?</p>
+                        </div>
+                        <div className="form-actions">
+                          <button
+                            className="ghost-button"
+                            type="button"
+                            onClick={() => setPendingUnfavouriteSection(null)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="submit-button"
+                            type="button"
+                            onClick={() => {
+                              toggleFavouriteSection(pendingUnfavouriteSection);
+                              setPendingUnfavouriteSection(null);
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </section>
+                    ) : null}
+                  </section>
                 )}
               </div>
             </PlaceholderPage>
-          ) : activeAppSection === "favourites" ? (
-            <PlaceholderPage section="favourites" title="Favourites">
-              {!isSignedIn ? (
+          ) : activeAppSection === "groups" ? (
+            <PlaceholderPage section="groups" title="Groups">
+              <div className="profile-grid">
+                <AppBrandPanel />
                 <section className="sign-in-card">
-                  <Star size={22} />
+                  <UsersRound size={22} />
                   <div>
-                    <h3>Sign in to save favourites</h3>
+                    <h3>Group activities</h3>
                     <p>
-                      RiverLaunch.app treats favourites as account-only saved routes, so
-                      sign in before saving sections.
+                      This future area will help clubs, friends, and paddling
+                      groups plan trips, share route choices, coordinate meeting
+                      points, and keep activity notes together.
                     </p>
                   </div>
-                  <button
-                    className="primary-action"
-                    type="button"
-                    onClick={requireSignInForSave}
-                    disabled={!isAuthConfigured}
-                  >
-                    <LogIn size={16} />
-                    Sign in
-                  </button>
                 </section>
-              ) : (
                 <div className="placeholder-list">
-                  {favouriteSections.map((section) => (
-                    <div className="placeholder-row" key={section.id}>
-                      <span>
-                        <strong>{section.riverName}</strong>
-                        <small>{section.sectionName}</small>
-                      </span>
-                      <span className={`level-pill level-pill--${section.levelBand}`}>
-                        {bandLabels[section.levelBand]}
-                      </span>
-                      <button
-                        className="ghost-button ghost-button--compact"
-                        type="button"
-                        onClick={() => {
-                          selectSection(section);
-                          setActiveAppSection("map");
-                        }}
-                      >
-                        <MapIcon size={15} />
-                        Open
-                      </button>
-                      <button
-                        className="icon-button icon-button--compact"
-                        type="button"
-                        title="Remove from favourites"
-                        aria-label={`Remove ${section.sectionName} from favourites`}
-                        onClick={() => setPendingUnfavouriteSection(section)}
-                      >
-                        <X size={15} />
-                      </button>
-                    </div>
-                  ))}
-                  {favouriteSections.length === 0 ? (
-                    <div className="placeholder-row">
-                      <span>
-                        <strong>No favourites yet</strong>
-                        <small>Use the star on the Map section to save a route here.</small>
-                      </span>
-                      <Star size={18} />
-                    </div>
-                  ) : null}
+                  <div className="placeholder-row">
+                    <span>
+                      <strong>Plan a paddle</strong>
+                      <small>Draft group trips with sections, dates, and meeting points.</small>
+                    </span>
+                    <Route size={18} />
+                  </div>
+                  <div className="placeholder-row">
+                    <span>
+                      <strong>Invite members</strong>
+                      <small>Coordinate who is joining and what information they need.</small>
+                    </span>
+                    <UsersRound size={18} />
+                  </div>
+                  <div className="placeholder-row">
+                    <span>
+                      <strong>Share updates</strong>
+                      <small>Keep level, access, and safety notes attached to an activity.</small>
+                    </span>
+                    <MessageSquare size={18} />
+                  </div>
                 </div>
-              )}
-              {isSignedIn && pendingUnfavouriteSection ? (
-                <section className="confirm-panel" role="dialog" aria-modal="true">
-                  <div>
-                    <p className="eyebrow">Remove favourite</p>
-                    <h3>{pendingUnfavouriteSection.sectionName}</h3>
-                    <p>
-                      Remove this route from your favourites?
-                    </p>
-                  </div>
-                  <div className="form-actions">
-                    <button
-                      className="ghost-button"
-                      type="button"
-                      onClick={() => setPendingUnfavouriteSection(null)}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="submit-button"
-                      type="button"
-                      onClick={() => {
-                        toggleFavouriteSection(pendingUnfavouriteSection);
-                        setPendingUnfavouriteSection(null);
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </section>
-              ) : null}
+              </div>
             </PlaceholderPage>
           ) : activeAppSection === "profile" ? (
             <PlaceholderPage section="profile" title="Profile">
               <div className="profile-grid">
-                <AppBrandPanel />
-                <div className="profile-card">
+                <div className="segmented-control profile-mode-tabs" role="tablist">
+                  <button
+                    className={profileMode === "account" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={profileMode === "account"}
+                    onClick={() => setProfileMode("account")}
+                  >
+                    <UserRound size={16} />
+                    My Account
+                  </button>
+                  <button
+                    className={profileMode === "activity" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={profileMode === "activity"}
+                    onClick={() => setProfileMode("activity")}
+                  >
+                    <MapPin size={16} />
+                    Points & Photos
+                  </button>
+                </div>
+                {profileMode === "account" ? (
+                  <section className="profile-mode-panel" aria-label="My account">
+                    <AppBrandPanel />
+                    <div className="profile-card">
                   <UserRound size={22} />
                   <div>
                     <strong>
@@ -3526,8 +3841,8 @@ function App() {
                   <span className="status-chip">
                     {memberProfile?.role ?? "Guest"}
                   </span>
-                </div>
-                {!isSignedIn ? (
+                    </div>
+                    {!isSignedIn ? (
                   <section className="sign-in-card">
                     <LogIn size={22} />
                     <div>
@@ -3547,13 +3862,13 @@ function App() {
                       Sign in
                     </button>
                   </section>
-                ) : null}
-                {authMessage || authState.error || memberMessage ? (
+                    ) : null}
+                    {authMessage || authState.error || memberMessage ? (
                   <p className="profile-message">
                     {authMessage || authState.error || memberMessage}
                   </p>
-                ) : null}
-                <SyncOutboxBanner
+                    ) : null}
+                    <SyncOutboxBanner
                   queuedOutboxCount={queuedOutboxCount}
                   failedOutboxCount={failedOutboxCount}
                   isDismissed={isSyncBannerDismissed}
@@ -3563,7 +3878,7 @@ function App() {
                   onDismiss={dismissSyncBanner}
                   onSync={syncOutboxNow}
                 />
-                <div className="profile-stats">
+                    <div className="profile-stats">
                   <Metric
                     icon={MessageSquare}
                     label="Local updates"
@@ -3584,8 +3899,8 @@ function App() {
                     label="Current section"
                     value={activeSection.riverName}
                   />
-                </div>
-                <div className="profile-actions">
+                    </div>
+                    <div className="profile-actions">
                   {isSignedIn ? (
                     <button
                       className="ghost-button"
@@ -3605,8 +3920,32 @@ function App() {
                     <RefreshCw size={16} />
                     Sync now
                   </button>
-                </div>
-                {isSignedIn ? (
+                    </div>
+                  </section>
+                ) : (
+                  <section className="profile-mode-panel" aria-label="Points and photos">
+                    {!isSignedIn ? (
+                      <section className="sign-in-card">
+                        <LogIn size={22} />
+                        <div>
+                          <h3>Sign in to manage your points and photos</h3>
+                          <p>
+                            Synced local knowledge and uploaded photos are attached
+                            to your RiverLaunch.app account.
+                          </p>
+                        </div>
+                        <button
+                          className="primary-action"
+                          type="button"
+                          onClick={handleSignIn}
+                          disabled={!isAuthConfigured}
+                        >
+                          <LogIn size={16} />
+                          Sign in
+                        </button>
+                      </section>
+                    ) : null}
+                    {isSignedIn ? (
                   <section className="profile-card profile-card--stacked">
                     <div className="block-title">
                       <div>
@@ -3768,6 +4107,8 @@ function App() {
                     )}
                   </section>
                 ) : null}
+                  </section>
+                )}
               </div>
             </PlaceholderPage>
           ) : activeAppSection === "more" ? (
@@ -3801,24 +4142,46 @@ function App() {
                   </span>
                   <RefreshCw size={18} />
                 </button>
-                <button className="placeholder-row" type="button">
-                  <span>
-                    <strong>Settings</strong>
-                    <small>Map, units, alerts, and account preferences</small>
-                  </span>
-                  <MoreHorizontal size={18} />
-                </button>
-                <button
-                  className="placeholder-row"
-                  type="button"
-                  onClick={resetDemoContributions}
-                >
-                  <span>
-                    <strong>Reset demo data</strong>
-                    <small>Clear local demo contributions and hazard confirmations</small>
-                  </span>
-                  <RotateCcw size={18} />
-                </button>
+                <section className="settings-panel" aria-label="Settings">
+                  <div className="settings-panel__header">
+                    <span>
+                      <strong>Settings</strong>
+                      <small>Map, units, alerts, and account preferences</small>
+                    </span>
+                    <MoreHorizontal size={18} />
+                  </div>
+                  <label className="setting-toggle">
+                    <input
+                      type="checkbox"
+                      checked={isLiveLocationEnabled}
+                      disabled={!isLiveLocationSupported}
+                      onChange={(event) =>
+                        handleLiveLocationToggle(event.target.checked)
+                      }
+                    />
+                    <span>
+                      <strong>Show my live location</strong>
+                      <small>
+                        {isLiveLocationSupported
+                          ? `${liveLocationStatusLabel(liveLocationStatus)} · ${liveLocationUpdatedLabel(liveLocation)}`
+                          : "Not available in this browser"}
+                      </small>
+                    </span>
+                  </label>
+                  {liveLocationMessage ? (
+                    <p className="source-note">{liveLocationMessage}</p>
+                  ) : null}
+                  {isLiveLocationEnabled ? (
+                    <button
+                      className="ghost-button ghost-button--compact"
+                      type="button"
+                      onClick={handleLiveLocationButtonClick}
+                    >
+                      <Navigation size={15} />
+                      Centre on map
+                    </button>
+                  ) : null}
+                </section>
               </div>
             </PlaceholderPage>
           ) : (
@@ -4179,6 +4542,22 @@ function App() {
                             </span>
                             <ShieldCheck size={18} />
                           </div>
+                          {canManageMembers ? (
+                            <button
+                              className="placeholder-row"
+                              type="button"
+                              onClick={resetDemoContributions}
+                            >
+                              <span>
+                                <strong>Reset demo data</strong>
+                                <small>
+                                  Clear this browser's local demo contributions,
+                                  offline queue, and hazard confirmations.
+                                </small>
+                              </span>
+                              <RotateCcw size={18} />
+                            </button>
+                          ) : null}
                         </div>
                       )}
                     </section>
@@ -4288,6 +4667,8 @@ function RiverMap({
   contributions,
   outboxRecords,
   selectedLocation,
+  liveLocation,
+  liveLocationFocusNonce,
   searchFocusLocation,
   searchFocusLabel,
   showSearchFocusMarker,
@@ -4303,6 +4684,8 @@ function RiverMap({
   contributions: Contribution[];
   outboxRecords: ContributionOutboxRecord[];
   selectedLocation: LatLngTuple | null;
+  liveLocation: LiveLocationSnapshot | null;
+  liveLocationFocusNonce: number;
   searchFocusLocation: LatLngTuple | null;
   searchFocusLabel: string;
   showSearchFocusMarker: boolean;
@@ -4328,6 +4711,7 @@ function RiverMap({
   const previousSectionIdRef = useRef(activeSection.id);
   const previousFocusNonceRef = useRef(focusNonce);
   const previousSearchFocusNonceRef = useRef(searchFocusNonce);
+  const previousLiveLocationFocusNonceRef = useRef(liveLocationFocusNonce);
   const shouldFitActiveSectionRef = useRef(true);
   const outboxByContributionId = useMemo(
     () =>
@@ -4722,6 +5106,31 @@ function RiverMap({
         );
     }
 
+    if (liveLocation) {
+      if (liveLocation.accuracyMeters) {
+        L.circle(liveLocation.location, {
+          radius: liveLocation.accuracyMeters,
+          color: "#277da1",
+          fillColor: "#277da1",
+          fillOpacity: 0.08,
+          interactive: false,
+          weight: 1,
+        }).addTo(layers);
+      }
+
+      L.marker(liveLocation.location, {
+        bubblingMouseEvents: false,
+        icon: L.divIcon({
+          className: "",
+          html: markerHtml("user-location", ""),
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+        }),
+      })
+        .addTo(layers)
+        .bindPopup(createLiveLocationPopup(liveLocation));
+    }
+
     if (selectedLocation) {
       L.marker(selectedLocation, {
         icon: L.divIcon({
@@ -4798,6 +5207,7 @@ function RiverMap({
     activeSection,
     contributions,
     focusNonce,
+    liveLocation,
     outboxByContributionId,
     searchFocusLocation,
     showSearchFocusMarker,
@@ -4805,6 +5215,24 @@ function RiverMap({
     selectedLocation,
     isAddMode,
   ]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (
+      !map ||
+      !liveLocation ||
+      previousLiveLocationFocusNonceRef.current === liveLocationFocusNonce
+    ) {
+      return;
+    }
+
+    previousLiveLocationFocusNonceRef.current = liveLocationFocusNonce;
+    map.invalidateSize();
+    map.setView(liveLocation.location, LIVE_LOCATION_FOCUS_ZOOM, {
+      animate: false,
+    });
+  }, [liveLocationFocusNonce, liveLocation]);
 
   return (
     <section className="map-stage" aria-label="River map">

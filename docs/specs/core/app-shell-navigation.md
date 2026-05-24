@@ -9,7 +9,7 @@ maturity: Draft
 # App Shell Navigation
 
 **Work state:** Active
-**Last updated:** 2026-05-23
+**Last updated:** 2026-05-24
 **Scope:** Primary app-section navigation across web, PWA, and future mobile app shells.
 
 ## Purpose
@@ -38,7 +38,7 @@ Primary app sections:
 
 - `Search`
 - `Map`
-- `Favourites`
+- `Groups`
 - `Profile`
 - `More`
 
@@ -60,15 +60,26 @@ The `Map` section remains the default first view and contains the river map, sec
 
 The existing river section list is contextual map content, not global app navigation.
 
-Global header actions should be minimal. Map-specific actions such as compact sync state, watch section, reset demo data, and add local knowledge should only appear while the `Map` section is active.
+Global header actions should be minimal. Map-specific actions such as compact sync state, watch section, and add local knowledge should only appear while the `Map` section is active. Demo reset tools belong in the admin `System` area so they are not confused with personal account controls.
 
 The map action strip should remain compact. Sync should be represented as an icon/status button with a badge when local changes are queued, not as persistent explanatory text. Manual sync should only matter when local changes exist or a sync retry is needed.
 
-`Profile` should show signed-in member state, role, trust level, local contribution counts, and sync controls as soon as member identity exists.
+`Search` should include a `Favourites` subpage/tab for signed-in saved routes. Favourites are a discovery shortcut, not a primary bottom-nav section.
+
+`Groups` should be a placeholder primary section for future group activity planning. The placeholder should make clear that it will be used for arranging paddling activities, including trip plans, member coordination, meeting points, and activity updates.
+
+`Profile` should show signed-in member state, role, trust level, local contribution counts, and sync controls as soon as member identity exists. Profile should be split into subpages/tabs so account/sync state is separate from member-owned content management.
+
+Initial Profile subpages:
+
+- `My Account`
+- `Points & Photos`
 
 Member identity should not be persistently shown in the global header because it consumes high-value map and mobile space. Identity and sign-in/out controls belong in `Profile`.
 
 `More` should contain secondary tools such as admin entry, settings, offline packs, and future support/feedback surfaces.
+
+Settings should include explicit map preferences, starting with an opt-in live-location toggle. The map may also expose a compact location button that enables live location or recentres to the latest browser location when the setting is already active.
 
 `Search` should support both river/section discovery and location-reference lookup using explicit modes/tabs so mobile users are not forced through a long mixed workflow. Location-reference lookup should accept coordinates and what3words addresses, resolve them to a map point, show a direct open-point action, and show clearly labelled nearby points of interest only when they are plausibly nearby in the current catalogue. Opening a nearby POI from Search should zoom to that existing POI on the map rather than creating a separate searched-location marker. Search should not silently switch map context or start contribution capture without a user action on the map.
 
@@ -78,7 +89,7 @@ The member directory should support search plus role/trust filtering. Member row
 
 ## Open Questions
 
-- Should `Favourites` include watched rivers only, or also offline packs and recently viewed sections?
+- Should favourites include watched rivers only, or also offline packs and recently viewed sections?
 - Should `Search` become a full discovery map/filter surface or a list-first river finder?
 
 ## Tracking
@@ -89,12 +100,14 @@ The member directory should support search plus role/trust filtering. Member row
 | --- | --- | --- | --- | --- | --- | --- |
 | NAV-F1 | Desktop app navigation | Web shell | Active | prototype | — | Persistent left nav with collapsible icon rail. |
 | NAV-F2 | Mobile bottom tabs | PWA/mobile shell | Active | prototype | — | Bottom tabs mirror primary app sections. |
-| NAV-F3 | Profile section | Member shell | Active | prototype | — | Shows member identity, role, trust, local contribution count, and sync state. |
-| NAV-F4 | Placeholder sections | Search/more | Active | prototype | — | Lightweight placeholders preserve the final information architecture. |
-| NAV-F5 | Account-gated favourite sections | Map/favourites | Active | prototype | — | Star prompts signed-out users to sign in; signed-in favourites remain local in the prototype until backend persistence exists. |
+| NAV-F3 | Profile section | Member shell | Active | prototype | — | Uses tabs for My Account and Points & Photos so account state is separate from owned content. |
+| NAV-F4 | Placeholder sections | Search/groups/more | Active | prototype | — | Lightweight placeholders preserve the final information architecture, including future Groups. |
+| NAV-F5 | Account-gated favourite sections | Search/favourites | Active | prototype | — | Star prompts signed-out users to sign in; signed-in favourites remain local in the prototype until backend persistence exists. |
 | NAV-F6 | Signed-out welcome sheet | App shell/auth | Active | prototype | — | Welcome sheet appears on signed-out startup and explains guest browsing versus account-backed save/contribute actions. |
 | NAV-F7 | Desktop account footer | Desktop shell/auth | Active | prototype | — | Desktop nav shows signed-in account context or signed-out sign-in affordance without using map header space. |
-| NAV-F8 | Location-reference search | Search/map | Active | prototype | — | Search accepts coordinates or what3words, shows nearby sections, and opens a searched-location marker on the map by explicit action. |
+| NAV-F8 | Location-reference search | Search/map | Active | prototype | — | Search accepts coordinates or what3words, shows nearby points of interest, and opens map context by explicit action. |
+| NAV-F9 | Live-location setting | More/map shell | Active | prototype | — | More exposes an opt-in live-location setting; Map exposes a compact enable/recentre action. |
+| NAV-F10 | Groups primary section | Groups | Active | future placeholder | — | Bottom nav includes Groups as the future activity-planning surface. |
 
 ### Backlog
 
@@ -110,3 +123,5 @@ The member directory should support search plus role/trust filtering. Member row
 | --- | --- |
 | 2026-05-23 | Added initial app shell navigation spec. |
 | 2026-05-23 | Added signed-out startup welcome sheet and sign-in requirement for savable actions. |
+| 2026-05-24 | Added opt-in browser live-location setting and map action. |
+| 2026-05-24 | Moved favourites into Search, added Groups nav placeholder, and split Profile into tabs. |
