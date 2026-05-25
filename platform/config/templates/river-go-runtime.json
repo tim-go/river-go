@@ -28,7 +28,8 @@
         "projectId": "river-go-staging",
         "storageBucket": "river-go-staging.firebasestorage.app",
         "messagingSenderId": "",
-        "appId": ""
+        "appId": "",
+        "measurementId": ""
       },
       "adminServiceAccount": {}
     },
@@ -68,7 +69,8 @@
         "projectId": "river-go-staging",
         "storageBucket": "river-go-staging.firebasestorage.app",
         "messagingSenderId": "",
-        "appId": ""
+        "appId": "",
+        "measurementId": ""
       },
       "adminServiceAccount": {}
     },
@@ -108,7 +110,8 @@
         "projectId": "river-go-prod",
         "storageBucket": "river-go-prod.firebasestorage.app",
         "messagingSenderId": "",
-        "appId": ""
+        "appId": "",
+        "measurementId": ""
       },
       "adminServiceAccount": {}
     },

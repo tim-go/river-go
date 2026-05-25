@@ -66,7 +66,7 @@ The first implementation should include:
 
 - committed templates
 - ignored local config location
-- ignored local runtime config for URLs, DB URLs, Firebase runtime config, auth/session values, storage targets, and optional third-party integration keys
+- ignored local runtime config for URLs, DB URLs, Firebase runtime config including Analytics measurement ID, auth/session values, storage targets, and optional third-party integration keys
 - validation script
 - resource-plan script
 - setup and architecture notes

@@ -31,10 +31,12 @@ const values = {
   VITE_FIREBASE_STORAGE_BUCKET: readClientValue("storageBucket"),
   VITE_FIREBASE_MESSAGING_SENDER_ID: readClientValue("messagingSenderId"),
   VITE_FIREBASE_APP_ID: readClientValue("appId"),
+  VITE_FIREBASE_MEASUREMENT_ID: readClientValue("measurementId"),
   VITE_FIREBASE_AUTH_FLOW: "popup",
 };
 
 const missing = Object.entries(values)
+  .filter(([key]) => key !== "VITE_FIREBASE_MEASUREMENT_ID")
   .filter(([, value]) => !value)
   .map(([key]) => key);
 

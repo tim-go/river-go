@@ -36,6 +36,12 @@ import { FormEvent, useEffect, useMemo, useRef, useState, type ReactNode } from 
 import { riverSections } from "./data/demoData";
 import { getSeedPoiWhat3Words } from "./data/seedLocationReferences";
 import {
+  setAnalyticsConsentPreference,
+  trackPageView,
+  trackProductEvent,
+  type AnalyticsConsent,
+} from "./services/analytics";
+import {
   applyContributionModerationDecision,
   deleteContribution,
   fetchModerationContributions,
@@ -142,6 +148,7 @@ import type {
 const STORAGE_KEY = "river-go-demo-contributions";
 const FAVOURITES_STORAGE_KEY = "river-go-demo-favourite-sections";
 const ROUTE_SUGGESTIONS_STORAGE_KEY = "riverlaunch-route-suggestions-v1";
+const ANALYTICS_CONSENT_STORAGE_KEY = "riverlaunch-analytics-consent-v1";
 const WELCOME_SESSION_STORAGE_KEY = "riverlaunch-welcome-dismissed-session";
 const SYNC_BANNER_DISMISSAL_STORAGE_KEY = "riverlaunch-sync-banner-dismissal";
 const LIVE_LOCATION_STORAGE_KEY = "riverlaunch-live-location-enabled";
@@ -565,6 +572,34 @@ function SyncOutboxBanner({
   );
 }
 
+function AnalyticsConsentBanner({
+  onAccept,
+  onDecline,
+}: {
+  onAccept: () => void;
+  onDecline: () => void;
+}) {
+  return (
+    <section className="analytics-consent-banner" aria-label="Analytics consent">
+      <div>
+        <strong>Help improve RiverLaunch.app</strong>
+        <span>
+          We use Firebase Analytics only if you agree. It helps us understand
+          which routes, maps, and tools are useful.
+        </span>
+      </div>
+      <div className="analytics-consent-banner__actions">
+        <button className="ghost-button ghost-button--compact" type="button" onClick={onDecline}>
+          Not now
+        </button>
+        <button className="primary-action primary-action--compact" type="button" onClick={onAccept}>
+          Allow
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function optionForType(type: ContributionType) {
   return contributionOptions.find((option) => option.type === type)!;
 }
@@ -600,6 +635,28 @@ function loadRouteSuggestions(): RouteSuggestion[] {
     );
   } catch {
     return [];
+  }
+}
+
+function loadAnalyticsConsent(): AnalyticsConsent {
+  try {
+    const stored = localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY);
+    return stored === "accepted" || stored === "declined" ? stored : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+function saveAnalyticsConsent(consent: AnalyticsConsent) {
+  try {
+    if (consent === "unknown") {
+      localStorage.removeItem(ANALYTICS_CONSENT_STORAGE_KEY);
+      return;
+    }
+
+    localStorage.setItem(ANALYTICS_CONSENT_STORAGE_KEY, consent);
+  } catch {
+    // Non-critical; analytics remains consent-gated for the current session.
   }
 }
 
@@ -2990,6 +3047,9 @@ function App() {
   const [authMessage, setAuthMessage] = useState("");
   const [appNotification, setAppNotification] =
     useState<AppNotification | null>(null);
+  const [analyticsConsent, setAnalyticsConsent] = useState<AnalyticsConsent>(
+    loadAnalyticsConsent,
+  );
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
   const [memberMessage, setMemberMessage] = useState("");
   const [publicNameDraft, setPublicNameDraft] = useState("");
@@ -3285,6 +3345,45 @@ function App() {
   }, [adminMembers, memberRoleFilter, memberSearch, memberTrustFilter]);
 
   useEffect(() => subscribeToAuthState(setAuthState), []);
+
+  useEffect(() => {
+    setAnalyticsConsentPreference(analyticsConsent);
+    saveAnalyticsConsent(analyticsConsent);
+  }, [analyticsConsent]);
+
+  useEffect(() => {
+    if (analyticsConsent !== "accepted") {
+      return;
+    }
+
+    const title =
+      activeAppSection === "admin"
+        ? `Admin ${activeAdminPage}`
+        : activeAppSection === "profile"
+          ? `Profile ${profileMode}`
+          : activeAppSection === "search"
+            ? `Search ${searchMode}`
+            : activeAppSection === "map"
+              ? `Map ${activeSection.sectionName}`
+              : activeAppSection;
+    const path =
+      activeAppSection === "admin"
+        ? `/admin/${activeAdminPage}`
+        : activeAppSection === "profile"
+          ? `/profile/${profileMode}`
+          : activeAppSection === "search"
+            ? `/search/${searchMode}`
+            : `/${activeAppSection}`;
+
+    void trackPageView({ title, path });
+  }, [
+    activeAdminPage,
+    activeAppSection,
+    activeSection.sectionName,
+    analyticsConsent,
+    profileMode,
+    searchMode,
+  ]);
 
   useEffect(() => {
     function updateOnlineState() {
@@ -3896,6 +3995,14 @@ function App() {
     setIsFormOpen(false);
     setIsSubmittingContribution(false);
     setSyncMessage("Saved locally. Sync now to publish this contribution.");
+    void trackProductEvent(
+      contributionType === "photo" ? "photo_uploaded" : "poi_created",
+      {
+        contribution_type: contributionType,
+        section_id: activeSection.id,
+        has_photo: photos.length > 0,
+      },
+    );
   }
 
   async function handlePhotoSelection(file: File | undefined) {
@@ -4012,6 +4119,7 @@ function App() {
 
     try {
       await signInWithGoogle();
+      void trackProductEvent("login", { method: "google" });
       return true;
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : "Could not sign in.");
@@ -4028,6 +4136,7 @@ function App() {
 
     try {
       await createAccountWithEmail(input);
+      void trackProductEvent("sign_up", { method: "password" });
       setActiveAppSection("profile");
       setProfileMode("public");
       return true;
@@ -4044,6 +4153,7 @@ function App() {
 
     try {
       await signInWithEmail(input);
+      void trackProductEvent("login", { method: "password" });
       return true;
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : "Could not sign in.");
@@ -4229,6 +4339,10 @@ function App() {
         ...current.filter((item) => item.id !== suggestion.id),
       ]);
       setPointMessage("Route suggestion sent for review.");
+      void trackProductEvent("route_suggested", {
+        section_id: savedSuggestion.id,
+        source: "retry",
+      });
     } catch (error) {
       setPointMessage(
         error instanceof Error
@@ -5255,6 +5369,10 @@ function App() {
       setRouteDraftSnapMessage("");
       setRouteFormError("");
       showAppNotification("Route suggestion sent for review.", "info");
+      void trackProductEvent("route_suggested", {
+        section_id: savedSuggestion.id,
+        source: "map",
+      });
     } catch {
       setRouteSuggestions((current) => [localSuggestion, ...current]);
       setRouteCreateMode("idle");
@@ -5359,6 +5477,11 @@ function App() {
     setSearchFocusLocation(null);
     setSearchFocusLabel("Searched location");
     setShowSearchFocusMarker(false);
+    void trackProductEvent("select_content", {
+      content_type: "route",
+      item_id: section.id,
+      river_name: section.riverName,
+    });
   }
 
   function openRouteDetails(section: RiverSection) {
@@ -5368,6 +5491,11 @@ function App() {
     setRouteDetailsTab("details");
     setIsPanelOpen(true);
     setIsSectionListOpen(false);
+    void trackProductEvent("select_content", {
+      content_type: "route_details",
+      item_id: section.id,
+      river_name: section.riverName,
+    });
   }
 
   function openCurrentRouteDetailsTab(tab: RouteDetailsTab) {
@@ -5375,6 +5503,12 @@ function App() {
     setRouteDetailsTab(tab);
     setIsPanelOpen(true);
     setIsSectionListOpen(false);
+    if (tab === "levels") {
+      void trackProductEvent("route_level_viewed", {
+        section_id: activeSection.id,
+        river_name: activeSection.riverName,
+      });
+    }
   }
 
   function toggleRouteDetailsPanel() {
@@ -5401,6 +5535,11 @@ function App() {
     setSearchFocusLocation(null);
     setSearchFocusLabel("Searched location");
     setShowSearchFocusMarker(false);
+    void trackProductEvent("select_content", {
+      content_type: "poi",
+      item_id: poi.id,
+      poi_kind: poi.kind,
+    });
   }
 
   async function submitMapPoiReview(
@@ -5473,6 +5612,10 @@ function App() {
         focusSection: nearestSections[0]?.section,
         pois: nearbyPoisForLocation(coordinates, contributions, appRiverSections),
       });
+      void trackProductEvent("search", {
+        search_term: "coordinates",
+        search_type: "location",
+      });
       return;
     }
 
@@ -5509,6 +5652,10 @@ function App() {
           ?.section,
         pois: nearbyPoisForLocation(location, contributions, appRiverSections),
       });
+      void trackProductEvent("search", {
+        search_term: normaliseWhat3WordsSearch(searchValue),
+        search_type: "what3words",
+      });
     } catch {
       setLocationSearchMessage("Could not find that location reference.");
     } finally {
@@ -5540,11 +5687,18 @@ function App() {
       return;
     }
 
-    setFavouriteSectionIds((current) =>
-      current.includes(section.id)
-        ? current.filter((sectionId) => sectionId !== section.id)
-        : [...current, section.id],
-    );
+    setFavouriteSectionIds((current) => {
+      if (current.includes(section.id)) {
+        return current.filter((sectionId) => sectionId !== section.id);
+      }
+
+      void trackProductEvent("add_to_favorites", {
+        content_type: "route",
+        item_id: section.id,
+        river_name: section.riverName,
+      });
+      return [...current, section.id];
+    });
   }
 
   const accountLabel =
@@ -5573,6 +5727,13 @@ function App() {
         <AppNotificationBanner
           notification={appNotification}
           onDismiss={() => setAppNotification(null)}
+        />
+      ) : null}
+
+      {analyticsConsent === "unknown" ? (
+        <AnalyticsConsentBanner
+          onAccept={() => setAnalyticsConsent("accepted")}
+          onDecline={() => setAnalyticsConsent("declined")}
         />
       ) : null}
 

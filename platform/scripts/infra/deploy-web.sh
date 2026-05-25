@@ -107,6 +107,7 @@ export VITE_FIREBASE_PROJECT_ID
 export VITE_FIREBASE_STORAGE_BUCKET
 export VITE_FIREBASE_MESSAGING_SENDER_ID
 export VITE_FIREBASE_APP_ID
+export VITE_FIREBASE_MEASUREMENT_ID
 export VITE_FIREBASE_AUTH_FLOW
 
 VITE_FIREBASE_API_KEY="$(runtime_or_sdk_value ".$ENV.firebase.client.apiKey" ".apiKey")"
@@ -115,6 +116,7 @@ VITE_FIREBASE_PROJECT_ID="$(runtime_or_sdk_value ".$ENV.firebase.client.projectI
 VITE_FIREBASE_STORAGE_BUCKET="$(runtime_or_sdk_value ".$ENV.firebase.client.storageBucket" ".storageBucket")"
 VITE_FIREBASE_MESSAGING_SENDER_ID="$(runtime_or_sdk_value ".$ENV.firebase.client.messagingSenderId" ".messagingSenderId")"
 VITE_FIREBASE_APP_ID="$(runtime_or_sdk_value ".$ENV.firebase.client.appId" ".appId")"
+VITE_FIREBASE_MEASUREMENT_ID="$(runtime_or_sdk_value ".$ENV.firebase.client.measurementId // \"\"" ".measurementId // \"\"")"
 VITE_FIREBASE_AUTH_FLOW="$(runtime_value ".$ENV.auth.flow // \"\"")"
 
 section "Cloud Run API"
