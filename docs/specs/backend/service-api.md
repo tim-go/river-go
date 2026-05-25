@@ -67,6 +67,7 @@ Initial endpoints:
 | `GET` | `/api/route-overrides` | Public current-route geometry and metadata overrides, initially for moderator-approved fixture section route edits. |
 | `GET` | `/api/route-suggestions/approved` | Public approved route suggestions for low-confidence candidate route display. |
 | `PATCH` | `/api/moderation/route-suggestions/:id` | Admin/moderator in-place update of pending or visible route suggestion details and trace. |
+| `POST` | `/api/routes/snap` | Signed-in route editor snap request against stored watercourse reference geometry, returning snapped trace points plus confidence/warnings. |
 | `GET` | `/api/rivers` | River list. |
 | `GET` | `/api/rivers/:riverId/sections` | Section list with route summaries. |
 | `GET` | `/api/sections/:sectionId` | Section detail, hazards, access, features, reports, photos, and current gauge context. |
@@ -167,6 +168,7 @@ Moderation:
 | API-F15 | what3words location API | Backend/integration | Active | MVP | — | Server-side coordinate/address conversion with optional sync-time contribution enrichment. |
 | API-F16 | Profile public name and ICE API | Backend/profile | Active | MVP | — | Supports member public-name updates and owner-only emergency-contact profile read/write. |
 | API-F17 | Public approved route suggestions API | Backend/API | Active | MVP | — | Exposes approved route suggestions for public candidate route display. |
+| API-F18 | Watercourse snap API | Backend/geospatial | Active | MVP | — | Uses stored OS Open Rivers watercourses to snap rough route trace points with confidence/warnings. |
 
 ### Backlog
 

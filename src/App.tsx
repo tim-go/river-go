@@ -129,6 +129,7 @@ import {
   type RouteAdjustment,
   type RouteAdjustmentDecision,
 } from "./services/routeAdjustmentApi";
+import { snapRouteToWatercourses } from "./services/routeSnapApi";
 import {
   fetchRouteOverrides,
   type RouteOverride,
@@ -3078,6 +3079,7 @@ function App() {
     LatLngTuple[] | null
   >(null);
   const [routeDraftSnapMessage, setRouteDraftSnapMessage] = useState("");
+  const [isRouteSnapLoading, setIsRouteSnapLoading] = useState(false);
   const [routeFormError, setRouteFormError] = useState("");
   const [routeRiverName, setRouteRiverName] = useState("");
   const [routeSectionName, setRouteSectionName] = useState("");
@@ -5362,10 +5364,31 @@ function App() {
     setRouteFormError("");
   }
 
-  function snapRouteDraftToKnownRiver() {
+  async function snapRouteDraftToKnownRiver() {
     if (routeDraftPoints.length < 2) {
       setRouteFormError("Add at least a start and finish point before snapping.");
       return;
+    }
+
+    setIsRouteSnapLoading(true);
+    setRouteFormError("");
+    setRouteDraftSnapMessage("");
+
+    try {
+      const backendSnap = await snapRouteToWatercourses(routeDraftPoints);
+
+      if (backendSnap.matchedPoints >= 2 && backendSnap.route.length >= 2) {
+        setRouteDraftOriginalPoints((current) => current ?? routeDraftPoints);
+        setRouteDraftPoints(backendSnap.route);
+        setRouteDraftSnapMessage(
+          `Snapped to OS Open Rivers reference geometry (${backendSnap.confidence} confidence). ${backendSnap.warnings[0]}`,
+        );
+        return;
+      }
+    } catch {
+      // Fall through to in-app route geometry snapping for local/offline/dev use.
+    } finally {
+      setIsRouteSnapLoading(false);
     }
 
     const candidates: RouteSnapCandidate[] =
@@ -5387,7 +5410,7 @@ function App() {
 
     if (!snapped) {
       setRouteFormError(
-        "Could not snap this trace to a known river line. Add points closer to the river or save it as a rough trace.",
+        "Could not snap this trace to a known watercourse. Add points closer to the river or save it as a rough trace.",
       );
       setRouteDraftSnapMessage("");
       return;
@@ -6561,11 +6584,11 @@ function App() {
                 <button
                   className="ghost-button ghost-button--compact"
                   type="button"
-                  onClick={snapRouteDraftToKnownRiver}
-                  disabled={routeDraftPoints.length < 2}
+                  onClick={() => void snapRouteDraftToKnownRiver()}
+                  disabled={routeDraftPoints.length < 2 || isRouteSnapLoading}
                 >
                   <Route size={15} />
-                  Snap
+                  {isRouteSnapLoading ? "Snapping..." : "Snap"}
                 </button>
               )}
               <button

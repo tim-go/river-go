@@ -20,8 +20,14 @@ const runtimePath =
 const runtimeConfig = readJson(runtimePath, {});
 const envConfig = readObject(runtimeConfig[envName]);
 const env = { ...process.env };
+const databaseUrlKey =
+  process.env.RIVER_GO_DATABASE_URL_KEY === "adminUrl"
+    ? "adminUrl"
+    : process.env.RIVER_GO_DATABASE_URL_KEY === "migrationsUrl"
+      ? "migrationsUrl"
+      : "url";
 
-setIfPresent(env, "DATABASE_URL", readString(envConfig?.database?.url));
+setIfPresent(env, "DATABASE_URL", readString(envConfig?.database?.[databaseUrlKey]));
 setIfPresent(env, "FIREBASE_PROJECT_ID", readString(envConfig?.firebase?.projectId));
 setIfPresent(env, "ADMIN_EMAILS", readString(envConfig?.auth?.adminEmails));
 setIfPresent(

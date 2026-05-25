@@ -59,6 +59,26 @@ npm run api:backfill:w3w
 
 The backfill stores `payload.what3wordsAddress` on each eligible contribution row. It does not add a schema column.
 
+Import extracted OS Open Rivers watercourse geometry after running migrations:
+
+```bash
+npm run api:import:os-open-rivers -- --file /path/to/WatercourseLink.shp --source-version "April 2026"
+```
+
+Shapefile input defaults to `EPSG:27700` and is transformed to WGS84 for PostGIS. GeoJSON input is also supported:
+
+```bash
+npm run api:import:os-open-rivers -- --file /path/to/watercourses.geojson --format geojson --source-srid 4326
+```
+
+To refresh staging from the repo root, use:
+
+```bash
+npm run platform:import:os-open-rivers:staging -- --file /path/to/WatercourseLink.shp --source-version "April 2026" --truncate
+```
+
+The imported `watercourses` records are reference geometry for snapping and map context only. They are not paddling route data and do not indicate access, safety, grade, or runnable conditions.
+
 ## Local Database Defaults
 
 ```text

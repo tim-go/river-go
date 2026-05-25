@@ -76,6 +76,10 @@ Use open-data sources immediately for baseline observations and map context.
 
 Use OS Open Rivers as the next open-data watercourse geometry source for Great Britain snapping and map context. This layer should be imported as watercourse reference geometry, not as paddling routes, and should retain Ordnance Survey source metadata, OGL attribution, version/date, and confidence warnings.
 
+The first import implementation should support extracted OS Open Rivers Shapefile input and GeoJSON input. Shapefile imports default to British National Grid (`EPSG:27700`) and transform geometries to WGS84 for PostGIS storage. GeoPackage remains the preferred OS delivery format for manual GIS workflows, but automated import may rely on Shapefile/GeoJSON until a GDAL/GeoPackage reader is introduced.
+
+Imported watercourses should live in a `watercourses` table with source id, source version, source URL, licence, name fields, form/flow metadata, raw properties, source metadata, and a spatial index. The importer should be runnable locally and against staging/prod runtime config via npm scripts.
+
 Use Paddle UK / Go Paddling, PaddlePoints, UK Rivers Guidebook, Canoe Wales/Paddle Cymru, Paddle Scotland, Paddle NI, clubs, operators, and venue pages as discovery/reference material unless explicit permission or open licensing allows import.
 
 The first source-backed route work should concentrate on:
@@ -103,7 +107,7 @@ The first source-backed route work should concentrate on:
 | PUBSEED-F2 | Seed source classification | Data | Active | v0.2 | — | Requires licence/permission status before data import. |
 | PUBSEED-F3 | Candidate route workflow | Data/community | Queued | v0.2 | — | Converts public references into verification prompts rather than copied routes. |
 | PUBSEED-F4 | Partner import pathway | Data/partnership | Queued | later | — | Allows route import only when source owner grants permission and provenance is retained. |
-| PUBSEED-F5 | OS Open Rivers watercourse import | Data/backend | Queued | MVP | — | Import GB watercourse geometry for snapping and context without treating waterways as paddleable routes. |
+| PUBSEED-F5 | OS Open Rivers watercourse import | Data/backend | Active | MVP | — | Import GB watercourse geometry for snapping and context without treating waterways as paddleable routes. |
 
 ### Backlog
 
@@ -120,3 +124,4 @@ The first source-backed route work should concentrate on:
 | Date | Change |
 | --- | --- |
 | 2026-05-25 | Added public source seeding spec and source-register workflow. |
+| 2026-05-25 | Added OS Open Rivers watercourse import as the next reference-geometry seed path. |

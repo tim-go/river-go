@@ -66,6 +66,7 @@ import {
   runObservationBackfillJob,
   runObservationIngestionJob,
 } from "./observations.js";
+import { snapRouteToWatercourses } from "./watercourses.js";
 
 async function route(
   requestUrl: string,
@@ -260,6 +261,12 @@ async function route(
     const member = await upsertMemberFromAuth(authContext);
     const routeSuggestion = await createRouteSuggestion(body, member);
     return { status: 201, body: { routeSuggestion } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/routes/snap") {
+    await requireAuthContext(headers);
+    const snap = await snapRouteToWatercourses(body);
+    return { status: 200, body: { snap } };
   }
 
   const contributionDeleteMatch = url.pathname.match(

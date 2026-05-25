@@ -12,11 +12,16 @@
     "ingest:observations": "tsx src/ingest-observations.ts",
     "backfill:observations": "tsx src/backfill-observations.ts",
     "backfill:w3w": "tsx src/backfill-what3words.ts",
+    "import:os-open-rivers": "tsx src/import-os-open-rivers.ts",
     "sync:smoke": "tsx src/smoke-sync.ts"
   },
   "dependencies": {
+    "@types/proj4": "^2.5.6",
+    "@types/shapefile": "^0.6.4",
     "firebase-admin": "^13.10.0",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "proj4": "^2.20.8",
+    "shapefile": "^0.6.6"
   },
   "devDependencies": {
     "@types/node": "^25.0.2",

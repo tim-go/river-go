@@ -256,6 +256,12 @@ It is a geometry aid only. It can reduce dry-land lines, but it must not imply:
 The target backend model should store the rough trace, snapped trace, snap
 source, confidence/warnings, and final reviewed geometry separately.
 
+The first backend snap endpoint should project each submitted rough trace point
+onto the nearest OS Open Rivers watercourse within a controlled distance and
+return the snapped points, match counts, distance summary, confidence, source
+label, licence, and warnings. This is a pragmatic first step, not full river
+network routing between links.
+
 ### Migration From Current Model
 
 The current implementation is section-centric:
@@ -293,7 +299,8 @@ records.
 | GEO-F4 | Relationship-based route views | Map/API | Active | MVP | — | Route map POI reads now use `poi_route_links` for seeded map POIs; contribution reads include relationship-linked contribution POIs. |
 | GEO-F5 | Route change impact review | Admin/moderation | Active | MVP | — | Moderation now shows a first-pass route edit impact review using current geometry and known points; backend spatial impact review remains future work. |
 | GEO-F6 | Snap trace provenance | Route editor/API | Queued | MVP | — | Store rough trace, snapped trace, source geometry, warnings, and final reviewed geometry separately. |
-| GEO-F7 | GB watercourse reference layer | Backend/data | Queued | MVP | — | Seed OS Open Rivers geometry as a national watercourse layer for snapping, search, and spatial context. |
+| GEO-F7 | GB watercourse reference layer | Backend/data | Active | MVP | — | Seed OS Open Rivers geometry as a national watercourse layer for snapping, search, and spatial context. |
+| GEO-F8 | Backend watercourse snap endpoint | API/map | Active | MVP | — | Snap rough route points to nearest stored watercourse geometry with confidence and warnings. |
 
 ### Backlog
 

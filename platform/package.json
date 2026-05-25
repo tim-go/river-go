@@ -21,6 +21,8 @@
     "backfill:observations:prod": "scripts/infra/backfill-observations.sh prod",
     "backfill:w3w:staging": "scripts/infra/backfill-what3words.sh staging",
     "backfill:w3w:prod": "scripts/infra/backfill-what3words.sh prod",
+    "import:os-open-rivers:staging": "scripts/infra/import-os-open-rivers.sh staging",
+    "import:os-open-rivers:prod": "scripts/infra/import-os-open-rivers.sh prod",
     "deploy-api:staging": "scripts/infra/deploy-api.sh staging",
     "deploy-api:prod": "scripts/infra/deploy-api.sh prod",
     "deploy-web-preview:staging": "scripts/infra/deploy-web.sh staging --preview",
