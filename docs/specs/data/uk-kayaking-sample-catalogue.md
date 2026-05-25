@@ -27,6 +27,8 @@ The catalogue is not a ranked list and is not verified guidebook advice. It is a
 
 ## References
 
+- `/docs/specs/data/public-source-seeding.md`
+- `/docs/strategy/public-seed-source-register.md`
 - `/docs/specs/core/river-section-map.md`
 - `/docs/specs/core/app-shell-navigation.md`
 - `/docs/specs/data/river-wye-seed-data.md`
@@ -66,6 +68,8 @@ The active demo should also include:
 - River Wye seed sections
 
 All sample catalogue records must be labelled as seed/prototype data with low confidence.
+
+Public sources used for the catalogue must be recorded in `/docs/strategy/public-seed-source-register.md` before they are treated as seed inputs. Reference-only and permission-needed sources may support discovery and verification prompts, but must not be copied into route descriptions, POIs, photos, or GPX/geometry imports without explicit reuse rights.
 
 Route lines in `/src/data/ukKayakingSeed.ts` are schematic and must not be treated as verified route traces. Replace them with licensed/verified geometry before production use.
 
@@ -111,6 +115,7 @@ Each sample should provide enough data for the current UI:
 | UKCAT-B1 | validation | Confirm river shortlist | Open | v0.2 | Validate with UK paddlers before treating the list as representative. |
 | UKCAT-B2 | dependency | Verified route geometry | Open | v0.2 | Replace schematic routes with licensed/verified traces. |
 | UKCAT-B3 | research | River popularity evidence | Open | v0.2 | Avoid claiming "most popular" without defensible source data. |
+| UKCAT-B4 | task | Align sample sources with source register | Open | v0.2 | Replace weak/generic source references with registered source entries and explicit permission classifications. |
 
 ## Change Log
 

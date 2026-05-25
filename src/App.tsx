@@ -106,6 +106,21 @@ import {
   googleMapsDirectionsUrl,
   googleMapsSearchUrl,
 } from "./services/locationReferences";
+import {
+  applyRouteSuggestionDecision,
+  createRouteSuggestion,
+  fetchModerationRouteSuggestions,
+  fetchMyRouteSuggestions,
+  type RouteSuggestion,
+  type RouteSuggestionDecision,
+} from "./services/routeSuggestionApi";
+import {
+  applyRouteAdjustmentDecision,
+  createRouteAdjustment,
+  fetchModerationRouteAdjustments,
+  type RouteAdjustment,
+  type RouteAdjustmentDecision,
+} from "./services/routeAdjustmentApi";
 import type {
   Contribution,
   ContributionPhoto,
@@ -122,6 +137,7 @@ import type {
 
 const STORAGE_KEY = "river-go-demo-contributions";
 const FAVOURITES_STORAGE_KEY = "river-go-demo-favourite-sections";
+const ROUTE_SUGGESTIONS_STORAGE_KEY = "riverlaunch-route-suggestions-v1";
 const WELCOME_SESSION_STORAGE_KEY = "riverlaunch-welcome-dismissed-session";
 const SYNC_BANNER_DISMISSAL_STORAGE_KEY = "riverlaunch-sync-banner-dismissal";
 const LIVE_LOCATION_STORAGE_KEY = "riverlaunch-live-location-enabled";
@@ -130,6 +146,8 @@ const SYNC_BANNER_DISMISS_MS = 60 * 60 * 1000;
 const SEARCH_FOCUS_ZOOM = 15;
 const LIVE_LOCATION_FOCUS_ZOOM = 16;
 const NEARBY_POI_MAX_KM = 5;
+const ROUTE_POINT_DEDUPE_METRES = 3;
+const COMPACT_MAP_CONTROLS_QUERY = "(max-width: 430px)";
 
 type RouteDetailsTab =
   | "details"
@@ -278,6 +296,11 @@ type AppNotification = {
   message: string;
   tone: AppNotificationTone;
 };
+type RouteCreateMode = "idle" | "tracing" | "form";
+type RouteDraftTarget =
+  | { type: "new" }
+  | { type: "section"; id: string; label: string }
+  | { type: "route_suggestion"; id: string; label: string };
 type SearchMode = "name" | "point" | "favourites";
 type ProfileMode =
   | "account"
@@ -318,9 +341,34 @@ const mapPoiStatusActions: Array<{
   { status: "resolved", label: "Mark resolved" },
 ];
 
+const routeSuggestionActions: Array<{
+  decision: RouteSuggestionDecision;
+  label: string;
+}> = [
+  { decision: "request-review", label: "Back to review" },
+  { decision: "approve", label: "Approve candidate" },
+  { decision: "needs-info", label: "Needs more info" },
+  { decision: "reject", label: "Reject" },
+  { decision: "hide", label: "Hide" },
+];
+
+const routeAdjustmentActions: Array<{
+  decision: RouteAdjustmentDecision;
+  label: string;
+}> = [
+  { decision: "request-review", label: "Back to review" },
+  { decision: "approve", label: "Approve edit" },
+  { decision: "needs-info", label: "Needs more info" },
+  { decision: "reject", label: "Reject" },
+  { decision: "hide", label: "Hide" },
+];
+
 type MemberRoleFilter = "all" | MemberRole;
 type MemberTrustFilter = "all" | MemberTrustLevel;
+type ModerationTab = "routes" | "contributions" | "corrections";
 type ModerationDraftDecision = ModerationDecision | "";
+type RouteModerationDraftDecision = RouteSuggestionDecision | "";
+type RouteAdjustmentDraftDecision = RouteAdjustmentDecision | "";
 type PendingPhotoDelete = { id: string; title: string };
 type PendingPointDelete = { id: string; title: string };
 type SyncBannerDismissal = {
@@ -511,6 +559,22 @@ function loadFavouriteSectionIds(): string[] {
   }
 }
 
+function loadRouteSuggestions(): RouteSuggestion[] {
+  try {
+    const stored = localStorage.getItem(ROUTE_SUGGESTIONS_STORAGE_KEY);
+    const suggestions = stored ? (JSON.parse(stored) as RouteSuggestion[]) : [];
+    return suggestions.filter(
+      (suggestion) =>
+        Array.isArray(suggestion.route) &&
+        suggestion.route.length >= 2 &&
+        typeof suggestion.riverName === "string" &&
+        typeof suggestion.sectionName === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
 function hasDismissedWelcomeForSession() {
   try {
     return sessionStorage.getItem(WELCOME_SESSION_STORAGE_KEY) === "true";
@@ -694,6 +758,64 @@ function createLiveLocationPopup(location: LiveLocationSnapshot) {
     : "Accuracy unavailable.";
 
   return container;
+}
+
+function createRouteSuggestionPopup(suggestion: RouteSuggestion) {
+  const container = L.DomUtil.create("div", "map-popup-card");
+  L.DomEvent.disableClickPropagation(container);
+
+  const heading = L.DomUtil.create("strong", "", container);
+  heading.textContent = suggestion.sectionName;
+
+  const meta = L.DomUtil.create("span", "", container);
+  meta.textContent = `${suggestion.riverName} · ${suggestion.difficulty}`;
+
+  const body = L.DomUtil.create("p", "", container);
+  body.textContent = suggestion.summary;
+
+  const actions = L.DomUtil.create("div", "map-popup-actions", container);
+  const status = L.DomUtil.create("span", "status-chip", actions);
+  status.textContent =
+    suggestion.status === "pending-review" ? "Pending review" : "Local draft";
+
+  return container;
+}
+
+function createRouteAdjustmentPopup(adjustment: RouteAdjustment) {
+  const container = L.DomUtil.create("div", "map-popup-card");
+  L.DomEvent.disableClickPropagation(container);
+
+  const heading = L.DomUtil.create("strong", "", container);
+  heading.textContent = `Edit: ${adjustment.sectionName}`;
+
+  const meta = L.DomUtil.create("span", "", container);
+  meta.textContent = `${adjustment.riverName} · ${adjustment.difficulty}`;
+
+  const body = L.DomUtil.create("p", "", container);
+  body.textContent = adjustment.summary;
+
+  const actions = L.DomUtil.create("div", "map-popup-actions", container);
+  const status = L.DomUtil.create("span", "status-chip", actions);
+  status.textContent = routeAdjustmentStatusLabel(adjustment.status);
+
+  return container;
+}
+
+function routeSuggestionStatusLabel(status: RouteSuggestion["status"]) {
+  if (status === "pending-review") return "Pending review";
+  if (status === "needs-info") return "Needs more info";
+  if (status === "approved") return "Approved candidate";
+  if (status === "rejected") return "Rejected";
+  if (status === "hidden") return "Hidden";
+  return "Local draft";
+}
+
+function routeAdjustmentStatusLabel(status: RouteAdjustment["status"]) {
+  if (status === "pending-review") return "Pending review";
+  if (status === "needs-info") return "Needs more info";
+  if (status === "approved") return "Approved adjustment";
+  if (status === "rejected") return "Rejected";
+  return "Hidden";
 }
 
 function routeEndpointBounds(route: LatLngTuple[]) {
@@ -922,6 +1044,16 @@ function distanceKmBetween(from: LatLngTuple, to: LatLngTuple) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return earthRadiusKm * c;
+}
+
+function isDuplicateRoutePoint(
+  previous: LatLngTuple | undefined,
+  next: LatLngTuple,
+) {
+  return (
+    previous !== undefined &&
+    distanceKmBetween(previous, next) * 1000 <= ROUTE_POINT_DEDUPE_METRES
+  );
 }
 
 function nearestSectionsForLocation(location: LatLngTuple) {
@@ -2287,6 +2419,22 @@ function App() {
   const [favouriteSectionIds, setFavouriteSectionIds] = useState<string[]>(() =>
     loadFavouriteSectionIds(),
   );
+  const [routeSuggestions, setRouteSuggestions] = useState<RouteSuggestion[]>(
+    loadRouteSuggestions,
+  );
+  const [routeAdjustments, setRouteAdjustments] = useState<RouteAdjustment[]>([]);
+  const [routeCreateMode, setRouteCreateMode] =
+    useState<RouteCreateMode>("idle");
+  const [routeDraftTarget, setRouteDraftTarget] =
+    useState<RouteDraftTarget>({ type: "new" });
+  const [routeDraftPoints, setRouteDraftPoints] = useState<LatLngTuple[]>([]);
+  const [routeFormError, setRouteFormError] = useState("");
+  const [routeRiverName, setRouteRiverName] = useState("");
+  const [routeSectionName, setRouteSectionName] = useState("");
+  const [routeDifficulty, setRouteDifficulty] = useState("");
+  const [routeSummary, setRouteSummary] = useState("");
+  const [routeAccessNotes, setRouteAccessNotes] = useState("");
+  const [routeEvidence, setRouteEvidence] = useState("");
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isRouteStatusCardVisible, setIsRouteStatusCardVisible] = useState(true);
   const [routeDetailsTab, setRouteDetailsTab] =
@@ -2314,6 +2462,20 @@ function App() {
   const [searchFocusLabel, setSearchFocusLabel] = useState("Searched location");
   const [showSearchFocusMarker, setShowSearchFocusMarker] = useState(false);
   const [searchFocusNonce, setSearchFocusNonce] = useState(0);
+  const [routeSuggestionFocusId, setRouteSuggestionFocusId] = useState<string | null>(
+    null,
+  );
+  const [routeSuggestionFocusNonce, setRouteSuggestionFocusNonce] = useState(0);
+  const [routeAdjustmentFocusId, setRouteAdjustmentFocusId] = useState<string | null>(
+    null,
+  );
+  const [routeAdjustmentFocusNonce, setRouteAdjustmentFocusNonce] = useState(0);
+  const [isCompactMapControls, setIsCompactMapControls] = useState(() =>
+    typeof window === "undefined"
+      ? false
+      : window.matchMedia(COMPACT_MAP_CONTROLS_QUERY).matches,
+  );
+  const [areMapControlsExpanded, setAreMapControlsExpanded] = useState(false);
   const [selectedPoi, setSelectedPoi] = useState<SelectedPoi | null>(null);
   const [selectedTargetLabel, setSelectedTargetLabel] = useState(
     "Selected map location",
@@ -2366,6 +2528,8 @@ function App() {
   );
   const [isMemberContributionsLoading, setIsMemberContributionsLoading] =
     useState(false);
+  const [isMemberRouteSuggestionsLoading, setIsMemberRouteSuggestionsLoading] =
+    useState(false);
   const [pointMessage, setPointMessage] = useState("");
   const [pendingPointDelete, setPendingPointDelete] =
     useState<PendingPointDelete | null>(null);
@@ -2387,9 +2551,20 @@ function App() {
   const [moderationMapPoiReviews, setModerationMapPoiReviews] = useState<
     MapPoiCorrectionReview[]
   >([]);
+  const [moderationRouteSuggestions, setModerationRouteSuggestions] = useState<
+    RouteSuggestion[]
+  >([]);
+  const [moderationRouteAdjustments, setModerationRouteAdjustments] = useState<
+    RouteAdjustment[]
+  >([]);
   const [moderationDraftDecisions, setModerationDraftDecisions] = useState<
     Record<string, ModerationDraftDecision>
   >({});
+  const [routeModerationDraftDecisions, setRouteModerationDraftDecisions] =
+    useState<Record<string, RouteModerationDraftDecision>>({});
+  const [routeAdjustmentDraftDecisions, setRouteAdjustmentDraftDecisions] =
+    useState<Record<string, RouteAdjustmentDraftDecision>>({});
+  const [moderationTab, setModerationTab] = useState<ModerationTab>("routes");
   const [isModerationLoading, setIsModerationLoading] = useState(false);
   const [moderationMessage, setModerationMessage] = useState("");
   const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
@@ -2546,6 +2721,9 @@ function App() {
   ).length;
   const failedOutboxCount = outboxRecords.filter(
     (record) => record.syncStatus === "failed",
+  ).length;
+  const moderationContributionPhotoCount = moderationContributions.filter(
+    (contribution) => contribution.type === "photo",
   ).length;
   const isAuthConfigured = authState.status !== "unconfigured";
   const isSignedIn = Boolean(authState.user);
@@ -2713,6 +2891,27 @@ function App() {
   }, [photoPreviewUrl]);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(COMPACT_MAP_CONTROLS_QUERY);
+    const updateCompactControls = () => {
+      setIsCompactMapControls(mediaQuery.matches);
+      if (!mediaQuery.matches) {
+        setAreMapControlsExpanded(false);
+      }
+    };
+
+    updateCompactControls();
+    mediaQuery.addEventListener("change", updateCompactControls);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateCompactControls);
+    };
+  }, []);
+
+  useEffect(() => {
     if (authState.status === "loading") {
       return;
     }
@@ -2752,6 +2951,10 @@ function App() {
       setPendingPointDelete(null);
       setModerationContributions([]);
       setModerationDraftDecisions({});
+      setModerationRouteSuggestions([]);
+      setRouteModerationDraftDecisions({});
+      setModerationRouteAdjustments([]);
+      setRouteAdjustmentDraftDecisions({});
       setModerationMessage("");
       return () => {
         isMounted = false;
@@ -2887,6 +3090,48 @@ function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(contributions));
   }, [contributions]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      ROUTE_SUGGESTIONS_STORAGE_KEY,
+      JSON.stringify(routeSuggestions),
+    );
+  }, [routeSuggestions]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!authState.user) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    fetchMyRouteSuggestions()
+      .then((suggestions) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setRouteSuggestions((current) => {
+          const localOnly = current.filter(
+            (suggestion) => suggestion.status === "local-draft",
+          );
+          const localIds = new Set(localOnly.map((suggestion) => suggestion.id));
+          return [
+            ...localOnly,
+            ...suggestions.filter((suggestion) => !localIds.has(suggestion.id)),
+          ];
+        });
+      })
+      .catch(() => {
+        // Local route suggestions remain visible if the API is unavailable.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authState.user]);
 
   useEffect(() => {
     let isMounted = true;
@@ -3451,6 +3696,69 @@ function App() {
     }
   }
 
+  async function retryRouteSuggestion(suggestion: RouteSuggestion) {
+    if (!authState.user) {
+      requireSignInForSave();
+      return;
+    }
+
+    setPointMessage("");
+
+    try {
+      const savedSuggestion = await createRouteSuggestion({
+        riverName: suggestion.riverName,
+        sectionName: suggestion.sectionName,
+        difficulty: suggestion.difficulty,
+        summary: suggestion.summary,
+        accessNotes: suggestion.accessNotes,
+        evidence: suggestion.evidence,
+        route: suggestion.route,
+      });
+      setRouteSuggestions((current) => [
+        savedSuggestion,
+        ...current.filter((item) => item.id !== suggestion.id),
+      ]);
+      setPointMessage("Route suggestion sent for review.");
+    } catch (error) {
+      setPointMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not send this route suggestion.",
+      );
+    }
+  }
+
+  async function loadMemberRouteSuggestions() {
+    if (!authState.user) {
+      return;
+    }
+
+    setIsMemberRouteSuggestionsLoading(true);
+    setPointMessage("");
+
+    try {
+      const suggestions = await fetchMyRouteSuggestions();
+      setRouteSuggestions((current) => {
+        const localOnly = current.filter(
+          (suggestion) => suggestion.status === "local-draft",
+        );
+        const localIds = new Set(localOnly.map((suggestion) => suggestion.id));
+        return [
+          ...localOnly,
+          ...suggestions.filter((suggestion) => !localIds.has(suggestion.id)),
+        ];
+      });
+    } catch (error) {
+      setPointMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load your route suggestions.",
+      );
+    } finally {
+      setIsMemberRouteSuggestionsLoading(false);
+    }
+  }
+
   async function savePublicName() {
     if (!authState.user) {
       requireSignInForSave();
@@ -3553,6 +3861,8 @@ function App() {
     setSearchFocusLocation(null);
     setSearchFocusLabel("Searched location");
     setShowSearchFocusMarker(false);
+    setRouteSuggestionFocusId(null);
+    setRouteAdjustmentFocusId(null);
     setActiveAppSection("map");
 
     return section;
@@ -3591,6 +3901,46 @@ function App() {
       setSearchFocusNonce((current) => current + 1);
       setSelectedPoi(selectedPoiForContribution(contribution, section));
     }
+  }
+
+  function openRouteSuggestionOnMap(suggestion: RouteSuggestion) {
+    setRouteSuggestions((current) => {
+      if (current.some((item) => item.id === suggestion.id)) {
+        return current;
+      }
+
+      return [suggestion, ...current];
+    });
+    setRouteSuggestionFocusId(suggestion.id);
+    setRouteSuggestionFocusNonce((current) => current + 1);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
+    setSelectedPoi(null);
+    setIsPanelOpen(false);
+    setIsFormOpen(false);
+    setIsAddMode(false);
+    setActiveAppSection("map");
+  }
+
+  function openRouteAdjustmentOnMap(adjustment: RouteAdjustment) {
+    setRouteAdjustments((current) => {
+      if (current.some((item) => item.id === adjustment.id)) {
+        return current;
+      }
+
+      return [adjustment, ...current];
+    });
+    setRouteAdjustmentFocusId(adjustment.id);
+    setRouteAdjustmentFocusNonce((current) => current + 1);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
+    setSelectedPoi(null);
+    setIsPanelOpen(false);
+    setIsFormOpen(false);
+    setIsAddMode(false);
+    setActiveAppSection("map");
   }
 
   function removeDeletedPhotoFromContributions(
@@ -3721,18 +4071,33 @@ function App() {
   async function openModerationPanel() {
     setActiveAppSection("admin");
     setActiveAdminPage("moderation");
+    setModerationTab("routes");
     setIsModerationLoading(true);
     setModerationMessage("");
     setModerationDraftDecisions({});
     setModerationMapPoiReviews([]);
+    setModerationRouteSuggestions([]);
+    setRouteModerationDraftDecisions({});
+    setModerationRouteAdjustments([]);
+    setRouteAdjustmentDraftDecisions({});
 
     try {
-      const [contributions, mapPoiReviews] = await Promise.all([
+      const [
+        contributions,
+        mapPoiReviews,
+        routeSuggestions,
+        routeAdjustments,
+      ] = await Promise.all([
         fetchModerationContributions(),
         fetchModerationMapPoiReviews(),
+        fetchModerationRouteSuggestions(),
+        fetchModerationRouteAdjustments(),
       ]);
       setModerationContributions(contributions);
       setModerationMapPoiReviews(mapPoiReviews);
+      setModerationRouteSuggestions(routeSuggestions);
+      setModerationRouteAdjustments(routeAdjustments);
+      setRouteAdjustments(routeAdjustments);
     } catch (error) {
       setModerationMessage(
         error instanceof Error
@@ -3892,6 +4257,84 @@ function App() {
     }
   }
 
+  async function applyRouteModerationDecision(
+    routeSuggestion: RouteSuggestion,
+    decision: RouteSuggestionDecision,
+  ) {
+    setModerationMessage("");
+
+    try {
+      const updatedSuggestion = await applyRouteSuggestionDecision(
+        routeSuggestion.id,
+        decision,
+      );
+      setModerationRouteSuggestions((current) =>
+        updatedSuggestion.status === "hidden"
+          ? current.filter((item) => item.id !== updatedSuggestion.id)
+          : current.map((item) =>
+              item.id === updatedSuggestion.id ? updatedSuggestion : item,
+            ),
+      );
+      setRouteModerationDraftDecisions((current) => {
+        const next = { ...current };
+        delete next[updatedSuggestion.id];
+        return next;
+      });
+      setRouteSuggestions((current) =>
+        current.map((item) =>
+          item.id === updatedSuggestion.id ? updatedSuggestion : item,
+        ),
+      );
+      setModerationMessage(`Updated ${updatedSuggestion.sectionName}.`);
+    } catch (error) {
+      setModerationMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not update route suggestion.",
+      );
+    }
+  }
+
+  async function applyRouteAdjustmentModerationDecision(
+    routeAdjustment: RouteAdjustment,
+    decision: RouteAdjustmentDecision,
+  ) {
+    setModerationMessage("");
+
+    try {
+      const updatedAdjustment = await applyRouteAdjustmentDecision(
+        routeAdjustment.id,
+        decision,
+      );
+      setModerationRouteAdjustments((current) =>
+        updatedAdjustment.status === "hidden"
+          ? current.filter((item) => item.id !== updatedAdjustment.id)
+          : current.map((item) =>
+              item.id === updatedAdjustment.id ? updatedAdjustment : item,
+            ),
+      );
+      setRouteAdjustmentDraftDecisions((current) => {
+        const next = { ...current };
+        delete next[updatedAdjustment.id];
+        return next;
+      });
+      setRouteAdjustments((current) =>
+        updatedAdjustment.status === "hidden"
+          ? current.filter((item) => item.id !== updatedAdjustment.id)
+          : current.map((item) =>
+              item.id === updatedAdjustment.id ? updatedAdjustment : item,
+            ),
+      );
+      setModerationMessage(`Updated route edit for ${updatedAdjustment.sectionName}.`);
+    } catch (error) {
+      setModerationMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not update route edit.",
+      );
+    }
+  }
+
   async function applyMapPoiVerificationStatus(
     poi: MapPoi,
     status: MapPoi["verificationStatus"],
@@ -4009,11 +4452,252 @@ function App() {
     );
   }
 
+  function startRouteSuggestionMode() {
+    if (!isSignedIn) {
+      requireSignInForSave();
+      return;
+    }
+
+    setRouteDraftTarget({ type: "new" });
+    setRouteDraftPoints([]);
+    setRouteCreateMode("tracing");
+    setRouteFormError("");
+    setRouteRiverName(activeSection.riverName);
+    setRouteSectionName("");
+    setRouteDifficulty("");
+    setRouteSummary("");
+    setRouteAccessNotes("");
+    setRouteEvidence("");
+    setIsAddMode(false);
+    setIsFormOpen(false);
+    setSelectedPoi(null);
+    setIsPanelOpen(false);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
+    setRouteSuggestionFocusId(null);
+    setRouteAdjustmentFocusId(null);
+  }
+
+  function startRouteAdjustmentMode(section: RiverSection) {
+    if (!isSignedIn) {
+      requireSignInForSave();
+      return;
+    }
+
+    if (!canAccessAdminTools) {
+      showAppNotification("Only admins and moderators can edit routes.", "error");
+      return;
+    }
+
+    setRouteDraftTarget({
+      type: "section",
+      id: section.id,
+      label: `${section.riverName} · ${section.sectionName}`,
+    });
+    setRouteDraftPoints([]);
+    setRouteCreateMode("tracing");
+    setRouteFormError("");
+    setRouteRiverName(section.riverName);
+    setRouteSectionName(section.sectionName);
+    setRouteDifficulty(section.difficulty);
+    setRouteSummary(section.summary);
+    setRouteAccessNotes(section.accessSummary);
+    setRouteEvidence("");
+    setIsAddMode(false);
+    setIsFormOpen(false);
+    setSelectedPoi(null);
+    setIsPanelOpen(false);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
+    setRouteSuggestionFocusId(null);
+    setRouteAdjustmentFocusId(null);
+  }
+
+  function startRouteSuggestionAdjustmentMode(suggestion: RouteSuggestion) {
+    if (!isSignedIn) {
+      requireSignInForSave();
+      return;
+    }
+
+    if (!canAccessAdminTools) {
+      showAppNotification("Only admins and moderators can edit routes.", "error");
+      return;
+    }
+
+    setRouteDraftTarget({
+      type: "route_suggestion",
+      id: suggestion.id,
+      label: `${suggestion.riverName} · ${suggestion.sectionName}`,
+    });
+    setRouteDraftPoints([]);
+    setRouteCreateMode("tracing");
+    setRouteFormError("");
+    setRouteRiverName(suggestion.riverName);
+    setRouteSectionName(suggestion.sectionName);
+    setRouteDifficulty(suggestion.difficulty);
+    setRouteSummary(suggestion.summary);
+    setRouteAccessNotes(suggestion.accessNotes);
+    setRouteEvidence("");
+    setIsAddMode(false);
+    setIsFormOpen(false);
+    setSelectedPoi(null);
+    setIsPanelOpen(false);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
+    setRouteSuggestionFocusId(null);
+    setRouteAdjustmentFocusId(null);
+    setActiveAppSection("map");
+  }
+
+  function cancelRouteSuggestion() {
+    setRouteCreateMode("idle");
+    setRouteDraftTarget({ type: "new" });
+    setRouteDraftPoints([]);
+    setRouteFormError("");
+  }
+
+  function undoRouteDraftPoint() {
+    setRouteDraftPoints((current) => current.slice(0, -1));
+    setRouteFormError("");
+  }
+
+  function finishRouteTrace() {
+    if (routeDraftPoints.length < 2) {
+      setRouteFormError("Add at least a start and finish point before continuing.");
+      return;
+    }
+
+    setRouteCreateMode("form");
+    setRouteFormError("");
+  }
+
+  function closeRouteSuggestionForm() {
+    setRouteCreateMode("idle");
+    setRouteDraftTarget({ type: "new" });
+    setRouteDraftPoints([]);
+    setRouteFormError("");
+  }
+
+  async function saveRouteSuggestion(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!isSignedIn) {
+      requireSignInForSave();
+      return;
+    }
+
+    const safeRiverName = routeRiverName.trim();
+    const safeSectionName = routeSectionName.trim();
+    const safeDifficulty = routeDifficulty.trim();
+    const safeSummary = routeSummary.trim();
+    const safeAccessNotes = routeAccessNotes.trim();
+    const safeEvidence = routeEvidence.trim();
+
+    if (routeDraftPoints.length < 2) {
+      setRouteFormError("Trace at least two points for this route.");
+      return;
+    }
+
+    if (!safeRiverName || !safeSectionName || !safeSummary || !safeEvidence) {
+      setRouteFormError(
+        "Add river name, section name, summary, and evidence before saving.",
+      );
+      return;
+    }
+
+    const suggestionInput = {
+      riverName: safeRiverName,
+      sectionName: safeSectionName,
+      difficulty: safeDifficulty || "Needs grading",
+      summary: safeSummary,
+      accessNotes: safeAccessNotes || "Access needs local review.",
+      evidence: safeEvidence,
+      route: routeDraftPoints,
+    };
+
+    if (routeDraftTarget.type !== "new") {
+      if (!canAccessAdminTools) {
+        setRouteFormError("Only admins and moderators can save route edits.");
+        return;
+      }
+
+      try {
+        const savedAdjustment = await createRouteAdjustment({
+          targetType: routeDraftTarget.type,
+          targetId: routeDraftTarget.id,
+          ...suggestionInput,
+        });
+        setRouteAdjustments((current) => [savedAdjustment, ...current]);
+        setModerationRouteAdjustments((current) => [
+          savedAdjustment,
+          ...current,
+        ]);
+        setRouteAdjustmentFocusId(savedAdjustment.id);
+        setRouteAdjustmentFocusNonce((current) => current + 1);
+        setRouteCreateMode("idle");
+        setRouteDraftTarget({ type: "new" });
+        setRouteDraftPoints([]);
+        setRouteFormError("");
+        showAppNotification("Route edit saved for review.", "info");
+      } catch (error) {
+        setRouteFormError(
+          error instanceof Error ? error.message : "Could not save route edit.",
+        );
+      }
+      return;
+    }
+
+    const localSuggestion: RouteSuggestion = {
+      id: crypto.randomUUID(),
+      ...suggestionInput,
+      status: "local-draft",
+      author:
+        memberProfile?.publicName ??
+        memberProfile?.displayName ??
+        authState.user?.displayName ??
+        "Route contributor",
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      const savedSuggestion = await createRouteSuggestion(suggestionInput);
+      setRouteSuggestions((current) => [savedSuggestion, ...current]);
+      setRouteCreateMode("idle");
+      setRouteDraftTarget({ type: "new" });
+      setRouteDraftPoints([]);
+      setRouteFormError("");
+      showAppNotification("Route suggestion sent for review.", "info");
+    } catch {
+      setRouteSuggestions((current) => [localSuggestion, ...current]);
+      setRouteCreateMode("idle");
+      setRouteDraftTarget({ type: "new" });
+      setRouteDraftPoints([]);
+      setRouteFormError("");
+      showAppNotification(
+        "Route suggestion saved locally. Try again when the API is available.",
+        "info",
+      );
+    }
+  }
+
   function handleMapClick(
     location: LatLngTuple,
     nextType?: ContributionType,
     label = "Selected map location",
   ) {
+    if (routeCreateMode === "tracing") {
+      setRouteDraftPoints((current) =>
+        isDuplicateRoutePoint(current[current.length - 1], location)
+          ? current
+          : [...current, location],
+      );
+      setRouteFormError("");
+      return;
+    }
+
     if (!isAddMode && !nextType) {
       return;
     }
@@ -4057,6 +4741,9 @@ function App() {
       return;
     }
 
+    setRouteCreateMode("idle");
+    setRouteDraftTarget({ type: "new" });
+    setRouteDraftPoints([]);
     const requiresLocation = optionForType(nextType).locationRequired;
     chooseContributionType(nextType);
     setIsAddMode(requiresLocation);
@@ -4115,6 +4802,8 @@ function App() {
     setIsPanelOpen(false);
     setIsFormOpen(false);
     setIsAddMode(false);
+    setRouteCreateMode("idle");
+    setRouteDraftPoints([]);
     setMapPoiReviewMessage("");
     setSearchFocusLocation(null);
     setSearchFocusLabel("Searched location");
@@ -4308,7 +4997,13 @@ function App() {
               </p>
             </div>
           </div>
-          <div className="topbar-actions">
+          <div
+            className={`topbar-actions ${
+              isCompactMapControls && areMapControlsExpanded
+                ? "topbar-actions--expanded"
+                : ""
+            }`}
+          >
             <button
               className={`ghost-button map-panel-toggle ${
                 isSectionListOpen ? "map-panel-toggle--active" : ""
@@ -4352,8 +5047,28 @@ function App() {
               <MapPinned size={16} />
               Details
             </button>
+            {isCompactMapControls ? (
+              <button
+                className={`ghost-button map-panel-toggle topbar-controls-toggle ${
+                  areMapControlsExpanded ? "map-panel-toggle--active" : ""
+                }`}
+                type="button"
+                onClick={() => setAreMapControlsExpanded((current) => !current)}
+                title={
+                  areMapControlsExpanded ? "Hide map controls" : "Show map controls"
+                }
+                aria-label={
+                  areMapControlsExpanded ? "Hide map controls" : "Show map controls"
+                }
+                aria-expanded={areMapControlsExpanded}
+              >
+                <MoreHorizontal size={16} />
+                Controls
+                <ChevronDown size={14} />
+              </button>
+            ) : null}
             <button
-              className={`icon-button sync-icon-button ${
+              className={`icon-button sync-icon-button topbar-secondary-control ${
                 queuedOutboxCount > 0 ? "sync-icon-button--queued" : ""
               }`}
               type="button"
@@ -4363,12 +5078,13 @@ function App() {
               aria-label={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
             >
               <RefreshCw size={16} />
+              <span className="topbar-control-label">Sync</span>
               {queuedOutboxCount > 0 ? (
                 <span className="sync-badge">{queuedOutboxCount}</span>
               ) : null}
             </button>
             <button
-              className={`icon-button ${
+              className={`icon-button topbar-secondary-control ${
                 isActiveSectionFavourite ? "icon-button--active" : ""
               }`}
               type="button"
@@ -4390,9 +5106,12 @@ function App() {
               onClick={() => toggleFavouriteSection(activeSection)}
             >
               <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
+              <span className="topbar-control-label">
+                {isActiveSectionFavourite ? "Saved" : "Favourite"}
+              </span>
             </button>
             <button
-              className={`icon-button ${
+              className={`icon-button topbar-secondary-control ${
                 isLiveLocationEnabled ? "icon-button--active" : ""
               }`}
               type="button"
@@ -4411,9 +5130,40 @@ function App() {
               disabled={!isLiveLocationSupported}
             >
               <Navigation size={18} />
+              <span className="topbar-control-label">Location</span>
+            </button>
+            {canAccessAdminTools ? (
+              <button
+                className={`ghost-button map-panel-toggle topbar-secondary-control ${
+                  routeDraftTarget.type !== "new" ? "map-panel-toggle--active" : ""
+                }`}
+                type="button"
+                title="Edit this route"
+                aria-label="Edit this route"
+                aria-pressed={routeDraftTarget.type !== "new"}
+                onClick={() => startRouteAdjustmentMode(activeSection)}
+              >
+                <Route size={16} />
+                Edit route
+              </button>
+            ) : null}
+            <button
+              className={`ghost-button map-panel-toggle topbar-secondary-control ${
+                routeCreateMode !== "idle" && routeDraftTarget.type === "new"
+                  ? "map-panel-toggle--active"
+                  : ""
+              }`}
+              type="button"
+              title="Suggest a missing route"
+              aria-label="Suggest a missing route"
+              aria-pressed={routeCreateMode !== "idle"}
+              onClick={startRouteSuggestionMode}
+            >
+              <Route size={16} />
+              Suggest route
             </button>
             <button
-              className="primary-action"
+              className="primary-action topbar-secondary-control"
               type="button"
               title="Add local knowledge"
               onClick={() => startAddMode()}
@@ -4508,8 +5258,15 @@ function App() {
           activeSection={activeSection}
           mapPois={visibleSectionMapPois}
           contributions={contributions}
+          routeSuggestions={routeSuggestions}
+          routeAdjustments={routeAdjustments}
+          routeSuggestionFocusId={routeSuggestionFocusId}
+          routeSuggestionFocusNonce={routeSuggestionFocusNonce}
+          routeAdjustmentFocusId={routeAdjustmentFocusId}
+          routeAdjustmentFocusNonce={routeAdjustmentFocusNonce}
           outboxRecords={outboxRecords}
           selectedLocation={selectedLocation}
+          routeDraftPoints={routeDraftPoints}
           liveLocation={liveLocation}
           liveLocationFocusNonce={liveLocationFocusNonce}
           searchFocusLocation={searchFocusLocation}
@@ -4517,6 +5274,7 @@ function App() {
           showSearchFocusMarker={showSearchFocusMarker}
           searchFocusNonce={searchFocusNonce}
           isAddMode={isAddMode}
+          routeCreateMode={routeCreateMode}
           onMapClick={handleMapClick}
           focusNonce={sectionFocusNonce}
           onOpenPoiDetails={openPoiDetails}
@@ -4792,6 +5550,189 @@ function App() {
               <X size={15} />
               Cancel
             </button>
+          </section>
+        ) : null}
+
+        {routeCreateMode === "tracing" ? (
+          <section className="add-mode-banner route-draft-banner" aria-label="Route tracing active">
+            <div>
+              <p className="eyebrow">
+                {routeDraftTarget.type !== "new" ? "Edit route" : "Suggest route"}
+              </p>
+              <strong>
+                {routeDraftTarget.type !== "new"
+                  ? "Click along the river to trace the corrected route."
+                  : "Click along the river to sketch the candidate route."}
+              </strong>
+              <span>
+                {routeDraftPoints.length
+                  ? `${routeDraftPoints.length} point${
+                      routeDraftPoints.length === 1 ? "" : "s"
+                    } added. This will be reviewed before changing published route data.`
+                  : routeDraftTarget.type !== "new"
+                    ? "Start at the corrected put-in or upstream end, then add points downstream."
+                    : "Start at the put-in or upstream end, then add points downstream."}
+              </span>
+              {routeFormError ? <span className="form-error">{routeFormError}</span> : null}
+            </div>
+            <div className="route-draft-actions">
+              <button
+                className="ghost-button ghost-button--compact"
+                type="button"
+                onClick={undoRouteDraftPoint}
+                disabled={routeDraftPoints.length === 0}
+              >
+                <RotateCcw size={15} />
+                Undo
+              </button>
+              <button
+                className="ghost-button ghost-button--compact"
+                type="button"
+                onClick={cancelRouteSuggestion}
+              >
+                <X size={15} />
+                Cancel
+              </button>
+              <button
+                className="submit-button submit-button--compact"
+                type="button"
+                onClick={finishRouteTrace}
+                disabled={routeDraftPoints.length < 2}
+              >
+                Next
+              </button>
+            </div>
+          </section>
+        ) : null}
+
+        {routeCreateMode === "form" ? (
+          <section className="quick-add-panel route-suggestion-panel" aria-label="Suggest route">
+            <div className="quick-add-panel__header">
+              <div>
+                <p className="eyebrow">
+                  {routeDraftTarget.type !== "new" ? "Edit route" : "Suggest route"}
+                </p>
+                <h2>
+                  {routeDraftTarget.type !== "new"
+                    ? "Route adjustment"
+                    : "Candidate river section"}
+                </h2>
+              </div>
+              <button
+                className="icon-button"
+                type="button"
+                aria-label="Close route suggestion form"
+                title="Close"
+                onClick={closeRouteSuggestionForm}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form className="quick-add-form" onSubmit={saveRouteSuggestion}>
+              <div className="notice">
+                <AlertTriangle size={18} />
+                <span>
+                  {routeDraftTarget.type !== "new"
+                    ? "Route edits are stored as review records. Add evidence for the corrected trace before it changes public route data."
+                    : "Route suggestions go to review. Add evidence from paddling, clubs, official trails, or venue/local knowledge."}
+                </span>
+              </div>
+
+              {routeDraftTarget.type !== "new" ? (
+                <div className="location-card">
+                  <ShieldCheck size={17} />
+                  <span>Editing existing route: {routeDraftTarget.label}</span>
+                </div>
+              ) : null}
+
+              <div className="form-grid">
+                <label>
+                  River
+                  <input
+                    value={routeRiverName}
+                    onChange={(event) => setRouteRiverName(event.target.value)}
+                    placeholder="River name"
+                    required
+                  />
+                </label>
+                <label>
+                  Section
+                  <input
+                    value={routeSectionName}
+                    onChange={(event) => setRouteSectionName(event.target.value)}
+                    placeholder="Put-in to take-out"
+                    required
+                  />
+                </label>
+              </div>
+
+              <label>
+                Grade / difficulty
+                <input
+                  value={routeDifficulty}
+                  onChange={(event) => setRouteDifficulty(event.target.value)}
+                  placeholder="Grade II, Grade III-IV, touring, unknown"
+                />
+              </label>
+
+              <label>
+                Summary
+                <textarea
+                  value={routeSummary}
+                  onChange={(event) => setRouteSummary(event.target.value)}
+                  rows={3}
+                  placeholder="What kind of section is this, and who is it suitable for?"
+                  required
+                />
+              </label>
+
+              <label>
+                Access notes
+                <textarea
+                  value={routeAccessNotes}
+                  onChange={(event) => setRouteAccessNotes(event.target.value)}
+                  rows={2}
+                  placeholder="Put-in, take-out, parking, portage, restrictions, or sensitivity."
+                />
+              </label>
+
+              <label>
+                Evidence / source
+                <textarea
+                  value={routeEvidence}
+                  onChange={(event) => setRouteEvidence(event.target.value)}
+                  rows={3}
+                  placeholder="Recent paddle, club/local knowledge, official trail, venue source, or partner data."
+                  required
+                />
+              </label>
+
+              <div className="location-card">
+                <Route size={17} />
+                <span>
+                  {routeDraftTarget.type !== "new"
+                    ? `Corrected trace with ${routeDraftPoints.length} points. Reviewers can approve, request more information, reject, or hide this route edit.`
+                    : `Rough trace with ${routeDraftPoints.length} points. Reviewers will verify route line, access, hazards, level guidance, and source confidence before publication.`}
+                </span>
+              </div>
+
+              {routeFormError ? <p className="form-error">{routeFormError}</p> : null}
+
+              <div className="form-actions">
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => setRouteCreateMode("tracing")}
+                >
+                  Back to trace
+                </button>
+                <button className="submit-button" type="submit">
+                  <Flag size={16} />
+                  Save
+                </button>
+              </div>
+            </form>
           </section>
         ) : null}
 
@@ -6097,6 +7038,7 @@ function App() {
                       </section>
                     ) : null}
                     {isSignedIn ? (
+                  <>
                   <section className="profile-card profile-card--stacked">
                     <div className="block-title">
                       <div>
@@ -6185,6 +7127,72 @@ function App() {
                       </p>
                     )}
                   </section>
+                  <section className="profile-card profile-card--stacked">
+                    <div className="block-title">
+                      <div>
+                        <h3>My route suggestions</h3>
+                        <span>{routeSuggestions.length} saved</span>
+                      </div>
+                      <button
+                        className="ghost-button ghost-button--compact"
+                        type="button"
+                        onClick={() => void loadMemberRouteSuggestions()}
+                        disabled={isMemberRouteSuggestionsLoading}
+                      >
+                        <RefreshCw size={15} />
+                        Refresh
+                      </button>
+                    </div>
+                    {isMemberRouteSuggestionsLoading ? (
+                      <p className="source-note">Loading your route suggestions...</p>
+                    ) : routeSuggestions.length ? (
+                      <div className="profile-photo-list">
+                        {routeSuggestions.map((suggestion) => (
+                          <article
+                            className="profile-point-row"
+                            key={suggestion.id}
+                          >
+                            <div className="profile-point-icon">
+                              <Route size={18} />
+                            </div>
+                            <div>
+                              <strong>{suggestion.sectionName}</strong>
+                              <span>{suggestion.summary}</span>
+                              <small>
+                                {suggestion.riverName} · {suggestion.difficulty} ·{" "}
+                                {suggestion.status.replaceAll("-", " ")}
+                              </small>
+                            </div>
+                            <div className="profile-photo-actions">
+                              <button
+                                className="ghost-button ghost-button--compact"
+                                type="button"
+                                onClick={() => openRouteSuggestionOnMap(suggestion)}
+                              >
+                                <MapIcon size={15} />
+                                Map
+                              </button>
+                              {suggestion.status === "local-draft" ? (
+                                <button
+                                  className="ghost-button ghost-button--compact"
+                                  type="button"
+                                  onClick={() => void retryRouteSuggestion(suggestion)}
+                                >
+                                  <RefreshCw size={15} />
+                                  Send
+                                </button>
+                              ) : null}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="source-note">
+                        Suggested routes you submit will appear here.
+                      </p>
+                    )}
+                  </section>
+                  </>
                 ) : null}
                   </section>
                 ) : null}
@@ -6853,7 +7861,7 @@ function App() {
                           <div className="quick-add-panel__header">
                             <div>
                               <p className="eyebrow">Moderation</p>
-                              <h2>Contribution queue</h2>
+                              <h2>Moderation queue</h2>
                             </div>
                             <button
                               className="ghost-button ghost-button--compact"
@@ -6871,6 +7879,61 @@ function App() {
                             <p className="source-note">Loading moderation queue...</p>
                           ) : (
                             <div className="moderation-list">
+                              <div
+                                className="segmented-control moderation-tabs"
+                                role="tablist"
+                                aria-label="Moderation queue type"
+                              >
+                                <button
+                                  className={moderationTab === "routes" ? "active" : ""}
+                                  type="button"
+                                  role="tab"
+                                  aria-selected={moderationTab === "routes"}
+                                  onClick={() => setModerationTab("routes")}
+                                >
+                                  <Route size={16} />
+                                  Routes
+                                  <span>
+                                    {moderationRouteSuggestions.length +
+                                      moderationRouteAdjustments.length}
+                                  </span>
+                                </button>
+                                <button
+                                  className={
+                                    moderationTab === "contributions" ? "active" : ""
+                                  }
+                                  type="button"
+                                  role="tab"
+                                  aria-selected={moderationTab === "contributions"}
+                                  onClick={() => setModerationTab("contributions")}
+                                >
+                                  <Flag size={16} />
+                                  Points
+                                  <span>{moderationContributions.length}</span>
+                                </button>
+                                <button
+                                  className={
+                                    moderationTab === "corrections" ? "active" : ""
+                                  }
+                                  type="button"
+                                  role="tab"
+                                  aria-selected={moderationTab === "corrections"}
+                                  onClick={() => setModerationTab("corrections")}
+                                >
+                                  <MessageSquare size={16} />
+                                  Corrections
+                                  <span>{moderationMapPoiReviews.length}</span>
+                                </button>
+                              </div>
+                              {moderationTab === "contributions" && moderationContributionPhotoCount ? (
+                                <p className="source-note">
+                                  {moderationContributionPhotoCount} photo contribution
+                                  {moderationContributionPhotoCount === 1 ? "" : "s"} in
+                                  this queue.
+                                </p>
+                              ) : null}
+                              {moderationTab === "contributions" ? (
+                                <>
                               {moderationContributions.map((contribution) => {
                                 const draftDecision =
                                   moderationDraftDecisions[contribution.id] ?? "";
@@ -6997,7 +8060,15 @@ function App() {
                                   </article>
                                 );
                               })}
-                              {moderationMapPoiReviews.length ? (
+                              {moderationContributions.length === 0 ? (
+                                <p className="source-note">
+                                  No point or photo contributions need moderation.
+                                </p>
+                              ) : null}
+                                </>
+                              ) : null}
+                              {moderationTab === "corrections" ? (
+                              moderationMapPoiReviews.length ? (
                                 <>
                                   <div className="moderation-section-heading">
                                     <h3>Map point corrections</h3>
@@ -7057,12 +8128,240 @@ function App() {
                                     </article>
                                   ))}
                                 </>
-                              ) : null}
-                              {moderationContributions.length === 0 &&
-                              moderationMapPoiReviews.length === 0 ? (
+                              ) : (
                                 <p className="source-note">
-                                  No contributions need moderation.
+                                  No map point corrections need moderation.
                                 </p>
+                              )
+                              ) : null}
+                              {moderationTab === "routes" ? (
+                                moderationRouteAdjustments.length ||
+                                moderationRouteSuggestions.length ? (
+                                  <>
+                                  {moderationRouteAdjustments.length ? (
+                                    <>
+                                      <div className="moderation-section-heading">
+                                        <h3>Route edits</h3>
+                                        <span>
+                                          {moderationRouteAdjustments.length} items
+                                        </span>
+                                      </div>
+                                      {moderationRouteAdjustments.map((adjustment) => {
+                                        const draftDecision =
+                                          routeAdjustmentDraftDecisions[
+                                            adjustment.id
+                                          ] ?? "";
+
+                                        return (
+                                          <article
+                                            className="moderation-row moderation-row--route-edit"
+                                            key={adjustment.id}
+                                          >
+                                            <div className="moderation-row__content">
+                                              <strong>{adjustment.sectionName}</strong>
+                                              <span className="moderation-row__meta">
+                                                Existing {adjustment.targetType === "section" ? "section" : "route candidate"} ·{" "}
+                                                {adjustment.riverName} ·{" "}
+                                                {adjustment.difficulty}
+                                              </span>
+                                              <p>{adjustment.summary}</p>
+                                              <small className="moderation-row__meta">
+                                                Evidence: {adjustment.evidence}
+                                              </small>
+                                              <small className="moderation-row__meta">
+                                                Target {adjustment.targetId} ·{" "}
+                                                {adjustment.route.length} route points ·{" "}
+                                                edited by {adjustment.author}
+                                              </small>
+                                            </div>
+                                            <div className="moderation-status">
+                                              <span className="status-chip">
+                                                {routeAdjustmentStatusLabel(
+                                                  adjustment.status,
+                                                )}
+                                              </span>
+                                            </div>
+                                            <div className="moderation-actions">
+                                              <button
+                                                className="ghost-button ghost-button--compact"
+                                                type="button"
+                                                onClick={() =>
+                                                  openRouteAdjustmentOnMap(adjustment)
+                                                }
+                                              >
+                                                <MapIcon size={15} />
+                                                Map
+                                              </button>
+                                              <label>
+                                                <span>Decision</span>
+                                                <select
+                                                  aria-label={`Route edit decision for ${adjustment.sectionName}`}
+                                                  value={draftDecision}
+                                                  onChange={(event) => {
+                                                    setRouteAdjustmentDraftDecisions(
+                                                      (current) => ({
+                                                        ...current,
+                                                        [adjustment.id]: event
+                                                          .target
+                                                          .value as RouteAdjustmentDraftDecision,
+                                                      }),
+                                                    );
+                                                  }}
+                                                >
+                                                  <option value="">Choose...</option>
+                                                  {routeAdjustmentActions.map((action) => (
+                                                    <option
+                                                      key={action.decision}
+                                                      value={action.decision}
+                                                    >
+                                                      {action.label}
+                                                    </option>
+                                                  ))}
+                                                </select>
+                                              </label>
+                                              <button
+                                                className="ghost-button ghost-button--compact moderation-apply-button"
+                                                type="button"
+                                                disabled={!draftDecision}
+                                                onClick={() => {
+                                                  if (!draftDecision) {
+                                                    return;
+                                                  }
+                                                  void applyRouteAdjustmentModerationDecision(
+                                                    adjustment,
+                                                    draftDecision,
+                                                  );
+                                                }}
+                                              >
+                                                Apply
+                                              </button>
+                                            </div>
+                                          </article>
+                                        );
+                                      })}
+                                    </>
+                                  ) : null}
+                                  {moderationRouteSuggestions.length ? (
+                                    <>
+                                      <div className="moderation-section-heading">
+                                        <h3>Route suggestions</h3>
+                                        <span>
+                                          {moderationRouteSuggestions.length} items
+                                        </span>
+                                      </div>
+                                  {moderationRouteSuggestions.map((suggestion) => {
+                                    const draftDecision =
+                                      routeModerationDraftDecisions[
+                                        suggestion.id
+                                      ] ?? "";
+
+                                    return (
+                                      <article
+                                        className="moderation-row"
+                                        key={suggestion.id}
+                                      >
+                                        <div className="moderation-row__content">
+                                          <strong>{suggestion.sectionName}</strong>
+                                          <span className="moderation-row__meta">
+                                            {suggestion.riverName} ·{" "}
+                                            {suggestion.difficulty} ·{" "}
+                                            {routeSuggestionStatusLabel(
+                                              suggestion.status,
+                                            )}
+                                          </span>
+                                          <p>{suggestion.summary}</p>
+                                          <small className="moderation-row__meta">
+                                            Evidence: {suggestion.evidence}
+                                          </small>
+                                          <small className="moderation-row__meta">
+                                            {suggestion.route.length} route points ·{" "}
+                                            suggested by {suggestion.author}
+                                          </small>
+                                        </div>
+                                        <div className="moderation-status">
+                                          <span className="status-chip">
+                                            {routeSuggestionStatusLabel(
+                                              suggestion.status,
+                                            )}
+                                          </span>
+                                        </div>
+                                        <div className="moderation-actions">
+                                          <button
+                                            className="ghost-button ghost-button--compact"
+                                            type="button"
+                                            onClick={() =>
+                                              openRouteSuggestionOnMap(suggestion)
+                                            }
+                                          >
+                                            <MapIcon size={15} />
+                                            Map
+                                          </button>
+                                          <button
+                                            className="ghost-button ghost-button--compact"
+                                            type="button"
+                                            onClick={() =>
+                                              startRouteSuggestionAdjustmentMode(
+                                                suggestion,
+                                              )
+                                            }
+                                          >
+                                            <Route size={15} />
+                                            Edit
+                                          </button>
+                                          <label>
+                                            <span>Decision</span>
+                                            <select
+                                              aria-label={`Route moderation decision for ${suggestion.sectionName}`}
+                                              value={draftDecision}
+                                              onChange={(event) => {
+                                                setRouteModerationDraftDecisions(
+                                                  (current) => ({
+                                                    ...current,
+                                                    [suggestion.id]: event.target
+                                                      .value as RouteModerationDraftDecision,
+                                                  }),
+                                                );
+                                              }}
+                                            >
+                                              <option value="">Choose...</option>
+                                              {routeSuggestionActions.map((action) => (
+                                                <option
+                                                  key={action.decision}
+                                                  value={action.decision}
+                                                >
+                                                  {action.label}
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </label>
+                                          <button
+                                            className="ghost-button ghost-button--compact moderation-apply-button"
+                                            type="button"
+                                            disabled={!draftDecision}
+                                            onClick={() => {
+                                              if (!draftDecision) {
+                                                return;
+                                              }
+                                              void applyRouteModerationDecision(
+                                                suggestion,
+                                                draftDecision,
+                                              );
+                                            }}
+                                          >
+                                            Apply
+                                          </button>
+                                        </div>
+                                      </article>
+                                    );
+                                  })}
+                                    </>
+                                  ) : null}
+                                </>
+                              ) : (
+                                <p className="source-note">
+                                  No route edits or suggestions need moderation.
+                                </p>
+                              )
                               ) : null}
                             </div>
                           )}
@@ -7286,8 +8585,15 @@ function RiverMap({
   activeSection,
   mapPois,
   contributions,
+  routeSuggestions,
+  routeAdjustments,
+  routeSuggestionFocusId,
+  routeSuggestionFocusNonce,
+  routeAdjustmentFocusId,
+  routeAdjustmentFocusNonce,
   outboxRecords,
   selectedLocation,
+  routeDraftPoints,
   liveLocation,
   liveLocationFocusNonce,
   searchFocusLocation,
@@ -7295,6 +8601,7 @@ function RiverMap({
   showSearchFocusMarker,
   searchFocusNonce,
   isAddMode,
+  routeCreateMode,
   onMapClick,
   focusNonce,
   onOpenPoiDetails,
@@ -7304,8 +8611,15 @@ function RiverMap({
   activeSection: RiverSection;
   mapPois: MapPoi[];
   contributions: Contribution[];
+  routeSuggestions: RouteSuggestion[];
+  routeAdjustments: RouteAdjustment[];
+  routeSuggestionFocusId: string | null;
+  routeSuggestionFocusNonce: number;
+  routeAdjustmentFocusId: string | null;
+  routeAdjustmentFocusNonce: number;
   outboxRecords: ContributionOutboxRecord[];
   selectedLocation: LatLngTuple | null;
+  routeDraftPoints: LatLngTuple[];
   liveLocation: LiveLocationSnapshot | null;
   liveLocationFocusNonce: number;
   searchFocusLocation: LatLngTuple | null;
@@ -7313,6 +8627,7 @@ function RiverMap({
   showSearchFocusMarker: boolean;
   searchFocusNonce: number;
   isAddMode: boolean;
+  routeCreateMode: RouteCreateMode;
   onMapClick: (
     location: LatLngTuple,
     nextType?: ContributionType,
@@ -7333,6 +8648,8 @@ function RiverMap({
   const previousSectionIdRef = useRef(activeSection.id);
   const previousFocusNonceRef = useRef(focusNonce);
   const previousSearchFocusNonceRef = useRef(searchFocusNonce);
+  const previousRouteSuggestionFocusNonceRef = useRef(routeSuggestionFocusNonce);
+  const previousRouteAdjustmentFocusNonceRef = useRef(routeAdjustmentFocusNonce);
   const previousLiveLocationFocusNonceRef = useRef(liveLocationFocusNonce);
   const shouldFitActiveSectionRef = useRef(true);
   const outboxByContributionId = useMemo(
@@ -7435,11 +8752,13 @@ function RiverMap({
       routeLine.on("click", (event) => {
         L.DomEvent.stop(event.originalEvent);
 
-        if (isAddMode) {
+        if (isAddMode || routeCreateMode === "tracing") {
           mapClickRef.current(
             [event.latlng.lat, event.latlng.lng],
             undefined,
-            "New map contribution",
+            routeCreateMode === "tracing"
+              ? "New route point"
+              : "New map contribution",
           );
           return;
         }
@@ -7516,6 +8835,84 @@ function RiverMap({
             marker.openPopup();
           });
       });
+    });
+
+    routeSuggestions.forEach((suggestion) => {
+      if (suggestion.route.length < 2) {
+        return;
+      }
+
+      const isFocusedRouteSuggestion = suggestion.id === routeSuggestionFocusId;
+      const line = L.polyline(suggestion.route, {
+        color: "#7c3aed",
+        dashArray: "6 6",
+        opacity: isFocusedRouteSuggestion ? 0.95 : 0.78,
+        weight: isFocusedRouteSuggestion ? 7 : 5,
+      }).addTo(layers);
+
+      line.bindPopup(createRouteSuggestionPopup(suggestion));
+
+      const startMarker = L.marker(suggestion.route[0], {
+        bubblingMouseEvents: false,
+        icon: L.divIcon({
+          className: "",
+          html: markerHtml("route-draft", "S"),
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        }),
+      }).addTo(layers);
+      startMarker.bindPopup(createRouteSuggestionPopup(suggestion));
+
+      const finish = suggestion.route[suggestion.route.length - 1];
+      const finishMarker = L.marker(finish, {
+        bubblingMouseEvents: false,
+        icon: L.divIcon({
+          className: "",
+          html: markerHtml("route-draft", "F"),
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        }),
+      }).addTo(layers);
+      finishMarker.bindPopup(createRouteSuggestionPopup(suggestion));
+    });
+
+    routeAdjustments.forEach((adjustment) => {
+      if (adjustment.route.length < 2) {
+        return;
+      }
+
+      const isFocusedRouteAdjustment = adjustment.id === routeAdjustmentFocusId;
+      const line = L.polyline(adjustment.route, {
+        color: "#0f766e",
+        dashArray: "10 5",
+        opacity: isFocusedRouteAdjustment ? 0.98 : 0.82,
+        weight: isFocusedRouteAdjustment ? 8 : 5,
+      }).addTo(layers);
+
+      line.bindPopup(createRouteAdjustmentPopup(adjustment));
+
+      const startMarker = L.marker(adjustment.route[0], {
+        bubblingMouseEvents: false,
+        icon: L.divIcon({
+          className: "",
+          html: markerHtml("route-edit", "E"),
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        }),
+      }).addTo(layers);
+      startMarker.bindPopup(createRouteAdjustmentPopup(adjustment));
+
+      const finish = adjustment.route[adjustment.route.length - 1];
+      const finishMarker = L.marker(finish, {
+        bubblingMouseEvents: false,
+        icon: L.divIcon({
+          className: "",
+          html: markerHtml("route-edit", "F"),
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        }),
+      }).addTo(layers);
+      finishMarker.bindPopup(createRouteAdjustmentPopup(adjustment));
     });
 
     contributions.forEach((contribution) => {
@@ -7654,10 +9051,38 @@ function RiverMap({
         .addTo(layers);
     }
 
+    if (routeDraftPoints.length) {
+      if (routeDraftPoints.length >= 2) {
+        L.polyline(routeDraftPoints, {
+          color: "#7c3aed",
+          dashArray: "7 7",
+          opacity: 0.95,
+          weight: 5,
+        }).addTo(layers);
+      }
+
+      routeDraftPoints.forEach((point, index) => {
+        const isLast = index === routeDraftPoints.length - 1;
+        L.marker(point, {
+          icon: L.divIcon({
+            className: "",
+            html: markerHtml(
+              isLast ? "route-draft-active" : "route-draft",
+              String(index + 1),
+            ),
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+          }),
+        }).addTo(layers);
+      });
+    }
+
     if (
       previousSectionIdRef.current !== activeSection.id ||
       previousFocusNonceRef.current !== focusNonce ||
-      previousSearchFocusNonceRef.current !== searchFocusNonce
+      previousSearchFocusNonceRef.current !== searchFocusNonce ||
+      previousRouteSuggestionFocusNonceRef.current !== routeSuggestionFocusNonce ||
+      previousRouteAdjustmentFocusNonceRef.current !== routeAdjustmentFocusNonce
     ) {
       shouldFitActiveSectionRef.current = true;
     }
@@ -7679,7 +9104,34 @@ function RiverMap({
         }
 
         map.invalidateSize();
-        if (searchFocusLocation) {
+        const focusedRouteSuggestion =
+          routeSuggestionFocusId && previousRouteSuggestionFocusNonceRef.current !== routeSuggestionFocusNonce
+            ? routeSuggestions.find(
+                (suggestion) => suggestion.id === routeSuggestionFocusId,
+              )
+            : null;
+        const focusedRouteAdjustment =
+          routeAdjustmentFocusId && previousRouteAdjustmentFocusNonceRef.current !== routeAdjustmentFocusNonce
+            ? routeAdjustments.find(
+                (adjustment) => adjustment.id === routeAdjustmentFocusId,
+              )
+            : null;
+
+        if (focusedRouteAdjustment?.route.length) {
+          map.fitBounds(L.latLngBounds(focusedRouteAdjustment.route), {
+            animate: false,
+            maxZoom: 14,
+            paddingTopLeft: [48, 84],
+            paddingBottomRight: [48, 96],
+          });
+        } else if (focusedRouteSuggestion?.route.length) {
+          map.fitBounds(L.latLngBounds(focusedRouteSuggestion.route), {
+            animate: false,
+            maxZoom: 14,
+            paddingTopLeft: [48, 84],
+            paddingBottomRight: [48, 96],
+          });
+        } else if (searchFocusLocation) {
           map.setView(searchFocusLocation, SEARCH_FOCUS_ZOOM, {
             animate: false,
           });
@@ -7696,6 +9148,8 @@ function RiverMap({
         previousSectionIdRef.current = activeSection.id;
         previousFocusNonceRef.current = focusNonce;
         previousSearchFocusNonceRef.current = searchFocusNonce;
+        previousRouteSuggestionFocusNonceRef.current = routeSuggestionFocusNonce;
+        previousRouteAdjustmentFocusNonceRef.current = routeAdjustmentFocusNonce;
       };
       rafId = window.requestAnimationFrame(fitRoute);
       [80, 180, 360].forEach((delay) => {
@@ -7714,6 +9168,8 @@ function RiverMap({
     previousSectionIdRef.current = activeSection.id;
     previousFocusNonceRef.current = focusNonce;
     previousSearchFocusNonceRef.current = searchFocusNonce;
+    previousRouteSuggestionFocusNonceRef.current = routeSuggestionFocusNonce;
+    previousRouteAdjustmentFocusNonceRef.current = routeAdjustmentFocusNonce;
   }, [
     activeSection,
     contributions,
@@ -7721,11 +9177,19 @@ function RiverMap({
     liveLocation,
     mapPois,
     outboxByContributionId,
+    routeAdjustments,
+    routeAdjustmentFocusId,
+    routeAdjustmentFocusNonce,
     searchFocusLocation,
     showSearchFocusMarker,
     searchFocusNonce,
     selectedLocation,
     isAddMode,
+    routeCreateMode,
+    routeDraftPoints,
+    routeSuggestionFocusId,
+    routeSuggestionFocusNonce,
+    routeSuggestions,
   ]);
 
   useEffect(() => {

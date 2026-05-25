@@ -238,6 +238,47 @@ They deliberately sit outside the contribution sync tables because provider
 readings are scheduled backend imports rather than user-authored offline
 operations.
 
+### `route_suggestions`
+
+Route suggestions are member-authored candidate sections. They are not canonical
+river sections and should not be mixed into the trusted section catalogue until
+moderation, source checks, and local/community review are complete.
+
+| Column | Type | Purpose |
+| --- | --- | --- |
+| `id` | `uuid primary key` | Route suggestion ID. |
+| `member_id` | `uuid references members(id)` | Submitting member. |
+| `status` | `text` | `pending_review`, `needs_info`, `approved`, `rejected`, or `hidden`; approved candidates remain admin-visible until promoted or hidden. |
+| `river_name` | `text` | Submitted river name. |
+| `section_name` | `text` | Submitted section name, normally put-in to take-out. |
+| `difficulty` | `text` | Submitted grade/difficulty text pending review. |
+| `summary` | `text` | Submitted route summary. |
+| `access_notes` | `text` | Submitted access/parking/portage notes. |
+| `evidence` | `text` | Paddling, club, official source, venue, or local knowledge evidence. |
+| `route` | `geometry(LineString, 4326)` | Member-sketched rough route trace for review. |
+| `payload` | `jsonb` | Flexible route-submission metadata. |
+| `created_at`, `updated_at`, `revision` | timestamps/bigint | Audit and future sync state. |
+
+### `route_adjustments`
+
+Route adjustments are moderator-authored edits against an existing route target.
+They allow seeded/static sections, imported/public-source candidates, approved
+route suggestions, and future canonical route records to be corrected without
+silently overwriting the source record.
+
+| Column | Type | Purpose |
+| --- | --- | --- |
+| `id` | `uuid primary key` | Route adjustment ID. |
+| `member_id` | `uuid references members(id)` | Admin or contribution moderator who created the edit. |
+| `target_type` | `text` | Existing route target kind, initially `section` or `route_suggestion`. |
+| `target_id` | `text` | Stable ID of the route being adjusted. |
+| `status` | `text` | `pending_review`, `needs_info`, `approved`, `rejected`, or `hidden`. |
+| `river_name`, `section_name`, `difficulty` | `text` | Edited display/grade metadata proposed for the target route. |
+| `summary`, `access_notes`, `evidence` | `text` | Edited route summary, access notes, and source/evidence notes. |
+| `route` | `geometry(LineString, 4326)` | Corrected route trace for review or later publishing. |
+| `payload` | `jsonb` | Flexible route-edit metadata. |
+| `created_at`, `updated_at`, `revision` | timestamps/bigint | Audit and future sync state. |
+
 ## Initial API Behaviour
 
 The first implementation should include:
@@ -362,6 +403,7 @@ Tasks:
 | SYNC-F8 | Contribution readback API | Backend/API | Landed | MVP | — | Phase 1 read endpoint returns backend contributions by section for frontend load/merge. |
 | SYNC-F9 | Frontend backend contribution merge | Frontend/sync | Landed | MVP | — | Phase 1 frontend merges backend contributions with local queued outbox records and shows moderation/sync labels. |
 | SYNC-F10 | Public identity and ICE schema | Backend/profile | Active | MVP | — | Adds member public-name fields and a private emergency-contact-only profile table. |
+| SYNC-F11 | Route adjustment schema | Backend/data | Active | MVP | — | Adds auditable route-edit records for seeded/current routes before canonical publishing is automated. |
 
 ### Backlog
 

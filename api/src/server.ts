@@ -38,6 +38,19 @@ import {
   upsertMemberFromAuth,
 } from "./members.js";
 import { listPhotosForMember, softDeletePhoto } from "./photos.js";
+import {
+  applyRouteSuggestionDecision,
+  createRouteSuggestion,
+  isRouteSuggestionDecision,
+  listModerationRouteSuggestions,
+  listRouteSuggestionsForMember,
+} from "./route-suggestions.js";
+import {
+  applyRouteAdjustmentDecision,
+  createRouteAdjustment,
+  isRouteAdjustmentDecision,
+  listModerationRouteAdjustments,
+} from "./route-adjustments.js";
 import { pushSyncOperations } from "./sync.js";
 import {
   lookupCoordinatesForWhat3Words,
@@ -222,6 +235,20 @@ async function route(
     return { status: 200, body: { contributions } };
   }
 
+  if (method === "GET" && url.pathname === "/api/me/route-suggestions") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const routeSuggestions = await listRouteSuggestionsForMember(member.id);
+    return { status: 200, body: { routeSuggestions } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/route-suggestions") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const routeSuggestion = await createRouteSuggestion(body, member);
+    return { status: 201, body: { routeSuggestion } };
+  }
+
   const contributionDeleteMatch = url.pathname.match(
     /^\/api\/contributions\/([^/]+)$/,
   );
@@ -282,6 +309,30 @@ async function route(
     return { status: 200, body: { reviews } };
   }
 
+  if (method === "GET" && url.pathname === "/api/moderation/route-suggestions") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+    const routeSuggestions = await listModerationRouteSuggestions();
+    return { status: 200, body: { routeSuggestions } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/moderation/route-adjustments") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+    const routeAdjustments = await listModerationRouteAdjustments();
+    return { status: 200, body: { routeAdjustments } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/moderation/route-adjustments") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+    const routeAdjustment = await createRouteAdjustment(body, member);
+    return { status: 201, body: { routeAdjustment } };
+  }
+
   const moderationDecisionMatch = url.pathname.match(
     /^\/api\/moderation\/contributions\/([^/]+)\/decision$/,
   );
@@ -299,6 +350,44 @@ async function route(
       body.decision,
     );
     return { status: 200, body: { contribution } };
+  }
+
+  const routeSuggestionDecisionMatch = url.pathname.match(
+    /^\/api\/moderation\/route-suggestions\/([^/]+)\/decision$/,
+  );
+  if (method === "POST" && routeSuggestionDecisionMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+
+    if (!isRecord(body) || !isRouteSuggestionDecision(body.decision)) {
+      throw new HttpError(400, "decision is required.");
+    }
+
+    const routeSuggestion = await applyRouteSuggestionDecision(
+      decodeURIComponent(routeSuggestionDecisionMatch[1]),
+      body.decision,
+    );
+    return { status: 200, body: { routeSuggestion } };
+  }
+
+  const routeAdjustmentDecisionMatch = url.pathname.match(
+    /^\/api\/moderation\/route-adjustments\/([^/]+)\/decision$/,
+  );
+  if (method === "POST" && routeAdjustmentDecisionMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+
+    if (!isRecord(body) || !isRouteAdjustmentDecision(body.decision)) {
+      throw new HttpError(400, "decision is required.");
+    }
+
+    const routeAdjustment = await applyRouteAdjustmentDecision(
+      decodeURIComponent(routeAdjustmentDecisionMatch[1]),
+      body.decision,
+    );
+    return { status: 200, body: { routeAdjustment } };
   }
 
   const mapPoiVerificationMatch = url.pathname.match(

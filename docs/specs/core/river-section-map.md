@@ -48,6 +48,9 @@ The map must display:
 - gauge markers
 - saved contribution markers
 - draft contribution marker
+- locally saved candidate route suggestions
+- draft route suggestion trace while a member is sketching a missing route
+- admin/moderator route-adjustment traces for existing route targets
 - searched-location marker opened from Search
 - opt-in browser live-location marker and accuracy circle
 
@@ -119,6 +122,12 @@ The map should not show a persistent instruction box during normal browsing. Add
 
 When add mode is active, clicking an open part of the route or map may place a new contribution. Clicking an existing information marker still opens that marker's details.
 
+When route suggestion mode is active, map clicks add points to a rough candidate route trace. These points are a member review sketch only; they do not create a canonical section until future backend moderation and promotion.
+
+When route adjustment mode is active for an admin or contribution moderator, map clicks add points to a corrected route trace for the selected existing section. This creates an auditable route-adjustment record rather than immediately rewriting published route geometry.
+
+On narrow mobile viewports, the map header may collapse secondary controls behind an explicit `Controls` toggle. Expanded controls must show text labels for route actions so `Suggest route` and `Edit route` are distinguishable.
+
 River Wye route traces are generated from OpenStreetMap River Wye waterway geometry through `/scripts/generateWyeRouteTraces.mjs` and stored in `/src/data/wyeRouteTraces.ts`.
 
 The active Tryweryn sample map uses OSM-derived Afon Tryweryn route geometry stored in `/src/data/trywerynRouteTraces.ts`. The first section starts near the Llyn Celyn dam/stilling-basin outflow and runs to Canolfan Tryweryn.
@@ -165,6 +174,8 @@ Production behaviour may differ:
 | MAP-F14 | Searched-location marker | Search/map | Active | prototype | — | Location-reference search can place a distinct searched-location marker without entering add mode. |
 | MAP-F15 | Opt-in live location | Map/PWA | Active | prototype | — | Browser geolocation can show the user's current location and accuracy circle locally on the map. |
 | MAP-F16 | Visible route level status | Map/header | Active | prototype | — | Selected sections expose headline level context and a direct path to full observation history. |
+| MAP-F17 | Candidate route suggestion display | Map/PWA | Active | prototype | — | Locally saved route suggestions render as distinct pending-review route traces separate from canonical sections. |
+| MAP-F18 | Route adjustment display | Map/admin | Active | MVP | — | Admin/moderator route edits render as distinct traces and can be focused from moderation. |
 
 ### Backlog
 

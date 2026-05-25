@@ -158,6 +158,7 @@ Moderation:
 | API-F10 | Member identity API | Backend/auth | Active | MVP | — | Adds `/api/me`, member upsert, and admin member list endpoint. |
 | API-F11 | Contribution readback API | Backend/API | Landed | MVP | — | Implements `GET /api/sections/:sectionId/contributions` for the persisted contribution loop. |
 | API-F12 | Member access management API | Backend/admin | Landed | MVP | — | Admins can update member role and trust level. |
+| API-F13 | Route adjustment API | Backend/admin | Active | MVP | — | Contribution moderators/admins can create, list, and decide route-adjustment records for existing seeded/candidate routes. |
 | API-F13 | Photo management API | Backend/media | Active | MVP | — | Supports member photo listing and owner/moderator soft-delete. |
 | API-F14 | Member contribution management API | Backend/community | Active | MVP | — | Supports member contribution listing and owner/moderator soft-delete. |
 | API-F15 | what3words location API | Backend/integration | Active | MVP | — | Server-side coordinate/address conversion with optional sync-time contribution enrichment. |

@@ -35,6 +35,8 @@ The strategic test is simple: if members do not add, confirm, correct, or refres
 
 Individual river and venue sources can be valuable. The National White Water Centre / Canolfan Tryweryn shows the pattern: a river-specific organisation may publish release context, public warnings, section descriptions, facilities, visitor logistics, event restrictions, and operating caveats that are highly relevant to paddlers.
 
+The current source register is `/docs/strategy/public-seed-source-register.md`.
+
 RiverLaunch.app should capture these sources in a source register. The register should help the team and community know where a section's public reference material came from, what it appears to cover, when it was checked, and what permission or verification limits apply.
 
 The source register is not a scraping pipeline. It should not copy third-party guide descriptions, photos, maps, or route data without permission. It should support:

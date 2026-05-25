@@ -492,6 +492,14 @@ h1 {
   min-width: 0;
 }
 
+.topbar-controls-toggle {
+  display: none;
+}
+
+.topbar-control-label {
+  display: none;
+}
+
 .topbar-message {
   flex-basis: 100%;
   margin: 0;
@@ -1721,6 +1729,20 @@ h1 {
   outline: 5px solid rgba(15, 95, 85, 0.22);
 }
 
+.map-marker--route-draft,
+.map-marker--route-draft-active {
+  background: #7c3aed;
+}
+
+.map-marker--route-draft-active {
+  outline: 5px solid rgba(124, 58, 237, 0.24);
+}
+
+.map-marker--route-edit {
+  background: #0f766e;
+  outline: 5px solid rgba(15, 118, 110, 0.2);
+}
+
 .map-popup-card {
   display: grid;
   gap: 5px;
@@ -1999,6 +2021,27 @@ h1 {
   gap: 10px;
 }
 
+.moderation-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.moderation-tabs button span {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #edf1eb;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.moderation-tabs button.active span {
+  background: var(--river-dark);
+  color: white;
+}
+
 .moderation-section-heading {
   display: flex;
   align-items: center;
@@ -2138,6 +2181,28 @@ h1 {
   color: #49645d;
   font-size: 0.86rem;
   line-height: 1.35;
+}
+
+.route-draft-banner {
+  width: min(560px, calc(100vw - 720px));
+}
+
+.route-draft-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.submit-button--compact {
+  min-height: 30px;
+  padding: 0 11px;
+  font-size: 0.78rem;
+}
+
+.route-suggestion-panel .notice {
+  align-items: flex-start;
 }
 
 .quick-add-panel__header {
@@ -3950,6 +4015,39 @@ textarea {
 }
 
 @media (max-width: 430px) {
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 30px);
+    align-items: stretch;
+    justify-content: end;
+  }
+
+  .topbar-actions--expanded {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .topbar-controls-toggle {
+    display: inline-flex;
+  }
+
+  .topbar-controls-toggle svg:last-child {
+    transition: transform 0.16s ease;
+  }
+
+  .topbar-actions--expanded .topbar-controls-toggle svg:last-child {
+    transform: rotate(180deg);
+  }
+
+  .topbar-secondary-control {
+    display: none;
+  }
+
+  .topbar-actions--expanded .topbar-secondary-control {
+    display: inline-flex;
+  }
+
   .topbar .map-panel-toggle,
   .topbar .primary-action {
     width: 30px;
@@ -3961,8 +4059,43 @@ textarea {
     font-size: 0;
   }
 
+  .topbar-actions--expanded .map-panel-toggle,
+  .topbar-actions--expanded .primary-action {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    padding: 0 7px;
+    gap: 5px;
+    overflow: visible;
+    font-size: 0.66rem;
+  }
+
+  .topbar-actions--expanded .topbar-controls-toggle {
+    order: -1;
+    grid-column: 1 / -1;
+    justify-content: space-between;
+  }
+
+  .topbar-actions--expanded .icon-button.topbar-secondary-control {
+    display: inline-flex;
+    width: auto;
+    min-width: 0;
+    height: 30px;
+    padding: 0 7px;
+    gap: 5px;
+    font-size: 0.66rem;
+  }
+
+  .topbar-actions--expanded .topbar-control-label {
+    display: inline;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .topbar .map-panel-toggle svg,
-  .topbar .primary-action svg {
+  .topbar .primary-action svg,
+  .topbar .icon-button svg {
     width: 15px;
     height: 15px;
   }

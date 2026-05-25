@@ -13,11 +13,13 @@ This map helps locate the owning spec for RiverLaunch.app work. If a durable cha
 | App shell navigation | `/docs/specs/core/app-shell-navigation.md` | Desktop sidebar, mobile bottom tabs, and primary app sections. |
 | Offline mode | `/docs/specs/core/offline-mode.md` | Offline reading, offline contribution capture, local storage, sync, and future mobile offline architecture. |
 | Community contributions | `/docs/specs/community/community-contributions.md` | Add mode, saved contributions, status, and contribution UX. |
+| Route submissions | `/docs/specs/community/route-submissions.md` | Member-created candidate river sections, rough route traces, evidence capture, and future moderation/promotion. |
 | Photo uploads | `/docs/specs/community/photo-uploads.md` | Signed-in photo upload workflow, media storage, metadata, moderation, and offline upload queue. |
 | Trust and moderation | `/docs/specs/community/trust-and-moderation.md` | Confirmation, resolution, staleness, moderation rules. |
 | River Wye seed data | `/docs/specs/data/river-wye-seed-data.md` | Wye pilot sections, seed geometry, and validation status. |
 | River Tryweryn seed data | `/docs/specs/data/river-tryweryn-seed-data.md` | Tryweryn dam-release demo sections, route geometry, release context, and validation status. |
 | UK kayaking sample catalogue | `/docs/specs/data/uk-kayaking-sample-catalogue.md` | Prototype catalogue of well-known UK paddling rivers for discovery, search, favourites, and map browsing. |
+| Public source seeding | `/docs/specs/data/public-source-seeding.md` | Source register, licence/permission classification, public reference handling, and candidate route seeding workflow. |
 | River level providers | `/docs/specs/data/river-level-providers.md` | EA-first provider model and future backend ingestion. |
 | Platform configuration | `/docs/specs/ops/platform-configuration.md` | In-repo Firebase/GCP configuration, publishing targets, and operational scripts. |
 | Backend service API | `/docs/specs/backend/service-api.md` | Cloud Run API, Firebase Auth, PostGIS persistence, media, and moderation boundaries. |
@@ -33,6 +35,7 @@ This map helps locate the owning spec for RiverLaunch.app work. If a durable cha
 | Community model | `/docs/strategy/community-model.md` |
 | Community data strategy | `/docs/strategy/community-data-strategy.md` |
 | Data sources and gaps | `/docs/strategy/data-sources-and-gaps.md` |
+| Public seed source register | `/docs/strategy/public-seed-source-register.md` |
 | River Wye pilot | `/docs/strategy/river-wye-pilot-plan.md` |
 | Wye seed dataset | `/docs/strategy/river-wye-seed-dataset.md` |
 | Roadmap | `/docs/strategy/roadmap.md` |

@@ -215,6 +215,8 @@ https://docs.os.uk/os-downloads/products/water-portfolio/os-open-rivers/os-open-
 
 There does not appear to be a simple open national UK dataset of canoe/kayak river routes that RiverLaunch.app can ingest and treat as authoritative.
 
+The operational source register lives in `/docs/strategy/public-seed-source-register.md`. That register should be updated before any new public source is used for seed data, candidate route creation, or partner-import planning.
+
 Relevant organisations and sources to investigate:
 
 ### Individual River and Venue Sources
