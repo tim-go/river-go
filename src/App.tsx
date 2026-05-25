@@ -76,8 +76,11 @@ import {
 } from "./services/imageProcessing";
 import { uploadContributionPhoto } from "./services/photoUpload";
 import {
+  fetchObservationJobRuns,
   fetchSectionObservations,
+  runObservationIngestion,
   type ObservationParameter,
+  type ObservationJobRun,
   type SectionObservationMeasure,
 } from "./services/observationApi";
 import {
@@ -2185,6 +2188,16 @@ function App() {
   const [isSectionObservationsLoading, setIsSectionObservationsLoading] =
     useState(false);
   const [sectionObservationMessage, setSectionObservationMessage] = useState("");
+  const [observationJobRuns, setObservationJobRuns] = useState<
+    ObservationJobRun[]
+  >([]);
+  const [isObservationJobsLoading, setIsObservationJobsLoading] = useState(false);
+  const [isObservationIngestionRunning, setIsObservationIngestionRunning] =
+    useState(false);
+  const [observationJobMessage, setObservationJobMessage] = useState("");
+  const [observationCooldownNow, setObservationCooldownNow] = useState(() =>
+    Date.now(),
+  );
   const [sectionMapPois, setSectionMapPois] = useState<MapPoi[]>([]);
   const [isSectionMapPoisLoaded, setIsSectionMapPoisLoaded] = useState(false);
   const [mapPoiReviewMessage, setMapPoiReviewMessage] = useState("");
@@ -2271,6 +2284,28 @@ function App() {
           observedAt: activeSection.gauge.observedAt,
           state: activeSection.levelBand,
         };
+  const latestObservationIngestionJob = observationJobRuns.find(
+    (jobRun) => jobRun.jobType === "observations.ingest",
+  );
+  const latestObservationIngestionStartedAt = latestObservationIngestionJob
+    ? new Date(latestObservationIngestionJob.startedAt).getTime()
+    : Number.NaN;
+  const observationIngestionCooldownMs = Number.isFinite(
+    latestObservationIngestionStartedAt,
+  )
+    ? Math.max(
+        0,
+        15 * 60 * 1000 -
+          (observationCooldownNow - latestObservationIngestionStartedAt),
+      )
+    : 0;
+  const isObservationIngestionOnCooldown =
+    observationIngestionCooldownMs > 0 ||
+    latestObservationIngestionJob?.status === "running";
+  const observationIngestionCooldownLabel =
+    observationIngestionCooldownMs > 0
+      ? `${Math.ceil(observationIngestionCooldownMs / 60000)} min`
+      : "";
   const sectionContributionPhotos = sectionContributions.flatMap((contribution) =>
     (contribution.photos ?? []).map((photo) => ({ contribution, photo })),
   );
@@ -2580,6 +2615,28 @@ function App() {
       void openModerationPanel();
     }
   }, [activeAppSection, activeAdminPage, canAccessAdminTools]);
+
+  useEffect(() => {
+    if (
+      activeAppSection === "admin" &&
+      activeAdminPage === "system" &&
+      canManageMembers
+    ) {
+      void loadObservationJobs();
+    }
+  }, [activeAppSection, activeAdminPage, canManageMembers]);
+
+  useEffect(() => {
+    if (!isObservationIngestionOnCooldown) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setObservationCooldownNow(Date.now());
+    }, 30000);
+
+    return () => window.clearInterval(interval);
+  }, [isObservationIngestionOnCooldown]);
 
   useEffect(() => {
     if (!authState.user || activeAppSection !== "profile") {
@@ -3392,6 +3449,62 @@ function App() {
       );
     } finally {
       setIsModerationLoading(false);
+    }
+  }
+
+  async function loadObservationJobs() {
+    setIsObservationJobsLoading(true);
+    setObservationJobMessage("");
+    setObservationCooldownNow(Date.now());
+
+    try {
+      setObservationJobRuns(await fetchObservationJobRuns());
+    } catch (error) {
+      setObservationJobMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load observation job status.",
+      );
+    } finally {
+      setIsObservationJobsLoading(false);
+    }
+  }
+
+  async function handleRunObservationIngestion() {
+    if (isObservationIngestionOnCooldown) {
+      return;
+    }
+
+    setIsObservationIngestionRunning(true);
+    setObservationJobMessage("");
+    setObservationCooldownNow(Date.now());
+
+    try {
+      const jobRun = await runObservationIngestion();
+      setObservationJobRuns((current) => [
+        jobRun,
+        ...current.filter((item) => item.id !== jobRun.id),
+      ]);
+      setObservationCooldownNow(Date.now());
+      setObservationJobMessage(
+        `River levels refreshed: ${jobRun.readingsFetched} readings fetched, ${jobRun.readingsInserted} inserted.`,
+      );
+
+      if (activeAppSection === "map") {
+        setDisplayedObservationRangeHours(observationRangeHours);
+        setSectionObservations(
+          await fetchSectionObservations(activeSection.id, observationRangeHours),
+        );
+      }
+    } catch (error) {
+      setObservationJobMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not refresh river levels.",
+      );
+      await loadObservationJobs();
+    } finally {
+      setIsObservationIngestionRunning(false);
     }
   }
 
@@ -6657,13 +6770,96 @@ function App() {
                         </>
                       ) : (
                         <div className="placeholder-list">
-                          <div className="placeholder-row">
-                            <span>
-                              <strong>System</strong>
-                              <small>Operational health and data-quality tools will live here.</small>
-                            </span>
-                            <ShieldCheck size={18} />
-                          </div>
+                          <section className="profile-card profile-card--stacked">
+                            <div className="block-title">
+                              <div>
+                                <h3>River level ingestion</h3>
+                                <span>
+                                  Manual refresh for provider-backed level,
+                                  rainfall, and flow readings.
+                                </span>
+                              </div>
+                              <span className="status-chip">
+                                {latestObservationIngestionJob?.status ?? "not run"}
+                              </span>
+                            </div>
+                            <p className="source-note">
+                              This runs the same guarded ingestion endpoint that
+                              Cloud Scheduler will call later. It is limited to
+                              one run every 15 minutes.
+                            </p>
+                            <div className="inline-actions system-actions">
+                              <button
+                                className="primary-action system-action-button"
+                                type="button"
+                                disabled={
+                                  isObservationIngestionRunning ||
+                                  isObservationIngestionOnCooldown
+                                }
+                                onClick={() => void handleRunObservationIngestion()}
+                              >
+                                <RefreshCw size={16} />
+                                {isObservationIngestionRunning
+                                  ? "Refreshing..."
+                                  : isObservationIngestionOnCooldown
+                                    ? `Available in ${observationIngestionCooldownLabel}`
+                                    : "Refresh river levels"}
+                              </button>
+                              <button
+                                className="ghost-button system-action-button"
+                                type="button"
+                                disabled={isObservationJobsLoading}
+                                onClick={() => void loadObservationJobs()}
+                              >
+                                <RefreshCw size={16} />
+                                Refresh status
+                              </button>
+                            </div>
+                            {observationJobMessage ? (
+                              <p className="profile-message profile-message--neutral">
+                                {observationJobMessage}
+                              </p>
+                            ) : null}
+                          </section>
+
+                          <section className="profile-card profile-card--stacked">
+                            <div className="block-title">
+                              <div>
+                                <h3>Recent observation jobs</h3>
+                                <span>{observationJobRuns.length} listed</span>
+                              </div>
+                            </div>
+                            {isObservationJobsLoading ? (
+                              <p className="source-note">Loading job status...</p>
+                            ) : observationJobRuns.length ? (
+                              <div className="placeholder-list">
+                                {observationJobRuns.map((jobRun) => (
+                                  <div
+                                    className="placeholder-row system-job-row"
+                                    key={jobRun.id}
+                                  >
+                                    <span>
+                                      <strong>
+                                        {jobRun.jobType.replace("observations.", "")}
+                                      </strong>
+                                      <small>
+                                        {jobRun.status} ·{" "}
+                                        {formatDateTime(jobRun.startedAt)} ·{" "}
+                                        {jobRun.readingsFetched} fetched ·{" "}
+                                        {jobRun.readingsInserted} inserted ·{" "}
+                                        {jobRun.errorCount} errors
+                                      </small>
+                                    </span>
+                                    <ShieldCheck size={18} />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="source-note">
+                                No observation jobs have been recorded yet.
+                              </p>
+                            )}
+                          </section>
                           {canManageMembers ? (
                             <button
                               className="placeholder-row"

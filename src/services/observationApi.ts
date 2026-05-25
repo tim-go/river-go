@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "./apiConfig";
+import { getCurrentUserIdToken } from "./firebaseAuth";
 
 export type ObservationParameter =
   | "river_level"
@@ -34,6 +35,21 @@ export interface SectionObservationMeasure {
   }>;
 }
 
+export interface ObservationJobRun {
+  id: string;
+  jobType: string;
+  provider: string;
+  status: "running" | "success" | "partial" | "failed";
+  startedAt: string;
+  finishedAt: string | null;
+  measuresAttempted: number;
+  readingsFetched: number;
+  readingsInserted: number;
+  readingsUpdated: number;
+  errorCount: number;
+  message: string | null;
+}
+
 export async function fetchSectionObservations(
   sectionId: string,
   hours = 48,
@@ -64,6 +80,63 @@ export async function fetchSectionObservations(
     },
     [],
   );
+}
+
+export async function fetchObservationJobRuns(): Promise<ObservationJobRun[]> {
+  const result = await fetchObservationAdminEndpoint<{
+    jobRuns?: unknown[];
+  }>("/api/admin/observations/jobs?limit=10");
+
+  return (result.jobRuns ?? []).reduce<ObservationJobRun[]>((jobRuns, item) => {
+    const jobRun = mapObservationJobRun(item);
+
+    if (jobRun) {
+      jobRuns.push(jobRun);
+    }
+
+    return jobRuns;
+  }, []);
+}
+
+export async function runObservationIngestion(): Promise<ObservationJobRun> {
+  const result = await fetchObservationAdminEndpoint<{ jobRun?: unknown }>(
+    "/api/jobs/observations/ingest",
+    { method: "POST", body: JSON.stringify({}) },
+  );
+  const jobRun = mapObservationJobRun(result.jobRun);
+
+  if (!jobRun) {
+    throw new Error("Observation job response was not valid.");
+  }
+
+  return jobRun;
+}
+
+async function fetchObservationAdminEndpoint<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const authToken = await getCurrentUserIdToken();
+
+  if (!authToken) {
+    throw new Error("Sign in before running observation jobs.");
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+    ...options,
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${authToken}`,
+    },
+    method: options.method ?? "GET",
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `Observation API failed with HTTP ${response.status}`);
+  }
+
+  return (await response.json()) as T;
 }
 
 function mapSectionObservationMeasure(
@@ -103,6 +176,27 @@ function mapSectionObservationMeasure(
           [],
         )
       : [],
+  };
+}
+
+function mapObservationJobRun(value: unknown): ObservationJobRun | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  return {
+    id: readString(value.id),
+    jobType: readString(value.jobType),
+    provider: readString(value.provider),
+    status: readJobStatus(value.status),
+    startedAt: readString(value.startedAt),
+    finishedAt: typeof value.finishedAt === "string" ? value.finishedAt : null,
+    measuresAttempted: readNumber(value.measuresAttempted),
+    readingsFetched: readNumber(value.readingsFetched),
+    readingsInserted: readNumber(value.readingsInserted),
+    readingsUpdated: readNumber(value.readingsUpdated),
+    errorCount: readNumber(value.errorCount),
+    message: typeof value.message === "string" ? value.message : null,
   };
 }
 
@@ -151,6 +245,23 @@ function readLatestState(
   }
 
   return "unavailable";
+}
+
+function readJobStatus(value: unknown): ObservationJobRun["status"] {
+  if (
+    value === "running" ||
+    value === "success" ||
+    value === "partial" ||
+    value === "failed"
+  ) {
+    return value;
+  }
+
+  return "failed";
+}
+
+function readNumber(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 function readString(value: unknown): string {

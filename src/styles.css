@@ -846,6 +846,7 @@ h1 {
 .placeholder-row {
   display: flex;
   width: 100%;
+  min-width: 0;
   min-height: 72px;
   align-items: center;
   justify-content: space-between;
@@ -866,11 +867,15 @@ h1 {
 .placeholder-row strong,
 .placeholder-row small {
   display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .placeholder-row small {
   margin-top: 3px;
   color: var(--muted);
+  line-height: 1.32;
+  white-space: normal;
 }
 
 .favourite-row {
@@ -1271,6 +1276,57 @@ h1 {
   color: #9b1c12;
   font-size: 0.84rem;
   font-weight: 650;
+}
+
+.profile-message--neutral {
+  border-color: #abc2b5;
+  background: #edf7f2;
+  color: #203d37;
+}
+
+.system-job-row {
+  align-items: flex-start;
+  min-height: 58px;
+}
+
+.system-job-row > span {
+  min-width: 0;
+}
+
+.system-job-row svg {
+  flex: 0 0 auto;
+}
+
+.system-actions {
+  align-items: center;
+}
+
+.system-action-button {
+  display: inline-grid;
+  grid-template-columns: 14px max-content;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 10px;
+  font-size: 0.76rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.system-action-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.primary-action.system-action-button svg {
+  color: white;
+  stroke: white;
+}
+
+.ghost-button.system-action-button svg {
+  color: var(--river-dark);
+  stroke: var(--river-dark);
 }
 
 .confirm-panel {

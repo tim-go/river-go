@@ -44,6 +44,7 @@ import {
   lookupWhat3WordsForCoordinates,
 } from "./what3words.js";
 import {
+  getRecentObservationIngestionJobRun,
   listObservationJobRuns,
   listObservationsForSection,
   runObservationBackfillJob,
@@ -162,6 +163,15 @@ async function route(
 
   if (method === "POST" && url.pathname === "/api/jobs/observations/ingest") {
     await requireObservationJobAccess(headers);
+    const recentJobRun = await getRecentObservationIngestionJobRun(15);
+
+    if (recentJobRun) {
+      throw new HttpError(
+        429,
+        `Observation ingestion was already started at ${recentJobRun.startedAt}. Try again after 15 minutes.`,
+      );
+    }
+
     const jobRun = await runObservationIngestionJob();
     return { status: 200, body: { jobRun } };
   }

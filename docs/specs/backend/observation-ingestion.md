@@ -85,6 +85,8 @@ The first implementation may expose guarded manual endpoints before Cloud Schedu
 - `POST /api/jobs/observations/backfill`
 - `GET /api/admin/observations/jobs`
 
+Until Cloud Scheduler is provisioned, the Admin System surface should expose a manual `Refresh river levels` action for admins and contribution moderators. The action should call `POST /api/jobs/observations/ingest`, show recent job status from `GET /api/admin/observations/jobs`, and prevent repeated ingestion more often than every 15 minutes. The cooldown must be enforced server-side as well as reflected in the UI.
+
 The job endpoint must be protected by either:
 
 - a verified admin or contribution moderator Firebase token, or
@@ -275,11 +277,12 @@ Production monitoring should include:
 | OBS-F2 | Manual ingestion endpoint | Backend/job | Active | MVP | — | Guarded API endpoint for first EA ingestion run before scheduler automation. |
 | OBS-F3 | Environment Agency adapter | Backend/provider | Active | MVP | — | Provider adapter for current/recent EA readings. |
 | OBS-F4 | Scheduled ingestion | Platform/ops | Queued | MVP | — | Cloud Scheduler invokes Cloud Run with job auth. |
-| OBS-F5 | Job monitoring | Admin/ops | Queued | MVP | — | Admin/system status plus alerting around failures and stale data. |
+| OBS-F5 | Job monitoring | Admin/ops | Active | MVP | — | Admin/system status lists recent observation ingestion/backfill runs; alerting around failures and stale data remains queued. |
 | OBS-F6 | Observation read APIs | Backend/frontend | Active | MVP | — | Section endpoint exposes linked measures, latest reading, and selectable recent history windows; frontend renders latest, range, calculated trend, and compact line chart. Gauge POI endpoint remains queued. |
 | OBS-F7 | Observation backfill | Backend/job | Active | MVP | — | On-demand backfill seeds available provider history for enabled measures and records `observations.backfill` job runs. |
 | OBS-F8 | NRW provider | Backend/provider | Active | MVP | — | Initial NRW station graph adapter covers Tryweryn level/rainfall and upper Wye candidates. |
-| OBS-F9 | Rainfall and tide data | Backend/provider | Queued | MVP | — | Use the generic model for non-level observation types. |
+| OBS-F9 | Admin manual refresh | Admin/backend | Active | MVP | — | Admin System can trigger guarded observation ingestion with a 15-minute cooldown and recent job status. |
+| OBS-F10 | Rainfall and tide data | Backend/provider | Queued | MVP | — | Use the generic model for non-level observation types. |
 
 ### Backlog
 

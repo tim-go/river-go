@@ -469,6 +469,34 @@ export async function listObservationJobRuns(
   return result.rows.map(observationJobRunRow);
 }
 
+export async function getRecentObservationIngestionJobRun(
+  cooldownMinutes = 15,
+): Promise<ObservationJobRun | null> {
+  const result = await pool.query(
+    `SELECT id,
+      job_type,
+      provider,
+      status,
+      started_at,
+      finished_at,
+      measures_attempted,
+      readings_fetched,
+      readings_inserted,
+      readings_updated,
+      error_count,
+      message,
+      details
+    FROM observation_job_runs
+    WHERE job_type = 'observations.ingest'
+      AND started_at > now() - ($1::int * interval '1 minute')
+    ORDER BY started_at DESC
+    LIMIT 1`,
+    [Math.max(1, Math.min(cooldownMinutes, 60))],
+  );
+
+  return result.rows[0] ? observationJobRunRow(result.rows[0]) : null;
+}
+
 export async function listObservationsForSection(
   sectionId: string,
   hours = 48,

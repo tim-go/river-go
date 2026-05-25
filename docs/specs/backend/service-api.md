@@ -61,7 +61,7 @@ Initial endpoints:
 | `GET` | `/api/admin/members/:memberId` | Admin-only member detail with profile metadata, activity counts, contributions, and photos. |
 | `POST` | `/api/admin/members/:memberId/access` | Admin-only update of member role and trust level. |
 | `GET` | `/api/admin/observations/jobs` | Admin/moderator list of recent observation ingestion job runs. |
-| `POST` | `/api/jobs/observations/ingest` | Guarded scheduled/manual observation ingestion endpoint. |
+| `POST` | `/api/jobs/observations/ingest` | Guarded scheduled/manual observation ingestion endpoint with 15-minute server-side cooldown. |
 | `POST` | `/api/jobs/observations/backfill` | Guarded on-demand observation history backfill endpoint for newly linked/enabled measures. |
 | `GET` | `/api/sections/:sectionId/observations?hours=48|168|672` | Public linked observation measures with latest and selected recent history for the section. |
 | `GET` | `/api/rivers` | River list. |
@@ -116,7 +116,7 @@ Provider ingestion:
 - Production provider adapters run server-side and cache latest readings.
 - Provider records keep source URL, observed time, provider station/measure IDs, and fetch status.
 - Cached provider records must expose observed/fetched timestamps and freshness state so offline clients never present stale river levels as live readings.
-- Scheduled observation ingestion starts with a guarded Cloud Run API endpoint and should move to Cloud Scheduler with OIDC/job-token authentication before production automation.
+- Scheduled observation ingestion starts with a guarded Cloud Run API endpoint and should move to Cloud Scheduler with OIDC/job-token authentication before production automation. Until then, Admin System exposes a manual refresh action for admins/moderators and shows recent job runs.
 
 Location references:
 
