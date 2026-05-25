@@ -9,6 +9,7 @@ This document gives a clear view of the feature set we want to deliver and the c
 | Feature | Owning Spec | State | Current Notes |
 | --- | --- | --- | --- |
 | Product strategy docs | `/docs/strategy/product-brief.md` | Landed | UK-first community river intelligence positioning is documented; `/docs/strategy/strategic-positioning.md` records the decision not to build a smaller RiverApp. |
+| Core geospatial domain model | `/docs/specs/core/geospatial-domain-model.md` | Active | Defines the forward model: watercourses, routes, POIs, observations, photos, reports, and groups/sessions are independent geospatial records linked by spatial/curated relationships. |
 | Community data strategy | `/docs/strategy/community-data-strategy.md` | Landed | First-party community data is defined as the core product asset. |
 | Data source strategy | `/docs/strategy/data-sources-and-gaps.md` | Landed | UK provider landscape and community-only gaps are documented. |
 | Demo app shell | `/docs/specs/release/demo-prototype.md` | Landed | React/Vite/Leaflet prototype exists. |

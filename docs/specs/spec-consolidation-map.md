@@ -9,6 +9,7 @@ This map helps locate the owning spec for RiverLaunch.app work. If a durable cha
 | Area | Owning Spec | Notes |
 | --- | --- | --- |
 | Prototype delivery state | `/docs/specs/release/demo-prototype.md` | Current demo scope and delivery log. |
+| Core geospatial domain model | `/docs/specs/core/geospatial-domain-model.md` | Decoupled model for watercourses, routes, POIs, observations, photos, reports, groups/sessions, and relationships. |
 | River section map | `/docs/specs/core/river-section-map.md` | Map, section list, route traces, markers, and section panel. |
 | App shell navigation | `/docs/specs/core/app-shell-navigation.md` | Desktop sidebar, mobile bottom tabs, and primary app sections. |
 | Offline mode | `/docs/specs/core/offline-mode.md` | Offline reading, offline contribution capture, local storage, sync, and future mobile offline architecture. |

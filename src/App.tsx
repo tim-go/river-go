@@ -147,6 +147,7 @@ const SEARCH_FOCUS_ZOOM = 15;
 const LIVE_LOCATION_FOCUS_ZOOM = 16;
 const NEARBY_POI_MAX_KM = 5;
 const ROUTE_POINT_DEDUPE_METRES = 3;
+const ROUTE_SNAP_MAX_AVERAGE_DISTANCE_KM = 1.5;
 const COMPACT_MAP_CONTROLS_QUERY = "(max-width: 430px)";
 
 type RouteDetailsTab =
@@ -301,6 +302,11 @@ type RouteDraftTarget =
   | { type: "new" }
   | { type: "section"; id: string; label: string }
   | { type: "route_suggestion"; id: string; label: string };
+type RouteSnapCandidate = {
+  id: string;
+  label: string;
+  route: LatLngTuple[];
+};
 type SearchMode = "name" | "point" | "favourites";
 type ProfileMode =
   | "account"
@@ -1054,6 +1060,88 @@ function isDuplicateRoutePoint(
     previous !== undefined &&
     distanceKmBetween(previous, next) * 1000 <= ROUTE_POINT_DEDUPE_METRES
   );
+}
+
+function nearestRoutePointIndex(route: LatLngTuple[], target: LatLngTuple) {
+  return route.reduce(
+    (best, point, index) => {
+      const pointDistanceKm = distanceKmBetween(point, target);
+      return pointDistanceKm < best.distanceKm
+        ? { index, distanceKm: pointDistanceKm }
+        : best;
+    },
+    { index: 0, distanceKm: Infinity },
+  );
+}
+
+function routeSegmentBetween(
+  route: LatLngTuple[],
+  startIndex: number,
+  endIndex: number,
+) {
+  if (startIndex <= endIndex) {
+    return route.slice(startIndex, endIndex + 1);
+  }
+
+  return route.slice(endIndex, startIndex + 1).reverse();
+}
+
+function snapRoughTraceToKnownRoute(
+  roughTrace: LatLngTuple[],
+  candidates: RouteSnapCandidate[],
+) {
+  if (roughTrace.length < 2) {
+    return null;
+  }
+
+  let best:
+    | {
+        candidate: RouteSnapCandidate;
+        snappedTrace: LatLngTuple[];
+        averageDistanceKm: number;
+      }
+    | null = null;
+
+  for (const candidate of candidates) {
+    if (candidate.route.length < 2) {
+      continue;
+    }
+
+    const start = nearestRoutePointIndex(candidate.route, roughTrace[0]);
+    const end = nearestRoutePointIndex(
+      candidate.route,
+      roughTrace[roughTrace.length - 1],
+    );
+    const snappedTrace = routeSegmentBetween(
+      candidate.route,
+      start.index,
+      end.index,
+    );
+
+    if (snappedTrace.length < 2) {
+      continue;
+    }
+
+    const totalDistanceKm = roughTrace.reduce(
+      (total, point) =>
+        total + nearestRoutePointIndex(candidate.route, point).distanceKm,
+      0,
+    );
+    const averageDistanceKm = totalDistanceKm / roughTrace.length;
+
+    if (!best || averageDistanceKm < best.averageDistanceKm) {
+      best = { candidate, snappedTrace, averageDistanceKm };
+    }
+  }
+
+  if (
+    !best ||
+    best.averageDistanceKm > ROUTE_SNAP_MAX_AVERAGE_DISTANCE_KM
+  ) {
+    return null;
+  }
+
+  return best;
 }
 
 function nearestSectionsForLocation(location: LatLngTuple) {
@@ -2428,6 +2516,10 @@ function App() {
   const [routeDraftTarget, setRouteDraftTarget] =
     useState<RouteDraftTarget>({ type: "new" });
   const [routeDraftPoints, setRouteDraftPoints] = useState<LatLngTuple[]>([]);
+  const [routeDraftOriginalPoints, setRouteDraftOriginalPoints] = useState<
+    LatLngTuple[] | null
+  >(null);
+  const [routeDraftSnapMessage, setRouteDraftSnapMessage] = useState("");
   const [routeFormError, setRouteFormError] = useState("");
   const [routeRiverName, setRouteRiverName] = useState("");
   const [routeSectionName, setRouteSectionName] = useState("");
@@ -4460,6 +4552,8 @@ function App() {
 
     setRouteDraftTarget({ type: "new" });
     setRouteDraftPoints([]);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
     setRouteCreateMode("tracing");
     setRouteFormError("");
     setRouteRiverName(activeSection.riverName);
@@ -4496,6 +4590,8 @@ function App() {
       label: `${section.riverName} · ${section.sectionName}`,
     });
     setRouteDraftPoints([]);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
     setRouteCreateMode("tracing");
     setRouteFormError("");
     setRouteRiverName(section.riverName);
@@ -4532,6 +4628,8 @@ function App() {
       label: `${suggestion.riverName} · ${suggestion.sectionName}`,
     });
     setRouteDraftPoints([]);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
     setRouteCreateMode("tracing");
     setRouteFormError("");
     setRouteRiverName(suggestion.riverName);
@@ -4556,11 +4654,65 @@ function App() {
     setRouteCreateMode("idle");
     setRouteDraftTarget({ type: "new" });
     setRouteDraftPoints([]);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
     setRouteFormError("");
   }
 
   function undoRouteDraftPoint() {
     setRouteDraftPoints((current) => current.slice(0, -1));
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
+    setRouteFormError("");
+  }
+
+  function snapRouteDraftToKnownRiver() {
+    if (routeDraftPoints.length < 2) {
+      setRouteFormError("Add at least a start and finish point before snapping.");
+      return;
+    }
+
+    const candidates: RouteSnapCandidate[] =
+      routeDraftTarget.type === "section"
+        ? [
+            {
+              id: activeSection.id,
+              label: `${activeSection.riverName} · ${activeSection.sectionName}`,
+              route: activeSection.route,
+            },
+          ]
+        : riverSections.map((section) => ({
+            id: section.id,
+            label: `${section.riverName} · ${section.sectionName}`,
+            route: section.route,
+          }));
+
+    const snapped = snapRoughTraceToKnownRoute(routeDraftPoints, candidates);
+
+    if (!snapped) {
+      setRouteFormError(
+        "Could not snap this trace to a known river line. Add points closer to the river or save it as a rough trace.",
+      );
+      setRouteDraftSnapMessage("");
+      return;
+    }
+
+    setRouteDraftOriginalPoints((current) => current ?? routeDraftPoints);
+    setRouteDraftPoints(snapped.snappedTrace);
+    setRouteFormError("");
+    setRouteDraftSnapMessage(
+      `Snapped to ${snapped.candidate.label}. Review the line before saving.`,
+    );
+  }
+
+  function restoreRoughRouteDraft() {
+    if (!routeDraftOriginalPoints) {
+      return;
+    }
+
+    setRouteDraftPoints(routeDraftOriginalPoints);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
     setRouteFormError("");
   }
 
@@ -4578,6 +4730,8 @@ function App() {
     setRouteCreateMode("idle");
     setRouteDraftTarget({ type: "new" });
     setRouteDraftPoints([]);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
     setRouteFormError("");
   }
 
@@ -4640,6 +4794,8 @@ function App() {
         setRouteCreateMode("idle");
         setRouteDraftTarget({ type: "new" });
         setRouteDraftPoints([]);
+        setRouteDraftOriginalPoints(null);
+        setRouteDraftSnapMessage("");
         setRouteFormError("");
         showAppNotification("Route edit saved for review.", "info");
       } catch (error) {
@@ -4668,6 +4824,8 @@ function App() {
       setRouteCreateMode("idle");
       setRouteDraftTarget({ type: "new" });
       setRouteDraftPoints([]);
+      setRouteDraftOriginalPoints(null);
+      setRouteDraftSnapMessage("");
       setRouteFormError("");
       showAppNotification("Route suggestion sent for review.", "info");
     } catch {
@@ -4675,6 +4833,8 @@ function App() {
       setRouteCreateMode("idle");
       setRouteDraftTarget({ type: "new" });
       setRouteDraftPoints([]);
+      setRouteDraftOriginalPoints(null);
+      setRouteDraftSnapMessage("");
       setRouteFormError("");
       showAppNotification(
         "Route suggestion saved locally. Try again when the API is available.",
@@ -4694,6 +4854,8 @@ function App() {
           ? current
           : [...current, location],
       );
+      setRouteDraftOriginalPoints(null);
+      setRouteDraftSnapMessage("");
       setRouteFormError("");
       return;
     }
@@ -4744,6 +4906,8 @@ function App() {
     setRouteCreateMode("idle");
     setRouteDraftTarget({ type: "new" });
     setRouteDraftPoints([]);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
     const requiresLocation = optionForType(nextType).locationRequired;
     chooseContributionType(nextType);
     setIsAddMode(requiresLocation);
@@ -4804,6 +4968,8 @@ function App() {
     setIsAddMode(false);
     setRouteCreateMode("idle");
     setRouteDraftPoints([]);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
     setMapPoiReviewMessage("");
     setSearchFocusLocation(null);
     setSearchFocusLabel("Searched location");
@@ -5574,6 +5740,9 @@ function App() {
                     : "Start at the put-in or upstream end, then add points downstream."}
               </span>
               {routeFormError ? <span className="form-error">{routeFormError}</span> : null}
+              {routeDraftSnapMessage ? (
+                <span className="route-snap-message">{routeDraftSnapMessage}</span>
+              ) : null}
             </div>
             <div className="route-draft-actions">
               <button
@@ -5585,6 +5754,25 @@ function App() {
                 <RotateCcw size={15} />
                 Undo
               </button>
+              {routeDraftOriginalPoints ? (
+                <button
+                  className="ghost-button ghost-button--compact"
+                  type="button"
+                  onClick={restoreRoughRouteDraft}
+                >
+                  Restore rough
+                </button>
+              ) : (
+                <button
+                  className="ghost-button ghost-button--compact"
+                  type="button"
+                  onClick={snapRouteDraftToKnownRiver}
+                  disabled={routeDraftPoints.length < 2}
+                >
+                  <Route size={15} />
+                  Snap
+                </button>
+              )}
               <button
                 className="ghost-button ghost-button--compact"
                 type="button"

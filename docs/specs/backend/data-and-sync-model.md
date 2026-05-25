@@ -233,6 +233,52 @@ Member review actions for seed/catalogue POIs should be audited separately from 
 | `note` | `text` | Optional correction context. |
 | `created_at` | `timestamptz` | Review time. |
 
+### `pois`
+
+`pois` are the first migration-safe step toward the decoupled geospatial model
+defined in `/docs/specs/core/geospatial-domain-model.md`.
+
+They are location-owned records, not section-owned records. The first migration
+must not delete or rewrite existing `map_pois`, `contributions`, or
+`contribution_photos` data. Instead, it backfills `pois` from existing seeded
+map POIs and point-based contributions, then keeps the new table in sync through
+database triggers while the current app still reads the legacy section-scoped
+APIs.
+
+| Column | Type | Purpose |
+| --- | --- | --- |
+| `id` | `text primary key` | Stable POI ID, initially prefixed from the source record such as `map_poi:<id>` or `contribution:<id>`. |
+| `geometry` | `geometry(Geometry, 4326)` | Location or future geometry for the POI. |
+| `poi_type` | `text` | Broad POI type such as access, hazard, feature, gauge, photo, or report. |
+| `category` | `text` | Type-specific category when available. |
+| `title`, `summary` | `text` | Display content copied from the source record for migration. |
+| `status` | `text` | Active/hidden/resolved style lifecycle state. |
+| `source_entity_type`, `source_entity_id` | `text` | Source table/key used to keep migration lineage and idempotent sync. |
+| `source_*` | `text` | Source metadata where available. |
+| `payload` | `jsonb` | Source-specific metadata including legacy section/contribution IDs. |
+| `created_at`, `updated_at`, `revision` | timestamps/bigint | Audit and future sync state. |
+
+### `poi_route_links`
+
+`poi_route_links` records explicit or derived relationships between
+location-owned POIs and route/section records. The first migration backfills
+legacy section associations as `legacy-section-association` links with
+`route_source = section_fixture`.
+
+| Column | Type | Purpose |
+| --- | --- | --- |
+| `id` | `uuid primary key` | Relationship ID. |
+| `poi_id` | `text references pois(id)` | Location-owned POI. |
+| `route_id` | `text` | Route or current fixture section ID. |
+| `route_source` | `text` | Route namespace/source, initially `section_fixture`. |
+| `relationship_type` | `text` | Relationship such as `legacy-section-association`, `within-corridor`, or future manual include/exclude states. |
+| `source` | `text` | Relationship origin such as migration, derived, moderator, or contributor. |
+| `status` | `text` | Active/hidden/needs-review relationship status. |
+| `confidence` | `text` | Relationship confidence, initially `legacy`. |
+| `distance_m` | `numeric` | Optional computed distance from route geometry. |
+| `payload` | `jsonb` | Relationship-specific metadata. |
+| `created_at`, `updated_at` | timestamps | Audit timestamps. |
+
 Observation provider tables are defined in `/docs/specs/backend/observation-ingestion.md`.
 They deliberately sit outside the contribution sync tables because provider
 readings are scheduled backend imports rather than user-authored offline
@@ -404,6 +450,7 @@ Tasks:
 | SYNC-F9 | Frontend backend contribution merge | Frontend/sync | Landed | MVP | — | Phase 1 frontend merges backend contributions with local queued outbox records and shows moderation/sync labels. |
 | SYNC-F10 | Public identity and ICE schema | Backend/profile | Active | MVP | — | Adds member public-name fields and a private emergency-contact-only profile table. |
 | SYNC-F11 | Route adjustment schema | Backend/data | Active | MVP | — | Adds auditable route-edit records for seeded/current routes before canonical publishing is automated. |
+| SYNC-F12 | Location-owned POI shadow schema | Backend/data | Active | MVP | — | Adds `pois` and `poi_route_links` beside existing section-scoped data, with non-destructive backfill and source triggers. |
 
 ### Backlog
 
@@ -415,6 +462,7 @@ Tasks:
 | SYNC-B4 | task | IndexedDB outbox implementation | Open | MVP | Client-side peer to the sync operation envelope. |
 | SYNC-B5 | task | Phase 1 persisted contribution loop | Resolved | MVP | Backend section readback, authenticated sync writes, moderation defaults, smoke readback, and frontend merge are implemented. |
 | SYNC-B6 | task | Phase 2 trust roles and moderation controls | Resolved | MVP | Migration, admin role/trust editing, moderation queue, and basic moderation decisions are implemented. |
+| SYNC-B7 | migration | Switch POI read APIs | Open | MVP | Move route/map views from section-scoped `map_pois` and contributions to relationship/spatial queries over `pois`. |
 
 ## Change Log
 

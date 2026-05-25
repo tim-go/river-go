@@ -44,6 +44,7 @@ The first PWA slice should support:
 
 - starting a `Suggest route` mode from the map
 - clicking map points to trace a rough candidate route
+- snapping a rough route trace to known river geometry already loaded in the app as an explicit preview/assist action
 - undoing the last route point before submission
 - cancelling route mode without creating data
 - finishing only when at least two route points exist
@@ -58,6 +59,8 @@ The first PWA slice should support:
 The UI must make clear that a route suggestion is not published trip advice. It should ask for paddling evidence such as a recent paddle, club/local knowledge, official trail source, venue/source reference, or partner/licensed material.
 
 Route suggestions should not use map geometry as the authority for route existence. The rough trace is only a member-drawn sketch to help reviewers understand the candidate section.
+
+Snap-to-river is a geometry aid only. It may prevent obviously dry-land display lines where suitable river geometry is available, but it must not imply that the section is paddleable, lawful, safe, or verified.
 
 Future backend behaviour should:
 
@@ -110,6 +113,7 @@ Route adjustments should capture the target type, target id, corrected route tra
 | ROUTESUB-F7 | Route suggestion management | Profile/map/admin | Active | MVP | — | Members can see route suggestions and retry local drafts; moderators can open submitted routes on the map. |
 | ROUTESUB-F8 | Route-focused moderation tabs | Admin/moderation | Active | MVP | — | Moderation is split into routes, point/photo contributions, and map point corrections; approved route candidates remain visible. |
 | ROUTESUB-F9 | Route adjustment records | Map/admin/API | Active | MVP | — | Admins/moderators can trace corrected geometry for existing seeded/candidate routes and store it as an auditable adjustment. |
+| ROUTESUB-F10 | Frontend snap-to-known-river POC | Map/route editor | Active | prototype | — | Rough traces can be snapped to known in-app river route geometry before review/save. |
 
 ### Backlog
 
@@ -122,6 +126,7 @@ Route adjustments should capture the target type, target id, corrected route tra
 | ROUTESUB-B5 | enhancement | Retry local drafts | Resolved | MVP | Local fallback drafts now have a `Send` action in Profile. |
 | ROUTESUB-B6 | enhancement | Edit approved route candidates | Active | MVP | Admin/moderator route-adjustment records now cover existing seeded routes and approved route candidates; applying them to canonical data remains separate. |
 | ROUTESUB-B7 | migration | Canonical route publishing | Open | MVP | Define how approved route adjustments update static fixtures, imported candidates, or future canonical DB route records. |
+| ROUTESUB-B8 | enhancement | Store rough and snapped traces | Open | MVP | Current POC saves the reviewed trace; backend should later persist original user trace, snapped trace, snap source, and confidence warnings separately. |
 
 ## Change Log
 

@@ -126,6 +126,8 @@ When route suggestion mode is active, map clicks add points to a rough candidate
 
 When route adjustment mode is active for an admin or contribution moderator, map clicks add points to a corrected route trace for the selected existing section. This creates an auditable route-adjustment record rather than immediately rewriting published route geometry.
 
+The route editor may offer a `Snap` preview action that aligns the rough trace to known river geometry already loaded in the app. This is only a geometry assist; it must keep the review and evidence workflow explicit.
+
 On narrow mobile viewports, the map header may collapse secondary controls behind an explicit `Controls` toggle. Expanded controls must show text labels for route actions so `Suggest route` and `Edit route` are distinguishable.
 
 River Wye route traces are generated from OpenStreetMap River Wye waterway geometry through `/scripts/generateWyeRouteTraces.mjs` and stored in `/src/data/wyeRouteTraces.ts`.
@@ -176,6 +178,7 @@ Production behaviour may differ:
 | MAP-F16 | Visible route level status | Map/header | Active | prototype | — | Selected sections expose headline level context and a direct path to full observation history. |
 | MAP-F17 | Candidate route suggestion display | Map/PWA | Active | prototype | — | Locally saved route suggestions render as distinct pending-review route traces separate from canonical sections. |
 | MAP-F18 | Route adjustment display | Map/admin | Active | MVP | — | Admin/moderator route edits render as distinct traces and can be focused from moderation. |
+| MAP-F19 | Snap rough trace to known river | Map/route editor | Active | prototype | — | Route editor can snap a rough trace to known in-app route geometry for review. |
 
 ### Backlog
 
