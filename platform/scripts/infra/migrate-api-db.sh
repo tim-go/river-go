@@ -82,6 +82,7 @@ if [[ "$DRY_RUN" == true ]]; then
   info "Would start cloud-sql-proxy $CLOUD_SQL_CONNECTION_NAME --address 127.0.0.1 --port $MIGRATION_PORT"
 else
   cloud-sql-proxy "$CLOUD_SQL_CONNECTION_NAME" \
+    --gcloud-auth \
     --address 127.0.0.1 \
     --port "$MIGRATION_PORT" >/tmp/river-go-cloud-sql-proxy.log 2>&1 &
   PROXY_PID="$!"
