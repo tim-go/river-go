@@ -18,6 +18,7 @@ const databaseUrl = readString(envConfig?.database?.url);
 const firebaseProjectId = readString(envConfig?.firebase?.projectId);
 const adminEmails = readString(envConfig?.auth?.adminEmails);
 const what3wordsApiKey = readString(envConfig?.integrations?.what3words?.apiKey);
+const observationJobToken = readString(envConfig?.jobs?.observationIngestionToken);
 
 const env = { ...process.env };
 
@@ -25,6 +26,7 @@ setIfPresent(env, "PORT", apiPort);
 setIfPresent(env, "FIREBASE_PROJECT_ID", firebaseProjectId);
 setIfPresent(env, "ADMIN_EMAILS", adminEmails);
 setIfPresent(env, "WHAT3WORDS_API_KEY", what3wordsApiKey);
+setIfPresent(env, "OBSERVATION_JOB_TOKEN", observationJobToken);
 
 if (databaseUrl && !databaseUrl.includes("<")) {
   setIfPresent(env, "DATABASE_URL", databaseUrl);

@@ -217,6 +217,51 @@ There does not appear to be a simple open national UK dataset of canoe/kayak riv
 
 Relevant organisations and sources to investigate:
 
+### Individual River and Venue Sources
+
+The National White Water Centre / Canolfan Tryweryn is an important example of a high-value river-specific source. It is not a general UK river database, but it publishes practical public information for one managed river/venue context.
+
+This type of source can provide:
+
+- section structure, for example upper and lower river splits
+- approximate section lengths and grades
+- release, water-level, or operating context
+- venue-managed access and facility information
+- shuttle, parking, changing, toilets, cafe, shop, and visitor logistics
+- current warnings, closures, event restrictions, or bridge/obstruction cautions
+- biosecurity, wash-down, and local operating rules
+- portage references, take-out descriptions, and other practical paddler notes
+
+These sources are strategically useful because they can anchor a river section in named public reference material. They should not be treated as exact POI geometry unless the source publishes explicit map/data coordinates or RiverLaunch.app has permission and verification. The safer pattern is:
+
+- use the source as a named public reference
+- store source metadata, URL, date checked, and confidence
+- keep RiverLaunch.app seed markers separate from source facts
+- ask local contributors to verify exact POI locations, photos, access practicality, and current condition
+- avoid copying guide text or creating derived route records beyond permitted quotation/reference use
+
+NWWC-style sources are likely to exist for other managed whitewater venues, artificial courses, dam-release rivers, canoe trails, navigation authorities, clubs, local operators, and regional route pages. Quality will vary. Some will be operationally current and highly useful; others will be marketing pages, old club notes, or unlicensed guide descriptions.
+
+RiverLaunch.app should build a source register for these references rather than attempting to scrape them into the route database. The source register should record:
+
+- river or section covered
+- source organisation
+- source type: venue, official body, club, guidebook, operator, local project, public agency, or community site
+- URL and date last checked
+- apparent update frequency
+- permission/licence status
+- data types covered, such as access, releases, warnings, facilities, grades, portages, photos, or route descriptions
+- confidence and limitation notes
+- whether the source can be shown as a reference, used for discovery only, or needs partnership permission
+
+Rough working assumption:
+
+- high-quality venue/official river-specific sources: tens across the UK
+- useful individual river/local reference pages: likely hundreds
+- reusable structured route datasets: limited, fragmented, and permission-dependent
+
+This supports the RiverLaunch.app model rather than replacing it. The app should combine public references, official level/weather data, and community verification into structured river-section records.
+
 ### Paddle UK / Go Paddling
 
 Paddle UK appears to be the strongest national route and access data candidate through Go Paddling and PaddlePoints.

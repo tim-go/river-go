@@ -32,6 +32,7 @@ Provider data should be normalised into RiverLaunch.app's section/gauge model.
 - `/docs/specs/data/river-tryweryn-seed-data.md`
 - `/docs/specs/core/river-section-map.md`
 - `/docs/specs/core/offline-mode.md`
+- `/docs/specs/backend/observation-ingestion.md`
 - `/src/services/riverLevels.ts`
 - `/src/data/wyeGaugeMappings.ts`
 - Environment Agency Flood Monitoring API: `https://environment.data.gov.uk/flood-monitoring/doc/reference`
@@ -64,15 +65,15 @@ RiverLaunch.app API
 frontend
 ```
 
-Client-side live lookup is acceptable only as a temporary prototype step. Long-term, the backend should own ingestion, caching, trend calculation, provider outages, source metadata, and gauge-to-section mapping.
+Client-side live lookup is acceptable only as a temporary prototype step. Long-term, the backend observation-ingestion layer should own ingestion, caching, trend calculation, provider outages, source metadata, and gauge-to-section mapping.
 
-The first provider should be Environment Agency river-level data for England.
+The first provider set should include Environment Agency river-level data for England and Natural Resources Wales station graph data for selected Welsh river/rainfall measures.
 
 Dam-release rivers such as the Tryweryn need a release-aware provider model as well as conventional gauge readings. The active demo represents Tryweryn release status as a seed/fallback value pointing to the National White Water Centre water-level information; production should normalise release availability, release timing, flow value where available, provider/source, and stale/offline state.
 
 The first implementation should:
 
-- fetch station/measure readings for selected Wye gauge candidates
+- fetch station/measure readings for selected Wye and Tryweryn gauge candidates
 - normalise latest reading into a RiverLaunch.app shape
 - expose observed time, value, unit, trend if available, provider, and source URL
 - fail gracefully back to seed/demo values
@@ -118,20 +119,20 @@ Target frontend shape:
 | --- | --- | --- | --- | --- | --- | --- |
 | LEVEL-F1 | Provider abstraction | Data/service | Landed | v0.2 | — | Normalised live gauge shape added for prototype and future backend. |
 | LEVEL-F2 | Environment Agency client adapter | Data/service | Landed | v0.2 | — | Temporary client-side EA adapter fetches latest mapped readings and falls back gracefully. |
-| LEVEL-F3 | Wye gauge mapping | Data/service | Active | v0.2 | — | Lower Wye sections map to a candidate EA Lydbrook level measure; other Wye sections remain unmapped. |
+| LEVEL-F3 | Wye gauge mapping | Data/service | Active | v0.2 | — | Wye sections now have candidate NRW/EA observation links from Glasbury through Lydbrook, pending local validation. |
 | LEVEL-F4 | Gauge display replacement | UI | Landed | v0.2 | — | Gauge card prefers live EA reading when available and shows fallback state otherwise. |
-| LEVEL-F5 | Backend ingestion design | Backend | Queued | MVP | — | Move provider logic server-side before production. |
+| LEVEL-F5 | Backend ingestion design | Backend | Active | MVP | — | Generic observation ingestion spec, first EA backend job slice, and section observation read API are in progress. |
 | LEVEL-F6 | Offline/stale level display | UI/data | Queued | MVP | — | Cached provider readings must be labelled as stale/offline when connectivity is unavailable. |
-| LEVEL-F7 | Tryweryn release provider model | Data/service | Queued | v0.2 | — | Decide how centre/NRW release information maps into RiverLaunch.app level state. |
+| LEVEL-F7 | Tryweryn release provider model | Data/service | Active | v0.2 | — | NRW Bala Weir X level and Tryweryn Dam rainfall are ingested as context; centre release schedule remains a separate source decision. |
 
 ### Backlog
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
 | LEVEL-B1 | decision | Client prototype vs backend first | Resolved | v0.2 | Prototype client-side adapter is acceptable if interface remains backend-shaped. |
-| LEVEL-B2 | dependency | Identify EA station IDs | Active | v0.2 | EA API exposes lower Wye candidates; upstream Wye likely needs NRW or local mapping. |
+| LEVEL-B2 | dependency | Identify EA/NRW station IDs | Active | v0.2 | Initial candidate IDs are wired for Tryweryn and Wye, but relevance still needs local paddler validation. |
 | LEVEL-B3 | enhancement | Trend calculation | Open | v0.2 | Could compare latest readings if provider trend unavailable. |
-| LEVEL-B4 | enhancement | NRW/SEPA/DfI providers | Parked | Europe/UK expansion | Add after EA adapter model is proven. |
+| LEVEL-B4 | enhancement | NRW/SEPA/DfI providers | Active | Europe/UK expansion | NRW has an initial station graph adapter; SEPA/DfI remain future providers. |
 | LEVEL-B5 | risk | Offline river-level safety | Open | MVP | Cached readings must not be mistaken for current conditions. |
 | LEVEL-B6 | dependency | Identify Tryweryn release source | Open | v0.2 | Centre page exposes public release information; production needs source stability and permission review. |
 

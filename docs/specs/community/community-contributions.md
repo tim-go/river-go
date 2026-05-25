@@ -82,6 +82,14 @@ Existing seeded and saved information markers remain inspect-only, even while ad
 
 Seeded and curated map points should be backed by server records rather than frontend-only fixture objects once the backend is available. Members should be able to confirm that a seed point is correct or suggest that it needs correction through inline UI, not browser/system dialogs. Confirmation should behave like a signed-in toggle: one active confirmation per member per POI, with a second click removing that member's confirmation. A member's active correction note should remain visible to that member while the point is still awaiting correction review, and the same inline form should allow them to edit the note. Correction suggestions should move the point into a needs-correction state for moderator or trusted-member review. Moderators should see correction suggestions in the moderation area and clear them by confirming the point or marking the correction as resolved after follow-up. These review actions are not full replacement route authoring; they are the first trust loop for turning seed data into community-verified data.
 
+Confirmed points and contribution POIs should remain editable through a separate
+correction/moderation flow rather than requiring an admin to make them
+unconfirmed before any change. Admins and contribution moderators should have
+explicit status controls on POI detail surfaces to mark items confirmed, back to
+needs-confirmation, challenged/needs-correction, hidden, rejected, or resolved.
+This is an override path for data quality and safety, not the normal member
+confirmation flow.
+
 Signed-in members should be able to review their own synced points from Profile, return to the related map section, and delete items they created. Deletion is a soft-delete in the MVP: the contribution moves to `hidden`, attached photos are hidden, and audit/storage metadata is retained. Admins and contribution moderators may use the same delete path as an override.
 
 Point contributions should retain practical location references where available. The client always stores coordinates in the contribution geometry, and the PWA should enrich a new point with `what3wordsAddress` once at save time when online. The backend should also enrich synced point payloads at create/sync time when the server-side integration is configured, so offline saves and older clients still get stored location references. This avoids spending provider requests every time a user opens the same POI details.

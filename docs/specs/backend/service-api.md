@@ -9,7 +9,7 @@ maturity: Draft
 # Service API
 
 **Work state:** Queued
-**Last updated:** 2026-05-23
+**Last updated:** 2026-05-25
 **Scope:** Backend API, auth, storage, and persistence design for RiverLaunch.app's community river intelligence service.
 
 ## Purpose
@@ -32,6 +32,7 @@ The backend should preserve the current prototype's section-first map and contri
 - `/docs/specs/community/trust-and-moderation.md`
 - `/docs/specs/core/offline-mode.md`
 - `/docs/specs/backend/data-and-sync-model.md`
+- `/docs/specs/backend/observation-ingestion.md`
 - `/docs/specs/data/river-level-providers.md`
 - `/docs/specs/ops/platform-configuration.md`
 - `/docs/strategy/community-data-strategy.md`
@@ -59,6 +60,10 @@ Initial endpoints:
 | `GET` | `/api/admin/members` | List member profiles for admins. |
 | `GET` | `/api/admin/members/:memberId` | Admin-only member detail with profile metadata, activity counts, contributions, and photos. |
 | `POST` | `/api/admin/members/:memberId/access` | Admin-only update of member role and trust level. |
+| `GET` | `/api/admin/observations/jobs` | Admin/moderator list of recent observation ingestion job runs. |
+| `POST` | `/api/jobs/observations/ingest` | Guarded scheduled/manual observation ingestion endpoint. |
+| `POST` | `/api/jobs/observations/backfill` | Guarded on-demand observation history backfill endpoint for newly linked/enabled measures. |
+| `GET` | `/api/sections/:sectionId/observations?hours=48|168|672` | Public linked observation measures with latest and selected recent history for the section. |
 | `GET` | `/api/rivers` | River list. |
 | `GET` | `/api/rivers/:riverId/sections` | Section list with route summaries. |
 | `GET` | `/api/sections/:sectionId` | Section detail, hazards, access, features, reports, photos, and current gauge context. |
@@ -72,7 +77,7 @@ Initial endpoints:
 | `GET` | `/api/moderation/queue` | Moderator review queue. |
 | `POST` | `/api/moderation/:id/decision` | Approve, reject, merge, or request clarification. |
 | `GET` | `/api/moderation/contributions` | Admin/moderator contribution review queue. |
-| `POST` | `/api/moderation/contributions/:id/decision` | Admin/moderator decision for contribution visibility/status. |
+| `POST` | `/api/moderation/contributions/:id/decision` | Admin/moderator decision for contribution visibility/status, including publishing as reported, confirming, returning to needs-confirmation, challenging, hiding, rejecting, or resolving. |
 
 Offline-aware endpoints should be added before the first serious mobile/offline release:
 
@@ -111,6 +116,7 @@ Provider ingestion:
 - Production provider adapters run server-side and cache latest readings.
 - Provider records keep source URL, observed time, provider station/measure IDs, and fetch status.
 - Cached provider records must expose observed/fetched timestamps and freshness state so offline clients never present stale river levels as live readings.
+- Scheduled observation ingestion starts with a guarded Cloud Run API endpoint and should move to Cloud Scheduler with OIDC/job-token authentication before production automation.
 
 Location references:
 
@@ -145,7 +151,7 @@ Moderation:
 | API-F3 | PostgreSQL/PostGIS persistence | Backend/data | Queued | MVP | — | Durable storage for river/community data. |
 | API-F4 | Firebase Storage photo flow | Backend/media | Active | MVP | v0.4 | MVP persists photo metadata during contribution sync after browser-side Firebase Storage upload; separate upload intent/completion endpoints remain queued. |
 | API-F5 | Moderation queue | Backend/admin | Landed | MVP | — | Admins and contribution moderators can list queued contributions and apply approve/confirm/challenge/hide/reject/resolve decisions. |
-| API-F6 | Provider ingestion cache | Backend/data | Queued | MVP | — | Move live river-level ingestion server-side. |
+| API-F6 | Provider ingestion cache | Backend/data | Active | MVP | — | Observation ingestion schema, guarded manual EA job endpoint, and section observation read API have started server-side provider caching. |
 | API-F7 | Offline sync contracts | Backend/sync | Queued | MVP | — | Support client-generated IDs, idempotent pushes, pull tokens, and offline pack downloads. |
 | API-F8 | Initial sync push implementation | Backend/sync | Landed | v0.3 | — | First backend slice proves `GET /api/health` and idempotent `POST /api/sync/push`. |
 | API-F9 | Cloud Run deploy package | Backend/ops | Active | v0.3 | — | Adds Dockerfile and deployment support for Cloud Run plus Cloud SQL. |
@@ -178,3 +184,4 @@ Moderation:
 | 2026-05-23 | Added Cloud Run packaging and deployment path for the first API slice. |
 | 2026-05-23 | Started Firebase Auth verification path for sync writes. |
 | 2026-05-24 | Added public-name and emergency-contact profile endpoints. |
+| 2026-05-25 | Added guarded observation ingestion/backfill endpoints and section observation read contract. |

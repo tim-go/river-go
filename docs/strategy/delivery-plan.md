@@ -19,6 +19,7 @@ This document gives a clear view of the feature set we want to deliver and the c
 | Community add mode | `/docs/specs/community/community-contributions.md` | Active | Add mode, map placement, saved markers, popups, and clearer contribution-type prompts exist in localStorage demo form. |
 | Hazard confirmation/resolution | `/docs/specs/community/trust-and-moderation.md` | Active | Demo supports confirm/resolve for seeded and user-added hazards; no real moderation backend yet. |
 | Environment Agency live levels | `/docs/specs/data/river-level-providers.md` | Active | Temporary frontend EA adapter exists for mapped lower Wye gauge candidates and falls back for unmapped sections. |
+| Observation ingestion | `/docs/specs/backend/observation-ingestion.md` | Active | Generic backend observation schema and first guarded EA ingestion job are being implemented before Cloud Scheduler automation. |
 | Platform configuration | `/docs/specs/ops/platform-configuration.md` | Active | In-repo `/platform` subproject created for Firebase/GCP config templates, planning scripts, and first-pass provisioning scripts. |
 | Source/confidence metadata | `/docs/specs/data/river-wye-seed-data.md` | Queued | Needed before serious external feedback. |
 | Feedback capture workflow | `/docs/product/wye-pilot-feedback-template.md` | Active | Structured Wye pilot feedback template exists; real sessions still needed. |

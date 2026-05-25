@@ -29,6 +29,7 @@ The model should combine structured relational columns for identity, sync, moder
 
 - `/docs/specs/core/offline-mode.md`
 - `/docs/specs/backend/service-api.md`
+- `/docs/specs/backend/observation-ingestion.md`
 - `/docs/specs/community/community-contributions.md`
 - `/docs/specs/community/photo-uploads.md`
 - `/docs/specs/community/trust-and-moderation.md`
@@ -158,7 +159,7 @@ ICE data must not be returned in public member summaries or public contribution 
 | `created_at` | `timestamptz` | Server creation time or supplied client creation time where safe. |
 | `created_by` | `text` | Contributor identity, nullable until Firebase Auth is wired. |
 | `member_id` | `uuid` | Authenticated member reference when available. |
-| `moderation_status` | `text` | `reported`, `pending`, `needs-confirmation`, `confirmed`, `challenged`, `hidden`, `rejected`, `resolved`, or later states. |
+| `moderation_status` | `text` | `reported`, `pending`, `needs-confirmation`, `confirmed`, `challenged`, `hidden`, `rejected`, `resolved`, or later states. Moderator decisions include an explicit return-to-`needs-confirmation` path so a confirmed item does not need a destructive edit workflow before review. |
 | `sync_status` | `text` | Server-side sync acceptance state. |
 | `sync_source` | `text` | `online`, `offline-pwa`, `offline-mobile`, or similar. |
 | `revision` | `bigint` | Monotonic revision for later pull sync/conflict detection. |
@@ -231,6 +232,11 @@ Member review actions for seed/catalogue POIs should be audited separately from 
 | `decision` | `text` | `confirm` or `correction`. |
 | `note` | `text` | Optional correction context. |
 | `created_at` | `timestamptz` | Review time. |
+
+Observation provider tables are defined in `/docs/specs/backend/observation-ingestion.md`.
+They deliberately sit outside the contribution sync tables because provider
+readings are scheduled backend imports rather than user-authored offline
+operations.
 
 ## Initial API Behaviour
 

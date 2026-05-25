@@ -55,3 +55,7 @@ export function getAdminEmails(): string[] {
 export function getWhat3WordsApiKey(): string | undefined {
   return process.env.WHAT3WORDS_API_KEY?.trim() || undefined;
 }
+
+export function getObservationJobToken(): string | undefined {
+  return process.env.OBSERVATION_JOB_TOKEN?.trim() || undefined;
+}

@@ -4,7 +4,7 @@ import {
   getOptionalAuthContext,
   requireAuthContext,
 } from "./auth.js";
-import { getPort } from "./config.js";
+import { getObservationJobToken, getPort } from "./config.js";
 import {
   applyModerationDecision,
   isModerationDecision,
@@ -43,6 +43,12 @@ import {
   lookupCoordinatesForWhat3Words,
   lookupWhat3WordsForCoordinates,
 } from "./what3words.js";
+import {
+  listObservationJobRuns,
+  listObservationsForSection,
+  runObservationBackfillJob,
+  runObservationIngestionJob,
+} from "./observations.js";
 
 async function route(
   requestUrl: string,
@@ -141,6 +147,29 @@ async function route(
     requireAdmin(member);
     const members = await listMembersForAdmin();
     return { status: 200, body: { members } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/admin/observations/jobs") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+    const limit = Number.parseInt(url.searchParams.get("limit") ?? "20", 10);
+    const jobRuns = await listObservationJobRuns(
+      Number.isFinite(limit) ? Math.max(1, Math.min(limit, 100)) : 20,
+    );
+    return { status: 200, body: { jobRuns } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/jobs/observations/ingest") {
+    await requireObservationJobAccess(headers);
+    const jobRun = await runObservationIngestionJob();
+    return { status: 200, body: { jobRun } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/jobs/observations/backfill") {
+    await requireObservationJobAccess(headers);
+    const jobRun = await runObservationBackfillJob(readBackfillHours(body));
+    return { status: 200, body: { jobRun } };
   }
 
   const adminMemberDetailMatch = url.pathname.match(
@@ -294,6 +323,18 @@ async function route(
     return { status: 200, body: { contributions } };
   }
 
+  const sectionObservationsMatch = url.pathname.match(
+    /^\/api\/sections\/([^/]+)\/observations$/,
+  );
+  if (method === "GET" && sectionObservationsMatch) {
+    const hours = Number.parseInt(url.searchParams.get("hours") ?? "48", 10);
+    const measures = await listObservationsForSection(
+      decodeURIComponent(sectionObservationsMatch[1]),
+      Number.isFinite(hours) ? hours : 48,
+    );
+    return { status: 200, body: { measures } };
+  }
+
   const sectionMapPoisMatch = url.pathname.match(
     /^\/api\/sections\/([^/]+)\/map-pois$/,
   );
@@ -365,6 +406,54 @@ export function createApiServer() {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readBackfillHours(body: unknown): number {
+  if (!isRecord(body)) {
+    return 672;
+  }
+
+  const value = body.hours;
+  const parsedHours =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number.parseInt(value, 10)
+        : Number.NaN;
+
+  if (!Number.isFinite(parsedHours)) {
+    return 672;
+  }
+
+  return Math.max(1, Math.min(parsedHours, 672));
+}
+
+async function requireObservationJobAccess(
+  headers: IncomingHttpHeaders,
+): Promise<void> {
+  const configuredToken = getObservationJobToken();
+  const suppliedToken = readHeader(headers, "x-riverlaunch-job-token");
+
+  if (configuredToken && suppliedToken === configuredToken) {
+    return;
+  }
+
+  const authContext = await requireAuthContext(headers);
+  const member = await upsertMemberFromAuth(authContext);
+  requireModerator(member);
+}
+
+function readHeader(
+  headers: IncomingHttpHeaders,
+  headerName: string,
+): string | undefined {
+  const value = headers[headerName.toLowerCase()];
+
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

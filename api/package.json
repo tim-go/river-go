@@ -9,6 +9,8 @@
     "start": "node dist/server.js",
     "db:migrate": "tsx src/migrate.ts",
     "seed:map-pois": "tsx src/seed-map-pois.ts",
+    "ingest:observations": "tsx src/ingest-observations.ts",
+    "backfill:observations": "tsx src/backfill-observations.ts",
     "backfill:w3w": "tsx src/backfill-what3words.ts",
     "sync:smoke": "tsx src/smoke-sync.ts"
   },

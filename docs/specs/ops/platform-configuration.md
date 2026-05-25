@@ -51,6 +51,7 @@ The platform configuration must:
 - support an isolated local PostGIS database for backend development without modifying the shared Kinetiq local database
 - support Artifact Registry for Cloud Run images
 - support Secret Manager and GitHub environment secrets
+- support scheduled backend jobs such as observation ingestion through Cloud Scheduler or guarded Cloud Run endpoints
 - provide read-only validation/planning before provisioning
 - provide idempotent setup scripts for GCP/Firebase resource creation
 - provide build-only CI and deploy configuration without publishing while billing is blocked
@@ -116,6 +117,7 @@ Staging rollout order:
 | PLATFORM-F8 | Platform health check | Ops/tooling | Landed | v0.3 | — | Read-only health check reports billing/API/resource state. |
 | PLATFORM-F9 | Local PostGIS database | Ops/local-dev | Landed | v0.3 | — | Adds isolated RiverLaunch.app PostGIS container on `127.0.0.1:5435` with local app and migration users. |
 | PLATFORM-F10 | Cloud Run API deployment script | Ops/deploy | Active | v0.3 | — | Builds API Docker image, writes `DATABASE_URL` plus configured integration secrets to Secret Manager, deploys Cloud Run with invoker IAM check disabled for public staging access, and checks health. |
+| PLATFORM-F11 | Scheduled backend jobs | Ops/scheduler | Active | MVP | — | Observation ingestion starts as a guarded Cloud Run endpoint with Secret Manager-backed job token; Cloud Scheduler provisioning is queued. |
 | PLATFORM-F11 | Preview-first Hosting deployment | Ops/deploy | Active | v0.3 | — | Deploys API rewrite to a Firebase preview channel before live Hosting cutover. |
 | PLATFORM-F12 | Cloud SQL migration script | Ops/deploy | Active | v0.3 | — | Runs SQL migrations through Cloud SQL Auth Proxy using the migration DB URL. |
 | PLATFORM-F13 | Hosted Firebase Auth flow | Ops/auth | Landed | v0.3 | — | Hosted web builds use inline redirect sign-in with the public Hosting domain as Firebase `authDomain`; local dev uses popup sign-in; auth diagnostics print the exact OAuth client and redirect URI before deploys. |

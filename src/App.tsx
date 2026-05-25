@@ -76,6 +76,11 @@ import {
 } from "./services/imageProcessing";
 import { uploadContributionPhoto } from "./services/photoUpload";
 import {
+  fetchSectionObservations,
+  type ObservationParameter,
+  type SectionObservationMeasure,
+} from "./services/observationApi";
+import {
   deletePhoto,
   fetchMyPhotos,
   type MemberPhoto,
@@ -128,6 +133,7 @@ type RouteDetailsTab =
   | "photos";
 
 type PoiDetailsTab = "details" | "location" | "verification" | "photos";
+type ObservationRangeHours = 48 | 168 | 672;
 
 const bandLabels = {
   "too-low": "Too low",
@@ -135,6 +141,27 @@ const bandLabels = {
   high: "High",
   unknown: "Unknown",
 };
+
+const observationParameterLabels: Record<ObservationParameter, string> = {
+  river_level: "River level",
+  river_flow: "River flow",
+  rainfall: "Rainfall",
+  tidal_level: "Tidal level",
+  sea_level: "Sea level",
+  release: "Release",
+  forecast: "Forecast",
+};
+
+const observationRangeOptions: Array<{
+  hours: ObservationRangeHours;
+  label: string;
+  rangeLabel: string;
+  chartLabel: string;
+}> = [
+  { hours: 48, label: "48h", rangeLabel: "48h range", chartLabel: "Last 48 hours" },
+  { hours: 168, label: "7d", rangeLabel: "7 day range", chartLabel: "Last 7 days" },
+  { hours: 672, label: "28d", rangeLabel: "28 day range", chartLabel: "Last 28 days" },
+];
 
 const routeDetailsTabs: Array<{ id: RouteDetailsTab; label: string }> = [
   { id: "details", label: "Details" },
@@ -260,9 +287,21 @@ const moderationActions: Array<{
 }> = [
   { decision: "approve", label: "Publish as reported" },
   { decision: "confirm", label: "Confirm" },
+  { decision: "request-confirmation", label: "Needs confirmation" },
   { decision: "challenge", label: "Challenge" },
   { decision: "hide", label: "Hide" },
   { decision: "reject", label: "Reject" },
+  { decision: "resolve", label: "Resolve" },
+];
+
+const mapPoiStatusActions: Array<{
+  status: MapPoi["verificationStatus"];
+  label: string;
+}> = [
+  { status: "confirmed", label: "Mark confirmed" },
+  { status: "needs-confirmation", label: "Needs confirmation" },
+  { status: "needs-correction", label: "Needs correction" },
+  { status: "resolved", label: "Mark resolved" },
 ];
 
 type MemberRoleFilter = "all" | MemberRole;
@@ -662,6 +701,161 @@ function formatDateTime(value: string | null | undefined) {
   }
 
   return date.toLocaleString();
+}
+
+function formatObservationValue(
+  value: number | null | undefined,
+  unit: string,
+) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "No reading";
+  }
+
+  return `${value.toFixed(2)} ${unit}`;
+}
+
+function formatObservationRange(measure: SectionObservationMeasure) {
+  if (!measure.history.length) {
+    return "No stored history yet";
+  }
+
+  const values = measure.history.map((reading) => reading.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+
+  return `${min.toFixed(2)}-${max.toFixed(2)} ${measure.unit}`;
+}
+
+function getObservationRangeOption(hours: ObservationRangeHours) {
+  return (
+    observationRangeOptions.find((option) => option.hours === hours) ??
+    observationRangeOptions[0]
+  );
+}
+
+function getObservationStats(measure: SectionObservationMeasure) {
+  if (measure.history.length < 2) {
+    return {
+      min: measure.latest?.value ?? null,
+      max: measure.latest?.value ?? null,
+      delta: 0,
+      trend: "steady" as const,
+    };
+  }
+
+  const values = measure.history.map((reading) => reading.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const first = values[0];
+  const latest = values[values.length - 1];
+  const delta = latest - first;
+  const trend =
+    Math.abs(delta) < 0.01 ? "steady" : delta > 0 ? "rising" : "falling";
+
+  return { min, max, delta, trend };
+}
+
+function getPrimaryObservationMeasure(measures: SectionObservationMeasure[]) {
+  const parameterPriority: ObservationParameter[] = [
+    "river_level",
+    "river_flow",
+    "release",
+    "rainfall",
+    "tidal_level",
+    "sea_level",
+    "forecast",
+  ];
+
+  return (
+    measures.find(
+      (measure) => measure.relevance === "primary" && measure.latest,
+    ) ??
+    parameterPriority
+      .map((parameter) =>
+        measures.find((measure) => measure.parameter === parameter && measure.latest),
+      )
+      .find(Boolean) ??
+    measures.find((measure) => measure.latest) ??
+    measures[0] ??
+    null
+  );
+}
+
+function formatShortDateTime(value: string | null | undefined) {
+  if (!value) {
+    return "not checked";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+  }).format(date);
+}
+
+function buildObservationChartPoints(measure: SectionObservationMeasure) {
+  const maxPoints = 220;
+  const readings =
+    measure.history.length > maxPoints
+      ? sampleObservationHistory(measure.history, maxPoints)
+      : measure.history;
+
+  if (readings.length < 2) {
+    return "";
+  }
+
+  const values = readings.map((reading) => reading.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const width = 240;
+  const height = 72;
+  const padding = 6;
+
+  return readings
+    .map((reading, index) => {
+      const x =
+        padding + (index / Math.max(1, readings.length - 1)) * (width - padding * 2);
+      const y =
+        height -
+        padding -
+        ((reading.value - min) / range) * (height - padding * 2);
+
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+}
+
+function sampleObservationHistory(
+  history: SectionObservationMeasure["history"],
+  maxPoints: number,
+) {
+  if (history.length <= maxPoints) {
+    return history;
+  }
+
+  const lastIndex = history.length - 1;
+  const sampled: SectionObservationMeasure["history"] = [];
+  const seen = new Set<string>();
+
+  for (let index = 0; index < maxPoints; index += 1) {
+    const sourceIndex = Math.round((index / (maxPoints - 1)) * lastIndex);
+    const reading = history[sourceIndex];
+
+    if (!seen.has(reading.observedAt)) {
+      sampled.push(reading);
+      seen.add(reading.observedAt);
+    }
+  }
+
+  return sampled;
 }
 
 function parseCoordinateSearch(value: string): LatLngTuple | null {
@@ -1303,8 +1497,12 @@ function PoiDetailPanel({
   onClose,
   onAddPhoto,
   onReviewMapPoi,
+  onUpdateMapPoiStatus,
+  onUpdateContributionStatus,
   reviewMessage,
   isReviewSaving,
+  isStatusSaving,
+  canManagePoiStatus,
 }: {
   poi: SelectedPoi;
   onClose: () => void;
@@ -1315,8 +1513,18 @@ function PoiDetailPanel({
     action?: "add" | "remove",
     note?: string,
   ) => void;
+  onUpdateMapPoiStatus: (
+    poi: MapPoi,
+    status: MapPoi["verificationStatus"],
+  ) => void;
+  onUpdateContributionStatus: (
+    poi: SelectedPoi,
+    decision: ModerationDecision,
+  ) => void;
   reviewMessage: string;
   isReviewSaving: boolean;
+  isStatusSaving: boolean;
+  canManagePoiStatus: boolean;
 }) {
   const [what3wordsAddress, setWhat3WordsAddress] = useState(
     poi.what3words ?? "",
@@ -1326,6 +1534,10 @@ function PoiDetailPanel({
   const [copiedLocationLabel, setCopiedLocationLabel] = useState("");
   const [isCorrectionFormOpen, setIsCorrectionFormOpen] = useState(false);
   const [correctionNote, setCorrectionNote] = useState("");
+  const [adminMapPoiStatus, setAdminMapPoiStatus] =
+    useState<MapPoi["verificationStatus"]>("confirmed");
+  const [adminContributionDecision, setAdminContributionDecision] =
+    useState<ModerationDecision>("confirm");
   const [activePoiDetailsTab, setActivePoiDetailsTab] =
     useState<PoiDetailsTab>("details");
 
@@ -1340,6 +1552,22 @@ function PoiDetailPanel({
     resetWhat3WordsState();
     setIsCorrectionFormOpen(false);
     setCorrectionNote(poi.mapPoi?.viewerReview?.correctionNote ?? "");
+    setAdminMapPoiStatus(poi.mapPoi?.verificationStatus ?? "confirmed");
+    setAdminContributionDecision(
+      poi.status === "needs-confirmation"
+        ? "request-confirmation"
+        : poi.status === "challenged"
+          ? "challenge"
+          : poi.status === "hidden"
+            ? "hide"
+            : poi.status === "rejected"
+              ? "reject"
+              : poi.status === "resolved"
+                ? "resolve"
+                : poi.status === "reported"
+                  ? "approve"
+                  : "confirm",
+    );
     setActivePoiDetailsTab("details");
   }, [poi.id, poi.location, poi.what3words]);
 
@@ -1379,7 +1607,7 @@ function PoiDetailPanel({
   const viewerCorrectionNote =
     poi.mapPoi?.viewerReview?.correctionNote?.trim() ?? "";
   const visiblePoiDetailsTabs = poiDetailsTabs.filter(
-    (tab) => tab.id !== "verification" || poi.mapPoi,
+    (tab) => tab.id !== "verification" || poi.mapPoi || poi.kind === "contribution",
   );
 
   return (
@@ -1584,114 +1812,202 @@ function PoiDetailPanel({
           </div>
         ) : null}
 
-        {activePoiDetailsTab === "verification" && poi.mapPoi ? (
+        {activePoiDetailsTab === "verification" &&
+        (poi.mapPoi || poi.kind === "contribution") ? (
           <div className="route-tab-panel" role="tabpanel">
             <section className="info-block info-block--first">
               <div className="block-title">
                 <h3>Verification</h3>
-                <span className={`status-chip status-chip--${poi.mapPoi.verificationStatus}`}>
-                  {poi.mapPoi.verificationStatus}
-                </span>
-              </div>
-              <div className="detail-list">
-                <span>
-                  <strong>Confirmations</strong>
-                  {poi.mapPoi.confirmations}
-                </span>
-                <span>
-                  <strong>Correction suggestions</strong>
-                  {poi.mapPoi.corrections}
-                </span>
-              </div>
-              <div className="inline-actions">
-                <button
-                  className={`ghost-button ghost-button--compact ${
-                    poi.mapPoi.viewerReview?.confirmed ? "is-selected" : ""
+                <span
+                  className={`status-chip status-chip--${
+                    poi.mapPoi?.verificationStatus ?? poi.status ?? "reported"
                   }`}
-                  type="button"
-                  disabled={isReviewSaving}
-                  aria-pressed={poi.mapPoi.viewerReview?.confirmed ?? false}
-                  onClick={() =>
-                    onReviewMapPoi(
-                      poi.mapPoi!,
-                      "confirm",
-                      poi.mapPoi!.viewerReview?.confirmed ? "remove" : "add",
-                    )
-                  }
                 >
-                  <CheckCircle2 size={15} />
-                  {poi.mapPoi.viewerReview?.confirmed ? "Confirmed" : "Confirm"}
-                </button>
-                <button
-                  className={`ghost-button ghost-button--compact ${
-                    poi.mapPoi.viewerReview?.suggestedCorrection ? "is-selected" : ""
-                  }`}
-                  type="button"
-                  disabled={isReviewSaving}
-                  aria-pressed={poi.mapPoi.viewerReview?.suggestedCorrection ?? false}
-                  onClick={() => {
-                    setCorrectionNote(poi.mapPoi?.viewerReview?.correctionNote ?? "");
-                    setIsCorrectionFormOpen(true);
-                  }}
-                >
-                  <Flag size={15} />
-                  {poi.mapPoi.viewerReview?.suggestedCorrection
-                    ? "Correction suggested"
-                    : "Suggest correction"}
-                </button>
+                  {poi.mapPoi?.verificationStatus ??
+                    contributionStatusLabel(poi.status as Contribution["status"])}
+                </span>
               </div>
-              {!isCorrectionFormOpen && viewerCorrectionNote ? (
-                <div className="inline-correction-note">
-                  <span>Your correction</span>
-                  <p>{viewerCorrectionNote}</p>
-                </div>
-              ) : null}
-              {isCorrectionFormOpen ? (
-                <div className="inline-correction-form">
-                  <label>
-                    <span>Correction note</span>
-                    <textarea
-                      rows={3}
-                      value={correctionNote}
-                      onChange={(event) => setCorrectionNote(event.target.value)}
-                      placeholder="What needs correcting?"
-                    />
-                  </label>
+              {poi.mapPoi ? (
+                <>
+                  <div className="detail-list">
+                    <span>
+                      <strong>Confirmations</strong>
+                      {poi.mapPoi.confirmations}
+                    </span>
+                    <span>
+                      <strong>Correction suggestions</strong>
+                      {poi.mapPoi.corrections}
+                    </span>
+                  </div>
                   <div className="inline-actions">
                     <button
-                      className="ghost-button ghost-button--compact"
-                      type="button"
-                      disabled={isReviewSaving || correctionNote.trim().length < 3}
-                      onClick={() => {
-                        const note = correctionNote.trim();
-
-                        if (note) {
-                          onReviewMapPoi(
-                            poi.mapPoi!,
-                            "correction",
-                            "add",
-                            note,
-                          );
-                          setIsCorrectionFormOpen(false);
-                        }
-                      }}
-                    >
-                      Submit
-                    </button>
-                    <button
-                      className="ghost-button ghost-button--compact"
+                      className={`ghost-button ghost-button--compact ${
+                        poi.mapPoi.viewerReview?.confirmed ? "is-selected" : ""
+                      }`}
                       type="button"
                       disabled={isReviewSaving}
+                      aria-pressed={poi.mapPoi.viewerReview?.confirmed ?? false}
+                      onClick={() =>
+                        onReviewMapPoi(
+                          poi.mapPoi!,
+                          "confirm",
+                          poi.mapPoi!.viewerReview?.confirmed ? "remove" : "add",
+                        )
+                      }
+                    >
+                      <CheckCircle2 size={15} />
+                      {poi.mapPoi.viewerReview?.confirmed
+                        ? "Confirmed"
+                        : "Confirm"}
+                    </button>
+                    <button
+                      className={`ghost-button ghost-button--compact ${
+                        poi.mapPoi.viewerReview?.suggestedCorrection
+                          ? "is-selected"
+                          : ""
+                      }`}
+                      type="button"
+                      disabled={isReviewSaving}
+                      aria-pressed={
+                        poi.mapPoi.viewerReview?.suggestedCorrection ?? false
+                      }
                       onClick={() => {
-                        setIsCorrectionFormOpen(false);
                         setCorrectionNote(
                           poi.mapPoi?.viewerReview?.correctionNote ?? "",
                         );
+                        setIsCorrectionFormOpen(true);
                       }}
                     >
-                      Cancel
+                      <Flag size={15} />
+                      {poi.mapPoi.viewerReview?.suggestedCorrection
+                        ? "Correction suggested"
+                        : "Suggest correction"}
                     </button>
                   </div>
+                  {!isCorrectionFormOpen && viewerCorrectionNote ? (
+                    <div className="inline-correction-note">
+                      <span>Your correction</span>
+                      <p>{viewerCorrectionNote}</p>
+                    </div>
+                  ) : null}
+                  {isCorrectionFormOpen ? (
+                    <div className="inline-correction-form">
+                      <label>
+                        <span>Correction note</span>
+                        <textarea
+                          rows={3}
+                          value={correctionNote}
+                          onChange={(event) => setCorrectionNote(event.target.value)}
+                          placeholder="What needs correcting?"
+                        />
+                      </label>
+                      <div className="inline-actions">
+                        <button
+                          className="ghost-button ghost-button--compact"
+                          type="button"
+                          disabled={isReviewSaving || correctionNote.trim().length < 3}
+                          onClick={() => {
+                            const note = correctionNote.trim();
+
+                            if (note) {
+                              onReviewMapPoi(
+                                poi.mapPoi!,
+                                "correction",
+                                "add",
+                                note,
+                              );
+                              setIsCorrectionFormOpen(false);
+                            }
+                          }}
+                        >
+                          Submit
+                        </button>
+                        <button
+                          className="ghost-button ghost-button--compact"
+                          type="button"
+                          disabled={isReviewSaving}
+                          onClick={() => {
+                            setIsCorrectionFormOpen(false);
+                            setCorrectionNote(
+                              poi.mapPoi?.viewerReview?.correctionNote ?? "",
+                            );
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <p className="source-note">
+                  This contribution is managed through the moderation workflow.
+                  Confirmed items can still receive correction suggestions without
+                  being made unconfirmed first.
+                </p>
+              )}
+              {canManagePoiStatus ? (
+                <div className="inline-admin-control">
+                  <div>
+                    <strong>Moderator status override</strong>
+                    <span>
+                      Use this only for data quality, safety, duplicate, or
+                      moderation fixes.
+                    </span>
+                  </div>
+                  {poi.mapPoi ? (
+                    <div className="inline-admin-control__actions">
+                      <select
+                        value={adminMapPoiStatus}
+                        onChange={(event) =>
+                          setAdminMapPoiStatus(
+                            event.target.value as MapPoi["verificationStatus"],
+                          )
+                        }
+                      >
+                        {mapPoiStatusActions.map((action) => (
+                          <option key={action.status} value={action.status}>
+                            {action.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className="primary-action"
+                        type="button"
+                        disabled={isStatusSaving}
+                        onClick={() => onUpdateMapPoiStatus(poi.mapPoi!, adminMapPoiStatus)}
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="inline-admin-control__actions">
+                      <select
+                        value={adminContributionDecision}
+                        onChange={(event) =>
+                          setAdminContributionDecision(
+                            event.target.value as ModerationDecision,
+                          )
+                        }
+                      >
+                        {moderationActions.map((action) => (
+                          <option key={action.decision} value={action.decision}>
+                            {action.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className="primary-action"
+                        type="button"
+                        disabled={isStatusSaving}
+                        onClick={() =>
+                          onUpdateContributionStatus(poi, adminContributionDecision)
+                        }
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : null}
               {reviewMessage ? <p className="source-note">{reviewMessage}</p> : null}
@@ -1755,6 +2071,7 @@ function App() {
     loadFavouriteSectionIds(),
   );
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [isRouteStatusCardVisible, setIsRouteStatusCardVisible] = useState(true);
   const [routeDetailsTab, setRouteDetailsTab] =
     useState<RouteDetailsTab>("details");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -1858,10 +2175,21 @@ function App() {
   const [moderationMessage, setModerationMessage] = useState("");
   const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
   const [isGaugeLoading, setIsGaugeLoading] = useState(false);
+  const [sectionObservations, setSectionObservations] = useState<
+    SectionObservationMeasure[]
+  >([]);
+  const [observationRangeHours, setObservationRangeHours] =
+    useState<ObservationRangeHours>(48);
+  const [displayedObservationRangeHours, setDisplayedObservationRangeHours] =
+    useState<ObservationRangeHours>(48);
+  const [isSectionObservationsLoading, setIsSectionObservationsLoading] =
+    useState(false);
+  const [sectionObservationMessage, setSectionObservationMessage] = useState("");
   const [sectionMapPois, setSectionMapPois] = useState<MapPoi[]>([]);
   const [isSectionMapPoisLoaded, setIsSectionMapPoisLoaded] = useState(false);
   const [mapPoiReviewMessage, setMapPoiReviewMessage] = useState("");
   const [isMapPoiReviewSaving, setIsMapPoiReviewSaving] = useState(false);
+  const [isPoiStatusSaving, setIsPoiStatusSaving] = useState(false);
   const [isSectionListOpen, setIsSectionListOpen] = useState(false);
   const [authSheetMode, setAuthSheetMode] = useState<AuthSheetMode | null>(null);
   const [isWelcomeDismissedForSession, setIsWelcomeDismissedForSession] =
@@ -1883,6 +2211,7 @@ function App() {
       riverSections[0],
     [activeSectionId],
   );
+  const observationSectionIdRef = useRef(activeSection.id);
 
   const sectionContributions = contributions.filter(
     (contribution) => contribution.sectionId === activeSection.id,
@@ -1901,6 +2230,47 @@ function App() {
   const visibleHazardPois = visibleSectionMapPois.filter(
     (poi) => poi.kind === "hazard",
   );
+  const primaryObservationMeasure = useMemo(
+    () => getPrimaryObservationMeasure(sectionObservations),
+    [sectionObservations],
+  );
+  const primaryObservationStats = primaryObservationMeasure
+    ? getObservationStats(primaryObservationMeasure)
+    : null;
+  const routeStatusSummary = primaryObservationMeasure
+    ? {
+        label: observationParameterLabels[primaryObservationMeasure.parameter],
+        value: formatObservationValue(
+          primaryObservationMeasure.latest?.value,
+          primaryObservationMeasure.unit,
+        ),
+        trend: primaryObservationStats?.trend ?? "steady",
+        source: primaryObservationMeasure.stationName,
+        observedAt: formatShortDateTime(
+          primaryObservationMeasure.latest?.observedAt,
+        ),
+        state: primaryObservationMeasure.latest?.state ?? "unavailable",
+      }
+    : liveGauge
+      ? {
+          label: "River level",
+          value:
+            liveGauge.gauge.latestValue != null
+              ? `${liveGauge.gauge.latestValue.toFixed(2)} ${liveGauge.gauge.unit}`
+              : activeSection.gauge.value,
+          trend: liveGauge.state ?? liveGauge.gauge.trend,
+          source: liveGauge.gauge.name,
+          observedAt: formatShortDateTime(liveGauge.gauge.observedAt),
+          state: liveGauge.state ?? "checking",
+        }
+      : {
+          label: "Level",
+          value: activeSection.levelLabel,
+          trend: activeSection.gauge.trend,
+          source: activeSection.gauge.name,
+          observedAt: activeSection.gauge.observedAt,
+          state: activeSection.levelBand,
+        };
   const sectionContributionPhotos = sectionContributions.flatMap((contribution) =>
     (contribution.photos ?? []).map((photo) => ({ contribution, photo })),
   );
@@ -2303,25 +2673,52 @@ function App() {
 
   useEffect(() => {
     let isMounted = true;
-    setIsGaugeLoading(true);
-    setLiveGauge(null);
+    const isNewSection = observationSectionIdRef.current !== activeSection.id;
 
-    fetchEnvironmentAgencyGaugeReading(activeSection)
-      .then((reading) => {
+    if (isNewSection) {
+      observationSectionIdRef.current = activeSection.id;
+      setLiveGauge(null);
+      setSectionObservations([]);
+      setDisplayedObservationRangeHours(observationRangeHours);
+    }
+
+    setIsGaugeLoading(true);
+    setIsSectionObservationsLoading(true);
+    setSectionObservationMessage("");
+
+    Promise.allSettled([
+      fetchSectionObservations(activeSection.id, observationRangeHours),
+      fetchEnvironmentAgencyGaugeReading(activeSection),
+    ])
+      .then(([observationsResult, liveGaugeResult]) => {
         if (isMounted) {
-          setLiveGauge(reading);
+          if (observationsResult.status === "fulfilled") {
+            setSectionObservations(observationsResult.value);
+            setDisplayedObservationRangeHours(observationRangeHours);
+          } else {
+            setSectionObservationMessage(
+              observationsResult.reason instanceof Error
+                ? observationsResult.reason.message
+                : "Could not load stored observation history.",
+            );
+          }
+
+          if (liveGaugeResult.status === "fulfilled") {
+            setLiveGauge(liveGaugeResult.value);
+          }
         }
       })
       .finally(() => {
         if (isMounted) {
           setIsGaugeLoading(false);
+          setIsSectionObservationsLoading(false);
         }
       });
 
     return () => {
       isMounted = false;
     };
-  }, [activeSection]);
+  }, [activeSection, observationRangeHours]);
 
   async function submitContribution(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -3053,6 +3450,31 @@ function App() {
           item.id === updatedContribution.id ? updatedContribution : item,
         ),
       );
+      setMemberContributions((current) =>
+        current.map((item) =>
+          item.id === updatedContribution.id ? updatedContribution : item,
+        ),
+      );
+      setSelectedAdminMemberDetail((current) =>
+        current
+          ? {
+              ...current,
+              contributions: current.contributions.map((item) =>
+                item.id === updatedContribution.id ? updatedContribution : item,
+              ),
+            }
+          : current,
+      );
+      setSelectedPoi((current) => {
+        if (current?.kind !== "contribution" || current.id !== updatedContribution.id) {
+          return current;
+        }
+
+        const section =
+          riverSections.find((item) => item.id === updatedContribution.sectionId) ??
+          activeSection;
+        return selectedPoiForContribution(updatedContribution, section);
+      });
       setModerationMessage(
         moderationResultMessage(updatedContribution, decision),
       );
@@ -3070,6 +3492,8 @@ function App() {
     status: MapPoi["verificationStatus"],
   ) {
     setModerationMessage("");
+    setMapPoiReviewMessage("");
+    setIsPoiStatusSaving(true);
 
     try {
       const updatedPoi = await updateMapPoiVerificationStatus(poi.id, status);
@@ -3081,16 +3505,81 @@ function App() {
       );
       setSelectedPoi((current) =>
         current?.mapPoi?.id === updatedPoi.id
-          ? mapPoiToSelectedPoi(updatedPoi, activeSection)
+          ? mapPoiToSelectedPoi(
+              updatedPoi,
+              riverSections.find((item) => item.id === updatedPoi.sectionId) ??
+                activeSection,
+            )
           : current,
       );
       setModerationMessage(`Updated ${updatedPoi.title}.`);
+      setMapPoiReviewMessage(`Updated ${updatedPoi.title}.`);
     } catch (error) {
-      setModerationMessage(
+      const message =
         error instanceof Error
           ? error.message
-          : "Could not update map point verification state.",
+          : "Could not update map point verification state.";
+      setModerationMessage(message);
+      setMapPoiReviewMessage(message);
+    } finally {
+      setIsPoiStatusSaving(false);
+    }
+  }
+
+  async function applySelectedPoiContributionStatus(
+    poi: SelectedPoi,
+    decision: ModerationDecision,
+  ) {
+    if (poi.kind !== "contribution") {
+      return;
+    }
+
+    setMapPoiReviewMessage("");
+    setIsPoiStatusSaving(true);
+
+    try {
+      const updatedContribution = await applyContributionModerationDecision(
+        poi.id,
+        decision,
       );
+      setModerationContributions((current) =>
+        current.filter((item) => item.id !== updatedContribution.id),
+      );
+      setContributions((current) =>
+        current.map((item) =>
+          item.id === updatedContribution.id ? updatedContribution : item,
+        ),
+      );
+      setMemberContributions((current) =>
+        current.map((item) =>
+          item.id === updatedContribution.id ? updatedContribution : item,
+        ),
+      );
+      setSelectedAdminMemberDetail((current) =>
+        current
+          ? {
+              ...current,
+              contributions: current.contributions.map((item) =>
+                item.id === updatedContribution.id ? updatedContribution : item,
+              ),
+            }
+          : current,
+      );
+      const section =
+        riverSections.find((item) => item.id === updatedContribution.sectionId) ??
+        activeSection;
+      setSelectedPoi(selectedPoiForContribution(updatedContribution, section));
+      setMapPoiReviewMessage(
+        moderationResultMessage(updatedContribution, decision),
+      );
+    } catch (error) {
+      setMapPoiReviewMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not update contribution moderation state.",
+      );
+    } finally {
+      setIsPoiStatusSaving(false);
     }
   }
 
@@ -3181,6 +3670,7 @@ function App() {
 
   function selectSection(section: RiverSection) {
     setActiveSectionId(section.id);
+    setIsRouteStatusCardVisible(true);
     setSectionFocusNonce((current) => current + 1);
     setIsSectionListOpen(false);
     setSearchFocusLocation(null);
@@ -3190,9 +3680,17 @@ function App() {
 
   function openRouteDetails(section: RiverSection) {
     setActiveSectionId(section.id);
+    setIsRouteStatusCardVisible(true);
     setSectionFocusNonce((current) => current + 1);
     setSelectedPoi(null);
     setRouteDetailsTab("details");
+    setIsPanelOpen(true);
+    setIsSectionListOpen(false);
+  }
+
+  function openCurrentRouteDetailsTab(tab: RouteDetailsTab) {
+    setSelectedPoi(null);
+    setRouteDetailsTab(tab);
     setIsPanelOpen(true);
     setIsSectionListOpen(false);
   }
@@ -3376,6 +3874,11 @@ function App() {
         activeAppSection === "map" ? "" : "app-shell--content-only"
       }`}
     >
+      <div className="beta-banner" role="note">
+        <strong>Beta</strong>
+        <span>App is in testing. Check local conditions before paddling.</span>
+      </div>
+
       {activeAppSection === "map" ? (
         <section className="topbar" aria-label="Map controls">
           <div className="brand-lockup">
@@ -3385,6 +3888,13 @@ function App() {
             <div>
               <p className="eyebrow">{activeSection.riverName}</p>
               <h1>{activeSection.sectionName}</h1>
+              <p className="topbar-level-summary">
+                <Droplets size={12} />
+                <span>
+                  {routeStatusSummary.value} · {routeStatusSummary.trend} ·{" "}
+                  {routeStatusSummary.observedAt}
+                </span>
+              </p>
             </div>
           </div>
           <div className="topbar-actions">
@@ -3394,6 +3904,8 @@ function App() {
               }`}
               type="button"
               onClick={() => setIsSectionListOpen((current) => !current)}
+              title="Sections"
+              aria-label="Sections"
               aria-pressed={isSectionListOpen}
             >
               <Route size={16} />
@@ -3401,14 +3913,33 @@ function App() {
             </button>
             <button
               className={`ghost-button map-panel-toggle ${
-                isPanelOpen ? "map-panel-toggle--active" : ""
+                isPanelOpen && routeDetailsTab === "levels"
+                  ? "map-panel-toggle--active"
+                  : ""
+              }`}
+              type="button"
+              onClick={() => openCurrentRouteDetailsTab("levels")}
+              title="View levels"
+              aria-label="View levels"
+              aria-pressed={isPanelOpen && routeDetailsTab === "levels"}
+            >
+              <Droplets size={16} />
+              Levels
+            </button>
+            <button
+              className={`ghost-button map-panel-toggle ${
+                isPanelOpen && routeDetailsTab !== "levels"
+                  ? "map-panel-toggle--active"
+                  : ""
               }`}
               type="button"
               onClick={toggleRouteDetailsPanel}
-              aria-pressed={isPanelOpen}
+              title="Section details"
+              aria-label="Section details"
+              aria-pressed={isPanelOpen && routeDetailsTab !== "levels"}
             >
               <MapPinned size={16} />
-              Route
+              Details
             </button>
             <button
               className={`icon-button sync-icon-button ${
@@ -3581,6 +4112,50 @@ function App() {
           onOpenRouteDetails={openRouteDetails}
           onSelectSection={selectSection}
         />
+
+        {isRouteStatusCardVisible ? (
+          <section className="route-status-card" aria-label="Selected route level">
+            <div className="route-status-card__main">
+              <span className="route-status-card__icon">
+                <Droplets size={16} />
+              </span>
+              <div>
+                <span>{routeStatusSummary.label}</span>
+                <strong>{routeStatusSummary.value}</strong>
+              </div>
+            </div>
+            <button
+              className="ghost-button ghost-button--compact"
+              type="button"
+              onClick={() => openCurrentRouteDetailsTab("levels")}
+            >
+              View levels
+            </button>
+            <button
+              className="icon-button icon-button--compact route-status-card__hide"
+              type="button"
+              title="Hide level summary"
+              aria-label="Hide level summary"
+              onClick={() => setIsRouteStatusCardVisible(false)}
+            >
+              <X size={14} />
+            </button>
+            <div className="route-status-card__meta">
+              <span>{routeStatusSummary.trend}</span>
+              <span>{routeStatusSummary.source}</span>
+              <span>Updated {routeStatusSummary.observedAt}</span>
+            </div>
+          </section>
+        ) : (
+          <button
+            className="route-status-toggle"
+            type="button"
+            onClick={() => setIsRouteStatusCardVisible(true)}
+          >
+            <Droplets size={15} />
+            Show levels
+          </button>
+        )}
 
         {isFormOpen ? (
           <section className="quick-add-panel" aria-label="Add contribution">
@@ -3817,8 +4392,16 @@ function App() {
             onReviewMapPoi={(poi, decision, action, note) =>
               void submitMapPoiReview(poi, decision, action, note)
             }
+            onUpdateMapPoiStatus={(poi, status) =>
+              void applyMapPoiVerificationStatus(poi, status)
+            }
+            onUpdateContributionStatus={(poi, decision) =>
+              void applySelectedPoiContributionStatus(poi, decision)
+            }
             reviewMessage={mapPoiReviewMessage}
             isReviewSaving={isMapPoiReviewSaving}
+            isStatusSaving={isPoiStatusSaving}
+            canManagePoiStatus={canAccessAdminTools}
           />
         ) : null}
 
@@ -3912,30 +4495,203 @@ function App() {
             {routeDetailsTab === "levels" ? (
               <div className="route-tab-panel" role="tabpanel">
                 <section className="info-block info-block--first">
-                  <h3>Gauge</h3>
-                  <div className="gauge-card">
-                    <div>
-                      <strong>{liveGauge?.gauge.name ?? activeSection.gauge.name}</strong>
-                      <span>
-                        {isGaugeLoading
-                          ? "Checking Environment Agency"
-                          : liveGauge?.gauge.observedAt
-                            ? new Date(liveGauge.gauge.observedAt).toLocaleString()
-                            : activeSection.gauge.observedAt}
-                      </span>
-                    </div>
-                    <div>
-                      <strong>
-                        {liveGauge?.gauge.latestValue != null
-                          ? `${liveGauge.gauge.latestValue.toFixed(2)} ${liveGauge.gauge.unit}`
-                          : activeSection.gauge.value}
-                      </strong>
-                      <span>{liveGauge?.state ?? activeSection.gauge.trend}</span>
-                    </div>
+                  <div className="block-title">
+                    <h3>Observations</h3>
+                    <span>
+                      {isSectionObservationsLoading
+                        ? sectionObservations.length
+                          ? "Updating"
+                          : "Loading"
+                        : sectionObservations.length
+                          ? `${sectionObservations.length} linked`
+                          : "No stored link"}
+                    </span>
                   </div>
+                  <div
+                    className="segmented-control observation-range-tabs"
+                    aria-label="Observation range"
+                  >
+                    {observationRangeOptions.map((option) => (
+                      <button
+                        className={
+                          option.hours === observationRangeHours ? "active" : ""
+                        }
+                        type="button"
+                        key={option.hours}
+                        onClick={() => setObservationRangeHours(option.hours)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  {sectionObservations.length ? (
+                    <div
+                      className={`observation-list ${
+                        isSectionObservationsLoading ? "observation-list--updating" : ""
+                      }`}
+                    >
+                      {sectionObservations.map((measure) => {
+                        const rangeOption =
+                          getObservationRangeOption(displayedObservationRangeHours);
+                        const chartPoints = buildObservationChartPoints(measure);
+                        const latestChartPoint = chartPoints
+                          .split(" ")
+                          .at(-1)
+                          ?.split(",");
+                        const stats = getObservationStats(measure);
+                        const midValue =
+                          stats.min != null && stats.max != null
+                            ? (stats.min + stats.max) / 2
+                            : null;
+
+                        return (
+                          <article className="observation-card" key={measure.id}>
+                            <div className="observation-card__header">
+                              <div>
+                                <strong>{measure.stationName}</strong>
+                                <span>
+                                  {observationParameterLabels[measure.parameter]} ·{" "}
+                                  {measure.relevance.replaceAll("_", " ")}
+                                </span>
+                              </div>
+                              <span
+                                className={`status-chip status-chip--${
+                                  measure.latest?.state ?? "unavailable"
+                                }`}
+                              >
+                                {measure.latest?.state ?? "unavailable"}
+                              </span>
+                            </div>
+                            <div className="observation-metrics">
+                              <span>
+                                <strong>
+                                  {formatObservationValue(
+                                    measure.latest?.value,
+                                    measure.unit,
+                                  )}
+                                </strong>
+                                Latest
+                              </span>
+                              <span>
+                                <strong>{formatObservationRange(measure)}</strong>
+                                {rangeOption.rangeLabel}
+                              </span>
+                              <span>
+                                <strong className={`trend-label trend-label--${stats.trend}`}>
+                                  {stats.trend}
+                                </strong>
+                                Trend
+                              </span>
+                            </div>
+                            {chartPoints ? (
+                              <div
+                                className="observation-chart"
+                                role="img"
+                                aria-label={`${rangeOption.chartLabel} ${observationParameterLabels[
+                                  measure.parameter
+                                ].toLowerCase()} trend from ${formatObservationValue(
+                                  stats.min,
+                                  measure.unit,
+                                )} to ${formatObservationValue(stats.max, measure.unit)}`}
+                              >
+                                <div
+                                  className="observation-chart__axis"
+                                  aria-hidden="true"
+                                >
+                                  <span>{formatObservationValue(stats.max, measure.unit)}</span>
+                                  <span>{formatObservationValue(midValue, measure.unit)}</span>
+                                  <span>{formatObservationValue(stats.min, measure.unit)}</span>
+                                </div>
+                                <svg
+                                  viewBox="0 0 240 72"
+                                  aria-hidden="true"
+                                  preserveAspectRatio="none"
+                                >
+                                  <line
+                                    className="observation-chart__grid observation-chart__grid--major"
+                                    x1="0"
+                                    x2="240"
+                                    y1="8"
+                                    y2="8"
+                                  />
+                                  <line
+                                    className="observation-chart__grid"
+                                    x1="0"
+                                    x2="240"
+                                    y1="36"
+                                    y2="36"
+                                  />
+                                  <line
+                                    className="observation-chart__grid observation-chart__grid--major"
+                                    x1="0"
+                                    x2="240"
+                                    y1="64"
+                                    y2="64"
+                                  />
+                                  <polyline
+                                    className="observation-chart__line"
+                                    points={chartPoints}
+                                  />
+                                  <circle
+                                    className="observation-chart__point"
+                                    cx={latestChartPoint?.[0]}
+                                    cy={latestChartPoint?.[1]}
+                                    r="3"
+                                  />
+                                </svg>
+                              </div>
+                            ) : null}
+                            <div className="observation-meta">
+                              <span>
+                                Observed{" "}
+                                {formatDateTime(measure.latest?.observedAt ?? null)}
+                              </span>
+                              <span>{measure.confidence.replaceAll("-", " ")}</span>
+                            </div>
+                            {measure.sourceUrl ? (
+                              <a
+                                className="source-link"
+                                href={measure.sourceUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Source
+                              </a>
+                            ) : null}
+                          </article>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="gauge-card">
+                      <div>
+                        <strong>
+                          {liveGauge?.gauge.name ?? activeSection.gauge.name}
+                        </strong>
+                        <span>
+                          {isGaugeLoading
+                            ? "Checking Environment Agency"
+                            : liveGauge?.gauge.observedAt
+                              ? new Date(liveGauge.gauge.observedAt).toLocaleString()
+                              : activeSection.gauge.observedAt}
+                        </span>
+                      </div>
+                      <div>
+                        <strong>
+                          {liveGauge?.gauge.latestValue != null
+                            ? `${liveGauge.gauge.latestValue.toFixed(2)} ${liveGauge.gauge.unit}`
+                            : activeSection.gauge.value}
+                        </strong>
+                        <span>{liveGauge?.state ?? activeSection.gauge.trend}</span>
+                      </div>
+                    </div>
+                  )}
                   <p className="source-note">
-                    {liveGauge?.message ??
-                      "Seed gauge context only. Provider mapping is still being verified."}
+                    {sectionObservationMessage ||
+                      (sectionObservations.length
+                        ? "Stored provider observations are cached by RiverLaunch.app. Runnable interpretation still needs local validation."
+                        : liveGauge?.message ??
+                          "Seed gauge context only. Provider mapping is still being verified.")}
                   </p>
                 </section>
 

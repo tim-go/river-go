@@ -9,7 +9,7 @@ maturity: Trial
 # River Section Map
 
 **Work state:** Active
-**Last updated:** 2026-05-24
+**Last updated:** 2026-05-25
 **Scope:** The map, section list, route traces, markers, and selected-section panel for browsing river sections.
 
 ## Purpose
@@ -77,6 +77,10 @@ Live location should use the browser/PWA geolocation permission model. The app m
 The selected-section route panel should stay closed by default. Users can open it explicitly with the Route control.
 
 Sections and Route controls should live in the map header action strip and show active state when their panel is open.
+
+The map header should stay compact on desktop and mobile so route context and core actions do not consume a large share of the map viewport. It should still expose the selected section's headline level/status context without forcing users to open route details.
+
+When provider observations are available for a selected section, the map should show an immediately visible route status card with current level/flow context, trend, source, freshness, and a direct action to open full level history. Users should be able to hide this card temporarily and restore it from a compact map control.
 
 Clicking markers must not unexpectedly zoom out or recenter the map.
 
@@ -158,6 +162,7 @@ Production behaviour may differ:
 | MAP-F13 | POI location actions | Map/POI panel | Active | MVP | — | POIs expose Google Maps, coordinate copy, and what3words display/copy when configured. |
 | MAP-F14 | Searched-location marker | Search/map | Active | prototype | — | Location-reference search can place a distinct searched-location marker without entering add mode. |
 | MAP-F15 | Opt-in live location | Map/PWA | Active | prototype | — | Browser geolocation can show the user's current location and accuracy circle locally on the map. |
+| MAP-F16 | Visible route level status | Map/header | Active | prototype | — | Selected sections expose headline level context and a direct path to full observation history. |
 
 ### Backlog
 

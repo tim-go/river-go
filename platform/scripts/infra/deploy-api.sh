@@ -108,6 +108,7 @@ SERVER_SA_EMAIL="$SERVER_SA_NAME@$GCP_PROJECT.iam.gserviceaccount.com"
 DATABASE_URL="$(runtime_value ".$ENV.database.url")"
 ADMIN_EMAILS="$(jq -er ".$ENV.auth.adminEmails // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 WHAT3WORDS_API_KEY="$(jq -er ".$ENV.integrations.what3words.apiKey // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
+OBSERVATION_JOB_TOKEN="$(jq -er ".$ENV.jobs.observationIngestionToken // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 
 if [[ -z "$TAG" ]]; then
   GIT_SHA="$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo manual)"
@@ -134,6 +135,12 @@ if [[ -n "$WHAT3WORDS_API_KEY" && "$WHAT3WORDS_API_KEY" != *"<"* && "$WHAT3WORDS
   SET_SECRETS="$SET_SECRETS,WHAT3WORDS_API_KEY=WHAT3WORDS_API_KEY:latest"
 else
   info "what3words API key not configured; location lookup endpoint will report configured=false"
+fi
+if [[ -n "$OBSERVATION_JOB_TOKEN" && "$OBSERVATION_JOB_TOKEN" != *"<"* && "$OBSERVATION_JOB_TOKEN" != *">"* ]]; then
+  write_secret "OBSERVATION_JOB_TOKEN" "$OBSERVATION_JOB_TOKEN"
+  SET_SECRETS="$SET_SECRETS,OBSERVATION_JOB_TOKEN=OBSERVATION_JOB_TOKEN:latest"
+else
+  info "Observation job token not configured; ingestion endpoint will require moderator Firebase auth"
 fi
 
 section "Build and publish image"

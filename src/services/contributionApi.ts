@@ -96,6 +96,7 @@ export async function deleteContribution(
 export type ModerationDecision =
   | "approve"
   | "confirm"
+  | "request-confirmation"
   | "challenge"
   | "hide"
   | "reject"

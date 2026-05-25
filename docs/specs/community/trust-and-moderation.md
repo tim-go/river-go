@@ -176,6 +176,15 @@ Admin-only actions should be limited to:
 - handling serious abuse, legal, or safety escalation
 - managing system configuration
 
+Confirmed POIs and contributions should not need to be made unconfirmed before
+minor corrections can be proposed. Public trust state and edit/review state are
+separate: a confirmed item can remain visible as confirmed while a member
+suggests a correction, and a moderator can approve, reject, or resolve that
+correction separately. Admins and contribution moderators need an explicit
+override control on POI/detail surfaces so they can mark an item `confirmed`,
+`needs-confirmation`, `needs-correction`/`challenged`, `hidden`, `rejected`, or
+`resolved` without forcing a normal member verification workflow.
+
 Moderation priority should be highest for:
 
 - safety-critical hazards
@@ -209,6 +218,7 @@ Access notes should receive stricter moderation than ordinary features.
 | TRUST-F6 | Moderation queue | Admin/backend | Landed | MVP | — | Admins and contribution moderators can view queued contributions and apply basic decisions. |
 | TRUST-F7 | Contributor roles | Auth/community | Landed | MVP | — | Supports `MEMBER`, `TRUSTED_MEMBER`, `CONTRIB_MODERATOR`, and `ADMIN`; admin permissions roll up over moderation. |
 | TRUST-F8 | Member role/trust editing | Admin/backend | Landed | MVP | — | Admin member directory can update role and trust level. |
+| TRUST-F9 | POI status override | POI/admin | Active | MVP | — | Admins and contribution moderators can override map POI and contribution trust/status from detail surfaces without first unconfirming an item. |
 
 ### Backlog
 

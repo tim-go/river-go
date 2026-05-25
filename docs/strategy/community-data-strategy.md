@@ -31,6 +31,22 @@ This makes community data both the product's main value and its defensible asset
 
 The strategic test is simple: if members do not add, confirm, correct, or refresh local river knowledge, RiverLaunch.app becomes another thin map. If they do, the product becomes more useful after every trip.
 
+## Source Register, Not Scraping
+
+Individual river and venue sources can be valuable. The National White Water Centre / Canolfan Tryweryn shows the pattern: a river-specific organisation may publish release context, public warnings, section descriptions, facilities, visitor logistics, event restrictions, and operating caveats that are highly relevant to paddlers.
+
+RiverLaunch.app should capture these sources in a source register. The register should help the team and community know where a section's public reference material came from, what it appears to cover, when it was checked, and what permission or verification limits apply.
+
+The source register is not a scraping pipeline. It should not copy third-party guide descriptions, photos, maps, or route data without permission. It should support:
+
+- discovery of candidate sections
+- attribution and provenance
+- contributor prompts, such as "verify this access point" or "add a current photo"
+- partnership conversations with venues, clubs, and organisations
+- confidence labelling for route and POI records
+
+Precise POIs, local access practicality, hazards, photos, and runnable interpretation should still come from RiverLaunch.app contributors, trusted local reviewers, official/open data where permitted, or explicit partner/licensed data.
+
 ## Route Data Is Community Data
 
 Route coverage is part of the community problem, not only a seed-data problem.

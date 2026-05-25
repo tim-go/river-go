@@ -29,6 +29,11 @@ setIfPresent(
   "WHAT3WORDS_API_KEY",
   readString(envConfig?.integrations?.what3words?.apiKey),
 );
+setIfPresent(
+  env,
+  "OBSERVATION_JOB_TOKEN",
+  readString(envConfig?.jobs?.observationIngestionToken),
+);
 
 console.log(`Running API command with ${envName} runtime config.`);
 console.log(`Runtime config: ${fs.existsSync(runtimePath) ? runtimePath : "not found"}`);

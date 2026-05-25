@@ -58,13 +58,14 @@ Before public use, validate:
 - whether near-dam points should be labelled as access, release reference, or feature only
 - current facility-fee/check-in requirements
 - release calendar data source and refresh model
+- NRW Bala Weir X level and Tryweryn Dam rainfall relevance to the upper/centre sections
 - exact bridge and rapid names
 - lower-section portage route and Bala finish
 - OSM/ODbL obligations for derived route geometry
 
 ## Open Questions
 
-- Should Tryweryn release information be integrated from the centre page, NRW data, or both?
+- Should Tryweryn release information be integrated from the centre page, NRW data, or both? Initial backend ingestion uses NRW level/rainfall as context only; it does not replace release calendar data.
 - Should dam-release rivers have a dedicated `release` level-provider model separate from gauge readings?
 - What field-level confidence is needed for venue-managed access points?
 
@@ -77,7 +78,7 @@ Before public use, validate:
 | TRYWERYN-F1 | Near-dam sample section | Data/map | Active | prototype | — | Starts near the Llyn Celyn outflow/stilling basin and runs to the centre. |
 | TRYWERYN-F2 | Lower Tryweryn sample section | Data/map | Active | prototype | — | Provides Bala/portage context below the centre. |
 | TRYWERYN-F3 | OSM-derived Tryweryn route traces | Data/map | Active | prototype | — | Route traces follow the river geometry for demo use. |
-| TRYWERYN-F4 | Release-aware seed metadata | Data/levels | Active | prototype | — | Release checks are represented as provider-backed seed metadata, not live integration. |
+| TRYWERYN-F4 | Release-aware seed metadata | Data/levels | Active | prototype | — | Release checks remain centre-page seed metadata; NRW Bala Weir X level and Tryweryn Dam rainfall are available as candidate context observations. |
 | TRYWERYN-F5 | User-provided river photo | Data/media | Active | prototype | — | Demo uses `/images/river-tryweryn.jpeg` for Tryweryn section imagery. |
 | TRYWERYN-F6 | Local verification pass | Research/data | Queued | v0.2 | — | Needs local paddler, centre, and NRW/source validation. |
 

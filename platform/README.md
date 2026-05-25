@@ -148,6 +148,31 @@ npm run platform:backfill:w3w:staging
 
 The backfill connects through Cloud SQL Auth Proxy, finds visible point contributions without `payload.what3wordsAddress`, and stores the generated address in the existing JSONB payload.
 
+Run the first observation ingestion job locally after migrations:
+
+```bash
+npm run api:ingest:observations
+```
+
+Seed recent provider history for enabled observation measures:
+
+```bash
+npm run api:backfill:observations -- --hours=672
+npm run platform:backfill:observations:staging -- --hours=672
+```
+
+The backfill job uses the same provider adapter as scheduled ingestion but
+records `observations.backfill` job runs and asks the provider for a larger
+bounded window. Use it after linking or enabling a new measure; regular
+ingestion should keep history current after that seed.
+
+For hosted environments, deploy the API with `jobs.observationIngestionToken`
+set in `platform/.config/river-go-runtime.json` if the scheduler will call
+`POST /api/jobs/observations/ingest` or
+`POST /api/jobs/observations/backfill` using the temporary job-token header.
+Production should move this to Cloud Scheduler OIDC once the scheduler resource
+is provisioned.
+
 Deploy the API to Cloud Run without changing Firebase Hosting traffic:
 
 ```bash

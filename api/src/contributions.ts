@@ -249,6 +249,7 @@ export async function getContributionById(
 export type ModerationDecision =
   | "approve"
   | "confirm"
+  | "request-confirmation"
   | "challenge"
   | "hide"
   | "reject"
@@ -428,6 +429,7 @@ export function isModerationDecision(
   return (
     value === "approve" ||
     value === "confirm" ||
+    value === "request-confirmation" ||
     value === "challenge" ||
     value === "hide" ||
     value === "reject" ||
@@ -440,6 +442,7 @@ function moderationStatusForDecision(
 ): ContributionModerationStatus {
   if (decision === "approve") return "reported";
   if (decision === "confirm") return "confirmed";
+  if (decision === "request-confirmation") return "needs-confirmation";
   if (decision === "challenge") return "challenged";
   if (decision === "hide") return "hidden";
   if (decision === "reject") return "rejected";
