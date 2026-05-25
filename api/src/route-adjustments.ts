@@ -2,6 +2,7 @@ import type { PoolClient } from "pg";
 import { pool } from "./db.js";
 import { HttpError } from "./http.js";
 import type { Member } from "./members.js";
+import { publishRouteOverrideFromAdjustment } from "./route-overrides.js";
 
 export type RouteAdjustmentTargetType = "section" | "route_suggestion";
 
@@ -146,6 +147,7 @@ export async function listModerationRouteAdjustments(
 export async function applyRouteAdjustmentDecision(
   routeAdjustmentId: string,
   decision: RouteAdjustmentDecision,
+  actor: Member,
   client: PoolClient | typeof pool = pool,
 ): Promise<ApiRouteAdjustment> {
   const status = routeAdjustmentStatusForDecision(decision);
@@ -160,6 +162,10 @@ export async function applyRouteAdjustmentDecision(
 
   if (!result.rowCount) {
     throw new HttpError(404, "Route adjustment not found.");
+  }
+
+  if (status === "approved") {
+    await publishRouteOverrideFromAdjustment(routeAdjustmentId, actor, client);
   }
 
   return getRouteAdjustmentById(routeAdjustmentId, client);

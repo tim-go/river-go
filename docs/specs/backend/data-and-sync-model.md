@@ -263,7 +263,8 @@ APIs.
 `poi_route_links` records explicit or derived relationships between
 location-owned POIs and route/section records. The first migration backfills
 legacy section associations as `legacy-section-association` links with
-`route_source = section_fixture`.
+`route_source = section_fixture`. Section map POI reads should use these links
+so POIs can remain location-owned while still appearing in route context.
 
 | Column | Type | Purpose |
 | --- | --- | --- |
@@ -324,6 +325,22 @@ silently overwriting the source record.
 | `route` | `geometry(LineString, 4326)` | Corrected route trace for review or later publishing. |
 | `payload` | `jsonb` | Flexible route-edit metadata. |
 | `created_at`, `updated_at`, `revision` | timestamps/bigint | Audit and future sync state. |
+
+### `route_overrides`
+
+`route_overrides` is the first current-route publishing bridge for the fixture
+era. It stores the public/current geometry for a route when a moderator approves
+a section route adjustment. It does not rewrite fixture source data, route
+suggestion history, or route adjustment audit records.
+
+| Column | Type | Purpose |
+| --- | --- | --- |
+| `route_source`, `route_id` | `text primary key` | Namespaced route target, initially `section_fixture` plus fixture section ID. |
+| `route` | `geometry(LineString, 4326)` | Published/current route geometry used by the frontend over seed geometry. |
+| `source_route_adjustment_id` | `uuid references route_adjustments(id)` | Audit link to the approved edit that created the override. |
+| `applied_by` | `uuid references members(id)` | Moderator/admin who approved the route edit. |
+| `applied_at`, `updated_at`, `revision` | timestamp/bigint | Publish and sync state. |
+| `notes`, `payload` | `text/jsonb` | Evidence and route metadata captured from the approved adjustment. |
 
 ## Initial API Behaviour
 
@@ -451,6 +468,7 @@ Tasks:
 | SYNC-F10 | Public identity and ICE schema | Backend/profile | Active | MVP | — | Adds member public-name fields and a private emergency-contact-only profile table. |
 | SYNC-F11 | Route adjustment schema | Backend/data | Active | MVP | — | Adds auditable route-edit records for seeded/current routes before canonical publishing is automated. |
 | SYNC-F12 | Location-owned POI shadow schema | Backend/data | Active | MVP | — | Adds `pois` and `poi_route_links` beside existing section-scoped data, with non-destructive backfill and source triggers. |
+| SYNC-F13 | Route override publishing | Backend/API | Active | MVP | — | Approved section route adjustments publish to `route_overrides`, and the frontend applies those current route geometries over fixture routes. |
 
 ### Backlog
 
@@ -462,7 +480,7 @@ Tasks:
 | SYNC-B4 | task | IndexedDB outbox implementation | Open | MVP | Client-side peer to the sync operation envelope. |
 | SYNC-B5 | task | Phase 1 persisted contribution loop | Resolved | MVP | Backend section readback, authenticated sync writes, moderation defaults, smoke readback, and frontend merge are implemented. |
 | SYNC-B6 | task | Phase 2 trust roles and moderation controls | Resolved | MVP | Migration, admin role/trust editing, moderation queue, and basic moderation decisions are implemented. |
-| SYNC-B7 | migration | Switch POI read APIs | Open | MVP | Move route/map views from section-scoped `map_pois` and contributions to relationship/spatial queries over `pois`. |
+| SYNC-B7 | migration | Switch POI read APIs | Active | MVP | Section map POIs now read through `pois`/`poi_route_links`; contribution reads also include relationship-linked contribution POIs. Remaining work is full spatial relevance and write-path migration. |
 
 ## Change Log
 

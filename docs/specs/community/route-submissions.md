@@ -89,14 +89,14 @@ Admins and contribution moderators must be able to create route adjustment recor
 - approved route candidates
 - future promoted canonical route records
 
-Route adjustments should capture the target type, target id, corrected route trace, edited river/section/difficulty/access/source text, evidence notes, status, moderator identity, revision, and timestamps. The first implementation may store route adjustments as review records without automatically applying them to the canonical map. Applying an approved adjustment to the route catalogue is a separate promotion/publishing workflow and must remain auditable.
+Route adjustments should capture the target type, target id, corrected route trace, edited river/section/difficulty/access/source text, evidence notes, status, moderator identity, revision, and timestamps. For existing fixture-backed sections, approving a section route adjustment may publish the corrected geometry to a route override record. The source fixture and route adjustment audit history must remain intact; later canonical route records should replace this override bridge.
 
 ## Open Questions
 
 - Should route suggestions allow full multi-point tracing in the MVP, or start/end plus evidence only?
 - What moderation status vocabulary should route submissions share with POIs and contributions?
 - When should a suggested route become visible to all users?
-- When should approved route adjustments automatically update the public route catalogue rather than remaining as reviewed edit records?
+- What additional impact review should run before approved route adjustments update public route geometry?
 
 ## Tracking
 
@@ -114,6 +114,7 @@ Route adjustments should capture the target type, target id, corrected route tra
 | ROUTESUB-F8 | Route-focused moderation tabs | Admin/moderation | Active | MVP | — | Moderation is split into routes, point/photo contributions, and map point corrections; approved route candidates remain visible. |
 | ROUTESUB-F9 | Route adjustment records | Map/admin/API | Active | MVP | — | Admins/moderators can trace corrected geometry for existing seeded/candidate routes and store it as an auditable adjustment. |
 | ROUTESUB-F10 | Frontend snap-to-known-river POC | Map/route editor | Active | prototype | — | Rough traces can be snapped to known in-app river route geometry before review/save. |
+| ROUTESUB-F11 | Route override publishing | API/frontend | Active | MVP | — | Approved section route adjustments publish current route geometry through route overrides without rewriting seed fixtures. |
 
 ### Backlog
 
@@ -125,7 +126,7 @@ Route adjustments should capture the target type, target id, corrected route tra
 | ROUTESUB-B4 | validation | Promotion rules | Open | MVP | Define confidence threshold before a suggested route becomes a canonical section. |
 | ROUTESUB-B5 | enhancement | Retry local drafts | Resolved | MVP | Local fallback drafts now have a `Send` action in Profile. |
 | ROUTESUB-B6 | enhancement | Edit approved route candidates | Active | MVP | Admin/moderator route-adjustment records now cover existing seeded routes and approved route candidates; applying them to canonical data remains separate. |
-| ROUTESUB-B7 | migration | Canonical route publishing | Open | MVP | Define how approved route adjustments update static fixtures, imported candidates, or future canonical DB route records. |
+| ROUTESUB-B7 | migration | Canonical route publishing | Active | MVP | Section fixture route overrides are implemented as the first publishing bridge; future work should promote this into canonical route records. |
 | ROUTESUB-B8 | enhancement | Store rough and snapped traces | Open | MVP | Current POC saves the reviewed trace; backend should later persist original user trace, snapped trace, snap source, and confidence warnings separately. |
 
 ## Change Log

@@ -118,8 +118,16 @@ export async function listMapPoisForSection(
   client: PoolClient | typeof pool = pool,
 ): Promise<ApiMapPoi[]> {
   const result = await client.query<MapPoiRow>(
-    `${mapPoiSelectSql(viewerMemberId)}
-    WHERE p.section_id = $1
+    `SELECT
+      ${locationBackedMapPoiSelectColumnsSql(viewerMemberId)}
+    FROM pois lp
+    JOIN poi_route_links prl ON prl.poi_id = lp.id
+    JOIN map_pois p ON p.id = lp.source_entity_id
+    WHERE lp.source_entity_type = 'map_poi'
+      AND lp.status != 'hidden'
+      AND prl.route_source = 'section_fixture'
+      AND prl.route_id = $1
+      AND prl.status = 'active'
     ORDER BY
       CASE p.kind
         WHEN 'gauge' THEN 1
@@ -132,6 +140,60 @@ export async function listMapPoisForSection(
   );
 
   return result.rows.map(mapPoiRow);
+}
+
+function locationBackedMapPoiSelectColumnsSql(viewerMemberId?: string | null) {
+  return `
+    p.id,
+    prl.route_id AS section_id,
+    p.kind,
+    ST_AsGeoJSON(lp.geometry)::json AS geometry,
+    lp.title,
+    p.subtitle,
+    lp.summary,
+    lp.source_kind,
+    lp.source_label,
+    lp.source_confidence,
+    lp.source_updated_at,
+    lp.source_url,
+    p.verification_status,
+    COALESCE(lp.payload -> 'payload', lp.payload) AS payload,
+    lp.revision,
+    lp.updated_at,
+    COALESCE((
+      SELECT count(*) FROM map_poi_reviews r
+      WHERE r.poi_id = p.id AND r.decision = 'confirm'
+    ), 0) AS confirmations,
+    COALESCE((
+      SELECT count(*) FROM map_poi_reviews r
+      WHERE r.poi_id = p.id AND r.decision = 'correction'
+    ), 0) AS corrections${
+      viewerMemberId
+        ? `,
+    EXISTS (
+      SELECT 1 FROM map_poi_reviews vr
+      WHERE vr.poi_id = p.id
+        AND vr.member_id = $2
+        AND vr.decision = 'confirm'
+    ) AS viewer_confirmed,
+    EXISTS (
+      SELECT 1 FROM map_poi_reviews vr
+      WHERE vr.poi_id = p.id
+        AND vr.member_id = $2
+        AND vr.decision = 'correction'
+        AND p.verification_status = 'needs-correction'
+    ) AS viewer_suggested_correction,
+    (
+      SELECT vr.note FROM map_poi_reviews vr
+      WHERE vr.poi_id = p.id
+        AND vr.member_id = $2
+        AND vr.decision = 'correction'
+        AND p.verification_status = 'needs-correction'
+      ORDER BY vr.created_at DESC
+      LIMIT 1
+    ) AS viewer_correction_note`
+        : ""
+    }`;
 }
 
 export async function listMapPoiCorrectionReviews(

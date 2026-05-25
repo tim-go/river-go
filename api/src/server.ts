@@ -51,6 +51,7 @@ import {
   isRouteAdjustmentDecision,
   listModerationRouteAdjustments,
 } from "./route-adjustments.js";
+import { listRouteOverrides } from "./route-overrides.js";
 import { pushSyncOperations } from "./sync.js";
 import {
   lookupCoordinatesForWhat3Words,
@@ -242,6 +243,11 @@ async function route(
     return { status: 200, body: { routeSuggestions } };
   }
 
+  if (method === "GET" && url.pathname === "/api/route-overrides") {
+    const routeOverrides = await listRouteOverrides();
+    return { status: 200, body: { routeOverrides } };
+  }
+
   if (method === "POST" && url.pathname === "/api/route-suggestions") {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
@@ -386,6 +392,7 @@ async function route(
     const routeAdjustment = await applyRouteAdjustmentDecision(
       decodeURIComponent(routeAdjustmentDecisionMatch[1]),
       body.decision,
+      member,
     );
     return { status: 200, body: { routeAdjustment } };
   }

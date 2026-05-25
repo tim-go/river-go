@@ -86,7 +86,7 @@ export async function listContributionsForSection(
   const result = await client.query<ContributionRow>(
     `SELECT
       c.id,
-      c.section_id,
+      COALESCE(c.section_id, prl.route_id) AS section_id,
       c.type,
       CASE
         WHEN c.geometry IS NULL THEN NULL
@@ -105,8 +105,17 @@ export async function listContributionsForSection(
       m.email,
       m.trust_level
     FROM contributions c
+    LEFT JOIN LATERAL (
+      SELECT route_id
+      FROM poi_route_links
+      WHERE poi_id = 'contribution:' || c.id::text
+        AND route_source = 'section_fixture'
+        AND route_id = $1
+        AND status = 'active'
+      LIMIT 1
+    ) prl ON TRUE
     LEFT JOIN members m ON m.id = c.member_id
-    WHERE c.section_id = $1
+    WHERE (c.section_id = $1 OR prl.route_id IS NOT NULL)
       AND (
         c.moderation_status IN (
           'reported',

@@ -121,6 +121,10 @@ import {
   type RouteAdjustment,
   type RouteAdjustmentDecision,
 } from "./services/routeAdjustmentApi";
+import {
+  fetchRouteOverrides,
+  type RouteOverride,
+} from "./services/routeOverrideApi";
 import type {
   Contribution,
   ContributionPhoto,
@@ -1052,6 +1056,62 @@ function distanceKmBetween(from: LatLngTuple, to: LatLngTuple) {
   return earthRadiusKm * c;
 }
 
+function routeDistanceKm(route: LatLngTuple[]) {
+  return route.reduce((total, point, index) => {
+    if (index === 0) {
+      return total;
+    }
+
+    return total + distanceKmBetween(route[index - 1], point);
+  }, 0);
+}
+
+function routeCentre(route: LatLngTuple[]) {
+  if (!route.length) {
+    return null;
+  }
+
+  const middle = route[Math.floor(route.length / 2)];
+  return middle ?? null;
+}
+
+function applyRouteOverridesToSections(
+  sections: RiverSection[],
+  overrides: RouteOverride[],
+) {
+  if (!overrides.length) {
+    return sections;
+  }
+
+  const overridesBySectionId = new Map(
+    overrides
+      .filter((override) => override.routeSource === "section_fixture")
+      .map((override) => [override.routeId, override] as const),
+  );
+
+  return sections.map((section) => {
+    const override = overridesBySectionId.get(section.id);
+
+    if (!override || override.route.length < 2) {
+      return section;
+    }
+
+    return {
+      ...section,
+      route: override.route,
+      centre: routeCentre(override.route) ?? section.centre,
+      distanceKm: Number(routeDistanceKm(override.route).toFixed(1)),
+      source: section.source
+        ? {
+            ...section.source,
+            notes: `${section.source.notes} Route geometry has a moderator-approved override.`,
+            updatedAt: override.appliedAt.slice(0, 10),
+          }
+        : section.source,
+    };
+  });
+}
+
 function isDuplicateRoutePoint(
   previous: LatLngTuple | undefined,
   next: LatLngTuple,
@@ -1144,8 +1204,11 @@ function snapRoughTraceToKnownRoute(
   return best;
 }
 
-function nearestSectionsForLocation(location: LatLngTuple) {
-  return riverSections
+function nearestSectionsForLocation(
+  location: LatLngTuple,
+  sections: RiverSection[],
+) {
+  return sections
     .map((section) => ({
       section,
       distanceKm: distanceKmBetween(location, section.centre),
@@ -1157,8 +1220,9 @@ function nearestSectionsForLocation(location: LatLngTuple) {
 function nearbyPoisForLocation(
   location: LatLngTuple,
   contributions: Contribution[],
+  sections: RiverSection[],
 ) {
-  const seedPois = riverSections.flatMap((section): NearbyPoiResult[] => [
+  const seedPois = sections.flatMap((section): NearbyPoiResult[] => [
     ...section.accessPoints.map((accessPoint) => ({
       id: accessPoint.id,
       kind: "access" as const,
@@ -1206,7 +1270,7 @@ function nearbyPoisForLocation(
       return [];
     }
 
-    const section = riverSections.find((item) => item.id === contribution.sectionId);
+    const section = sections.find((item) => item.id === contribution.sectionId);
 
     if (!section) {
       return [];
@@ -2511,6 +2575,7 @@ function App() {
     loadRouteSuggestions,
   );
   const [routeAdjustments, setRouteAdjustments] = useState<RouteAdjustment[]>([]);
+  const [routeOverrides, setRouteOverrides] = useState<RouteOverride[]>([]);
   const [routeCreateMode, setRouteCreateMode] =
     useState<RouteCreateMode>("idle");
   const [routeDraftTarget, setRouteDraftTarget] =
@@ -2701,18 +2766,22 @@ function App() {
   const [locationSearchMessage, setLocationSearchMessage] = useState("");
   const [isLocationSearchLoading, setIsLocationSearchLoading] = useState(false);
 
+  const appRiverSections = useMemo(
+    () => applyRouteOverridesToSections(riverSections, routeOverrides),
+    [routeOverrides],
+  );
   const activeSection = useMemo(
     () =>
-      riverSections.find((section) => section.id === activeSectionId) ??
-      riverSections[0],
-    [activeSectionId],
+      appRiverSections.find((section) => section.id === activeSectionId) ??
+      appRiverSections[0],
+    [activeSectionId, appRiverSections],
   );
   const activeRiverSections = useMemo(
     () =>
-      riverSections.filter(
+      appRiverSections.filter(
         (section) => section.riverName === activeSection.riverName,
       ),
-    [activeSection.riverName],
+    [activeSection.riverName, appRiverSections],
   );
   const observationSectionIdRef = useRef(activeSection.id);
 
@@ -2837,7 +2906,7 @@ function App() {
     syncBannerDismissal!.expiresAt > Date.now() &&
     queuedOutboxCount <= syncBannerDismissal!.queuedOutboxCount &&
     failedOutboxCount <= syncBannerDismissal!.failedOutboxCount;
-  const favouriteSections = riverSections.filter((section) =>
+  const favouriteSections = appRiverSections.filter((section) =>
     favouriteSectionIds.includes(section.id),
   );
   const isActiveSectionFavourite =
@@ -2848,10 +2917,10 @@ function App() {
     const searchTerm = riverSearchTerm.trim().toLowerCase();
 
     if (!searchTerm) {
-      return riverSections;
+      return appRiverSections;
     }
 
-    return riverSections.filter((section) =>
+    return appRiverSections.filter((section) =>
       [
         section.riverName,
         section.sectionName,
@@ -2861,7 +2930,7 @@ function App() {
         ...section.suitability,
       ].some((value) => value.toLowerCase().includes(searchTerm)),
     );
-  }, [riverSearchTerm]);
+  }, [appRiverSections, riverSearchTerm]);
   const filteredAdminMembers = useMemo(() => {
     const searchTerm = memberSearch.trim().toLowerCase();
 
@@ -3178,6 +3247,26 @@ function App() {
     void loadMemberPhotos();
     void loadMemberContributions();
   }, [activeAppSection, authState.user]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchRouteOverrides()
+      .then((overrides) => {
+        if (isMounted) {
+          setRouteOverrides(overrides);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setRouteOverrides([]);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(contributions));
@@ -3940,7 +4029,7 @@ function App() {
   }
 
   function openSectionOnMap(sectionId: string | null | undefined) {
-    const section = riverSections.find((item) => item.id === sectionId);
+    const section = appRiverSections.find((item) => item.id === sectionId);
 
     if (!section) {
       return null;
@@ -4333,7 +4422,7 @@ function App() {
         }
 
         const section =
-          riverSections.find((item) => item.id === updatedContribution.sectionId) ??
+          appRiverSections.find((item) => item.id === updatedContribution.sectionId) ??
           activeSection;
         return selectedPoiForContribution(updatedContribution, section);
       });
@@ -4417,6 +4506,15 @@ function App() {
               item.id === updatedAdjustment.id ? updatedAdjustment : item,
             ),
       );
+      if (
+        updatedAdjustment.status === "approved" &&
+        updatedAdjustment.targetType === "section"
+      ) {
+        setRouteOverrides(await fetchRouteOverrides());
+        if (updatedAdjustment.targetId === activeSection.id) {
+          setSectionFocusNonce((current) => current + 1);
+        }
+      }
       setModerationMessage(`Updated route edit for ${updatedAdjustment.sectionName}.`);
     } catch (error) {
       setModerationMessage(
@@ -4447,7 +4545,7 @@ function App() {
         current?.mapPoi?.id === updatedPoi.id
           ? mapPoiToSelectedPoi(
               updatedPoi,
-              riverSections.find((item) => item.id === updatedPoi.sectionId) ??
+              appRiverSections.find((item) => item.id === updatedPoi.sectionId) ??
                 activeSection,
             )
           : current,
@@ -4506,7 +4604,7 @@ function App() {
           : current,
       );
       const section =
-        riverSections.find((item) => item.id === updatedContribution.sectionId) ??
+        appRiverSections.find((item) => item.id === updatedContribution.sectionId) ??
         activeSection;
       setSelectedPoi(selectedPoiForContribution(updatedContribution, section));
       setMapPoiReviewMessage(
@@ -4681,7 +4779,7 @@ function App() {
               route: activeSection.route,
             },
           ]
-        : riverSections.map((section) => ({
+        : appRiverSections.map((section) => ({
             id: section.id,
             label: `${section.riverName} · ${section.sectionName}`,
             route: section.route,
@@ -5001,7 +5099,7 @@ function App() {
         }
 
         const section =
-          riverSections.find((item) => item.id === updatedPoi.sectionId) ??
+          appRiverSections.find((item) => item.id === updatedPoi.sectionId) ??
           activeSection;
         return mapPoiToSelectedPoi(updatedPoi, section);
       });
@@ -5036,12 +5134,15 @@ function App() {
     const coordinates = parseCoordinateSearch(searchValue);
 
     if (coordinates) {
-      const nearestSections = nearestSectionsForLocation(coordinates);
+      const nearestSections = nearestSectionsForLocation(
+        coordinates,
+        appRiverSections,
+      );
       setLocationSearchResult({
         label: formatLocation(coordinates),
         location: coordinates,
         focusSection: nearestSections[0]?.section,
-        pois: nearbyPoisForLocation(coordinates, contributions),
+        pois: nearbyPoisForLocation(coordinates, contributions, appRiverSections),
       });
       return;
     }
@@ -5075,8 +5176,9 @@ function App() {
         location,
         nearestPlace: result.nearestPlace,
         country: result.country,
-        focusSection: nearestSectionsForLocation(location)[0]?.section,
-        pois: nearbyPoisForLocation(location, contributions),
+        focusSection: nearestSectionsForLocation(location, appRiverSections)[0]
+          ?.section,
+        pois: nearbyPoisForLocation(location, contributions, appRiverSections),
       });
     } catch {
       setLocationSearchMessage("Could not find that location reference.");
@@ -5421,6 +5523,7 @@ function App() {
         </aside>
 
         <RiverMap
+          sections={appRiverSections}
           activeSection={activeSection}
           mapPois={visibleSectionMapPois}
           contributions={contributions}
@@ -7251,7 +7354,7 @@ function App() {
                     ) : memberContributions.length ? (
                       <div className="profile-photo-list">
                         {memberContributions.map((contribution) => {
-                          const section = riverSections.find(
+                          const section = appRiverSections.find(
                             (item) => item.id === contribution.sectionId,
                           );
 
@@ -7926,7 +8029,7 @@ function App() {
                                   <div className="profile-photo-list">
                                     {selectedAdminMemberDetail.contributions.map(
                                       (contribution) => {
-                                        const section = riverSections.find(
+                                        const section = appRiverSections.find(
                                           (item) =>
                                             item.id === contribution.sectionId,
                                         );
@@ -8770,6 +8873,7 @@ function App() {
 }
 
 function RiverMap({
+  sections,
   activeSection,
   mapPois,
   contributions,
@@ -8796,6 +8900,7 @@ function RiverMap({
   onOpenRouteDetails,
   onSelectSection,
 }: {
+  sections: RiverSection[];
   activeSection: RiverSection;
   mapPois: MapPoi[];
   contributions: Contribution[];
@@ -8920,7 +9025,7 @@ function RiverMap({
 
     layers.clearLayers();
 
-    riverSections.forEach((section) => {
+    sections.forEach((section) => {
       const isActive = section.id === activeSection.id;
       const color =
         section.levelBand === "good"
@@ -9163,7 +9268,7 @@ function RiverMap({
                 subtitle: `${contribution.type} · ${contribution.category}`,
                 summary: contribution.detail,
                 sectionLabel:
-                  riverSections.find((section) => section.id === contribution.sectionId)
+                  sections.find((section) => section.id === contribution.sectionId)
                     ?.sectionName ?? activeSection.sectionName,
                 location: contribution.location!,
                 status: contribution.status,
@@ -9378,6 +9483,7 @@ function RiverMap({
     routeSuggestionFocusId,
     routeSuggestionFocusNonce,
     routeSuggestions,
+    sections,
   ]);
 
   useEffect(() => {
