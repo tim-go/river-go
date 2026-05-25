@@ -65,6 +65,7 @@ Initial endpoints:
 | `POST` | `/api/jobs/observations/backfill` | Guarded on-demand observation history backfill endpoint for newly linked/enabled measures. |
 | `GET` | `/api/sections/:sectionId/observations?hours=48|168|672` | Public linked observation measures with latest and selected recent history for the section. |
 | `GET` | `/api/route-overrides` | Public current-route geometry overrides, initially for moderator-approved fixture section route edits. |
+| `GET` | `/api/route-suggestions/approved` | Public approved route suggestions for low-confidence candidate route display. |
 | `GET` | `/api/rivers` | River list. |
 | `GET` | `/api/rivers/:riverId/sections` | Section list with route summaries. |
 | `GET` | `/api/sections/:sectionId` | Section detail, hazards, access, features, reports, photos, and current gauge context. |
@@ -164,6 +165,7 @@ Moderation:
 | API-F14 | Member contribution management API | Backend/community | Active | MVP | — | Supports member contribution listing and owner/moderator soft-delete. |
 | API-F15 | what3words location API | Backend/integration | Active | MVP | — | Server-side coordinate/address conversion with optional sync-time contribution enrichment. |
 | API-F16 | Profile public name and ICE API | Backend/profile | Active | MVP | — | Supports member public-name updates and owner-only emergency-contact profile read/write. |
+| API-F17 | Public approved route suggestions API | Backend/API | Active | MVP | — | Exposes approved route suggestions for public candidate route display. |
 
 ### Backlog
 
@@ -187,3 +189,4 @@ Moderation:
 | 2026-05-23 | Started Firebase Auth verification path for sync writes. |
 | 2026-05-24 | Added public-name and emergency-contact profile endpoints. |
 | 2026-05-25 | Added guarded observation ingestion/backfill endpoints and section observation read contract. |
+| 2026-05-25 | Added public approved route suggestion read endpoint. |

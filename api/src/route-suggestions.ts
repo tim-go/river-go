@@ -148,6 +148,19 @@ export async function listModerationRouteSuggestions(
   return result.rows.map(mapRouteSuggestionRow);
 }
 
+export async function listApprovedRouteSuggestions(
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiRouteSuggestion[]> {
+  const result = await client.query<RouteSuggestionRow>(
+    `${routeSuggestionSelectSql()}
+    WHERE rs.status = 'approved'
+    ORDER BY rs.updated_at DESC, rs.created_at DESC
+    LIMIT 200`,
+  );
+
+  return result.rows.map(mapRouteSuggestionRow);
+}
+
 export async function applyRouteSuggestionDecision(
   routeSuggestionId: string,
   decision: RouteSuggestionDecision,

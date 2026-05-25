@@ -73,10 +73,13 @@ The backend MVP should expose:
 
 - `POST /api/route-suggestions` for signed-in members to submit candidate routes
 - `GET /api/me/route-suggestions` for members to reload their own suggestions
+- `GET /api/route-suggestions/approved` for public read-only candidate route display
 - `GET /api/moderation/route-suggestions` for moderators/admins to review pending route suggestions
 - `POST /api/moderation/route-suggestions/:id/decision` for moderation decisions
 
-Initial moderation decisions should be limited to approving the candidate for further catalogue work, requesting more information, rejecting, or hiding. Approval does not yet promote the suggestion into a canonical `RiverSection`; that remains a separate data-editor/promotion workflow.
+Initial moderation decisions should be limited to approving the candidate for further catalogue work, requesting more information, rejecting, or hiding. Approval does not yet promote the suggestion into a canonical route record; that remains a separate data-editor/promotion workflow.
+
+Approved route suggestions should be public-visible as low-confidence `Candidate` routes in Map and Search. Candidate display should use distinct styling, low-confidence source copy, and explicit warnings that the route still needs local verification before it is treated as trip advice. Pending, needs-info, hidden, and rejected route suggestions should remain private to the submitter and moderation surfaces.
 
 Approved candidates must remain visible to admins/moderators. They are not finished data; they are candidates that may still need trace cleanup, source checking, status changes, or later promotion. Moderators should be able to move an approved or rejected suggestion back to pending review.
 
@@ -123,12 +126,13 @@ This is a review aid, not a safety guarantee.
 | ROUTESUB-F10 | Frontend snap-to-known-river POC | Map/route editor | Active | prototype | — | Rough traces can be snapped to known in-app river route geometry before review/save. |
 | ROUTESUB-F11 | Route override publishing | API/frontend | Active | MVP | — | Approved section route adjustments publish current route geometry through route overrides without rewriting seed fixtures. |
 | ROUTESUB-F12 | Route edit impact review | Admin/moderation | Active | MVP | — | Route edit cards show distance change, endpoint drift, and POI corridor impact before moderation decisions. |
+| ROUTESUB-F13 | Public approved candidate routes | Map/search/API | Active | MVP | — | Approved route suggestions load through a public API and appear as low-confidence candidate routes. |
 
 ### Backlog
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
-| ROUTESUB-B1 | decision | Candidate visibility | Open | MVP | Decide whether pending routes are private to the submitter, visible to moderators, or visible as low-confidence public candidates. |
+| ROUTESUB-B1 | decision | Candidate visibility | Resolved | MVP | Pending routes stay private to the submitter and moderation surfaces; approved suggestions are visible as low-confidence public candidates. |
 | ROUTESUB-B2 | dependency | Backend schema | Open | MVP | Needs route suggestion table or generic submission envelope. |
 | ROUTESUB-B3 | enhancement | Attach POIs during route submission | Open | Later | Let submitters add put-in/take-out/hazards/photos in one guided flow. |
 | ROUTESUB-B4 | validation | Promotion rules | Open | MVP | Define confidence threshold before a suggested route becomes a canonical section. |
@@ -143,3 +147,4 @@ This is a review aid, not a safety guarantee.
 | Date | Change |
 | --- | --- |
 | 2026-05-25 | Added route submission spec for community-created candidate sections. |
+| 2026-05-25 | Defined approved route suggestions as public low-confidence candidate routes rather than canonical route records. |

@@ -42,6 +42,7 @@ import {
   applyRouteSuggestionDecision,
   createRouteSuggestion,
   isRouteSuggestionDecision,
+  listApprovedRouteSuggestions,
   listModerationRouteSuggestions,
   listRouteSuggestionsForMember,
 } from "./route-suggestions.js";
@@ -246,6 +247,11 @@ async function route(
   if (method === "GET" && url.pathname === "/api/route-overrides") {
     const routeOverrides = await listRouteOverrides();
     return { status: 200, body: { routeOverrides } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/route-suggestions/approved") {
+    const routeSuggestions = await listApprovedRouteSuggestions();
+    return { status: 200, body: { routeSuggestions } };
   }
 
   if (method === "POST" && url.pathname === "/api/route-suggestions") {

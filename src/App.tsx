@@ -115,6 +115,7 @@ import {
 import {
   applyRouteSuggestionDecision,
   createRouteSuggestion,
+  fetchApprovedRouteSuggestions,
   fetchModerationRouteSuggestions,
   fetchMyRouteSuggestions,
   type RouteSuggestion,
@@ -1403,6 +1404,96 @@ function applyRouteOverridesToSections(
         : section.source,
     };
   });
+}
+
+function routeSuggestionToCandidateSection(suggestion: RouteSuggestion): RiverSection {
+  const route = suggestion.route;
+  const centre = routeCentre(route) ?? route[0] ?? ([0, 0] as LatLngTuple);
+  const updatedDate =
+    suggestion.updatedAt?.slice(0, 10) ?? suggestion.createdAt.slice(0, 10);
+
+  return {
+    id: `candidate-route:${suggestion.id}`,
+    riverName: suggestion.riverName,
+    sectionName: suggestion.sectionName,
+    summary: suggestion.summary,
+    centre,
+    route,
+    distanceKm: Number(routeDistanceKm(route).toFixed(1)),
+    estimatedTime: "Needs review",
+    difficulty: suggestion.difficulty || "Needs grading",
+    suitability: ["community candidate", "needs local verification"],
+    levelBand: "unknown",
+    levelLabel: "No linked level data",
+    runnableGuidance:
+      "Community candidate route. Treat this as unverified until local contributors confirm access, hazards, grade, and runnable conditions.",
+    accessSummary: suggestion.accessNotes || "Access needs local review.",
+    gauge: {
+      id: `candidate-gauge:${suggestion.id}`,
+      name: "No linked gauge yet",
+      location: centre,
+      value: "Unlinked",
+      trend: "steady",
+      observedAt: "Needs gauge review",
+      source: {
+        kind: "community",
+        label: "Community route candidate",
+        confidence: "low",
+        updatedAt: updatedDate,
+        notes:
+          "Candidate route approved for community review. It is not verified trip advice or canonical route data.",
+      },
+    },
+    accessPoints: [],
+    hazards: [],
+    features: [],
+    photos: [],
+    reports: [
+      {
+        id: `candidate-evidence:${suggestion.id}`,
+        author: suggestion.author,
+        dateObserved: suggestion.createdAt.slice(0, 10),
+        type: "Route evidence",
+        text: suggestion.evidence,
+        source: {
+          kind: "community",
+          label: "Route suggestion evidence",
+          confidence: "low",
+          updatedAt: suggestion.createdAt.slice(0, 10),
+          notes:
+            "Evidence supplied by the route suggester. Moderators should verify before promotion.",
+        },
+      },
+    ],
+    source: {
+      kind: "community",
+      label: "Community route candidate",
+      confidence: "low",
+      updatedAt: updatedDate,
+      notes:
+        "Approved candidate route for community review. Not yet canonical, verified, or promoted as paddling advice.",
+    },
+  };
+}
+
+function mergeApprovedCandidateSections(
+  sections: RiverSection[],
+  suggestions: RouteSuggestion[],
+) {
+  const existingIds = new Set(sections.map((section) => section.id));
+  const candidates = suggestions
+    .filter(
+      (suggestion) =>
+        suggestion.status === "approved" && suggestion.route.length >= 2,
+    )
+    .map(routeSuggestionToCandidateSection)
+    .filter((section) => !existingIds.has(section.id));
+
+  return [...sections, ...candidates];
+}
+
+function isCandidateSection(section: RiverSection) {
+  return section.id.startsWith("candidate-route:");
 }
 
 function isDuplicateRoutePoint(
@@ -2960,6 +3051,9 @@ function App() {
   const [routeSuggestions, setRouteSuggestions] = useState<RouteSuggestion[]>(
     loadRouteSuggestions,
   );
+  const [approvedRouteSuggestions, setApprovedRouteSuggestions] = useState<
+    RouteSuggestion[]
+  >([]);
   const [routeAdjustments, setRouteAdjustments] = useState<RouteAdjustment[]>([]);
   const [routeOverrides, setRouteOverrides] = useState<RouteOverride[]>([]);
   const [routeCreateMode, setRouteCreateMode] =
@@ -3156,8 +3250,12 @@ function App() {
   const [isLocationSearchLoading, setIsLocationSearchLoading] = useState(false);
 
   const appRiverSections = useMemo(
-    () => applyRouteOverridesToSections(riverSections, routeOverrides),
-    [routeOverrides],
+    () =>
+      mergeApprovedCandidateSections(
+        applyRouteOverridesToSections(riverSections, routeOverrides),
+        approvedRouteSuggestions,
+      ),
+    [approvedRouteSuggestions, routeOverrides],
   );
   const activeSection = useMemo(
     () =>
@@ -3688,6 +3786,26 @@ function App() {
       .catch(() => {
         if (isMounted) {
           setRouteOverrides([]);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchApprovedRouteSuggestions()
+      .then((suggestions) => {
+        if (isMounted) {
+          setApprovedRouteSuggestions(suggestions);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setApprovedRouteSuggestions([]);
         }
       });
 
@@ -4909,6 +5027,7 @@ function App() {
           item.id === updatedSuggestion.id ? updatedSuggestion : item,
         ),
       );
+      setApprovedRouteSuggestions(await fetchApprovedRouteSuggestions());
       setModerationMessage(`Updated ${updatedSuggestion.sectionName}.`);
     } catch (error) {
       setModerationMessage(
@@ -6005,8 +6124,13 @@ function App() {
                 <strong>{section.riverName}</strong>
                 <small>{section.sectionName}</small>
               </span>
-              <span className={`level-pill level-pill--${section.levelBand}`}>
-                {bandLabels[section.levelBand]}
+              <span className="section-row__badges">
+                {isCandidateSection(section) ? (
+                  <span className="candidate-pill">Candidate</span>
+                ) : null}
+                <span className={`level-pill level-pill--${section.levelBand}`}>
+                  {bandLabels[section.levelBand]}
+                </span>
               </span>
             </button>
           ))}
@@ -6607,6 +6731,17 @@ function App() {
 
                 <p className="section-summary">{activeSection.summary}</p>
 
+                {isCandidateSection(activeSection) ? (
+                  <div className="notice notice--candidate">
+                    <Flag size={18} />
+                    <span>
+                      This is an approved community candidate route. It still
+                      needs local verification before being treated as trip
+                      advice.
+                    </span>
+                  </div>
+                ) : null}
+
                 <div className="notice">
                   <AlertTriangle size={18} />
                   <span>{activeSection.runnableGuidance}</span>
@@ -7159,8 +7294,13 @@ function App() {
                             <strong>{section.riverName}</strong>
                             <small>{section.sectionName}</small>
                           </span>
-                          <span className={`level-pill level-pill--${section.levelBand}`}>
-                            {bandLabels[section.levelBand]}
+                          <span className="section-row__badges">
+                            {isCandidateSection(section) ? (
+                              <span className="candidate-pill">Candidate</span>
+                            ) : null}
+                            <span className={`level-pill level-pill--${section.levelBand}`}>
+                              {bandLabels[section.levelBand]}
+                            </span>
                           </span>
                         </button>
                       ))}
@@ -7306,8 +7446,13 @@ function App() {
                               <strong>{section.riverName}</strong>
                               <small>{section.sectionName}</small>
                             </span>
-                            <span className={`level-pill level-pill--${section.levelBand}`}>
-                              {bandLabels[section.levelBand]}
+                            <span className="section-row__badges">
+                              {isCandidateSection(section) ? (
+                                <span className="candidate-pill">Candidate</span>
+                              ) : null}
+                              <span className={`level-pill level-pill--${section.levelBand}`}>
+                                {bandLabels[section.levelBand]}
+                              </span>
                             </span>
                             <div className="favourite-row__actions">
                               <button
@@ -9525,8 +9670,11 @@ function RiverMap({
 
     sections.forEach((section) => {
       const isActive = section.id === activeSection.id;
+      const isCandidate = isCandidateSection(section);
       const color =
-        section.levelBand === "good"
+        isCandidate
+          ? "#7c3aed"
+          : section.levelBand === "good"
           ? "#1f8a70"
           : section.levelBand === "high"
             ? "#b54708"
@@ -9538,6 +9686,7 @@ function RiverMap({
         color,
         weight: isActive ? 7 : 4,
         opacity: isActive ? 0.95 : 0.7,
+        dashArray: isCandidate ? "8 6" : undefined,
       }).addTo(layers);
 
       routeLine.on("click", (event) => {
@@ -9561,7 +9710,16 @@ function RiverMap({
         bubblingMouseEvents: false,
         icon: L.divIcon({
           className: "",
-          html: markerHtml(isActive ? "section-active" : "section", "R"),
+          html: markerHtml(
+            isActive && isCandidate
+              ? "section-candidate-active"
+              : isActive
+                ? "section-active"
+                : isCandidate
+                  ? "section-candidate"
+                  : "section",
+            isCandidate ? "C" : "R",
+          ),
           iconSize: [32, 32],
           iconAnchor: [16, 16],
         }),
@@ -9629,7 +9787,7 @@ function RiverMap({
     });
 
     routeSuggestions.forEach((suggestion) => {
-      if (suggestion.route.length < 2) {
+      if (suggestion.status === "approved" || suggestion.route.length < 2) {
         return;
       }
 

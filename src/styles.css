@@ -1586,6 +1586,24 @@ h1 {
   line-height: 1.35;
 }
 
+.section-row__badges {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.candidate-pill {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f2ecff;
+  color: #5b21b6;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
 .level-pill {
   flex: 0 0 auto;
   padding: 5px 8px;
@@ -1714,8 +1732,17 @@ h1 {
   background: var(--river);
 }
 
+.map-marker--section-candidate,
+.map-marker--section-candidate-active {
+  background: #7c3aed;
+}
+
 .map-marker--section-active {
   outline: 4px solid rgba(31, 138, 112, 0.25);
+}
+
+.map-marker--section-candidate-active {
+  outline: 4px solid rgba(124, 58, 237, 0.25);
 }
 
 .map-marker--access {
@@ -2659,6 +2686,12 @@ h1 {
 .notice svg {
   flex: 0 0 auto;
   margin-top: 1px;
+}
+
+.notice--candidate {
+  border-color: #d9c7ff;
+  background: #f7f2ff;
+  color: #4c1d95;
 }
 
 .info-block {

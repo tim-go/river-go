@@ -49,6 +49,7 @@ The map must display:
 - saved contribution markers
 - draft contribution marker
 - locally saved candidate route suggestions
+- public approved candidate route suggestions
 - draft route suggestion trace while a member is sketching a missing route
 - admin/moderator route-adjustment traces for existing route targets
 - searched-location marker opened from Search
@@ -78,6 +79,8 @@ Opening a location reference from Search should centre and zoom the map to the s
 Live location should use the browser/PWA geolocation permission model. The app must not track location until the user explicitly enables it. When enabled, the map should render the latest browser-provided location locally as a current-location marker with an accuracy circle. Location should not be sent to the backend as part of this feature.
 
 The selected-section route panel should stay closed by default. Users can open it explicitly with the Route control.
+
+Approved route suggestions should be selectable in Map and Search as low-confidence candidate routes. They must be visually distinct from verified/seeded sections, labelled as `Candidate`, and carry source/warning copy that makes clear they are not verified paddling advice.
 
 Sections and Route controls should live in the map header action strip and show active state when their panel is open.
 
@@ -179,6 +182,7 @@ Production behaviour may differ:
 | MAP-F17 | Candidate route suggestion display | Map/PWA | Active | prototype | — | Locally saved route suggestions render as distinct pending-review route traces separate from canonical sections. |
 | MAP-F18 | Route adjustment display | Map/admin | Active | MVP | — | Admin/moderator route edits render as distinct traces and can be focused from moderation. |
 | MAP-F19 | Snap rough trace to known river | Map/route editor | Active | prototype | — | Route editor can snap a rough trace to known in-app route geometry for review. |
+| MAP-F20 | Public approved route candidates | Map/search | Active | MVP | — | Approved route suggestions appear as selectable candidate routes with distinct styling and low-confidence copy. |
 
 ### Backlog
 
@@ -204,3 +208,4 @@ Production behaviour may differ:
 | 2026-05-23 | Added active multi-river sample catalogue context. |
 | 2026-05-23 | Added Google Maps, coordinate copy, what3words, and mobile full-height POI overlay requirements. |
 | 2026-05-24 | Added opt-in browser live-location map marker requirement. |
+| 2026-05-25 | Added public approved candidate route display requirement. |

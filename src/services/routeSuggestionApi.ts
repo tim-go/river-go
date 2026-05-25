@@ -86,6 +86,22 @@ export async function fetchModerationRouteSuggestions(): Promise<
   return (result.routeSuggestions ?? []).map(mapApiRouteSuggestion);
 }
 
+export async function fetchApprovedRouteSuggestions(): Promise<RouteSuggestion[]> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/route-suggestions/approved`,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Route suggestion API failed with HTTP ${response.status}`);
+  }
+
+  const result = (await response.json()) as {
+    routeSuggestions?: ApiRouteSuggestion[];
+  };
+
+  return (result.routeSuggestions ?? []).map(mapApiRouteSuggestion);
+}
+
 export async function applyRouteSuggestionDecision(
   routeSuggestionId: string,
   decision: RouteSuggestionDecision,
