@@ -91,6 +91,13 @@ Admins and contribution moderators must be able to create route adjustment recor
 
 Route adjustments should capture the target type, target id, corrected route trace, edited river/section/difficulty/access/source text, evidence notes, status, moderator identity, revision, and timestamps. For existing fixture-backed sections, approving a section route adjustment may publish the corrected geometry to a route override record. The source fixture and route adjustment audit history must remain intact; later canonical route records should replace this override bridge.
 
+Route edit moderation should show a route impact review before approval. The
+first implementation may calculate this in the frontend from currently loaded
+route geometry, seeded points, and loaded community contributions. It should
+highlight distance changes, put-in/take-out endpoint drift, known points that
+may no longer sit on the route, and known points newly near the proposed route.
+This is a review aid, not a safety guarantee.
+
 ## Open Questions
 
 - Should route suggestions allow full multi-point tracing in the MVP, or start/end plus evidence only?
@@ -115,6 +122,7 @@ Route adjustments should capture the target type, target id, corrected route tra
 | ROUTESUB-F9 | Route adjustment records | Map/admin/API | Active | MVP | — | Admins/moderators can trace corrected geometry for existing seeded/candidate routes and store it as an auditable adjustment. |
 | ROUTESUB-F10 | Frontend snap-to-known-river POC | Map/route editor | Active | prototype | — | Rough traces can be snapped to known in-app river route geometry before review/save. |
 | ROUTESUB-F11 | Route override publishing | API/frontend | Active | MVP | — | Approved section route adjustments publish current route geometry through route overrides without rewriting seed fixtures. |
+| ROUTESUB-F12 | Route edit impact review | Admin/moderation | Active | MVP | — | Route edit cards show distance change, endpoint drift, and POI corridor impact before moderation decisions. |
 
 ### Backlog
 
@@ -128,6 +136,7 @@ Route adjustments should capture the target type, target id, corrected route tra
 | ROUTESUB-B6 | enhancement | Edit approved route candidates | Active | MVP | Admin/moderator route-adjustment records now cover existing seeded routes and approved route candidates; applying them to canonical data remains separate. |
 | ROUTESUB-B7 | migration | Canonical route publishing | Active | MVP | Section fixture route overrides are implemented as the first publishing bridge; future work should promote this into canonical route records. |
 | ROUTESUB-B8 | enhancement | Store rough and snapped traces | Open | MVP | Current POC saves the reviewed trace; backend should later persist original user trace, snapped trace, snap source, and confidence warnings separately. |
+| ROUTESUB-B9 | enhancement | Backend spatial impact review | Open | MVP | Move route impact calculation to PostGIS once canonical routes and full location-owned POI reads exist. |
 
 ## Change Log
 

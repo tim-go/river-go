@@ -153,6 +153,8 @@ const NEARBY_POI_MAX_KM = 5;
 const ROUTE_POINT_DEDUPE_METRES = 3;
 const ROUTE_SNAP_MAX_AVERAGE_DISTANCE_KM = 1.5;
 const COMPACT_MAP_CONTROLS_QUERY = "(max-width: 430px)";
+const ROUTE_IMPACT_CORRIDOR_METRES = 120;
+const ROUTE_IMPACT_ENDPOINT_WARNING_METRES = 350;
 
 type RouteDetailsTab =
   | "details"
@@ -406,6 +408,22 @@ type NearbyPoiResult = {
   section: RiverSection;
   location: LatLngTuple;
   distanceKm: number;
+};
+type RouteImpactPoi = {
+  id: string;
+  title: string;
+  kind: "access" | "hazard" | "feature" | "gauge" | "contribution";
+  beforeDistanceM: number;
+  afterDistanceM: number;
+};
+type RouteAdjustmentImpact = {
+  currentDistanceKm: number | null;
+  proposedDistanceKm: number;
+  distanceDeltaKm: number | null;
+  pointsChecked: number;
+  movedOutside: RouteImpactPoi[];
+  newlyNear: RouteImpactPoi[];
+  endpointWarnings: string[];
 };
 type LocationSearchResult = {
   label: string;
@@ -1066,6 +1084,224 @@ function routeDistanceKm(route: LatLngTuple[]) {
   }, 0);
 }
 
+function routeImpactPoiLabel(kind: RouteImpactPoi["kind"]) {
+  if (kind === "access") return "Access";
+  if (kind === "hazard") return "Hazard";
+  if (kind === "feature") return "Feature";
+  if (kind === "gauge") return "Gauge";
+  if (kind === "contribution") return "Community point";
+  return "Point";
+}
+
+function projectPointForDistance(origin: LatLngTuple, point: LatLngTuple) {
+  const earthRadiusM = 6371000;
+  const originLatRadians = (origin[0] * Math.PI) / 180;
+
+  return {
+    x:
+      ((point[1] - origin[1]) * Math.PI) /
+      180 *
+      earthRadiusM *
+      Math.cos(originLatRadians),
+    y: (((point[0] - origin[0]) * Math.PI) / 180) * earthRadiusM,
+  };
+}
+
+function distanceMetersToSegment(
+  point: LatLngTuple,
+  start: LatLngTuple,
+  end: LatLngTuple,
+) {
+  const projectedPoint = projectPointForDistance(point, point);
+  const projectedStart = projectPointForDistance(point, start);
+  const projectedEnd = projectPointForDistance(point, end);
+  const dx = projectedEnd.x - projectedStart.x;
+  const dy = projectedEnd.y - projectedStart.y;
+  const lengthSquared = dx * dx + dy * dy;
+
+  if (lengthSquared === 0) {
+    return Math.hypot(
+      projectedPoint.x - projectedStart.x,
+      projectedPoint.y - projectedStart.y,
+    );
+  }
+
+  const t = Math.max(
+    0,
+    Math.min(
+      1,
+      ((projectedPoint.x - projectedStart.x) * dx +
+        (projectedPoint.y - projectedStart.y) * dy) /
+        lengthSquared,
+    ),
+  );
+  const closestX = projectedStart.x + t * dx;
+  const closestY = projectedStart.y + t * dy;
+
+  return Math.hypot(projectedPoint.x - closestX, projectedPoint.y - closestY);
+}
+
+function distanceMetersToRoute(point: LatLngTuple, route: LatLngTuple[]) {
+  if (route.length === 0) {
+    return Infinity;
+  }
+
+  if (route.length === 1) {
+    return distanceKmBetween(point, route[0]) * 1000;
+  }
+
+  let best = Infinity;
+
+  for (let index = 1; index < route.length; index += 1) {
+    best = Math.min(
+      best,
+      distanceMetersToSegment(point, route[index - 1], route[index]),
+    );
+  }
+
+  return best;
+}
+
+function collectRouteImpactPoints(
+  section: RiverSection,
+  contributions: Contribution[],
+) {
+  const points: Array<{
+    id: string;
+    title: string;
+    kind: RouteImpactPoi["kind"];
+    location: LatLngTuple;
+  }> = [
+    ...section.accessPoints.map((point) => ({
+      id: point.id,
+      title: point.name,
+      kind: "access" as const,
+      location: point.location,
+    })),
+    ...section.hazards.map((point) => ({
+      id: point.id,
+      title: point.title,
+      kind: "hazard" as const,
+      location: point.location,
+    })),
+    ...section.features.map((point) => ({
+      id: point.id,
+      title: point.title,
+      kind: "feature" as const,
+      location: point.location,
+    })),
+    {
+      id: section.gauge.id,
+      title: section.gauge.name,
+      kind: "gauge" as const,
+      location: section.gauge.location,
+    },
+  ];
+
+  contributions.forEach((contribution) => {
+    if (
+      contribution.sectionId !== section.id ||
+      !contribution.location ||
+      contribution.status === "hidden" ||
+      contribution.status === "rejected"
+    ) {
+      return;
+    }
+
+    points.push({
+      id: contribution.id,
+      title: contribution.title,
+      kind: "contribution",
+      location: contribution.location,
+    });
+  });
+
+  return points;
+}
+
+function calculateRouteAdjustmentImpact(
+  adjustment: RouteAdjustment,
+  sections: RiverSection[],
+  contributions: Contribution[],
+): RouteAdjustmentImpact {
+  const section = sections.find((item) => item.id === adjustment.targetId) ?? null;
+  const currentRoute = section?.route ?? [];
+  const proposedRoute = adjustment.route;
+  const currentDistanceKm = currentRoute.length >= 2 ? routeDistanceKm(currentRoute) : null;
+  const proposedDistanceKm = routeDistanceKm(proposedRoute);
+  const points = section ? collectRouteImpactPoints(section, contributions) : [];
+  const movedOutside: RouteImpactPoi[] = [];
+  const newlyNear: RouteImpactPoi[] = [];
+
+  points.forEach((point) => {
+    const beforeDistanceM = distanceMetersToRoute(point.location, currentRoute);
+    const afterDistanceM = distanceMetersToRoute(point.location, proposedRoute);
+    const impactPoint = {
+      id: point.id,
+      title: point.title,
+      kind: point.kind,
+      beforeDistanceM,
+      afterDistanceM,
+    };
+
+    if (
+      beforeDistanceM <= ROUTE_IMPACT_CORRIDOR_METRES &&
+      afterDistanceM > ROUTE_IMPACT_CORRIDOR_METRES
+    ) {
+      movedOutside.push(impactPoint);
+      return;
+    }
+
+    if (
+      beforeDistanceM > ROUTE_IMPACT_CORRIDOR_METRES &&
+      afterDistanceM <= ROUTE_IMPACT_CORRIDOR_METRES
+    ) {
+      newlyNear.push(impactPoint);
+    }
+  });
+
+  const endpointWarnings: string[] = [];
+  const startAccess = section?.accessPoints.find((point) => point.type === "put-in");
+  const finishAccess = section?.accessPoints.find(
+    (point) => point.type === "take-out",
+  );
+  const proposedStart = proposedRoute[0];
+  const proposedFinish = proposedRoute[proposedRoute.length - 1];
+
+  if (
+    startAccess &&
+    proposedStart &&
+    distanceKmBetween(startAccess.location, proposedStart) * 1000 >
+      ROUTE_IMPACT_ENDPOINT_WARNING_METRES
+  ) {
+    endpointWarnings.push("Put-in is no longer close to the proposed start.");
+  }
+
+  if (
+    finishAccess &&
+    proposedFinish &&
+    distanceKmBetween(finishAccess.location, proposedFinish) * 1000 >
+      ROUTE_IMPACT_ENDPOINT_WARNING_METRES
+  ) {
+    endpointWarnings.push("Take-out is no longer close to the proposed finish.");
+  }
+
+  return {
+    currentDistanceKm,
+    proposedDistanceKm,
+    distanceDeltaKm:
+      currentDistanceKm == null ? null : proposedDistanceKm - currentDistanceKm,
+    pointsChecked: points.length,
+    movedOutside: movedOutside.sort(
+      (left, right) => right.afterDistanceM - left.afterDistanceM,
+    ),
+    newlyNear: newlyNear.sort(
+      (left, right) => left.afterDistanceM - right.afterDistanceM,
+    ),
+    endpointWarnings,
+  };
+}
+
 function routeCentre(route: LatLngTuple[]) {
   if (!route.length) {
     return null;
@@ -1299,6 +1535,25 @@ function formatDistanceKm(distanceKm: number) {
   return distanceKm < 1
     ? `${Math.round(distanceKm * 1000)} m`
     : `${distanceKm.toFixed(1)} km`;
+}
+
+function formatDistanceMetres(distanceMetres: number) {
+  if (!Number.isFinite(distanceMetres)) {
+    return "unknown";
+  }
+
+  return distanceMetres < 1000
+    ? `${Math.round(distanceMetres)} m`
+    : `${(distanceMetres / 1000).toFixed(1)} km`;
+}
+
+function formatSignedDistanceKm(distanceKm: number | null) {
+  if (distanceKm == null) {
+    return "Unknown";
+  }
+
+  const prefix = distanceKm > 0 ? "+" : "";
+  return `${prefix}${distanceKm.toFixed(1)} km`;
 }
 
 function liveLocationStatusLabel(status: LiveLocationStatus) {
@@ -2549,6 +2804,80 @@ function PoiDetailPanel({
         ) : null}
       </div>
     </section>
+  );
+}
+
+function RouteAdjustmentImpactPanel({
+  impact,
+}: {
+  impact: RouteAdjustmentImpact;
+}) {
+  const impactedCount =
+    impact.movedOutside.length + impact.newlyNear.length + impact.endpointWarnings.length;
+
+  return (
+    <div className="route-impact-panel">
+      <div className="route-impact-panel__header">
+        <strong>Impact review</strong>
+        <span>{impactedCount ? `${impactedCount} checks flagged` : "No major flags"}</span>
+      </div>
+      <div className="route-impact-metrics" aria-label="Route edit impact metrics">
+        <span>
+          Current <strong>{impact.currentDistanceKm?.toFixed(1) ?? "?"} km</strong>
+        </span>
+        <span>
+          Proposed <strong>{impact.proposedDistanceKm.toFixed(1)} km</strong>
+        </span>
+        <span>
+          Change <strong>{formatSignedDistanceKm(impact.distanceDeltaKm)}</strong>
+        </span>
+        <span>
+          Points <strong>{impact.pointsChecked}</strong>
+        </span>
+      </div>
+      {impact.endpointWarnings.length ? (
+        <ul className="route-impact-list route-impact-list--warning">
+          {impact.endpointWarnings.map((warning) => (
+            <li key={warning}>{warning}</li>
+          ))}
+        </ul>
+      ) : null}
+      {impact.movedOutside.length ? (
+        <div className="route-impact-group">
+          <span>May no longer sit on this route</span>
+          <ul className="route-impact-list">
+            {impact.movedOutside.slice(0, 4).map((point) => (
+              <li key={point.id}>
+                {routeImpactPoiLabel(point.kind)}: {point.title}{" "}
+                <small>
+                  {formatDistanceMetres(point.beforeDistanceM)} to{" "}
+                  {formatDistanceMetres(point.afterDistanceM)}
+                </small>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {impact.newlyNear.length ? (
+        <div className="route-impact-group">
+          <span>Newly near the proposed route</span>
+          <ul className="route-impact-list">
+            {impact.newlyNear.slice(0, 4).map((point) => (
+              <li key={point.id}>
+                {routeImpactPoiLabel(point.kind)}: {point.title}{" "}
+                <small>{formatDistanceMetres(point.afterDistanceM)} away</small>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {!impactedCount ? (
+        <p>
+          Known points remain inside the {ROUTE_IMPACT_CORRIDOR_METRES} m review
+          corridor. This does not confirm access, safety, or suitability.
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -8442,6 +8771,11 @@ function App() {
                                           routeAdjustmentDraftDecisions[
                                             adjustment.id
                                           ] ?? "";
+                                        const impact = calculateRouteAdjustmentImpact(
+                                          adjustment,
+                                          appRiverSections,
+                                          contributions,
+                                        );
 
                                         return (
                                           <article
@@ -8464,6 +8798,9 @@ function App() {
                                                 {adjustment.route.length} route points ·{" "}
                                                 edited by {adjustment.author}
                                               </small>
+                                              <RouteAdjustmentImpactPanel
+                                                impact={impact}
+                                              />
                                             </div>
                                             <div className="moderation-status">
                                               <span className="status-chip">

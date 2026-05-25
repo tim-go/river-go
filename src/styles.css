@@ -2095,6 +2095,84 @@ h1 {
   line-height: 1.4;
 }
 
+.route-impact-panel {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #cad8d0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+
+.route-impact-panel__header,
+.route-impact-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.route-impact-panel__header strong {
+  color: var(--ink);
+  font-size: 0.84rem;
+}
+
+.route-impact-panel__header span {
+  color: var(--muted);
+}
+
+.route-impact-metrics {
+  justify-content: flex-start;
+}
+
+.route-impact-metrics span {
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #eef4ef;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.route-impact-metrics strong {
+  color: var(--ink);
+}
+
+.route-impact-group {
+  display: grid;
+  gap: 4px;
+}
+
+.route-impact-group > span {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.route-impact-list {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding-left: 16px;
+}
+
+.route-impact-list li {
+  line-height: 1.35;
+}
+
+.route-impact-list small {
+  color: var(--muted);
+}
+
+.route-impact-list--warning {
+  color: #8a4b11;
+}
+
 .moderation-photo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 160px));

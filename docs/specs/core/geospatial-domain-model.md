@@ -287,7 +287,7 @@ records.
 | GEO-F2 | Route as curated paddling object | Product/data | Active | MVP | — | Routes are human/community paddling units with evidence, conditions, access, and geometry; not just polylines. |
 | GEO-F3 | Location-owned POIs | Product/data | Active | MVP | — | POIs are now shadowed into durable location records beside existing source tables. |
 | GEO-F4 | Relationship-based route views | Map/API | Active | MVP | — | Route map POI reads now use `poi_route_links` for seeded map POIs; contribution reads include relationship-linked contribution POIs. |
-| GEO-F5 | Route change impact review | Admin/moderation | Queued | MVP | — | Publishing route geometry changes should review affected POIs, stations, reports, photos, and neighbouring routes. |
+| GEO-F5 | Route change impact review | Admin/moderation | Active | MVP | — | Moderation now shows a first-pass route edit impact review using current geometry and known points; backend spatial impact review remains future work. |
 | GEO-F6 | Snap trace provenance | Route editor/API | Queued | MVP | — | Store rough trace, snapped trace, source geometry, warnings, and final reviewed geometry separately. |
 
 ### Backlog
@@ -297,7 +297,7 @@ records.
 | GEO-B1 | migration | Section-owned POI migration | Active | MVP | Staged migration exists through `pois` plus `poi_route_links`; remaining work is full spatial/curated relationship reads and write-path migration. |
 | GEO-B2 | decision | Watercourse vs waterbody | Open | MVP | Decide whether canals, lakes, estuaries, sea routes, and tidal reaches use one shared abstraction. |
 | GEO-B3 | enhancement | Derived relationship engine | Open | MVP | Build spatial relationship queries for route corridor, current location, watercourse, and observation relevance. |
-| GEO-B4 | validation | Route impact thresholds | Open | MVP | Define distance/time/geometry thresholds that trigger moderation warnings on route publish. |
+| GEO-B4 | validation | Route impact thresholds | Active | MVP | First-pass frontend thresholds use a 120 m route corridor and 350 m endpoint warning distance; tune with field feedback and backend spatial queries. |
 | GEO-B5 | migration | Canonical route publishing | Active | MVP | Approved section route adjustments now publish to route overrides without rewriting seed/source route records. |
 
 ## Change Log
