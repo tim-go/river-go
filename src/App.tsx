@@ -634,6 +634,10 @@ function createMapPopupContent({
   detailsButton.textContent = detailsLabel;
   L.DomEvent.on(detailsButton, "click", (event) => {
     L.DomEvent.stop(event);
+    container
+      .closest(".leaflet-popup")
+      ?.querySelector<HTMLAnchorElement>(".leaflet-popup-close-button")
+      ?.click();
     onDetails();
   });
 
@@ -2436,6 +2440,13 @@ function App() {
       riverSections[0],
     [activeSectionId],
   );
+  const activeRiverSections = useMemo(
+    () =>
+      riverSections.filter(
+        (section) => section.riverName === activeSection.riverName,
+      ),
+    [activeSection.riverName],
+  );
   const observationSectionIdRef = useRef(activeSection.id);
 
   const sectionContributions = contributions.filter(
@@ -4075,7 +4086,6 @@ function App() {
   function openRouteDetails(section: RiverSection) {
     setActiveSectionId(section.id);
     setIsRouteStatusCardVisible(true);
-    setSectionFocusNonce((current) => current + 1);
     setSelectedPoi(null);
     setRouteDetailsTab("details");
     setIsPanelOpen(true);
@@ -4463,7 +4473,7 @@ function App() {
           aria-label="River sections"
         >
           <div className="section-list__header">
-            <span>Sections</span>
+            <span>{activeSection.riverName} sections</span>
             <button
               className="icon-button icon-button--compact section-list__close"
               type="button"
@@ -4474,7 +4484,7 @@ function App() {
               <X size={16} />
             </button>
           </div>
-          {riverSections.map((section) => (
+          {activeRiverSections.map((section) => (
             <button
               className={`section-row ${
                 section.id === activeSection.id ? "section-row--active" : ""

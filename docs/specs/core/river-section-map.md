@@ -68,7 +68,7 @@ The map and section list should eventually allow paddlers to filter sections by:
 - recent community reports
 - hazards or access constraints
 
-Selecting a section from the section list or Search must fit the map to show the selected route's start and end points.
+Selecting a section from the map section list or Search must fit the map to show the selected route's start and end points. The Map `Sections` panel is contextual to the currently selected river and should list only sections for that river; global river/section discovery belongs in Search.
 
 Opening a location reference from Search should centre and zoom the map to the searched point, without creating a draft contribution marker.
 
@@ -85,6 +85,8 @@ When provider observations are available for a selected section, the map should 
 Clicking markers must not unexpectedly zoom out or recenter the map.
 
 Marker click popups must make clicked objects understandable without becoming the full details surface.
+
+Opening route details from a route marker popup must not force the map to refit the whole route. The user's current zoom and pan should be preserved unless they explicitly choose a section from Search or the section list.
 
 The map should distinguish three inspection surfaces:
 
