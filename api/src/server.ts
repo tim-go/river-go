@@ -45,6 +45,7 @@ import {
   listApprovedRouteSuggestions,
   listModerationRouteSuggestions,
   listRouteSuggestionsForMember,
+  updateRouteSuggestionForModeration,
 } from "./route-suggestions.js";
 import {
   applyRouteAdjustmentDecision,
@@ -327,6 +328,20 @@ async function route(
     requireModerator(member);
     const routeSuggestions = await listModerationRouteSuggestions();
     return { status: 200, body: { routeSuggestions } };
+  }
+
+  const routeSuggestionUpdateMatch = url.pathname.match(
+    /^\/api\/moderation\/route-suggestions\/([^/]+)$/,
+  );
+  if (method === "PATCH" && routeSuggestionUpdateMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+    const routeSuggestion = await updateRouteSuggestionForModeration(
+      decodeURIComponent(routeSuggestionUpdateMatch[1]),
+      body,
+    );
+    return { status: 200, body: { routeSuggestion } };
   }
 
   if (method === "GET" && url.pathname === "/api/moderation/route-adjustments") {

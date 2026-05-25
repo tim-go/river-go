@@ -6,16 +6,26 @@ export interface ApiRouteOverride {
   routeSource: string;
   routeId: string;
   route: Array<[number, number]>;
+  metadata: RouteOverrideMetadata;
   sourceRouteAdjustmentId: string | null;
   appliedBy: string | null;
   appliedAt: string;
   revision: number;
 }
 
+export interface RouteOverrideMetadata {
+  riverName?: string;
+  sectionName?: string;
+  summary?: string;
+  accessNotes?: string;
+  difficulty?: string;
+}
+
 interface RouteOverrideRow {
   route_source: string;
   route_id: string;
   route: { type: string; coordinates: unknown };
+  payload: unknown;
   source_route_adjustment_id: string | null;
   applied_by: string | null;
   applied_at: Date;
@@ -30,6 +40,7 @@ export async function listRouteOverrides(
       route_source,
       route_id,
       ST_AsGeoJSON(route)::json AS route,
+      payload,
       source_route_adjustment_id,
       applied_by,
       applied_at,
@@ -92,11 +103,31 @@ function mapRouteOverrideRow(row: RouteOverrideRow): ApiRouteOverride {
     routeSource: row.route_source,
     routeId: row.route_id,
     route: mapLineString(row.route),
+    metadata: mapRouteOverrideMetadata(row.payload),
     sourceRouteAdjustmentId: row.source_route_adjustment_id,
     appliedBy: row.applied_by,
     appliedAt: row.applied_at.toISOString(),
     revision: Number(row.revision),
   };
+}
+
+function mapRouteOverrideMetadata(payload: unknown): RouteOverrideMetadata {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return {};
+  }
+
+  return {
+    riverName: readOptionalText(payload, "riverName"),
+    sectionName: readOptionalText(payload, "sectionName"),
+    summary: readOptionalText(payload, "summary"),
+    accessNotes: readOptionalText(payload, "accessNotes"),
+    difficulty: readOptionalText(payload, "difficulty"),
+  };
+}
+
+function readOptionalText(payload: object, key: string): string | undefined {
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value : undefined;
 }
 
 function mapLineString(

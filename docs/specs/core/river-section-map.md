@@ -129,6 +129,10 @@ When route suggestion mode is active, map clicks add points to a rough candidate
 
 When route adjustment mode is active for an admin or contribution moderator, map clicks add points to a corrected route trace for the selected existing section. This creates an auditable route-adjustment record rather than immediately rewriting published route geometry.
 
+Route adjustment should not require retracing when only metadata is changing. Existing route edits should open with the current trace preloaded and allow moderators to move existing trace points when they explicitly choose to edit geometry.
+
+Editing a pending route suggestion from moderation should update the suggestion itself rather than creating a separate route edit overlay.
+
 The route editor may offer a `Snap` preview action that aligns the rough trace to known river geometry already loaded in the app. This is only a geometry assist; it must keep the review and evidence workflow explicit.
 
 On narrow mobile viewports, the map header may collapse secondary controls behind an explicit `Controls` toggle. Expanded controls must show text labels for route actions so `Suggest route` and `Edit route` are distinguishable.

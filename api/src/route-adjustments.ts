@@ -165,10 +165,52 @@ export async function applyRouteAdjustmentDecision(
   }
 
   if (status === "approved") {
-    await publishRouteOverrideFromAdjustment(routeAdjustmentId, actor, client);
+    await publishRouteAdjustment(routeAdjustmentId, actor, client);
   }
 
   return getRouteAdjustmentById(routeAdjustmentId, client);
+}
+
+async function publishRouteAdjustment(
+  routeAdjustmentId: string,
+  actor: Member,
+  client: PoolClient | typeof pool,
+) {
+  const adjustment = await getRouteAdjustmentById(routeAdjustmentId, client);
+
+  if (adjustment.targetType === "section") {
+    await publishRouteOverrideFromAdjustment(routeAdjustmentId, actor, client);
+    return;
+  }
+
+  await client.query(
+    `UPDATE route_suggestions
+    SET
+      river_name = $2,
+      section_name = $3,
+      difficulty = $4,
+      summary = $5,
+      access_notes = $6,
+      evidence = $7,
+      route = ST_SetSRID(ST_GeomFromGeoJSON($8), 4326),
+      updated_at = now(),
+      revision = revision + 1
+    WHERE id = $1
+      AND status = 'approved'`,
+    [
+      adjustment.targetId,
+      adjustment.riverName,
+      adjustment.sectionName,
+      adjustment.difficulty,
+      adjustment.summary,
+      adjustment.accessNotes,
+      adjustment.evidence,
+      JSON.stringify({
+        type: "LineString",
+        coordinates: adjustment.route.map(([lat, lng]) => [lng, lat]),
+      }),
+    ],
+  );
 }
 
 export function isRouteAdjustmentDecision(

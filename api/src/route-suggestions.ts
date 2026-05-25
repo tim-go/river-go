@@ -183,6 +183,48 @@ export async function applyRouteSuggestionDecision(
   return getRouteSuggestionById(routeSuggestionId, client);
 }
 
+export async function updateRouteSuggestionForModeration(
+  routeSuggestionId: string,
+  input: unknown,
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiRouteSuggestion> {
+  const suggestion = validateRouteSuggestionInput(input);
+  const result = await client.query(
+    `UPDATE route_suggestions
+    SET
+      river_name = $2,
+      section_name = $3,
+      difficulty = $4,
+      summary = $5,
+      access_notes = $6,
+      evidence = $7,
+      route = ST_SetSRID(ST_GeomFromGeoJSON($8), 4326),
+      updated_at = now(),
+      revision = revision + 1
+    WHERE id = $1
+      AND status != 'hidden'`,
+    [
+      routeSuggestionId,
+      suggestion.riverName,
+      suggestion.sectionName,
+      suggestion.difficulty,
+      suggestion.summary,
+      suggestion.accessNotes,
+      suggestion.evidence,
+      JSON.stringify({
+        type: "LineString",
+        coordinates: suggestion.route.map(([lat, lng]) => [lng, lat]),
+      }),
+    ],
+  );
+
+  if (!result.rowCount) {
+    throw new HttpError(404, "Route suggestion not found.");
+  }
+
+  return getRouteSuggestionById(routeSuggestionId, client);
+}
+
 export function isRouteSuggestionDecision(
   value: unknown,
 ): value is RouteSuggestionDecision {

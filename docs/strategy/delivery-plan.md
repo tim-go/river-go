@@ -12,6 +12,7 @@ This document gives a clear view of the feature set we want to deliver and the c
 | Core geospatial domain model | `/docs/specs/core/geospatial-domain-model.md` | Active | Defines the forward model: watercourses, routes, POIs, observations, photos, reports, and groups/sessions are independent geospatial records linked by spatial/curated relationships. |
 | Community data strategy | `/docs/strategy/community-data-strategy.md` | Landed | First-party community data is defined as the core product asset. |
 | Data source strategy | `/docs/strategy/data-sources-and-gaps.md` | Landed | UK provider landscape and community-only gaps are documented. |
+| OS Open Rivers watercourse seeding | `/docs/specs/data/public-source-seeding.md` | Active | Next data slice: import GB watercourse reference geometry for snapping/context, explicitly not as paddleable route data. |
 | Demo app shell | `/docs/specs/release/demo-prototype.md` | Landed | React/Vite/Leaflet prototype exists. |
 | River section map | `/docs/specs/core/river-section-map.md` | Landed | Section list, map, section panel, route lines, and markers exist. |
 | Offline mode | `/docs/specs/core/offline-mode.md` | Active | Contribution saves now queue local outbox operations and can be manually synced; app-shell cache and automatic/background sync are not complete. |
@@ -41,6 +42,7 @@ This document gives a clear view of the feature set we want to deliver and the c
 6. Run a focused Tryweryn verification pass for the near-dam start, centre rules, release source, lower portage, and Bala finish.
 7. Run first Wye/Tryweryn feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
 8. Verify upstream Wye and Tryweryn gauge/provider mappings, likely including NRW for Wales.
+9. Seed GB watercourse geometry from OS Open Rivers so route suggestions can snap to waterways beyond the small loaded sample catalogue.
 
 ## Release Interpretation
 

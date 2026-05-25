@@ -5,15 +5,25 @@ interface ApiRouteOverride {
   routeSource: string;
   routeId: string;
   route: LatLngTuple[];
+  metadata?: RouteOverrideMetadata;
   sourceRouteAdjustmentId: string | null;
   appliedAt: string;
   revision: number;
+}
+
+export interface RouteOverrideMetadata {
+  riverName?: string;
+  sectionName?: string;
+  summary?: string;
+  accessNotes?: string;
+  difficulty?: string;
 }
 
 export interface RouteOverride {
   routeSource: string;
   routeId: string;
   route: LatLngTuple[];
+  metadata?: RouteOverrideMetadata;
   sourceRouteAdjustmentId: string | null;
   appliedAt: string;
   revision: number;

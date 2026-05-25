@@ -94,6 +94,10 @@ Admins and contribution moderators must be able to create route adjustment recor
 
 Route adjustments should capture the target type, target id, corrected route trace, edited river/section/difficulty/access/source text, evidence notes, status, moderator identity, revision, and timestamps. For existing fixture-backed sections, approving a section route adjustment may publish the corrected geometry to a route override record. The source fixture and route adjustment audit history must remain intact; later canonical route records should replace this override bridge.
 
+Route adjustment must support metadata-only edits as well as geometry edits. Starting an edit for an existing route should prefill the current route name, section name, difficulty, summary, access notes, and route trace, then open the details form directly. Moderators should only enter trace editing when the geometry needs changing; when they do, existing route points should be editable rather than forcing the moderator to redraw the whole route.
+
+Pending or needs-info route suggestions should be edited in place before moderation. They must not create a separate route-adjustment record, because that makes one new route appear in both `Route suggestions` and `Route edits`. Approved public candidate routes may use route-adjustment records because they are already visible public route data.
+
 Route edit moderation should show a route impact review before approval. The
 first implementation may calculate this in the frontend from currently loaded
 route geometry, seeded points, and loaded community contributions. It should

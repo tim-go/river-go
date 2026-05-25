@@ -118,6 +118,7 @@ import {
   fetchApprovedRouteSuggestions,
   fetchModerationRouteSuggestions,
   fetchMyRouteSuggestions,
+  updateModerationRouteSuggestion,
   type RouteSuggestion,
   type RouteSuggestionDecision,
 } from "./services/routeSuggestionApi";
@@ -315,7 +316,8 @@ type RouteCreateMode = "idle" | "tracing" | "form";
 type RouteDraftTarget =
   | { type: "new" }
   | { type: "section"; id: string; label: string }
-  | { type: "route_suggestion"; id: string; label: string };
+  | { type: "route_suggestion"; id: string; label: string }
+  | { type: "route_suggestion_edit"; id: string; label: string };
 type RouteSnapCandidate = {
   id: string;
   label: string;
@@ -1392,6 +1394,11 @@ function applyRouteOverridesToSections(
 
     return {
       ...section,
+      riverName: override.metadata?.riverName ?? section.riverName,
+      sectionName: override.metadata?.sectionName ?? section.sectionName,
+      summary: override.metadata?.summary ?? section.summary,
+      difficulty: override.metadata?.difficulty ?? section.difficulty,
+      accessSummary: override.metadata?.accessNotes ?? section.accessSummary,
       route: override.route,
       centre: routeCentre(override.route) ?? section.centre,
       distanceKm: Number(routeDistanceKm(override.route).toFixed(1)),
@@ -1494,6 +1501,12 @@ function mergeApprovedCandidateSections(
 
 function isCandidateSection(section: RiverSection) {
   return section.id.startsWith("candidate-route:");
+}
+
+function candidateRouteSuggestionId(section: RiverSection) {
+  return isCandidateSection(section)
+    ? section.id.replace("candidate-route:", "")
+    : null;
 }
 
 function isDuplicateRoutePoint(
@@ -5077,6 +5090,15 @@ function App() {
           setSectionFocusNonce((current) => current + 1);
         }
       }
+      if (
+        updatedAdjustment.status === "approved" &&
+        updatedAdjustment.targetType === "route_suggestion"
+      ) {
+        setApprovedRouteSuggestions(await fetchApprovedRouteSuggestions());
+        if (`candidate-route:${updatedAdjustment.targetId}` === activeSection.id) {
+          setSectionFocusNonce((current) => current + 1);
+        }
+      }
       setModerationMessage(`Updated route edit for ${updatedAdjustment.sectionName}.`);
     } catch (error) {
       setModerationMessage(
@@ -5244,15 +5266,17 @@ function App() {
       return;
     }
 
+    const routeSuggestionId = candidateRouteSuggestionId(section);
+
     setRouteDraftTarget({
-      type: "section",
-      id: section.id,
+      type: routeSuggestionId ? "route_suggestion" : "section",
+      id: routeSuggestionId ?? section.id,
       label: `${section.riverName} · ${section.sectionName}`,
     });
-    setRouteDraftPoints([]);
+    setRouteDraftPoints(section.route);
     setRouteDraftOriginalPoints(null);
     setRouteDraftSnapMessage("");
-    setRouteCreateMode("tracing");
+    setRouteCreateMode("form");
     setRouteFormError("");
     setRouteRiverName(section.riverName);
     setRouteSectionName(section.sectionName);
@@ -5283,21 +5307,24 @@ function App() {
     }
 
     setRouteDraftTarget({
-      type: "route_suggestion",
+      type:
+        suggestion.status === "approved"
+          ? "route_suggestion"
+          : "route_suggestion_edit",
       id: suggestion.id,
       label: `${suggestion.riverName} · ${suggestion.sectionName}`,
     });
-    setRouteDraftPoints([]);
+    setRouteDraftPoints(suggestion.route);
     setRouteDraftOriginalPoints(null);
     setRouteDraftSnapMessage("");
-    setRouteCreateMode("tracing");
+    setRouteCreateMode("form");
     setRouteFormError("");
     setRouteRiverName(suggestion.riverName);
     setRouteSectionName(suggestion.sectionName);
     setRouteDifficulty(suggestion.difficulty);
     setRouteSummary(suggestion.summary);
     setRouteAccessNotes(suggestion.accessNotes);
-    setRouteEvidence("");
+    setRouteEvidence(suggestion.evidence);
     setIsAddMode(false);
     setIsFormOpen(false);
     setSelectedPoi(null);
@@ -5321,6 +5348,15 @@ function App() {
 
   function undoRouteDraftPoint() {
     setRouteDraftPoints((current) => current.slice(0, -1));
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
+    setRouteFormError("");
+  }
+
+  function updateRouteDraftPoint(index: number, location: LatLngTuple) {
+    setRouteDraftPoints((current) =>
+      current.map((point, pointIndex) => (pointIndex === index ? location : point)),
+    );
     setRouteDraftOriginalPoints(null);
     setRouteDraftSnapMessage("");
     setRouteFormError("");
@@ -5431,6 +5467,47 @@ function App() {
       evidence: safeEvidence,
       route: routeDraftPoints,
     };
+
+    if (routeDraftTarget.type === "route_suggestion_edit") {
+      if (!canAccessAdminTools) {
+        setRouteFormError("Only admins and moderators can update route suggestions.");
+        return;
+      }
+
+      try {
+        const updatedSuggestion = await updateModerationRouteSuggestion(
+          routeDraftTarget.id,
+          suggestionInput,
+        );
+        setModerationRouteSuggestions((current) =>
+          current.map((item) =>
+            item.id === updatedSuggestion.id ? updatedSuggestion : item,
+          ),
+        );
+        setRouteSuggestions((current) =>
+          current.map((item) =>
+            item.id === updatedSuggestion.id ? updatedSuggestion : item,
+          ),
+        );
+        if (updatedSuggestion.status === "approved") {
+          setApprovedRouteSuggestions(await fetchApprovedRouteSuggestions());
+        }
+        setRouteCreateMode("idle");
+        setRouteDraftTarget({ type: "new" });
+        setRouteDraftPoints([]);
+        setRouteDraftOriginalPoints(null);
+        setRouteDraftSnapMessage("");
+        setRouteFormError("");
+        showAppNotification("Route suggestion updated.", "info");
+      } catch (error) {
+        setRouteFormError(
+          error instanceof Error
+            ? error.message
+            : "Could not update route suggestion.",
+        );
+      }
+      return;
+    }
 
     if (routeDraftTarget.type !== "new") {
       if (!canAccessAdminTools) {
@@ -6159,6 +6236,7 @@ function App() {
           isAddMode={isAddMode}
           routeCreateMode={routeCreateMode}
           onMapClick={handleMapClick}
+          onMoveRouteDraftPoint={updateRouteDraftPoint}
           focusNonce={sectionFocusNonce}
           onOpenPoiDetails={openPoiDetails}
           onOpenRouteDetails={openRouteDetails}
@@ -6444,7 +6522,7 @@ function App() {
               </p>
               <strong>
                 {routeDraftTarget.type !== "new"
-                  ? "Click along the river to trace the corrected route."
+                  ? "Drag existing points or click the map to extend the corrected route."
                   : "Click along the river to sketch the candidate route."}
               </strong>
               <span>
@@ -6453,7 +6531,7 @@ function App() {
                       routeDraftPoints.length === 1 ? "" : "s"
                     } added. This will be reviewed before changing published route data.`
                   : routeDraftTarget.type !== "new"
-                    ? "Start at the corrected put-in or upstream end, then add points downstream."
+                    ? "Existing route points are loaded. Drag a point to move it, or click the map to add another point."
                     : "Start at the put-in or upstream end, then add points downstream."}
               </span>
               {routeFormError ? <span className="form-error">{routeFormError}</span> : null}
@@ -6504,7 +6582,7 @@ function App() {
                 onClick={finishRouteTrace}
                 disabled={routeDraftPoints.length < 2}
               >
-                Next
+                Details
               </button>
             </div>
           </section>
@@ -6518,7 +6596,9 @@ function App() {
                   {routeDraftTarget.type !== "new" ? "Edit route" : "Suggest route"}
                 </p>
                 <h2>
-                  {routeDraftTarget.type !== "new"
+                  {routeDraftTarget.type === "route_suggestion_edit"
+                    ? "Route suggestion"
+                    : routeDraftTarget.type !== "new"
                     ? "Route adjustment"
                     : "Candidate river section"}
                 </h2>
@@ -6539,7 +6619,9 @@ function App() {
                 <AlertTriangle size={18} />
                 <span>
                   {routeDraftTarget.type !== "new"
-                    ? "Route edits are stored as review records. Add evidence for the corrected trace before it changes public route data."
+                    ? routeDraftTarget.type === "route_suggestion_edit"
+                      ? "Update this pending suggestion before making a moderation decision. This does not create a separate route edit."
+                      : "Route edits are stored as review records. Update route details, adjust the trace if needed, and add evidence before it changes public route data."
                     : "Route suggestions go to review. Add evidence from paddling, clubs, official trails, or venue/local knowledge."}
                 </span>
               </div>
@@ -6617,7 +6699,9 @@ function App() {
                 <Route size={17} />
                 <span>
                   {routeDraftTarget.type !== "new"
-                    ? `Corrected trace with ${routeDraftPoints.length} points. Reviewers can approve, request more information, reject, or hide this route edit.`
+                    ? routeDraftTarget.type === "route_suggestion_edit"
+                      ? `Suggestion trace with ${routeDraftPoints.length} points. Use Edit trace only if the geometry needs changing.`
+                      : `Current trace with ${routeDraftPoints.length} points. Use Edit trace only if the geometry needs changing.`
                     : `Rough trace with ${routeDraftPoints.length} points. Reviewers will verify route line, access, hazards, level guidance, and source confidence before publication.`}
                 </span>
               </div>
@@ -6630,7 +6714,7 @@ function App() {
                   type="button"
                   onClick={() => setRouteCreateMode("tracing")}
                 >
-                  Back to trace
+                  {routeDraftTarget.type !== "new" ? "Edit trace" : "Back to trace"}
                 </button>
                 <button className="submit-button" type="submit">
                   <Flag size={16} />
@@ -9538,6 +9622,7 @@ function RiverMap({
   isAddMode,
   routeCreateMode,
   onMapClick,
+  onMoveRouteDraftPoint,
   focusNonce,
   onOpenPoiDetails,
   onOpenRouteDetails,
@@ -9569,6 +9654,7 @@ function RiverMap({
     nextType?: ContributionType,
     label?: string,
   ) => void;
+  onMoveRouteDraftPoint: (index: number, location: LatLngTuple) => void;
   focusNonce: number;
   onOpenPoiDetails: (poi: SelectedPoi) => void;
   onOpenRouteDetails: (section: RiverSection) => void;
@@ -9579,6 +9665,7 @@ function RiverMap({
   const layerRef = useRef<L.LayerGroup | null>(null);
   const callbackRef = useRef(onSelectSection);
   const mapClickRef = useRef(onMapClick);
+  const moveRouteDraftPointRef = useRef(onMoveRouteDraftPoint);
   const poiDetailsRef = useRef(onOpenPoiDetails);
   const routeDetailsRef = useRef(onOpenRouteDetails);
   const previousSectionIdRef = useRef(activeSection.id);
@@ -9603,6 +9690,10 @@ function RiverMap({
   useEffect(() => {
     mapClickRef.current = onMapClick;
   }, [onMapClick]);
+
+  useEffect(() => {
+    moveRouteDraftPointRef.current = onMoveRouteDraftPoint;
+  }, [onMoveRouteDraftPoint]);
 
   useEffect(() => {
     poiDetailsRef.current = onOpenPoiDetails;
@@ -10012,7 +10103,9 @@ function RiverMap({
 
       routeDraftPoints.forEach((point, index) => {
         const isLast = index === routeDraftPoints.length - 1;
-        L.marker(point, {
+        const draftMarker = L.marker(point, {
+          bubblingMouseEvents: false,
+          draggable: routeCreateMode === "tracing",
           icon: L.divIcon({
             className: "",
             html: markerHtml(
@@ -10023,6 +10116,14 @@ function RiverMap({
             iconAnchor: [15, 15],
           }),
         }).addTo(layers);
+
+        draftMarker.on("dragend", () => {
+          const nextLocation = draftMarker.getLatLng();
+          moveRouteDraftPointRef.current(index, [
+            nextLocation.lat,
+            nextLocation.lng,
+          ]);
+        });
       });
     }
 

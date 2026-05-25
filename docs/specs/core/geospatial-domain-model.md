@@ -73,6 +73,10 @@ named branch.
 Watercourses may provide geometry for snapping, search, map context, river-level
 association, and broad grouping. They do not prove a paddling route exists.
 
+The first national watercourse seed should use OS Open Rivers for Great Britain
+coverage. These records are reference geometry for snapping and context only;
+they must not be presented as paddleable routes or access/safety guidance.
+
 Minimum target fields:
 
 - `id`
@@ -289,6 +293,7 @@ records.
 | GEO-F4 | Relationship-based route views | Map/API | Active | MVP | — | Route map POI reads now use `poi_route_links` for seeded map POIs; contribution reads include relationship-linked contribution POIs. |
 | GEO-F5 | Route change impact review | Admin/moderation | Active | MVP | — | Moderation now shows a first-pass route edit impact review using current geometry and known points; backend spatial impact review remains future work. |
 | GEO-F6 | Snap trace provenance | Route editor/API | Queued | MVP | — | Store rough trace, snapped trace, source geometry, warnings, and final reviewed geometry separately. |
+| GEO-F7 | GB watercourse reference layer | Backend/data | Queued | MVP | — | Seed OS Open Rivers geometry as a national watercourse layer for snapping, search, and spatial context. |
 
 ### Backlog
 
@@ -299,6 +304,7 @@ records.
 | GEO-B3 | enhancement | Derived relationship engine | Open | MVP | Build spatial relationship queries for route corridor, current location, watercourse, and observation relevance. |
 | GEO-B4 | validation | Route impact thresholds | Active | MVP | First-pass frontend thresholds use a 120 m route corridor and 350 m endpoint warning distance; tune with field feedback and backend spatial queries. |
 | GEO-B5 | migration | Canonical route publishing | Active | MVP | Approved section route adjustments now publish to route overrides without rewriting seed/source route records. |
+| GEO-B6 | task | OS Open Rivers import | Active | MVP | Import GB watercourse geometry into PostGIS and expose it to backend snap-to-river. |
 
 ## Change Log
 

@@ -64,8 +64,9 @@ Initial endpoints:
 | `POST` | `/api/jobs/observations/ingest` | Guarded scheduled/manual observation ingestion endpoint with 15-minute server-side cooldown. |
 | `POST` | `/api/jobs/observations/backfill` | Guarded on-demand observation history backfill endpoint for newly linked/enabled measures. |
 | `GET` | `/api/sections/:sectionId/observations?hours=48|168|672` | Public linked observation measures with latest and selected recent history for the section. |
-| `GET` | `/api/route-overrides` | Public current-route geometry overrides, initially for moderator-approved fixture section route edits. |
+| `GET` | `/api/route-overrides` | Public current-route geometry and metadata overrides, initially for moderator-approved fixture section route edits. |
 | `GET` | `/api/route-suggestions/approved` | Public approved route suggestions for low-confidence candidate route display. |
+| `PATCH` | `/api/moderation/route-suggestions/:id` | Admin/moderator in-place update of pending or visible route suggestion details and trace. |
 | `GET` | `/api/rivers` | River list. |
 | `GET` | `/api/rivers/:riverId/sections` | Section list with route summaries. |
 | `GET` | `/api/sections/:sectionId` | Section detail, hazards, access, features, reports, photos, and current gauge context. |

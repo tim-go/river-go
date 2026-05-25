@@ -74,6 +74,8 @@ The seed system must support the following outcomes:
 
 Use open-data sources immediately for baseline observations and map context.
 
+Use OS Open Rivers as the next open-data watercourse geometry source for Great Britain snapping and map context. This layer should be imported as watercourse reference geometry, not as paddling routes, and should retain Ordnance Survey source metadata, OGL attribution, version/date, and confidence warnings.
+
 Use Paddle UK / Go Paddling, PaddlePoints, UK Rivers Guidebook, Canoe Wales/Paddle Cymru, Paddle Scotland, Paddle NI, clubs, operators, and venue pages as discovery/reference material unless explicit permission or open licensing allows import.
 
 The first source-backed route work should concentrate on:
@@ -101,6 +103,7 @@ The first source-backed route work should concentrate on:
 | PUBSEED-F2 | Seed source classification | Data | Active | v0.2 | — | Requires licence/permission status before data import. |
 | PUBSEED-F3 | Candidate route workflow | Data/community | Queued | v0.2 | — | Converts public references into verification prompts rather than copied routes. |
 | PUBSEED-F4 | Partner import pathway | Data/partnership | Queued | later | — | Allows route import only when source owner grants permission and provenance is retained. |
+| PUBSEED-F5 | OS Open Rivers watercourse import | Data/backend | Queued | MVP | — | Import GB watercourse geometry for snapping and context without treating waterways as paddleable routes. |
 
 ### Backlog
 
@@ -110,6 +113,7 @@ The first source-backed route work should concentrate on:
 | PUBSEED-B2 | dependency | Paddle UK partnership decision | Open | v0.2 | Go Paddling/PaddlePoints appear strategically valuable but are permission-needed. |
 | PUBSEED-B3 | validation | OSM/OS geometry licence review | Open | v0.2 | Required before production route geometry is derived from map datasets. |
 | PUBSEED-B4 | task | Design contributor verification prompts | Open | v0.2 | Candidate sections should ask members for exact access, hazards, photos, and level interpretation. |
+| PUBSEED-B5 | task | Seed all GB watercourses from OS Open Rivers | Active | MVP | Build import script, PostGIS watercourse table, source metadata, and staging seed run for snap-to-river. |
 
 ## Change Log
 

@@ -121,6 +121,23 @@ export async function applyRouteSuggestionDecision(
   return mapApiRouteSuggestion(result.routeSuggestion);
 }
 
+export async function updateModerationRouteSuggestion(
+  routeSuggestionId: string,
+  suggestion: Omit<
+    RouteSuggestion,
+    "id" | "status" | "author" | "createdAt" | "updatedAt" | "revision"
+  >,
+): Promise<RouteSuggestion> {
+  const result = await fetchRouteSuggestionEndpoint<{
+    routeSuggestion: ApiRouteSuggestion;
+  }>(`/api/moderation/route-suggestions/${encodeURIComponent(routeSuggestionId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(suggestion),
+  });
+
+  return mapApiRouteSuggestion(result.routeSuggestion);
+}
+
 async function fetchRouteSuggestionEndpoint<T>(
   path: string,
   options: RequestInit = {},
