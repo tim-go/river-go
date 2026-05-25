@@ -9,7 +9,7 @@ maturity: Draft
 # App Shell Navigation
 
 **Work state:** Active
-**Last updated:** 2026-05-24
+**Last updated:** 2026-05-25
 **Scope:** Primary app-section navigation across web, PWA, and future mobile app shells.
 
 ## Purpose
@@ -48,7 +48,9 @@ Desktop and larger tablet layouts should use a persistent left navigation rail/s
 
 Mobile and PWA layouts should use a bottom tab bar for the same primary sections. `Map` should be the first bottom-tab item because browsing the river map is the primary entry point; `Search` remains a helper for targeted lookup.
 
-Branding should be present without delaying startup. When auth resolves and no user is signed in, the app should show a welcome sheet with `Sign in` and `Continue as guest`. On mobile/PWA viewports, this startup welcome sheet should cover the full viewport rather than appearing as a small centered modal. Continuing as guest dismisses the sheet for the current browser/PWA session using session storage, so refreshes and sign-out in the same session do not immediately re-show it. The desktop nav and secondary mobile surfaces such as `Profile` and `More` should carry compact RiverLaunch.app branding while the map header stays contextual.
+Branding should be present without delaying startup. When auth resolves and no user is signed in, the app should show a single shared account sheet with explicit `Create account`, `Sign in`, and `Continue as guest` paths. The same sheet should be used when signed-out users try account-only actions, with a brief contextual note explaining that the attempted action needs an account while browsing can continue as guest. On mobile/PWA viewports, this account sheet should cover the full viewport rather than appearing as a small centered modal. Continuing as guest dismisses the startup sheet for the current browser/PWA session using session storage, so refreshes and sign-out in the same session do not immediately re-show it. The desktop nav and secondary mobile surfaces such as `Profile` and `More` should carry compact RiverLaunch.app branding while the map header stays contextual.
+
+Account creation and sign-in should be separate mental models in the UI. Both paths should support Google and email/password Firebase Auth. Account creation should explain that accounts enable favourites, local knowledge, photo uploads, and sync. Sign-in should include email/password, Google, and password reset. Email/password account creation should align with Firebase password policy, with a minimum 12-character client-side check and plain-language guidance that three unrelated words are easier to remember and harder to guess.
 
 Anonymous users may browse the map, search, route details, POIs, photos, levels, and navigation links. Savable actions require sign-in, including favourites, add local knowledge, add photo, sync, admin, and future offline packs.
 
@@ -61,6 +63,8 @@ The `Map` section remains the default first view and contains the river map, sec
 The existing river section list is contextual map content, not global app navigation. Section context means a selected working river stretch for detail, contributions, photos, offline packs, and moderation; it should be entered by selecting a river/section from map or search, not treated as a prerequisite for simply browsing the map.
 
 Global header actions should be minimal. Map-specific actions such as compact sync state, watch section, and add local knowledge should only appear while the `Map` section is active. Demo reset tools belong in the admin `System` area so they are not confused with personal account controls.
+
+Transient success feedback, such as profile saves, should use a dismissible app-level notification that auto-expires. Form/API errors should stay close to the form or admin surface that needs user attention rather than being reused as global status messages.
 
 The map action strip should remain compact. Sync should be represented as an icon/status button with a badge when local changes are queued, not as persistent explanatory text. Manual sync should only matter when local changes exist or a sync retry is needed.
 
@@ -86,6 +90,8 @@ Initial Profile subpages:
 - private emergency information for future group-session use
 
 The public contributor name should be editable by the member and used for publicly visible contributions instead of real name or email. It should be treated as moderated profile content: unique enough to reduce confusion, screened for profanity/offensive terms, rate-limited for changes, and reviewable/reportable by moderators. Until the moderation model is implemented, default public names should be conservative, for example `RiverLaunch member` plus a short generated suffix rather than an email-derived name.
+
+When a member creates an account with an explicit display name, the backend may use that as the initial public contributor name if it passes the public-name validation rules. Existing member rows with a missing public name should be backfilled on the next authenticated profile load.
 
 ICE / in-case-of-emergency data should live in `Profile` as private, explicit opt-in data. V1 ICE data should be limited to emergency contact name, phone, and relationship. The app should not collect medical conditions, allergies, medication, disabilities, fitness notes, or free-text health/support notes in V1. ICE data should not be public and should not appear on contributions. Future `Groups` features may allow a member to share selected emergency-contact fields with confirmed participants or group leaders for a specific trip/session. Sharing must be consent-based, revocable, auditable, and clearly labelled with who can see it.
 
@@ -119,8 +125,9 @@ Member-detail admin pages should allow admins to inspect account metadata, updat
 | NAV-F3 | Profile section | Member shell | Active | prototype | — | Uses focused tabs for Account, Public, ICE, Sync, Points, and Photos so account state is separate from owned content. |
 | NAV-F4 | Placeholder sections | Search/groups/more | Active | prototype | — | Lightweight placeholders preserve the final information architecture, including future Groups. |
 | NAV-F5 | Account-gated favourite sections | Search/favourites | Active | prototype | — | Star prompts signed-out users to sign in; signed-in favourites remain local in the prototype until backend persistence exists. |
-| NAV-F6 | Signed-out welcome sheet | App shell/auth | Active | prototype | — | Welcome sheet appears on signed-out startup and explains guest browsing versus account-backed save/contribute actions. |
+| NAV-F6 | Shared account and guest sheet | App shell/auth | Active | prototype | — | Signed-out startup and protected-action prompts use the same sheet with create account, sign in, and continue as guest paths. |
 | NAV-F7 | Desktop account footer | Desktop shell/auth | Active | prototype | — | Desktop nav shows signed-in account context or signed-out sign-in affordance without using map header space. |
+| NAV-F13 | Account creation and sign-in flow | App shell/auth | Active | MVP | — | Auth sheet separates Create account and Sign in paths, with Google and email/password options plus password reset. |
 | NAV-F8 | Location-reference search | Search/map | Active | prototype | — | Search accepts coordinates or what3words, shows nearby points of interest, and opens map context by explicit action. |
 | NAV-F9 | Live-location setting | More/map shell | Active | prototype | — | More exposes an opt-in live-location setting; Map exposes a compact enable/recentre action. |
 | NAV-F10 | Groups primary section | Groups | Active | future placeholder | — | Bottom nav includes Groups as the future activity-planning surface. |
@@ -146,3 +153,4 @@ Member-detail admin pages should allow admins to inspect account metadata, updat
 | 2026-05-24 | Added opt-in browser live-location setting and map action. |
 | 2026-05-24 | Moved favourites into Search, added Groups nav placeholder, and split Profile into tabs. |
 | 2026-05-24 | Added Profile public contributor name and V1 emergency-contact-only ICE model. |
+| 2026-05-25 | Added account creation and sign-in flow requirements for Google and email/password Firebase Auth. |

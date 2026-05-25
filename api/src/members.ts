@@ -74,9 +74,13 @@ export async function upsertMemberFromAuth(
     ON CONFLICT (firebase_uid) DO UPDATE SET
       email = EXCLUDED.email,
       display_name = EXCLUDED.display_name,
+      public_name = CASE
+        WHEN members.public_name IS NULL OR btrim(members.public_name) = '' THEN EXCLUDED.public_name
+        ELSE members.public_name
+      END,
       photo_url = EXCLUDED.photo_url,
       role = CASE
-        WHEN $5 = 'ADMIN' THEN 'ADMIN'
+        WHEN $6 = 'ADMIN' THEN 'ADMIN'
         ELSE members.role
       END,
       updated_at = now(),

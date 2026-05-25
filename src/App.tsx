@@ -50,7 +50,10 @@ import {
 import { syncContributionOutbox } from "./services/contributionSync";
 import {
   getCurrentUserIdToken,
+  createAccountWithEmail,
+  sendEmailPasswordReset,
   signInWithGoogle,
+  signInWithEmail,
   signOutCurrentUser,
   subscribeToAuthState,
   type AuthState,
@@ -122,6 +125,7 @@ const FAVOURITES_STORAGE_KEY = "river-go-demo-favourite-sections";
 const WELCOME_SESSION_STORAGE_KEY = "riverlaunch-welcome-dismissed-session";
 const SYNC_BANNER_DISMISSAL_STORAGE_KEY = "riverlaunch-sync-banner-dismissal";
 const LIVE_LOCATION_STORAGE_KEY = "riverlaunch-live-location-enabled";
+const MIN_ACCOUNT_PASSWORD_LENGTH = 12;
 const SYNC_BANNER_DISMISS_MS = 60 * 60 * 1000;
 const SEARCH_FOCUS_ZOOM = 15;
 const LIVE_LOCATION_FOCUS_ZOOM = 16;
@@ -266,7 +270,14 @@ const categoryOptions: Record<ContributionType, string[]> = {
 
 type AppSection = "search" | "map" | "groups" | "profile" | "more" | "admin";
 type AdminPage = "index" | "members" | "member-detail" | "moderation" | "system";
-type AuthSheetMode = "welcome" | "save-required";
+type AuthSheetMode = "welcome" | "signin" | "save-required";
+type AuthPanelMode = "create" | "signin";
+type AppNotificationTone = "success" | "info" | "error";
+type AppNotification = {
+  id: number;
+  message: string;
+  tone: AppNotificationTone;
+};
 type SearchMode = "name" | "point" | "favourites";
 type ProfileMode =
   | "account"
@@ -1324,7 +1335,7 @@ function AppNavigation({
           title={
             isSignedIn
               ? `${memberLabel} · ${memberRole}`
-              : "Sign in to save favourites and contribute"
+              : "Create account or sign in"
           }
           onClick={isSignedIn ? () => onSelectSection("profile") : onSignIn}
           disabled={!isSignedIn && !isAuthConfigured}
@@ -1389,35 +1400,138 @@ function AppBrandPanel() {
   );
 }
 
+function AppNotificationBanner({
+  notification,
+  onDismiss,
+}: {
+  notification: AppNotification;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      className={`app-notification app-notification--${notification.tone}`}
+      role="status"
+    >
+      <CheckCircle2 size={16} />
+      <span>{notification.message}</span>
+      <button type="button" onClick={onDismiss} aria-label="Dismiss notification">
+        <X size={15} />
+      </button>
+    </div>
+  );
+}
+
 function AuthPromptSheet({
   mode,
   authMessage,
   isAuthConfigured,
-  onSignIn,
+  onGoogleAuth,
+  onCreateEmailAccount,
+  onEmailSignIn,
+  onPasswordReset,
   onContinueAsGuest,
   onClose,
 }: {
   mode: AuthSheetMode;
   authMessage: string;
   isAuthConfigured: boolean;
-  onSignIn: () => void;
+  onGoogleAuth: () => Promise<boolean>;
+  onCreateEmailAccount: (input: {
+    email: string;
+    password: string;
+    displayName: string;
+  }) => Promise<boolean>;
+  onEmailSignIn: (input: { email: string; password: string }) => Promise<boolean>;
+  onPasswordReset: (email: string) => Promise<boolean>;
   onContinueAsGuest: () => void;
   onClose: () => void;
 }) {
-  const isWelcome = mode === "welcome";
+  const isAccountRequired = mode === "save-required";
+  const [authPanelMode, setAuthPanelMode] =
+    useState<AuthPanelMode>(isAccountRequired ? "signin" : "create");
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [formMessage, setFormMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function submitEmailAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFormMessage("");
+
+    if (!isAuthConfigured || isSubmitting) {
+      return;
+    }
+
+    const safeEmail = email.trim();
+    const safePassword = password;
+
+    if (!safeEmail || !safePassword) {
+      setFormMessage("Email and password are required.");
+      return;
+    }
+
+    if (
+      authPanelMode === "create" &&
+      safePassword.length < MIN_ACCOUNT_PASSWORD_LENGTH
+    ) {
+      setFormMessage(
+        `Use a password with at least ${MIN_ACCOUNT_PASSWORD_LENGTH} characters.`,
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    const ok =
+      authPanelMode === "create"
+        ? await onCreateEmailAccount({
+            displayName: displayName.trim(),
+            email: safeEmail,
+            password: safePassword,
+          })
+        : await onEmailSignIn({ email: safeEmail, password: safePassword });
+    setIsSubmitting(false);
+
+    if (ok) {
+      onClose();
+    }
+  }
+
+  async function resetPassword() {
+    setFormMessage("");
+
+    if (!email.trim()) {
+      setFormMessage("Enter your email address first.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const ok = await onPasswordReset(email.trim());
+    setIsSubmitting(false);
+
+    if (ok) {
+      setFormMessage("Password reset email sent.");
+    }
+  }
+
+  async function handleGoogleAuth() {
+    setFormMessage("");
+    setIsSubmitting(true);
+    const ok = await onGoogleAuth();
+    setIsSubmitting(false);
+
+    if (ok) {
+      onClose();
+    }
+  }
 
   return (
-    <div
-      className={`auth-sheet-backdrop ${
-        isWelcome ? "auth-sheet-backdrop--welcome" : ""
-      }`}
-      role="presentation"
-    >
+    <div className="auth-sheet-backdrop auth-sheet-backdrop--welcome" role="presentation">
       <section
-        className={`auth-sheet ${isWelcome ? "auth-sheet--welcome" : "auth-sheet--required"}`}
+        className="auth-sheet auth-sheet--welcome"
         role="dialog"
         aria-modal="true"
-        aria-label={isWelcome ? "Welcome to RiverLaunch.app" : "Sign in required"}
+        aria-label="Welcome to RiverLaunch.app"
       >
         <div className="auth-sheet__image">
           <img src="/images/river-tryweryn.jpeg" alt="" />
@@ -1430,40 +1544,136 @@ function AuthPromptSheet({
             <span>RiverLaunch.app</span>
           </div>
           <div>
-            <p className="eyebrow">
-              {isWelcome ? "Community river intelligence" : "Account required"}
-            </p>
-            <h2>
-              {isWelcome
-                ? "Plan rivers openly. Save and contribute with an account."
-                : "Sign in to save favourites or add local knowledge."}
-            </h2>
+            <p className="eyebrow">Community river intelligence</p>
+            <h2>Browse now. Save and contribute with an account.</h2>
             <p>
-              Browse routes, levels, access points, hazards, and photos without an
-              account. Sign in when you want RiverLaunch.app to save something for you or
-              accept community updates.
+              Explore routes, levels, access points, hazards, and photos as a
+              guest. Create an account when you want to save, upload, sync, or
+              add local knowledge.
             </p>
           </div>
+          {isAccountRequired ? (
+            <p className="profile-message profile-message--neutral">
+              That action needs an account. You can still continue browsing as a
+              guest.
+            </p>
+          ) : null}
           {authMessage ? <p className="profile-message">{authMessage}</p> : null}
-          <div className="auth-sheet__actions">
+          {formMessage ? (
+            <p className="profile-message profile-message--neutral">{formMessage}</p>
+          ) : null}
+          <div
+            className="segmented-control auth-mode-tabs"
+            role="tablist"
+            aria-label="Account action"
+          >
             <button
-              className="primary-action"
+              className={authPanelMode === "create" ? "active" : ""}
               type="button"
-              onClick={onSignIn}
-              disabled={!isAuthConfigured}
+              role="tab"
+              aria-selected={authPanelMode === "create"}
+              onClick={() => setAuthPanelMode("create")}
             >
-              <LogIn size={16} />
+              Create account
+            </button>
+            <button
+              className={authPanelMode === "signin" ? "active" : ""}
+              type="button"
+              role="tab"
+              aria-selected={authPanelMode === "signin"}
+              onClick={() => setAuthPanelMode("signin")}
+            >
               Sign in
             </button>
-            {isWelcome ? (
-              <button className="ghost-button" type="button" onClick={onContinueAsGuest}>
-                Continue as guest
+          </div>
+          <form className="auth-form" onSubmit={submitEmailAuth}>
+            {authPanelMode === "create" ? (
+              <label>
+                Display name
+                <input
+                  autoComplete="name"
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="Your paddling name"
+                />
+              </label>
+            ) : null}
+            <label>
+              Email
+              <input
+                autoComplete="email"
+                inputMode="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </label>
+            <label>
+              Password
+              <input
+                autoComplete={
+                  authPanelMode === "create" ? "new-password" : "current-password"
+                }
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder={
+                  authPanelMode === "create"
+                    ? "At least 12 characters"
+                    : "Your password"
+                }
+                required
+              />
+              {authPanelMode === "create" ? (
+                <span className="auth-password-tip">
+                  Tip: three unrelated words are memorable and hard to guess.
+                </span>
+              ) : null}
+            </label>
+            <button
+              className="primary-action primary-action--full"
+              type="submit"
+              disabled={!isAuthConfigured || isSubmitting}
+            >
+              <LogIn size={16} />
+              {isSubmitting
+                ? "Please wait..."
+                : authPanelMode === "create"
+                  ? "Create account"
+                  : "Sign in"}
+            </button>
+          </form>
+          <button
+            className="ghost-button auth-google-button"
+            type="button"
+            onClick={handleGoogleAuth}
+            disabled={!isAuthConfigured || isSubmitting}
+          >
+            <LogIn size={16} />
+            {authPanelMode === "create"
+              ? "Create account with Google"
+              : "Sign in with Google"}
+          </button>
+          <div className="auth-sheet__actions">
+            {authPanelMode === "signin" ? (
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => void resetPassword()}
+                disabled={!isAuthConfigured || isSubmitting}
+              >
+                Reset password
               </button>
-            ) : (
-              <button className="ghost-button" type="button" onClick={onClose}>
-                Not now
-              </button>
-            )}
+            ) : null}
+            <button
+              className="ghost-button auth-guest-button"
+              type="button"
+              onClick={onContinueAsGuest}
+            >
+              Continue as guest
+            </button>
           </div>
           {!isAuthConfigured ? (
             <p className="auth-sheet__note">
@@ -2126,6 +2336,8 @@ function App() {
     error: null,
   });
   const [authMessage, setAuthMessage] = useState("");
+  const [appNotification, setAppNotification] =
+    useState<AppNotification | null>(null);
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
   const [memberMessage, setMemberMessage] = useState("");
   const [publicNameDraft, setPublicNameDraft] = useState("");
@@ -2558,6 +2770,20 @@ function App() {
   }, [authState.user]);
 
   useEffect(() => {
+    if (!appNotification) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setAppNotification((current) =>
+        current?.id === appNotification.id ? null : current,
+      );
+    }, 6000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [appNotification]);
+
+  useEffect(() => {
     let isMounted = true;
 
     if (!authState.user || profileMode !== "emergency") {
@@ -2783,7 +3009,7 @@ function App() {
     const safeDetail = detail.trim();
 
     if (!isSignedIn) {
-      setFormError("Sign in before saving local knowledge.");
+      setFormError("Create an account or sign in before saving local knowledge.");
       setAuthSheetMode("save-required");
       return;
     }
@@ -2959,7 +3185,7 @@ function App() {
     }
 
     if (!isSignedIn) {
-      setSyncMessage("Sign in before syncing local contributions.");
+      setSyncMessage("Create an account or sign in before syncing local contributions.");
       setAuthSheetMode("save-required");
       return;
     }
@@ -3009,7 +3235,13 @@ function App() {
     }
   }
 
-  async function handleSignIn() {
+  function handleSignIn() {
+    setAuthMessage("");
+    setIsWelcomeDismissedForSession(true);
+    setAuthSheetMode("signin");
+  }
+
+  async function handleGoogleSignIn() {
     setAuthMessage("");
 
     try {
@@ -3017,6 +3249,52 @@ function App() {
       return true;
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : "Could not sign in.");
+      return false;
+    }
+  }
+
+  async function handleCreateEmailAccount(input: {
+    email: string;
+    password: string;
+    displayName: string;
+  }) {
+    setAuthMessage("");
+
+    try {
+      await createAccountWithEmail(input);
+      setActiveAppSection("profile");
+      setProfileMode("public");
+      return true;
+    } catch (error) {
+      setAuthMessage(
+        error instanceof Error ? error.message : "Could not create account.",
+      );
+      return false;
+    }
+  }
+
+  async function handleEmailSignIn(input: { email: string; password: string }) {
+    setAuthMessage("");
+
+    try {
+      await signInWithEmail(input);
+      return true;
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : "Could not sign in.");
+      return false;
+    }
+  }
+
+  async function handlePasswordReset(email: string) {
+    setAuthMessage("");
+
+    try {
+      await sendEmailPasswordReset(email);
+      return true;
+    } catch (error) {
+      setAuthMessage(
+        error instanceof Error ? error.message : "Could not send reset email.",
+      );
       return false;
     }
   }
@@ -3043,12 +3321,15 @@ function App() {
     setAuthSheetMode(null);
   }
 
-  async function signInFromSheet() {
-    const signedIn = await handleSignIn();
-
-    if (signedIn) {
-      setAuthSheetMode(null);
-    }
+  function showAppNotification(
+    message: string,
+    tone: AppNotificationTone = "success",
+  ) {
+    setAppNotification({
+      id: Date.now(),
+      message,
+      tone,
+    });
   }
 
   function requireSignInForSave() {
@@ -3174,7 +3455,7 @@ function App() {
       });
       setMemberProfile(updatedMember);
       setPublicNameDraft(updatedMember.publicName ?? "");
-      setMemberMessage("Public profile name saved.");
+      showAppNotification("Public profile name saved.");
     } catch (error) {
       setMemberMessage(
         error instanceof Error
@@ -3205,7 +3486,7 @@ function App() {
       setEmergencyContactName(savedProfile.emergencyContactName);
       setEmergencyContactPhone(savedProfile.emergencyContactPhone);
       setEmergencyContactRelationship(savedProfile.emergencyContactRelationship);
-      setMemberMessage("Emergency contact saved.");
+      showAppNotification("Emergency contact saved.");
     } catch (error) {
       setMemberMessage(
         error instanceof Error
@@ -3992,6 +4273,13 @@ function App() {
         <span>App is in testing. Check local conditions before paddling.</span>
       </div>
 
+      {appNotification ? (
+        <AppNotificationBanner
+          notification={appNotification}
+          onDismiss={() => setAppNotification(null)}
+        />
+      ) : null}
+
       {activeAppSection === "map" ? (
         <section className="topbar" aria-label="Map controls">
           <div className="brand-lockup">
@@ -4076,14 +4364,14 @@ function App() {
               type="button"
               title={
                 !isSignedIn
-                  ? "Sign in to save favourites"
+                  ? "Create account to save favourites"
                   : isActiveSectionFavourite
                   ? "Remove from favourites"
                   : "Add to favourites"
               }
               aria-label={
                 !isSignedIn
-                  ? "Sign in to save favourites"
+                  ? "Create account to save favourites"
                   : isActiveSectionFavourite
                   ? "Remove from favourites"
                   : "Add to favourites"
@@ -4123,9 +4411,9 @@ function App() {
               <Plus size={18} />
               Add info
             </button>
-            {authMessage || authState.error || memberMessage || liveLocationAlert ? (
+            {authMessage || authState.error || liveLocationAlert ? (
               <p className="topbar-message">
-                {authMessage || authState.error || memberMessage || liveLocationAlert}
+                {authMessage || authState.error || liveLocationAlert}
               </p>
             ) : null}
           </div>
@@ -5259,10 +5547,10 @@ function App() {
                       <section className="sign-in-card">
                         <Star size={22} />
                         <div>
-                          <h3>Sign in to save favourites</h3>
+                          <h3>Create account to save favourites</h3>
                           <p>
                             RiverLaunch.app treats favourites as account-only saved
-                            routes, so sign in before saving sections.
+                            routes, so create an account or sign in before saving sections.
                           </p>
                         </div>
                         <button
@@ -5272,7 +5560,7 @@ function App() {
                           disabled={!isAuthConfigured}
                         >
                           <LogIn size={16} />
-                          Sign in
+                          Create account / Sign in
                         </button>
                       </section>
                     ) : (
@@ -5468,49 +5756,50 @@ function App() {
                   <section className="profile-mode-panel" aria-label="My account">
                     <AppBrandPanel />
                     <div className="profile-card">
-                  <UserRound size={22} />
-                  <div>
-                    <strong>
-                      {memberProfile?.publicName ??
-                        memberProfile?.displayName ??
-                        authState.user?.displayName ??
-                        "Signed out"}
-                    </strong>
-                    <span>
-                      {memberProfile?.email ??
-                        authState.user?.email ??
-                        "Sign in to sync local knowledge"}
-                    </span>
-                  </div>
-                  <span className="status-chip">
-                    {memberProfile?.role ?? "Guest"}
-                  </span>
+                      <UserRound size={22} />
+                      <div>
+                        <strong>
+                          {memberProfile?.publicName ??
+                            memberProfile?.displayName ??
+                            authState.user?.displayName ??
+                            "Signed out"}
+                        </strong>
+                        <span>
+                          {memberProfile?.email ??
+                            authState.user?.email ??
+                            "Create account or sign in to sync"}
+                        </span>
+                      </div>
+                      <span className="status-chip">
+                        {memberProfile?.role ?? "Guest"}
+                      </span>
                     </div>
                     {!isSignedIn ? (
-                  <section className="sign-in-card">
-                    <LogIn size={22} />
-                    <div>
-                      <h3>Sign in to save and contribute</h3>
-                      <p>
-                        Browsing is open to everyone. Favourites, local knowledge,
-                        photos, and sync need a RiverLaunch.app account.
-                      </p>
-                    </div>
-                    <button
-                      className="primary-action"
-                      type="button"
-                      onClick={handleSignIn}
-                      disabled={!isAuthConfigured}
-                    >
-                      <LogIn size={16} />
-                      Sign in
-                    </button>
-                  </section>
+                      <section className="sign-in-card">
+                        <LogIn size={22} />
+                        <div>
+                          <h3>Create account or sign in</h3>
+                          <p>
+                            Browsing is open to everyone. Favourites, local
+                            knowledge, photos, and sync need a RiverLaunch.app
+                            account.
+                          </p>
+                        </div>
+                        <button
+                          className="primary-action"
+                          type="button"
+                          onClick={handleSignIn}
+                          disabled={!isAuthConfigured}
+                        >
+                          <LogIn size={16} />
+                          Create account / Sign in
+                        </button>
+                      </section>
                     ) : null}
                     {authMessage || authState.error || memberMessage ? (
-                  <p className="profile-message">
-                    {authMessage || authState.error || memberMessage}
-                  </p>
+                      <p className="profile-message">
+                        {authMessage || authState.error || memberMessage}
+                      </p>
                     ) : null}
                     <div className="profile-stats">
                   <Metric
@@ -5554,7 +5843,7 @@ function App() {
                       <section className="sign-in-card">
                         <LogIn size={22} />
                         <div>
-                          <h3>Sign in to edit your public name</h3>
+                          <h3>Create account to edit your public name</h3>
                           <p>
                             Your public contributor name is shown beside local
                             knowledge, photos, and confirmations.
@@ -5567,7 +5856,7 @@ function App() {
                           disabled={!isAuthConfigured}
                         >
                           <LogIn size={16} />
-                          Sign in
+                          Create account / Sign in
                         </button>
                       </section>
                     ) : (
@@ -5626,7 +5915,7 @@ function App() {
                       <section className="sign-in-card">
                         <LogIn size={22} />
                         <div>
-                          <h3>Sign in to manage emergency contact</h3>
+                          <h3>Create account to manage emergency contact</h3>
                           <p>
                             Emergency contact details are private account data for
                             future group sessions.
@@ -5639,7 +5928,7 @@ function App() {
                           disabled={!isAuthConfigured}
                         >
                           <LogIn size={16} />
-                          Sign in
+                          Create account / Sign in
                         </button>
                       </section>
                     ) : (
@@ -5780,7 +6069,7 @@ function App() {
                       <section className="sign-in-card">
                         <LogIn size={22} />
                         <div>
-                          <h3>Sign in to manage your points</h3>
+                          <h3>Create account to manage your points</h3>
                           <p>
                             Synced local knowledge is attached to your
                             RiverLaunch.app account.
@@ -5793,7 +6082,7 @@ function App() {
                           disabled={!isAuthConfigured}
                         >
                           <LogIn size={16} />
-                          Sign in
+                          Create account / Sign in
                         </button>
                       </section>
                     ) : null}
@@ -5896,7 +6185,7 @@ function App() {
                       <section className="sign-in-card">
                         <LogIn size={22} />
                         <div>
-                          <h3>Sign in to manage your photos</h3>
+                          <h3>Create account to manage your photos</h3>
                           <p>
                             Uploaded photos are attached to your
                             RiverLaunch.app account.
@@ -5909,7 +6198,7 @@ function App() {
                           disabled={!isAuthConfigured}
                         >
                           <LogIn size={16} />
-                          Sign in
+                          Create account / Sign in
                         </button>
                       </section>
                     ) : null}
@@ -6971,7 +7260,10 @@ function App() {
           mode={authSheetMode}
           authMessage={authMessage || authState.error || ""}
           isAuthConfigured={isAuthConfigured}
-          onSignIn={signInFromSheet}
+          onGoogleAuth={handleGoogleSignIn}
+          onCreateEmailAccount={handleCreateEmailAccount}
+          onEmailSignIn={handleEmailSignIn}
+          onPasswordReset={handlePasswordReset}
           onContinueAsGuest={continueAsGuest}
           onClose={closeAuthSheet}
         />

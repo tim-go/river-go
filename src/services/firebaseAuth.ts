@@ -1,13 +1,18 @@
 import { getApps, initializeApp, type FirebaseOptions } from "firebase/app";
 import {
+  createUserWithEmailAndPassword,
   getAuth,
   getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithPopup,
   signInWithRedirect,
+  signInWithEmailAndPassword,
   signOut,
+  updateProfile,
   type Auth,
+  type AuthError,
   type User,
 } from "firebase/auth";
 
@@ -52,7 +57,7 @@ export function subscribeToAuthState(
       callback({
         status: "error",
         user: null,
-        error: error instanceof Error ? error.message : "Could not read sign-in state.",
+        error: getFriendlyAuthErrorMessage(error, "Could not read sign-in state."),
       });
     },
   );
@@ -67,12 +72,77 @@ export async function signInWithGoogle(): Promise<void> {
 
   const provider = new GoogleAuthProvider();
 
-  if (shouldUseRedirectSignIn()) {
-    await signInWithRedirect(auth, provider);
-    return;
+  try {
+    if (shouldUseRedirectSignIn()) {
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    throw new Error(getFriendlyAuthErrorMessage(error, "Could not sign in with Google."));
+  }
+}
+
+export async function createAccountWithEmail(input: {
+  email: string;
+  password: string;
+  displayName?: string;
+}): Promise<void> {
+  const auth = getClientAuth();
+
+  if (!auth) {
+    throw new Error("Firebase Auth is not configured for this build.");
   }
 
-  await signInWithPopup(auth, provider);
+  try {
+    const credential = await createUserWithEmailAndPassword(
+      auth,
+      input.email,
+      input.password,
+    );
+    const displayName = input.displayName?.trim();
+
+    if (displayName) {
+      await updateProfile(credential.user, { displayName });
+      await credential.user.getIdToken(true);
+    }
+  } catch (error) {
+    throw new Error(getFriendlyAuthErrorMessage(error, "Could not create account."));
+  }
+}
+
+export async function signInWithEmail(input: {
+  email: string;
+  password: string;
+}): Promise<void> {
+  const auth = getClientAuth();
+
+  if (!auth) {
+    throw new Error("Firebase Auth is not configured for this build.");
+  }
+
+  try {
+    await signInWithEmailAndPassword(auth, input.email, input.password);
+  } catch (error) {
+    throw new Error(getFriendlyAuthErrorMessage(error, "Could not sign in."));
+  }
+}
+
+export async function sendEmailPasswordReset(email: string): Promise<void> {
+  const auth = getClientAuth();
+
+  if (!auth) {
+    throw new Error("Firebase Auth is not configured for this build.");
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error) {
+    throw new Error(
+      getFriendlyAuthErrorMessage(error, "Could not send password reset email."),
+    );
+  }
 }
 
 export async function signOutCurrentUser(): Promise<void> {
@@ -153,12 +223,58 @@ async function handleRedirectResult(
     callback({
       status: "error",
       user: null,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Could not complete redirected sign-in.",
+      error: getFriendlyAuthErrorMessage(
+        error,
+        "Could not complete redirected sign-in.",
+      ),
     });
   }
+}
+
+function getFriendlyAuthErrorMessage(error: unknown, fallback: string) {
+  const code = readAuthErrorCode(error);
+
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":
+      return "Email or password is not recognised. Check your details and try again.";
+    case "auth/email-already-in-use":
+      return "An account already exists for this email. Use Sign in instead.";
+    case "auth/invalid-email":
+      return "Enter a valid email address.";
+    case "auth/password-does-not-meet-requirements":
+    case "auth/weak-password":
+      return "Use a stronger password with at least 12 characters. Three unrelated words is a good pattern.";
+    case "auth/too-many-requests":
+      return "Too many attempts. Wait a moment, then try again.";
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      return "Sign-in was cancelled.";
+    case "auth/popup-blocked":
+      return "The sign-in window was blocked. Allow popups or try again.";
+    case "auth/network-request-failed":
+      return "Network problem while signing in. Check your connection and try again.";
+    case "auth/operation-not-allowed":
+      return "This sign-in method is not enabled yet.";
+    case "auth/requires-recent-login":
+      return "Please sign in again before changing account details.";
+    default:
+      return fallback;
+  }
+}
+
+function readAuthErrorCode(error: unknown) {
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    typeof (error as AuthError).code === "string"
+  ) {
+    return (error as AuthError).code;
+  }
+
+  return null;
 }
 
 function shouldUseRedirectSignIn() {
