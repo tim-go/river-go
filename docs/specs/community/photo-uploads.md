@@ -87,6 +87,7 @@ Moderation rules:
 - contribution-level moderation decisions must update attached photo visibility metadata so an approved photo contribution becomes visible in route, section, and POI details
 - signed-in members must be able to list their own uploaded photos, return to the related map section, and delete photos they uploaded
 - admins and contribution moderators must have an override delete/hide action for any uploaded photo during review or later operational cleanup
+- public and member-visible photo thumbnails, including map popup thumbnails, should open an in-app image viewer: full-screen on mobile and a large contained viewer on desktop
 - photo deletion should be a soft delete in the MVP: hide public metadata and retain audit/storage references until a separate retention/deletion policy exists
 - when the only photo on a `photo` contribution is deleted, the parent contribution should also be hidden from public section/POI views
 - access-point photos and hazard evidence can become public after light moderation or trusted-member promotion

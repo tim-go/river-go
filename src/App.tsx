@@ -401,6 +401,12 @@ type RouteModerationDraftDecision = RouteSuggestionDecision | "";
 type RouteAdjustmentDraftDecision = RouteAdjustmentDecision | "";
 type PendingPhotoDelete = { id: string; title: string };
 type PendingPointDelete = { id: string; title: string };
+type PhotoLightboxItem = {
+  src: string;
+  title: string;
+  caption?: string;
+  alt?: string;
+};
 type SyncBannerDismissal = {
   queuedOutboxCount: number;
   failedOutboxCount: number;
@@ -762,6 +768,7 @@ function createMapPopupContent({
   summary,
   imageUrl,
   imageAlt,
+  onImageClick,
   detailsLabel = "Details",
   navigationLocation,
   navigationLabel = "Maps",
@@ -775,6 +782,7 @@ function createMapPopupContent({
   summary: string;
   imageUrl?: string;
   imageAlt?: string;
+  onImageClick?: () => void;
   detailsLabel?: string;
   navigationLocation?: LatLngTuple;
   navigationLabel?: string;
@@ -793,10 +801,26 @@ function createMapPopupContent({
   meta.textContent = subtitle;
 
   if (imageUrl) {
+    const imageParent = onImageClick
+      ? L.DomUtil.create("button", "map-popup-card__image-button", container)
+      : container;
+    if (onImageClick && imageParent instanceof HTMLButtonElement) {
+      imageParent.type = "button";
+      imageParent.title = "Open photo";
+      L.DomEvent.on(imageParent, "click", (event) => {
+        L.DomEvent.stop(event);
+        container
+          .closest(".leaflet-popup")
+          ?.querySelector<HTMLAnchorElement>(".leaflet-popup-close-button")
+          ?.click();
+        onImageClick();
+      });
+    }
+
     const image = L.DomUtil.create(
       "img",
       "map-popup-card__image",
-      container,
+      imageParent,
     );
     image.src = imageUrl;
     image.alt = imageAlt ?? "";
@@ -2642,10 +2666,57 @@ function PlaceholderPage({
   );
 }
 
+function PhotoLightbox({
+  photo,
+  onClose,
+}: {
+  photo: PhotoLightboxItem;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="photo-lightbox-backdrop" role="presentation" onClick={onClose}>
+      <section
+        className="photo-lightbox"
+        role="dialog"
+        aria-modal="true"
+        aria-label={photo.title}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          className="icon-button photo-lightbox__close"
+          type="button"
+          aria-label="Close photo"
+          title="Close"
+          onClick={onClose}
+        >
+          <X size={18} />
+        </button>
+        <img src={photo.src} alt={photo.alt ?? photo.title} />
+        <footer>
+          <strong>{photo.title}</strong>
+          {photo.caption ? <span>{photo.caption}</span> : null}
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 function PoiDetailPanel({
   poi,
   onClose,
   onAddPhoto,
+  onOpenPhoto,
   onReviewMapPoi,
   onUpdateMapPoiStatus,
   onUpdateContributionStatus,
@@ -2657,6 +2728,7 @@ function PoiDetailPanel({
   poi: SelectedPoi;
   onClose: () => void;
   onAddPhoto: () => void;
+  onOpenPhoto: (photo: PhotoLightboxItem) => void;
   onReviewMapPoi: (
     poi: MapPoi,
     decision: MapPoiReviewDecision,
@@ -3180,7 +3252,23 @@ function PoiDetailPanel({
                 <div className="poi-photo-grid">
                   {poi.photos.map((photo) => (
                     <figure key={photo.id}>
-                      <img src={photo.displayUrl || photo.thumbnailUrl} alt="" />
+                      <button
+                        className="photo-open-button"
+                        type="button"
+                        onClick={() =>
+                          onOpenPhoto({
+                            src: photo.displayUrl || photo.thumbnailUrl,
+                            title: photo.caption || poi.title,
+                            caption: photo.originalName,
+                            alt: photo.caption || poi.title,
+                          })
+                        }
+                      >
+                        <img
+                          src={photo.displayUrl || photo.thumbnailUrl}
+                          alt=""
+                        />
+                      </button>
                       <figcaption>
                         <strong>{photo.caption || poi.title}</strong>
                         {photo.originalName ? (
@@ -3413,6 +3501,9 @@ function App() {
   const [photoMessage, setPhotoMessage] = useState("");
   const [pendingPhotoDelete, setPendingPhotoDelete] =
     useState<PendingPhotoDelete | null>(null);
+  const [lightboxPhoto, setLightboxPhoto] = useState<PhotoLightboxItem | null>(
+    null,
+  );
   const [memberContributions, setMemberContributions] = useState<Contribution[]>(
     [],
   );
@@ -4875,6 +4966,21 @@ function App() {
       setPhotoMessage("This photo is not attached to a known map section.");
       setAdminMemberDetailMessage("This photo is not attached to a known map section.");
     }
+  }
+
+  function openMemberPhotoLightbox(photo: MemberPhoto) {
+    const src = photo.displayUrl || photo.thumbnailUrl || "";
+
+    if (!src) {
+      return;
+    }
+
+    setLightboxPhoto({
+      src,
+      title: photo.contributionTitle,
+      caption: photo.caption || photo.contributionDetail,
+      alt: photo.caption || photo.contributionTitle,
+    });
   }
 
   function openContributionOnMap(contribution: Contribution) {
@@ -6530,6 +6636,7 @@ function App() {
           focusNonce={sectionFocusNonce}
           onOpenPoiDetails={openPoiDetails}
           onOpenRouteDetails={openRouteDetails}
+          onOpenPhoto={setLightboxPhoto}
           onSelectSection={selectSection}
         />
 
@@ -7020,6 +7127,7 @@ function App() {
             poi={selectedPoi}
             onClose={() => setSelectedPoi(null)}
             onAddPhoto={() => startAddMode("photo")}
+            onOpenPhoto={setLightboxPhoto}
             onReviewMapPoi={(poi, decision, action, note) =>
               void submitMapPoiReview(poi, decision, action, note)
             }
@@ -7506,11 +7614,24 @@ function App() {
                           {contribution.photos?.length ? (
                             <div className="contribution-photo-strip">
                               {contribution.photos.map((photo) => (
-                                <img
+                                <button
+                                  className="photo-open-button"
                                   key={photo.id}
-                                  src={photo.thumbnailUrl || photo.displayUrl}
-                                  alt=""
-                                />
+                                  type="button"
+                                  onClick={() =>
+                                    setLightboxPhoto({
+                                      src: photo.displayUrl || photo.thumbnailUrl,
+                                      title: photo.caption || contribution.title,
+                                      caption: contribution.detail,
+                                      alt: photo.caption || contribution.title,
+                                    })
+                                  }
+                                >
+                                  <img
+                                    src={photo.thumbnailUrl || photo.displayUrl}
+                                    alt=""
+                                  />
+                                </button>
                               ))}
                             </div>
                           ) : null}
@@ -7593,7 +7714,20 @@ function App() {
                   <div className="photo-grid">
                     {activeSection.photos.map((photo) => (
                       <figure key={photo.id}>
-                        <img src={photo.url} alt="" />
+                        <button
+                          className="photo-open-button"
+                          type="button"
+                          onClick={() =>
+                            setLightboxPhoto({
+                              src: photo.url,
+                              title: photo.title,
+                              caption: photo.caption,
+                              alt: photo.title,
+                            })
+                          }
+                        >
+                          <img src={photo.url} alt="" />
+                        </button>
                         <figcaption>
                           <strong>{photo.title}</strong>
                           <span>{photo.caption}</span>
@@ -7603,7 +7737,20 @@ function App() {
                     {sectionContributionPhotos.map(({ contribution, photo }) => (
                       <figure key={photo.id}>
                         {photo.displayUrl ? (
-                          <img src={photo.displayUrl} alt="" />
+                          <button
+                            className="photo-open-button"
+                            type="button"
+                            onClick={() =>
+                              setLightboxPhoto({
+                                src: photo.displayUrl || photo.thumbnailUrl,
+                                title: photo.caption || contribution.title,
+                                caption: contribution.detail,
+                                alt: photo.caption || contribution.title,
+                              })
+                            }
+                          >
+                            <img src={photo.displayUrl} alt="" />
+                          </button>
                         ) : (
                           <div className="photo-placeholder">
                             <Camera size={24} />
@@ -8567,10 +8714,16 @@ function App() {
                       <div className="profile-photo-list">
                         {memberPhotos.map((photo) => (
                           <article className="profile-photo-row" key={photo.id}>
-                            <img
-                              src={photo.thumbnailUrl ?? photo.displayUrl ?? ""}
-                              alt={photo.caption || photo.contributionTitle}
-                            />
+                            <button
+                              className="photo-open-button"
+                              type="button"
+                              onClick={() => openMemberPhotoLightbox(photo)}
+                            >
+                              <img
+                                src={photo.thumbnailUrl ?? photo.displayUrl ?? ""}
+                                alt=""
+                              />
+                            </button>
                             <div>
                               <strong>{photo.contributionTitle}</strong>
                               <span>{photo.caption || photo.contributionDetail}</span>
@@ -9126,17 +9279,22 @@ function App() {
                                         className="profile-photo-row"
                                         key={photo.id}
                                       >
-                                        <img
-                                          src={
-                                            photo.thumbnailUrl ??
-                                            photo.displayUrl ??
-                                            ""
+                                        <button
+                                          className="photo-open-button"
+                                          type="button"
+                                          onClick={() =>
+                                            openMemberPhotoLightbox(photo)
                                           }
-                                          alt={
-                                            photo.caption ||
-                                            photo.contributionTitle
-                                          }
-                                        />
+                                        >
+                                          <img
+                                            src={
+                                              photo.thumbnailUrl ??
+                                              photo.displayUrl ??
+                                              ""
+                                            }
+                                            alt=""
+                                          />
+                                        </button>
                                         <div>
                                           <strong>
                                             {photo.contributionTitle}
@@ -9281,10 +9439,25 @@ function App() {
                                               className="moderation-photo-card"
                                               key={photo.id}
                                             >
-                                              <a
-                                                href={photo.displayUrl}
-                                                target="_blank"
-                                                rel="noreferrer"
+                                              <button
+                                                className="photo-open-button"
+                                                type="button"
+                                                onClick={() =>
+                                                  setLightboxPhoto({
+                                                    src:
+                                                      photo.displayUrl ||
+                                                      photo.thumbnailUrl,
+                                                    title:
+                                                      photo.caption ||
+                                                      contribution.title,
+                                                    caption:
+                                                      photo.originalName ||
+                                                      contribution.detail,
+                                                    alt:
+                                                      photo.caption ||
+                                                      contribution.title,
+                                                  })
+                                                }
                                               >
                                                 <img
                                                   src={
@@ -9296,7 +9469,7 @@ function App() {
                                                     contribution.title
                                                   }
                                                 />
-                                              </a>
+                                              </button>
                                               <span>
                                                 {photo.caption ||
                                                   photo.originalName ||
@@ -9821,6 +9994,13 @@ function App() {
         onSelectSection={setActiveAppSection}
       />
 
+      {lightboxPhoto ? (
+        <PhotoLightbox
+          photo={lightboxPhoto}
+          onClose={() => setLightboxPhoto(null)}
+        />
+      ) : null}
+
       {pendingPhotoDelete ? (
         <div className="auth-sheet-backdrop" role="presentation">
           <section
@@ -9940,6 +10120,7 @@ function RiverMap({
   focusNonce,
   onOpenPoiDetails,
   onOpenRouteDetails,
+  onOpenPhoto,
   onSelectSection,
 }: {
   sections: RiverSection[];
@@ -9975,6 +10156,7 @@ function RiverMap({
   focusNonce: number;
   onOpenPoiDetails: (poi: SelectedPoi) => void;
   onOpenRouteDetails: (section: RiverSection) => void;
+  onOpenPhoto: (photo: PhotoLightboxItem) => void;
   onSelectSection: (section: RiverSection) => void;
 }) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -10508,6 +10690,11 @@ function RiverMap({
               : contribution.type === "access"
                 ? "A"
                 : "N";
+      const popupPhoto =
+        contribution.type === "photo" ? contribution.photos?.[0] : undefined;
+      const popupPhotoUrl = popupPhoto?.thumbnailUrl || popupPhoto?.displayUrl;
+      const popupPhotoDisplayUrl = popupPhoto?.displayUrl || popupPhotoUrl;
+      const popupPhotoTitle = popupPhoto?.caption || contribution.title;
 
       const marker = L.marker(contribution.location, {
         bubblingMouseEvents: false,
@@ -10526,14 +10713,17 @@ function RiverMap({
             title: contribution.title,
             subtitle: `${contribution.type} · ${contributionStatusLabel(contribution.status)}`,
             summary: contribution.detail,
-            imageUrl:
-              contribution.type === "photo"
-                ? contribution.photos?.[0]?.thumbnailUrl ||
-                  contribution.photos?.[0]?.displayUrl
-                : undefined,
-            imageAlt:
-              contribution.type === "photo"
-                ? contribution.photos?.[0]?.caption || contribution.title
+            imageUrl: popupPhotoUrl,
+            imageAlt: popupPhotoTitle,
+            onImageClick:
+              popupPhotoDisplayUrl
+                ? () =>
+                    onOpenPhoto({
+                      src: popupPhotoDisplayUrl,
+                      title: popupPhotoTitle,
+                      caption: popupPhoto?.originalName || contribution.detail,
+                      alt: popupPhotoTitle,
+                    })
                 : undefined,
             navigationLocation: contribution.location,
             onDetails: () =>
@@ -10790,6 +10980,7 @@ function RiverMap({
     showRoutesLayer,
     showSelectedRoutePath,
     showKnownRivers,
+    onOpenPhoto,
   ]);
 
   useEffect(() => {
