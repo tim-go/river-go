@@ -17,6 +17,7 @@
   --warning: #b54708;
   --danger: #b42318;
   --known-river: #b42318;
+  --selected-watercourse: #0f766e;
   --sky: #277da1;
   --shadow: 0 18px 46px rgba(22, 34, 46, 0.18);
   --text-xs: 0.72rem;
@@ -774,6 +775,23 @@ h1 {
   width: 28px;
   height: 28px;
   color: var(--muted);
+}
+
+.route-layer-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.route-layer-options span {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
 }
 
 .route-status-toggle {
@@ -1713,6 +1731,144 @@ h1 {
 
 .legend-line--known-river {
   color: var(--known-river);
+}
+
+.watercourse-panel {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 650;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100% - 28px));
+  max-height: calc(100% - 112px);
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 44px rgba(23, 33, 43, 0.18);
+}
+
+.watercourse-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.watercourse-panel__header h2 {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.16;
+}
+
+.watercourse-panel__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.watercourse-panel__summary span {
+  min-height: 22px;
+  padding: 4px 7px;
+  border: 1px solid #d8e4dc;
+  border-radius: 999px;
+  background: #eef7f1;
+  color: #19594d;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.watercourse-hints {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.watercourse-hints div {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.watercourse-hints dt {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.watercourse-hints dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.watercourse-context {
+  display: grid;
+  gap: 6px;
+}
+
+.watercourse-context h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-sm);
+}
+
+.watercourse-list {
+  display: grid;
+  gap: 6px;
+}
+
+.watercourse-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.watercourse-list-row:hover {
+  border-color: #b6d6c6;
+  background: #f4fbf6;
+}
+
+.watercourse-list-row span {
+  min-width: 0;
+}
+
+.watercourse-list-row strong,
+.watercourse-list-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.watercourse-list-row strong {
+  color: var(--ink);
+  font-size: var(--text-sm);
+}
+
+.watercourse-list-row small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 650;
 }
 
 .legend-dot--section {
@@ -3460,6 +3616,14 @@ textarea {
     max-width: calc(100% - 32px);
   }
 
+  .watercourse-panel {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-height: min(54vh, calc(100% - 112px));
+  }
+
   .quick-add-panel {
     top: 260px;
     left: 12px;
@@ -4141,6 +4305,14 @@ textarea {
 
   .map-legend {
     display: none;
+  }
+
+  .watercourse-panel {
+    inset: 0;
+    width: auto;
+    max-height: none;
+    padding: 14px;
+    border-radius: 0;
   }
 
   .map-stage .leaflet-bottom.leaflet-left {

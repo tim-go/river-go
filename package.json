@@ -21,6 +21,8 @@
     "api:backfill:observations": "npm --prefix api run backfill:observations --",
     "api:backfill:w3w": "node scripts/run-api-runtime-command.mjs local npm --prefix api run backfill:w3w --",
     "api:import:osm-waterways": "RIVER_GO_DATABASE_URL_KEY=adminUrl node scripts/run-api-runtime-command.mjs local npm --prefix api run import:osm-waterways --",
+    "osm:download-extract": "scripts/download-osm-extract.sh",
+    "osm:prepare-waterways": "scripts/prepare-osm-waterways.sh",
     "platform:import:osm-waterways:staging": "npm --prefix platform run import:osm-waterways:staging --",
     "platform:import:osm-waterways:prod": "npm --prefix platform run import:osm-waterways:prod --",
     "api:sync:smoke": "npm --prefix api run sync:smoke",

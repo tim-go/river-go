@@ -148,6 +148,8 @@ npm run platform:backfill:w3w:staging
 
 The backfill connects through Cloud SQL Auth Proxy, finds visible point contributions without `payload.what3wordsAddress`, and stores the generated address in the existing JSONB payload.
 
+Seed-data import and refresh instructions live in `/docs/specs/ops/seed-data-operations.md`. Use that runbook for OSM waterway imports, observation history backfills, what3words backfills, staging-first validation, and refresh cadence.
+
 Run the first observation ingestion job locally after migrations:
 
 ```bash

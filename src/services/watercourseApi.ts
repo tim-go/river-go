@@ -11,8 +11,24 @@ export interface WatercourseBounds {
 export interface KnownWatercourse {
   id: string;
   name: string | null;
+  watercourseType: string;
   form: string | null;
   flowDirection: string | null;
+  hints: {
+    access: string | null;
+    boat: string | null;
+    canoe: string | null;
+    operator: string | null;
+    tidal: string | null;
+    intermittent: string | null;
+    lock: string | null;
+    lockName: string | null;
+    tunnel: string | null;
+    bridge: string | null;
+    towpath: string | null;
+    wikidata: string | null;
+    wikipedia: string | null;
+  };
   routes: LatLngTuple[][];
   source: {
     kind: "watercourse-reference";

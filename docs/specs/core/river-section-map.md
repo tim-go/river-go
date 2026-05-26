@@ -86,6 +86,14 @@ Sections and Route controls should live in the map header action strip and show 
 
 The map header should stay compact on desktop and mobile so route context and core actions do not consume a large share of the map viewport. It should still expose the selected section's headline level/status context without forcing users to open route details.
 
+The route layer should be independently toggleable from the map header, similar
+to the known-rivers overlay. When enabled, route paths should render faintly by
+default so waterways, POIs, and local-stretch context remain readable. Hovering
+or clicking a route path should highlight that route. Route popups should
+separate `Details` from `Select route`: details opens the route panel without
+forcing a map refit, while selecting a route makes it active and fits the map to
+the route.
+
 When provider observations are available for a selected section, the map should show an immediately visible route status card with current level/flow context, trend, source, freshness, and a direct action to open full level history. Users should be able to hide this card temporarily and restore it from a compact map control.
 
 Clicking markers must not unexpectedly zoom out or recenter the map.
@@ -134,6 +142,13 @@ Route adjustment should not require retracing when only metadata is changing. Ex
 Editing a pending route suggestion from moderation should update the suggestion itself rather than creating a separate route edit overlay.
 
 The route editor may offer a `Snap` preview action that aligns the rough trace to known river geometry already loaded in the app. This is only a geometry assist; it must keep the review and evidence workflow explicit.
+
+When the known-rivers overlay is visible, clicking an OSM waterway line may
+select that local stretch. The map should highlight the clicked line more
+strongly and show a compact information panel with the waterway name/type,
+source caveat, safe OSM hints, and nearby RiverLaunch routes/POIs already known
+to the app. This is local context only; it must not select or imply the whole
+named river.
 
 On narrow mobile viewports, the map header may collapse secondary controls behind an explicit `Controls` toggle. Expanded controls must show text labels for route actions so `Suggest route` and `Edit route` are distinguishable.
 
@@ -187,6 +202,8 @@ Production behaviour may differ:
 | MAP-F18 | Route adjustment display | Map/admin | Active | MVP | — | Admin/moderator route edits render as distinct traces and can be focused from moderation. |
 | MAP-F19 | Snap rough trace to known river | Map/route editor | Active | prototype | — | Route editor can snap a rough trace to known in-app route geometry for review. |
 | MAP-F20 | Public approved route candidates | Map/search | Active | MVP | — | Approved route suggestions appear as selectable candidate routes with distinct styling and low-confidence copy. |
+| MAP-F21 | Local watercourse stretch panel | Map | Active | MVP | — | Clicking a known-rivers overlay line highlights the selected local stretch and shows nearby routes/POIs plus source caveats. |
+| MAP-F22 | Route layer toggle | Map | Active | MVP | — | Users can show/hide all route paths, with faint default route styling and hover/click highlight before explicit route selection. |
 
 ### Backlog
 

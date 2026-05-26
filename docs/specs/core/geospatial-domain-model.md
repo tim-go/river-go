@@ -271,6 +271,17 @@ The map should also be able to show this watercourse reference layer as a
 visible overlay. The overlay is for context, debugging, and route-tracing
 confidence only. It must be visually distinct from RiverLaunch paddling routes.
 
+Clicking a visible OSM watercourse should select a local stretch rather than a
+whole named river. The selected stretch may show nearby RiverLaunch routes,
+POIs, gauges, photos, and safe OSM metadata hints such as name, waterway type,
+tidal/intermittent flags, operator, and access/canoe/boat tags. It must not
+infer that the whole named river, tributary system, or catchment has been
+selected.
+
+Whole-river grouping is a later phase. Candidate grouping sources include OSM
+waterway relations, OS Open Rivers, WFD waterbodies, and moderator correction,
+but they should not block the local-stretch interaction.
+
 ### Migration From Current Model
 
 The current implementation is section-centric:
@@ -311,6 +322,7 @@ records.
 | GEO-F7 | GB watercourse reference layer | Backend/data | Active | MVP | — | Seed OSM waterway geometry for snapping, search, and spatial context; OSM waterways are the visual snap authority. |
 | GEO-F8 | Backend watercourse snap endpoint | API/map | Active | MVP | — | Snap route control points to stored OSM waterway geometry, route along connected vertices, and return confidence/warnings. |
 | GEO-F9 | Known rivers map overlay | Map/API | Active | MVP | — | Map can show visible OSM waterway reference geometry within the current viewport so users can see where visual snap support exists. |
+| GEO-F10 | Local watercourse stretch selection | Map/API | Active | MVP | — | Clicking visible OSM watercourse geometry selects the local stretch and shows nearby app context without whole-river grouping. |
 
 ### Backlog
 
@@ -324,6 +336,7 @@ records.
 | GEO-B6 | task | Watercourse imports | Active | MVP | Import OSM waterways for visual snapping and map context. |
 | GEO-B7 | validation | Known rivers overlay density | Open | MVP | Tune viewport limits, simplification, and styling after testing on dense urban/canal areas and small mobile screens. |
 | GEO-B8 | validation | OSM waterway routing quality | Active | MVP | Validate graph routing, branch handling, midpoint disambiguation, and snap distance thresholds on real user route submissions. |
+| GEO-B9 | decision | Whole-river grouping | Parked | Later | Do not group whole rivers in v1; revisit with OSM relations, OS Open Rivers, WFD waterbodies, and admin correction after local-stretch UX proves useful. |
 
 ## Change Log
 

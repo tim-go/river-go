@@ -9,7 +9,7 @@ maturity: Draft
 # Public Source Seeding
 
 **Work state:** Active
-**Last updated:** 2026-05-25
+**Last updated:** 2026-05-26
 **Scope:** Governs how public source material becomes RiverLaunch.app seed data, candidate sections, source metadata, or partnership targets.
 
 ## Purpose
@@ -34,6 +34,7 @@ The goal is not to scrape existing paddling services. The goal is to create audi
 - `/docs/specs/data/river-tryweryn-seed-data.md`
 - `/docs/specs/data/river-wye-seed-data.md`
 - `/docs/specs/backend/observation-ingestion.md`
+- `/docs/specs/ops/seed-data-operations.md`
 
 ## Requirements
 
@@ -79,9 +80,20 @@ snap preview, and map context. This layer should be imported as watercourse
 reference geometry, not as paddling routes, and should retain OSM source
 metadata, ODbL attribution, version/date, and confidence warnings.
 
-The first OSM import implementation should support Overpass JSON input or a
-bounded live Overpass query for pilot areas. A full GB import should move to an
-offline OSM extract pipeline rather than repeated national Overpass queries.
+The OSM import implementation should support:
+
+- bounded live Overpass queries for pilot areas
+- Overpass JSON files
+- GeoJSON FeatureCollections
+- streamed GeoJSONSeq for large regional or country-wide imports
+
+Country-wide imports should use a Geofabrik `.osm.pbf` extract filtered through
+Osmium into GeoJSONSeq. The importer must stream GeoJSONSeq input in batches so
+GB-scale waterway imports do not load the full extract into memory. It must
+accept Osmium's RFC 8142 GeoJSON text-sequence output as well as plain
+newline-delimited GeoJSON. Overpass must not be used for country-wide imports.
+Repeatable seed and refresh runs must follow
+`/docs/specs/ops/seed-data-operations.md`.
 
 Imported watercourses should live in a `watercourses` table with source id, source version, source URL, licence, name fields, form/flow metadata, raw properties, source metadata, and a spatial index. The importer should be runnable locally and against staging/prod runtime config via npm scripts.
 
@@ -113,7 +125,7 @@ The first source-backed route work should concentrate on:
 | PUBSEED-F3 | Candidate route workflow | Data/community | Queued | v0.2 | — | Converts public references into verification prompts rather than copied routes. |
 | PUBSEED-F4 | Partner import pathway | Data/partnership | Queued | later | — | Allows route import only when source owner grants permission and provenance is retained. |
 | PUBSEED-F5 | Watercourse imports | Data/backend | Active | MVP | — | Import OSM waterways for visual snapping and map context without treating them as paddleable routes. |
-| PUBSEED-F6 | OSM waterway import | Data/backend | Active | MVP | — | Import OSM river, stream, and canal geometry as the default route snap/known-rivers overlay source. |
+| PUBSEED-F6 | OSM waterway import | Data/backend | Active | MVP | — | Import OSM river, stream, and canal geometry as the default route snap/known-rivers overlay source, including streamed GeoJSONSeq for country-wide extracts. |
 
 ### Backlog
 
@@ -123,7 +135,7 @@ The first source-backed route work should concentrate on:
 | PUBSEED-B2 | dependency | Paddle UK partnership decision | Open | v0.2 | Go Paddling/PaddlePoints appear strategically valuable but are permission-needed. |
 | PUBSEED-B3 | validation | OSM geometry licence review | Open | v0.2 | Required before production route geometry is derived from map datasets. |
 | PUBSEED-B4 | task | Design contributor verification prompts | Open | v0.2 | Candidate sections should ask members for exact access, hazards, photos, and level interpretation. |
-| PUBSEED-B5 | task | Seed all GB visual waterways from OSM | Active | MVP | Build import script, PostGIS watercourse table records, source metadata, and staging seed run for visual snap-to-river. |
+| PUBSEED-B5 | task | Seed all GB visual waterways from OSM | Active | MVP | Build Geofabrik/Osmium preparation script, streamed importer, PostGIS watercourse records, source metadata, and staging seed run for visual snap-to-river. |
 
 ## Change Log
 

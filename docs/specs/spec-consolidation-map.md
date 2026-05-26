@@ -24,6 +24,7 @@ This map helps locate the owning spec for RiverLaunch.app work. If a durable cha
 | River level providers | `/docs/specs/data/river-level-providers.md` | EA-first provider model and future backend ingestion. |
 | Platform configuration | `/docs/specs/ops/platform-configuration.md` | In-repo Firebase/GCP configuration, publishing targets, and operational scripts. |
 | Analytics and consent | `/docs/specs/ops/analytics-and-consent.md` | Firebase Analytics, consent gating, SPA page views, and product event tracking. |
+| Seed data operations | `/docs/specs/ops/seed-data-operations.md` | Operator runbook for required seed datasets, refresh cadence, staging validation, and recovery. |
 | Backend service API | `/docs/specs/backend/service-api.md` | Cloud Run API, Firebase Auth, PostGIS persistence, media, and moderation boundaries. |
 | Backend data and sync model | `/docs/specs/backend/data-and-sync-model.md` | Hybrid relational/JSONB schema, offline sync envelope, idempotency, and initial contribution persistence. |
 | Observation ingestion | `/docs/specs/backend/observation-ingestion.md` | Generic provider-backed stations, measures, readings, scheduled ingestion, and monitoring for levels, flow, rainfall, tide/sea, and release data. |

@@ -45,8 +45,10 @@ export interface WatercourseViewportInput {
 export interface ApiWatercourseFeature {
   id: string;
   name: string | null;
+  watercourseType: string;
   form: string | null;
   flowDirection: string | null;
+  hints: WatercourseHints;
   routes: LatLngTuple[][];
   source: {
     kind: "watercourse-reference";
@@ -55,6 +57,22 @@ export interface ApiWatercourseFeature {
     sourceVersion: string;
     source: WatercourseSource;
   };
+}
+
+interface WatercourseHints {
+  access: string | null;
+  boat: string | null;
+  canoe: string | null;
+  operator: string | null;
+  tidal: string | null;
+  intermittent: string | null;
+  lock: string | null;
+  lockName: string | null;
+  tunnel: string | null;
+  bridge: string | null;
+  towpath: string | null;
+  wikidata: string | null;
+  wikipedia: string | null;
 }
 
 interface WatercourseGeometryRow {
@@ -73,10 +91,12 @@ interface WatercourseViewportRow {
   source: WatercourseSource;
   source_id: string;
   name: string | null;
+  watercourse_type: string;
   form: string | null;
   flow_direction: string | null;
   source_version: string;
   licence: string;
+  raw_properties: Record<string, unknown> | null;
   geometry_geojson: {
     type: "LineString" | "MultiLineString";
     coordinates: unknown;
@@ -194,10 +214,12 @@ export async function listWatercoursesForViewport(
         wc.source,
         wc.source_id,
         wc.name,
+        wc.watercourse_type,
         wc.form,
         wc.flow_direction,
         wc.source_version,
         wc.licence,
+        wc.raw_properties,
         ST_CollectionExtract(ST_Intersection(wc.geometry, bounds.geom), 2) AS clipped_geometry,
         wc.geometry <-> bounds.centre AS distance_sort
       FROM watercourses wc, bounds
@@ -211,10 +233,12 @@ export async function listWatercoursesForViewport(
       source_id,
       source,
       name,
+      watercourse_type,
       form,
       flow_direction,
       source_version,
       licence,
+      raw_properties,
       ST_AsGeoJSON(
         CASE
           WHEN $6::double precision > 0
@@ -246,8 +270,10 @@ export async function listWatercoursesForViewport(
       {
         id: row.source_id,
         name: row.name,
+        watercourseType: row.watercourse_type,
         form: row.form,
         flowDirection: row.flow_direction,
+        hints: watercourseHints(row.raw_properties),
         routes,
         source: {
           kind: "watercourse-reference",
@@ -259,6 +285,34 @@ export async function listWatercoursesForViewport(
       },
     ];
   });
+}
+
+function watercourseHints(
+  properties: Record<string, unknown> | null,
+): WatercourseHints {
+  return {
+    access: readPropertyText(properties, "access"),
+    boat: readPropertyText(properties, "boat"),
+    canoe: readPropertyText(properties, "canoe"),
+    operator: readPropertyText(properties, "operator"),
+    tidal: readPropertyText(properties, "tidal"),
+    intermittent: readPropertyText(properties, "intermittent"),
+    lock: readPropertyText(properties, "lock"),
+    lockName: readPropertyText(properties, "lock_name"),
+    tunnel: readPropertyText(properties, "tunnel"),
+    bridge: readPropertyText(properties, "bridge"),
+    towpath: readPropertyText(properties, "towpath"),
+    wikidata: readPropertyText(properties, "wikidata"),
+    wikipedia: readPropertyText(properties, "wikipedia"),
+  };
+}
+
+function readPropertyText(
+  properties: Record<string, unknown> | null,
+  key: string,
+) {
+  const value = properties?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 async function listWatercourseGeometriesForRoute(

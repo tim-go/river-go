@@ -1,8 +1,11 @@
+import { createReadStream } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { createInterface } from "node:readline/promises";
 import { closePool, pool } from "./db.js";
 
 interface ImportOptions {
   file: string | null;
+  format: "overpass-json" | "geojson" | "geojsonseq";
   bbox: string | null;
   sourceVersion: string;
   truncateSource: boolean;
@@ -20,6 +23,21 @@ interface OverpassElement {
 
 interface OverpassResponse {
   elements?: OverpassElement[];
+}
+
+interface GeoJsonFeature {
+  type?: string;
+  id?: string | number;
+  properties?: Record<string, unknown> | null;
+  geometry?: {
+    type?: string;
+    coordinates?: unknown;
+  } | null;
+}
+
+interface GeoJsonFeatureCollection {
+  type?: string;
+  features?: GeoJsonFeature[];
 }
 
 interface OsmWaterwayRecord {
@@ -53,26 +71,104 @@ const OSM_WATERWAY_VALUES = [
 
 async function main() {
   const options = readOptions(process.argv.slice(2));
-  const input = options.file
-    ? JSON.parse(await readFile(options.file, "utf8")) as OverpassResponse
-    : await fetchOverpassWaterways(readBbox(options.bbox));
 
   if (options.truncateSource) {
     await pool.query("DELETE FROM watercourses WHERE source = 'osm_waterway'");
   }
 
-  const records = (input.elements ?? []).flatMap((element) =>
-    elementToRecord(element, options.sourceVersion),
-  );
-
   let imported = 0;
-  for (let index = 0; index < records.length; index += 500) {
-    imported += await upsertBatch(records.slice(index, index + 500));
-    console.log(`Imported ${imported} OSM waterways...`);
+  const batch: OsmWaterwayRecord[] = [];
+
+  for await (const record of readRecords(options)) {
+    batch.push(record);
+
+    if (batch.length >= 500) {
+      imported += await upsertBatch(batch);
+      batch.length = 0;
+      console.log(`Imported ${imported} OSM waterways...`);
+    }
+  }
+
+  if (batch.length) {
+    imported += await upsertBatch(batch);
   }
 
   console.log(`Imported ${imported} OSM waterway links.`);
   await closePool();
+}
+
+async function* readRecords(
+  options: ImportOptions,
+): AsyncGenerator<OsmWaterwayRecord> {
+  if (!options.file) {
+    const response = await fetchOverpassWaterways(readBbox(options.bbox));
+
+    for (const element of response.elements ?? []) {
+      for (const record of elementToRecord(element, options.sourceVersion)) {
+        yield record;
+      }
+    }
+    return;
+  }
+
+  if (options.format === "overpass-json") {
+    const input = JSON.parse(await readFile(options.file, "utf8")) as OverpassResponse;
+
+    for (const element of input.elements ?? []) {
+      for (const record of elementToRecord(element, options.sourceVersion)) {
+        yield record;
+      }
+    }
+    return;
+  }
+
+  if (options.format === "geojson") {
+    const input = JSON.parse(await readFile(options.file, "utf8")) as
+      | GeoJsonFeature
+      | GeoJsonFeatureCollection;
+    const features =
+      isGeoJsonFeatureCollection(input)
+        ? input.features ?? []
+        : input.type === "Feature"
+          ? [input]
+          : [];
+
+    for (const feature of features) {
+      for (const record of geoJsonFeatureToRecord(feature, options.sourceVersion)) {
+        yield record;
+      }
+    }
+    return;
+  }
+
+  const stream = createReadStream(options.file, { encoding: "utf8" });
+  const lines = createInterface({
+    input: stream,
+    crlfDelay: Number.POSITIVE_INFINITY,
+  });
+
+  for await (const line of lines) {
+    const trimmed = normaliseGeoJsonSequenceLine(line);
+
+    if (!trimmed) {
+      continue;
+    }
+
+    const feature = JSON.parse(trimmed) as GeoJsonFeature;
+    for (const record of geoJsonFeatureToRecord(feature, options.sourceVersion)) {
+      yield record;
+    }
+  }
+}
+
+function normaliseGeoJsonSequenceLine(line: string) {
+  return line.replace(/^\u001e+/, "").trim();
+}
+
+function isGeoJsonFeatureCollection(
+  value: GeoJsonFeature | GeoJsonFeatureCollection,
+): value is GeoJsonFeatureCollection {
+  return value.type === "FeatureCollection";
 }
 
 async function fetchOverpassWaterways(bbox: {
@@ -166,6 +262,144 @@ function elementToRecord(
   ];
 }
 
+function geoJsonFeatureToRecord(
+  feature: GeoJsonFeature,
+  sourceVersion: string,
+): OsmWaterwayRecord[] {
+  if (feature.type !== "Feature" || !feature.geometry) {
+    return [];
+  }
+
+  const properties = feature.properties ?? {};
+  const waterway = readText(properties, "waterway");
+
+  if (!waterway || !OSM_WATERWAY_VALUES.includes(waterway)) {
+    return [];
+  }
+
+  const geometry = normaliseGeoJsonGeometry(feature.geometry);
+
+  if (!geometry.length) {
+    return [];
+  }
+
+  const sourceId = readOsmSourceId(feature, properties);
+  const sourceUrl = sourceId.startsWith("way/")
+    ? `https://www.openstreetmap.org/${sourceId}`
+    : "";
+
+  return [
+    {
+      source_id: sourceId,
+      source_version: sourceVersion,
+      source_url: sourceUrl,
+      licence: "Open Database Licence",
+      name: readText(properties, "name"),
+      alternate_name:
+        readText(properties, "alt_name") ?? readText(properties, "name:en"),
+      watercourse_type: waterway,
+      flow_direction: readText(properties, "oneway"),
+      form: readText(properties, "intermittent") === "yes" ? "intermittent" : null,
+      length_m: null,
+      geometry: {
+        type: "MultiLineString",
+        coordinates: geometry,
+      },
+      raw_properties: properties,
+      source_metadata: {
+        source: "OpenStreetMap",
+        sourceVersion,
+        sourceUrl,
+        licence: "Open Database Licence",
+        role: "Visual waterway geometry for route snap preview and map context only",
+        warning:
+          "This geometry does not prove paddleability, legal access, safety, grade, or current conditions.",
+      },
+    },
+  ];
+}
+
+function normaliseGeoJsonGeometry(
+  geometry: NonNullable<GeoJsonFeature["geometry"]>,
+): Array<Array<[number, number]>> {
+  if (geometry.type === "LineString") {
+    const line = normaliseCoordinates(geometry.coordinates);
+    return line.length >= 2 ? [line] : [];
+  }
+
+  if (geometry.type === "MultiLineString" && Array.isArray(geometry.coordinates)) {
+    return geometry.coordinates
+      .map(normaliseCoordinates)
+      .filter((line) => line.length >= 2);
+  }
+
+  return [];
+}
+
+function normaliseCoordinates(coordinates: unknown): Array<[number, number]> {
+  if (!Array.isArray(coordinates)) {
+    return [];
+  }
+
+  return coordinates.flatMap((coordinate) => {
+    if (!Array.isArray(coordinate) || coordinate.length < 2) {
+      return [];
+    }
+
+    const lng = Number(coordinate[0]);
+    const lat = Number(coordinate[1]);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return [];
+    }
+
+    return [[lng, lat] as [number, number]];
+  });
+}
+
+function readOsmSourceId(
+  feature: GeoJsonFeature,
+  properties: Record<string, unknown>,
+) {
+  const candidates = [
+    feature.id,
+    properties["@id"],
+    properties.id,
+    properties.osm_id,
+    properties.osm_way_id,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return normaliseOsmId(candidate.trim());
+    }
+
+    if (typeof candidate === "number" && Number.isFinite(candidate)) {
+      return `way/${Math.trunc(candidate)}`;
+    }
+  }
+
+  const name = readText(properties, "name") ?? "unnamed";
+  return `feature/${name}-${JSON.stringify(feature.geometry?.coordinates ?? []).length}`;
+}
+
+function normaliseOsmId(value: string) {
+  if (value.startsWith("way/")) {
+    return value;
+  }
+
+  if (value.startsWith("w")) {
+    const numeric = value.replace(/^w/, "");
+    return numeric ? `way/${numeric}` : value;
+  }
+
+  if (/^\d+$/.test(value)) {
+    return `way/${value}`;
+  }
+
+  return value;
+}
+
 async function upsertBatch(records: OsmWaterwayRecord[]) {
   if (!records.length) {
     return 0;
@@ -251,20 +485,56 @@ function readOptions(args: string[]): ImportOptions {
 
   const file = valueFor("--file") ?? null;
   const bbox = valueFor("--bbox") ?? null;
+  const explicitFormat = valueFor("--format");
+  const format = readFormat(file, explicitFormat);
 
   if (!file && !bbox) {
     throw new Error(
-      "Usage: npm run import:osm-waterways -- --file overpass.json OR --bbox south,west,north,east",
+      "Usage: npm run import:osm-waterways -- --file waterways.geojsonseq [--format geojsonseq|geojson|overpass-json] OR --bbox south,west,north,east",
     );
   }
 
   return {
     file,
+    format,
     bbox,
     sourceVersion:
       valueFor("--source-version") ?? `overpass-${new Date().toISOString().slice(0, 10)}`,
     truncateSource: args.includes("--truncate-source"),
   };
+}
+
+function readFormat(
+  file: string | null,
+  explicitFormat: string | undefined,
+): ImportOptions["format"] {
+  const format = explicitFormat ?? inferFormat(file);
+
+  if (
+    format !== "overpass-json" &&
+    format !== "geojson" &&
+    format !== "geojsonseq"
+  ) {
+    throw new Error("--format must be overpass-json, geojson, or geojsonseq.");
+  }
+
+  return format;
+}
+
+function inferFormat(file: string | null): ImportOptions["format"] {
+  if (!file) {
+    return "overpass-json";
+  }
+
+  if (file.endsWith(".geojsonseq") || file.endsWith(".geojsonl")) {
+    return "geojsonseq";
+  }
+
+  if (file.endsWith(".geojson")) {
+    return "geojson";
+  }
+
+  return "overpass-json";
 }
 
 function readBbox(value: string | null) {
@@ -288,6 +558,14 @@ function readBbox(value: string | null) {
   }
 
   return { south, west, north, east };
+}
+
+function readText(
+  properties: Record<string, unknown>,
+  key: string,
+): string | null {
+  const value = properties[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 main().catch(async (error) => {

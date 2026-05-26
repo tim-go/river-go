@@ -65,19 +65,42 @@ Import OSM waterway geometry after running migrations:
 npm run api:import:osm-waterways -- --bbox 52.90,-3.70,52.98,-3.55 --source-version overpass-tryweryn-2026-05-26
 ```
 
-Overpass JSON input is also supported:
+Country-wide imports should be prepared from an offline Geofabrik extract with
+Osmium rather than Overpass. Downloading, preparation, and database ingestion
+are separate stages:
 
 ```bash
-npm run api:import:osm-waterways -- --file /path/to/overpass-waterways.json --source-version overpass-export-2026-05-26
+npm run osm:download-extract -- great-britain /tmp/riverlaunch-osm
+npm run osm:prepare-waterways -- great-britain /tmp/riverlaunch-osm
+npm run api:import:osm-waterways -- \
+  --file /tmp/riverlaunch-osm/great-britain-waterways.geojsonseq \
+  --format geojsonseq \
+  --source-version geofabrik-great-britain-2026-05-26 \
+  --truncate-source
 ```
 
 To refresh staging from the repo root, use:
 
 ```bash
-npm run platform:import:osm-waterways:staging -- --bbox 52.90,-3.70,52.98,-3.55 --source-version overpass-tryweryn-2026-05-26 --truncate-source
+npm run platform:import:osm-waterways:staging -- \
+  --file /tmp/riverlaunch-osm/great-britain-waterways.geojsonseq \
+  --format geojsonseq \
+  --source-version geofabrik-great-britain-2026-05-26 \
+  --truncate-source
 ```
 
-The imported `watercourses` records are visual reference geometry for snapping and map context only. They are not paddling route data and do not indicate access, safety, grade, or runnable conditions.
+The importer supports `--format overpass-json`, `--format geojson`, and streamed
+`--format geojsonseq`. GeoJSONSeq may be either newline-delimited GeoJSON or the
+RFC 8142 text-sequence output produced by Osmium. Use GeoJSONSeq for large
+country-wide imports so the API process does not load the full extract into
+memory.
+
+The imported `watercourses` records are visual reference geometry for snapping
+and map context only. They are not paddling route data and do not indicate
+access, safety, grade, or runnable conditions.
+
+The full seed-data operations runbook is `/docs/specs/ops/seed-data-operations.md`.
+Use it for staging-first imports, refresh cadence, validation, and rollback.
 
 ## Local Database Defaults
 

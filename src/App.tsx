@@ -170,6 +170,8 @@ const COMPACT_MAP_CONTROLS_QUERY = "(max-width: 430px)";
 const ROUTE_IMPACT_CORRIDOR_METRES = 120;
 const ROUTE_IMPACT_ENDPOINT_WARNING_METRES = 350;
 const KNOWN_RIVER_FALLBACK_COLOUR = "#b42318";
+const SELECTED_WATERCOURSE_FALLBACK_COLOUR = "#0f766e";
+const WATERCOURSE_CONTEXT_CORRIDOR_METRES = 250;
 
 type RouteDetailsTab =
   | "details"
@@ -448,6 +450,19 @@ type LocationSearchResult = {
   country?: string;
   focusSection?: RiverSection;
   pois: NearbyPoiResult[];
+};
+type WatercourseContextPoi = {
+  id: string;
+  kind: NearbyPoiResult["kind"];
+  title: string;
+  subtitle: string;
+  section: RiverSection;
+  location: LatLngTuple;
+  distanceM: number;
+};
+type WatercourseContextSection = {
+  section: RiverSection;
+  distanceM: number;
 };
 
 interface SelectedPoi {
@@ -752,6 +767,8 @@ function createMapPopupContent({
   navigationLabel = "Maps",
   navigationMode = "map",
   onDetails,
+  selectLabel,
+  onSelect,
 }: {
   title: string;
   subtitle: string;
@@ -763,6 +780,8 @@ function createMapPopupContent({
   navigationLabel?: string;
   navigationMode?: "directions" | "map";
   onDetails: () => void;
+  selectLabel?: string;
+  onSelect?: () => void;
 }) {
   const container = L.DomUtil.create("div", "map-popup-card");
   L.DomEvent.disableClickPropagation(container);
@@ -798,6 +817,20 @@ function createMapPopupContent({
       ?.click();
     onDetails();
   });
+
+  if (onSelect) {
+    const selectButton = L.DomUtil.create("button", "", actions);
+    selectButton.type = "button";
+    selectButton.textContent = selectLabel ?? "Select";
+    L.DomEvent.on(selectButton, "click", (event) => {
+      L.DomEvent.stop(event);
+      container
+        .closest(".leaflet-popup")
+        ?.querySelector<HTMLAnchorElement>(".leaflet-popup-close-button")
+        ?.click();
+      onSelect();
+    });
+  }
 
   if (navigationLocation) {
     const link = L.DomUtil.create("a", "", actions);
@@ -1711,6 +1744,159 @@ function nearbyPoisForLocation(
     .slice(0, 8);
 }
 
+function distanceMetersToRoutes(point: LatLngTuple, routes: LatLngTuple[][]) {
+  return routes.reduce(
+    (best, route) => Math.min(best, distanceMetersToRoute(point, route)),
+    Infinity,
+  );
+}
+
+function distanceMetersBetweenRoutes(
+  route: LatLngTuple[],
+  targetRoutes: LatLngTuple[][],
+) {
+  if (!route.length || !targetRoutes.length) {
+    return Infinity;
+  }
+
+  const stride = Math.max(1, Math.floor(route.length / 30));
+  let best = Infinity;
+
+  for (let index = 0; index < route.length; index += stride) {
+    best = Math.min(best, distanceMetersToRoutes(route[index], targetRoutes));
+  }
+
+  best = Math.min(best, distanceMetersToRoutes(route[route.length - 1], targetRoutes));
+
+  return best;
+}
+
+function watercourseRouteDistanceKm(watercourse: KnownWatercourse) {
+  return watercourse.routes.reduce(
+    (total, route) => total + routeDistanceKm(route),
+    0,
+  );
+}
+
+function collectWatercourseContextPois(
+  watercourse: KnownWatercourse,
+  mapPois: MapPoi[],
+  contributions: Contribution[],
+  sections: RiverSection[],
+) {
+  const sectionsById = new Map(sections.map((section) => [section.id, section]));
+  const poisById = new Map(
+    sections
+      .flatMap(fallbackMapPoisForSection)
+      .map((poi) => [poi.id, poi] as const),
+  );
+  mapPois.forEach((poi) => {
+    poisById.set(poi.id, poi);
+  });
+  const seedPois: WatercourseContextPoi[] = [...poisById.values()].flatMap((poi) => {
+    const section = sectionsById.get(poi.sectionId);
+
+    if (!section) {
+      return [];
+    }
+
+    const distanceM = distanceMetersToRoutes(poi.location, watercourse.routes);
+
+    if (distanceM > WATERCOURSE_CONTEXT_CORRIDOR_METRES) {
+      return [];
+    }
+
+    return [
+      {
+        id: poi.id,
+        kind: poi.kind,
+        title: poi.title,
+        subtitle: poi.subtitle,
+        section,
+        location: poi.location,
+        distanceM,
+      },
+    ];
+  });
+  const contributionPois: WatercourseContextPoi[] = contributions.flatMap((contribution) => {
+    if (
+      !contribution.location ||
+      contribution.status === "hidden" ||
+      contribution.status === "rejected"
+    ) {
+      return [];
+    }
+
+    const section = sectionsById.get(contribution.sectionId);
+
+    if (!section) {
+      return [];
+    }
+
+    const distanceM = distanceMetersToRoutes(contribution.location, watercourse.routes);
+
+    if (distanceM > WATERCOURSE_CONTEXT_CORRIDOR_METRES) {
+      return [];
+    }
+
+    return [
+      {
+        id: contribution.id,
+        kind: "contribution",
+        title: contribution.title,
+        subtitle: `Community ${contribution.type} · ${section.sectionName}`,
+        section,
+        location: contribution.location,
+        distanceM,
+      },
+    ];
+  });
+
+  return [...seedPois, ...contributionPois]
+    .sort((left, right) => left.distanceM - right.distanceM)
+    .slice(0, 8);
+}
+
+function collectWatercourseContextSections(
+  watercourse: KnownWatercourse,
+  sections: RiverSection[],
+) {
+  return sections
+    .map(
+      (section): WatercourseContextSection => ({
+        section,
+        distanceM: distanceMetersBetweenRoutes(section.route, watercourse.routes),
+      }),
+    )
+    .filter((item) => item.distanceM <= WATERCOURSE_CONTEXT_CORRIDOR_METRES)
+    .sort((left, right) => left.distanceM - right.distanceM)
+    .slice(0, 5);
+}
+
+function watercourseTypeLabel(value: string) {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function watercourseHintRows(watercourse: KnownWatercourse) {
+  const hints = watercourse.hints;
+  return [
+    ["Access", hints.access],
+    ["Canoe", hints.canoe],
+    ["Boat", hints.boat],
+    ["Tidal", hints.tidal],
+    ["Intermittent", hints.intermittent],
+    ["Operator", hints.operator],
+    ["Lock", hints.lockName ?? hints.lock],
+    ["Tunnel", hints.tunnel],
+    ["Bridge", hints.bridge],
+    ["Towpath", hints.towpath],
+  ].filter((row): row is [string, string] => Boolean(row[1]));
+}
+
 function formatDistanceKm(distanceKm: number) {
   return distanceKm < 1
     ? `${Math.round(distanceKm * 1000)} m`
@@ -1889,6 +2075,34 @@ function mapPoiToSelectedPoi(poi: MapPoi, section: RiverSection): SelectedPoi {
     navigationLocation: poi.location,
     what3words: readPayloadString(poi.payload, "what3wordsAddress"),
     mapPoi: poi,
+  };
+}
+
+function contributionToSelectedPoi(
+  contribution: Contribution,
+  section: RiverSection,
+  syncStatus?: ContributionSyncStatus,
+): SelectedPoi {
+  return {
+    id: contribution.id,
+    kind: "contribution",
+    title: contribution.title,
+    subtitle: `${contribution.type} · ${contribution.category}`,
+    summary: contribution.detail,
+    sectionLabel: section.sectionName,
+    location: contribution.location ?? section.centre,
+    status: contribution.status,
+    sourceLabel: contribution.author,
+    sourceConfidence: "community",
+    navigationLocation: contribution.location,
+    what3words: contribution.what3words,
+    syncStatus,
+    photos: contribution.photos,
+    category: contribution.category,
+    author: contribution.author,
+    dateObserved: contribution.dateObserved,
+    createdAt: contribution.createdAt,
+    contributionType: contribution.type,
   };
 }
 
@@ -3099,6 +3313,8 @@ function App() {
   const [routeDraftSnapMessage, setRouteDraftSnapMessage] = useState("");
   const [isRouteSnapLoading, setIsRouteSnapLoading] = useState(false);
   const [showKnownRivers, setShowKnownRivers] = useState(false);
+  const [showRoutesLayer, setShowRoutesLayer] = useState(true);
+  const [showSelectedRoutePath, setShowSelectedRoutePath] = useState(true);
   const [routeFormError, setRouteFormError] = useState("");
   const [routeRiverName, setRouteRiverName] = useState("");
   const [routeSectionName, setRouteSectionName] = useState("");
@@ -5709,6 +5925,8 @@ function App() {
 
   function selectSection(section: RiverSection) {
     setActiveSectionId(section.id);
+    setShowRoutesLayer(true);
+    setShowSelectedRoutePath(true);
     setIsRouteStatusCardVisible(true);
     setSectionFocusNonce((current) => current + 1);
     setIsSectionListOpen(false);
@@ -5724,6 +5942,7 @@ function App() {
 
   function openRouteDetails(section: RiverSection) {
     setActiveSectionId(section.id);
+    setShowSelectedRoutePath(true);
     setIsRouteStatusCardVisible(true);
     setSelectedPoi(null);
     setRouteDetailsTab("details");
@@ -6015,6 +6234,19 @@ function App() {
             </button>
             <button
               className={`ghost-button map-panel-toggle ${
+                showRoutesLayer ? "map-panel-toggle--active" : ""
+              }`}
+              type="button"
+              onClick={() => setShowRoutesLayer((current) => !current)}
+              title={showRoutesLayer ? "Hide routes" : "Show routes"}
+              aria-label={showRoutesLayer ? "Hide routes" : "Show routes"}
+              aria-pressed={showRoutesLayer}
+            >
+              <MapPinned size={16} />
+              Routes
+            </button>
+            <button
+              className={`ghost-button map-panel-toggle ${
                 isPanelOpen && routeDetailsTab === "levels"
                   ? "map-panel-toggle--active"
                   : ""
@@ -6290,6 +6522,8 @@ function App() {
           searchFocusNonce={searchFocusNonce}
           isAddMode={isAddMode}
           routeCreateMode={routeCreateMode}
+          showRoutesLayer={showRoutesLayer}
+          showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
           onMapClick={handleMapClick}
           onMoveRouteDraftPoint={updateRouteDraftPoint}
@@ -6825,6 +7059,27 @@ function App() {
           </div>
 
           <div className="panel-content panel-content--tabbed">
+            <div className="route-layer-options">
+              <span>Route display</span>
+              <button
+                className={`ghost-button ghost-button--compact ${
+                  showSelectedRoutePath ? "map-panel-toggle--active" : ""
+                }`}
+                type="button"
+                onClick={() =>
+                  setShowSelectedRoutePath((current) => {
+                    const next = !current;
+                    if (next) {
+                      setShowRoutesLayer(true);
+                    }
+                    return next;
+                  })
+                }
+                aria-pressed={showSelectedRoutePath}
+              >
+                {showSelectedRoutePath ? "Hide path" : "Show path"}
+              </button>
+            </div>
             <div
               className="segmented-control route-detail-tabs"
               role="tablist"
@@ -9677,6 +9932,8 @@ function RiverMap({
   searchFocusNonce,
   isAddMode,
   routeCreateMode,
+  showRoutesLayer,
+  showSelectedRoutePath,
   showKnownRivers,
   onMapClick,
   onMoveRouteDraftPoint,
@@ -9706,6 +9963,8 @@ function RiverMap({
   searchFocusNonce: number;
   isAddMode: boolean;
   routeCreateMode: RouteCreateMode;
+  showRoutesLayer: boolean;
+  showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   onMapClick: (
     location: LatLngTuple,
@@ -9738,12 +9997,43 @@ function RiverMap({
     [],
   );
   const [knownWatercourseStatus, setKnownWatercourseStatus] = useState("");
+  const [selectedWatercourseId, setSelectedWatercourseId] = useState<string | null>(
+    null,
+  );
   const outboxByContributionId = useMemo(
     () =>
       new Map(
         outboxRecords.map((record) => [record.contribution.id, record] as const),
       ),
     [outboxRecords],
+  );
+  const selectedWatercourse = useMemo(
+    () =>
+      selectedWatercourseId
+        ? knownWatercourses.find(
+            (watercourse) => watercourse.id === selectedWatercourseId,
+          ) ?? null
+        : null,
+    [knownWatercourses, selectedWatercourseId],
+  );
+  const selectedWatercoursePois = useMemo(
+    () =>
+      selectedWatercourse
+        ? collectWatercourseContextPois(
+            selectedWatercourse,
+            mapPois,
+            contributions,
+            sections,
+          )
+        : [],
+    [contributions, mapPois, sections, selectedWatercourse],
+  );
+  const selectedWatercourseSections = useMemo(
+    () =>
+      selectedWatercourse
+        ? collectWatercourseContextSections(selectedWatercourse, sections)
+        : [],
+    [sections, selectedWatercourse],
   );
 
   useEffect(() => {
@@ -9822,6 +10112,7 @@ function RiverMap({
     if (!showKnownRivers) {
       setKnownWatercourses([]);
       setKnownWatercourseStatus("");
+      setSelectedWatercourseId(null);
       return;
     }
 
@@ -9885,6 +10176,17 @@ function RiverMap({
   }, [showKnownRivers]);
 
   useEffect(() => {
+    if (
+      selectedWatercourseId &&
+      !knownWatercourses.some(
+        (watercourse) => watercourse.id === selectedWatercourseId,
+      )
+    ) {
+      setSelectedWatercourseId(null);
+    }
+  }, [knownWatercourses, selectedWatercourseId]);
+
+  useEffect(() => {
     const map = mapRef.current;
     const layers = layerRef.current;
 
@@ -9909,11 +10211,44 @@ function RiverMap({
             opacity: 0.7,
             weight: 2,
           }).addTo(layers);
+
+          const hitTarget = L.polyline(route, {
+            color: "#000",
+            interactive: true,
+            opacity: 0,
+            weight: 18,
+          }).addTo(layers);
+
+          hitTarget.on("click", (event) => {
+            L.DomEvent.stop(event.originalEvent);
+
+            if (isAddMode || routeCreateMode === "tracing") {
+              mapClickRef.current(
+                [event.latlng.lat, event.latlng.lng],
+                undefined,
+                routeCreateMode === "tracing"
+                  ? "New route point"
+                  : "New map contribution",
+              );
+              return;
+            }
+
+            setSelectedWatercourseId(watercourse.id);
+          });
         });
       });
+
     }
 
-    sections.forEach((section) => {
+    const renderedSections = showRoutesLayer
+      ? sections.filter(
+          (section) => section.id !== activeSection.id || showSelectedRoutePath,
+        )
+      : [];
+    let clickedRouteLine: L.Polyline | null = null;
+    const routeLineDefaults = new Map<L.Polyline, L.PolylineOptions>();
+
+    renderedSections.forEach((section) => {
       const isActive = section.id === activeSection.id;
       const isCandidate = isCandidateSection(section);
       const color =
@@ -9926,13 +10261,37 @@ function RiverMap({
             : section.levelBand === "too-low"
               ? "#7c5c1d"
               : "#52606d";
-
-      const routeLine = L.polyline(section.route, {
+      const defaultRouteStyle: L.PolylineOptions = {
         color,
-        weight: isActive ? 7 : 4,
-        opacity: isActive ? 0.95 : 0.7,
+        weight: isActive ? 4 : 3,
+        opacity: isActive ? 0.5 : 0.26,
         dashArray: isCandidate ? "8 6" : undefined,
-      }).addTo(layers);
+      };
+      const highlightedRouteStyle: L.PolylineOptions = {
+        ...defaultRouteStyle,
+        weight: 7,
+        opacity: 0.95,
+      };
+
+      const routeLine = L.polyline(section.route, defaultRouteStyle).addTo(layers);
+      routeLineDefaults.set(routeLine, defaultRouteStyle);
+      const routePopup = createMapPopupContent({
+        title: section.sectionName,
+        subtitle: section.riverName,
+        summary: section.summary,
+        detailsLabel: "Details",
+        selectLabel: "Select route",
+        onDetails: () => routeDetailsRef.current(section),
+        onSelect: () => callbackRef.current(section),
+      });
+
+      routeLine.bindPopup(routePopup);
+      routeLine.on("mouseover", () => routeLine.setStyle(highlightedRouteStyle));
+      routeLine.on("mouseout", () => {
+        if (clickedRouteLine !== routeLine) {
+          routeLine.setStyle(defaultRouteStyle);
+        }
+      });
 
       routeLine.on("click", (event) => {
         L.DomEvent.stop(event.originalEvent);
@@ -9948,7 +10307,21 @@ function RiverMap({
           return;
         }
 
-        callbackRef.current(section);
+        if (clickedRouteLine && clickedRouteLine !== routeLine) {
+          clickedRouteLine.setStyle(
+            routeLineDefaults.get(clickedRouteLine) ?? {},
+          );
+        }
+        clickedRouteLine = routeLine;
+        routeLine.setStyle(highlightedRouteStyle);
+        routeLine.openPopup(event.latlng);
+      });
+
+      routeLine.on("popupclose", () => {
+        if (clickedRouteLine === routeLine) {
+          clickedRouteLine = null;
+          routeLine.setStyle(defaultRouteStyle);
+        }
       });
 
       const sectionMarker = L.marker(section.centre, {
@@ -9977,8 +10350,10 @@ function RiverMap({
             title: section.sectionName,
             subtitle: section.riverName,
             summary: section.summary,
-            detailsLabel: "Route details",
+            detailsLabel: "Details",
+            selectLabel: "Select route",
             onDetails: () => routeDetailsRef.current(section),
+            onSelect: () => callbackRef.current(section),
           }),
         )
         .on("click", (event) => {
@@ -10281,8 +10656,23 @@ function RiverMap({
       });
     }
 
+    if (showKnownRivers && selectedWatercourse) {
+      const selectedColour = readCssColourToken(
+        "--selected-watercourse",
+        SELECTED_WATERCOURSE_FALLBACK_COLOUR,
+      );
+
+      selectedWatercourse.routes.forEach((route) => {
+        L.polyline(route, {
+          color: selectedColour,
+          interactive: false,
+          opacity: 0.98,
+          weight: 6,
+        }).addTo(layers);
+      });
+    }
+
     if (
-      previousSectionIdRef.current !== activeSection.id ||
       previousFocusNonceRef.current !== focusNonce ||
       previousSearchFocusNonceRef.current !== searchFocusNonce ||
       previousRouteSuggestionFocusNonceRef.current !== routeSuggestionFocusNonce ||
@@ -10389,6 +10779,7 @@ function RiverMap({
     showSearchFocusMarker,
     searchFocusNonce,
     selectedLocation,
+    selectedWatercourse,
     isAddMode,
     routeCreateMode,
     routeDraftPoints,
@@ -10396,6 +10787,8 @@ function RiverMap({
     routeSuggestionFocusNonce,
     routeSuggestions,
     sections,
+    showRoutesLayer,
+    showSelectedRoutePath,
     showKnownRivers,
   ]);
 
@@ -10417,9 +10810,141 @@ function RiverMap({
     });
   }, [liveLocationFocusNonce, liveLocation]);
 
+  function openWatercoursePoi(poi: WatercourseContextPoi) {
+    if (poi.kind === "contribution") {
+      const contribution = contributions.find((item) => item.id === poi.id);
+
+      if (!contribution) {
+        return;
+      }
+
+      poiDetailsRef.current(
+        contributionToSelectedPoi(
+          contribution,
+          poi.section,
+          outboxByContributionId.get(contribution.id)?.syncStatus,
+        ),
+      );
+      return;
+    }
+
+    const mapPoi =
+      mapPois.find((item) => item.id === poi.id) ??
+      fallbackMapPoisForSection(poi.section).find((item) => item.id === poi.id);
+
+    if (!mapPoi) {
+      return;
+    }
+
+    poiDetailsRef.current(mapPoiToSelectedPoi(mapPoi, poi.section));
+  }
+
+  const selectedWatercourseHintRows = selectedWatercourse
+    ? watercourseHintRows(selectedWatercourse)
+    : [];
+
   return (
     <section className="map-stage" aria-label="River map">
       <div className="map-canvas" ref={mapContainerRef} />
+      {selectedWatercourse ? (
+        <aside
+          className="watercourse-panel"
+          aria-label="Selected waterway stretch"
+        >
+          <div className="watercourse-panel__header">
+            <div>
+              <p className="eyebrow">Local stretch</p>
+              <h2>{selectedWatercourse.name ?? "Unnamed waterway"}</h2>
+            </div>
+            <button
+              className="icon-button icon-button--compact"
+              type="button"
+              aria-label="Close waterway details"
+              title="Close"
+              onClick={() => setSelectedWatercourseId(null)}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="watercourse-panel__summary">
+            <span>{watercourseTypeLabel(selectedWatercourse.watercourseType)}</span>
+            <span>
+              {watercourseRouteDistanceKm(selectedWatercourse).toFixed(1)} km in view
+            </span>
+            <span>{selectedWatercourse.source.sourceVersion}</span>
+          </div>
+
+          <p className="source-note">
+            OSM waterway geometry is local map context only. It does not confirm
+            paddleability, access, grade, hazards, or current conditions.
+          </p>
+
+          {selectedWatercourseHintRows.length ? (
+            <dl className="watercourse-hints">
+              {selectedWatercourseHintRows.slice(0, 6).map(([label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+
+          <div className="watercourse-context">
+            <h3>Routes near this stretch</h3>
+            {selectedWatercourseSections.length ? (
+              <div className="watercourse-list">
+                {selectedWatercourseSections.map(({ section, distanceM }) => (
+                  <button
+                    className="watercourse-list-row"
+                    key={section.id}
+                    type="button"
+                    onClick={() => callbackRef.current(section)}
+                  >
+                    <span>
+                      <strong>{section.sectionName}</strong>
+                      <small>
+                        {section.riverName} · {formatDistanceMetres(distanceM)}
+                      </small>
+                    </span>
+                    <Route size={15} />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">No RiverLaunch routes near this visible stretch yet.</p>
+            )}
+          </div>
+
+          <div className="watercourse-context">
+            <h3>Points near this stretch</h3>
+            {selectedWatercoursePois.length ? (
+              <div className="watercourse-list">
+                {selectedWatercoursePois.map((poi) => (
+                  <button
+                    className="watercourse-list-row"
+                    key={`${poi.kind}:${poi.id}`}
+                    type="button"
+                    onClick={() => openWatercoursePoi(poi)}
+                  >
+                    <span>
+                      <strong>{poi.title}</strong>
+                      <small>
+                        {routeImpactPoiLabel(poi.kind)} ·{" "}
+                        {formatDistanceMetres(poi.distanceM)}
+                      </small>
+                    </span>
+                    <MapPin size={15} />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">No POIs close to this visible stretch yet.</p>
+            )}
+          </div>
+        </aside>
+      ) : null}
       <div className="map-legend" aria-label="Map legend">
         {showKnownRivers ? (
           <span title={knownWatercourseStatus || undefined}>
