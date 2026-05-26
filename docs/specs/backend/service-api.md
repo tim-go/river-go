@@ -67,7 +67,8 @@ Initial endpoints:
 | `GET` | `/api/route-overrides` | Public current-route geometry and metadata overrides, initially for moderator-approved fixture section route edits. |
 | `GET` | `/api/route-suggestions/approved` | Public approved route suggestions for low-confidence candidate route display. |
 | `PATCH` | `/api/moderation/route-suggestions/:id` | Admin/moderator in-place update of pending or visible route suggestion details and trace. |
-| `POST` | `/api/routes/snap` | Signed-in route editor snap request against stored watercourse reference geometry, returning snapped trace points plus confidence/warnings. |
+| `GET` | `/api/watercourses?bbox=minLng,minLat,maxLng,maxLat&zoom=...&source=osm_waterway` | Public viewport-bounded watercourse reference geometry for the map `Known rivers` overlay. |
+| `POST` | `/api/routes/snap` | Signed-in route editor snap request against stored OSM waterway geometry, returning an expanded routed trace plus confidence/warnings. |
 | `GET` | `/api/rivers` | River list. |
 | `GET` | `/api/rivers/:riverId/sections` | Section list with route summaries. |
 | `GET` | `/api/sections/:sectionId` | Section detail, hazards, access, features, reports, photos, and current gauge context. |
@@ -129,6 +130,13 @@ Location references:
 - Contribution sync may enrich point payloads with `what3wordsAddress` when the integration key is configured; lookup failure must not block contribution persistence.
 - Existing point contributions can be enriched by an operator-run backfill. The backfill stores `what3wordsAddress` in the existing contribution JSONB payload and should be run with `--dry-run` first against staging/prod.
 
+Watercourse reference reads:
+
+- `/api/watercourses` is public read-only because it exposes open reference geometry, not member data.
+- Requests must be bounded by the current map viewport and capped/simplified server-side to avoid returning the national layer in one response.
+- Responses must identify source provenance and must not label returned lines as paddling routes.
+- The visual snap/overlay source is OSM waterways (`source=osm_waterway`) because route editing must align with the visible map.
+
 Moderation:
 
 - New community hazards start as `needs-confirmation`.
@@ -168,7 +176,9 @@ Moderation:
 | API-F15 | what3words location API | Backend/integration | Active | MVP | — | Server-side coordinate/address conversion with optional sync-time contribution enrichment. |
 | API-F16 | Profile public name and ICE API | Backend/profile | Active | MVP | — | Supports member public-name updates and owner-only emergency-contact profile read/write. |
 | API-F17 | Public approved route suggestions API | Backend/API | Active | MVP | — | Exposes approved route suggestions for public candidate route display. |
-| API-F18 | Watercourse snap API | Backend/geospatial | Active | MVP | — | Uses stored OS Open Rivers watercourses to snap rough route trace points with confidence/warnings. |
+| API-F18 | Watercourse snap API | Backend/geospatial | Active | MVP | — | Uses stored OSM waterways to snap route control points and route along connected river geometry with confidence/warnings. |
+| API-F19 | Watercourse viewport API | Backend/geospatial | Active | MVP | — | Exposes clipped, simplified OSM waterway reference lines for the `Known rivers` map overlay. |
+| API-F20 | OSM waterway import | Backend/data | Active | MVP | — | Imports OSM waterway geometry into PostGIS as the visual route-snapping layer. |
 
 ### Backlog
 

@@ -62,6 +62,20 @@ Route suggestions should not use map geometry as the authority for route existen
 
 Snap-to-river is a geometry aid only. It may prevent obviously dry-land display lines where suitable river geometry is available, but it must not imply that the section is paddleable, lawful, safe, or verified.
 
+For route creation, the main user pattern is to pin a start location, optional
+midpoints, and a finish location on the visible river line. Snap should treat
+those pins as control points, align them to nearby OSM waterway geometry, and
+trace the route along the waterway network between them, adding intermediate
+points required for the displayed route to follow the river. The user or
+moderator must be able to review the snapped preview and keep the rough trace if
+the snap is not visually correct.
+
+The route editor should let users show a `Known rivers` overlay while tracing.
+This overlay renders stored watercourse reference geometry in the visible map
+area so the user can tell whether the river they are trying to trace is present
+in the snap dataset. The overlay should show the same OSM waterway source used
+for visual snapping by default. It is an editing aid, not route evidence.
+
 Future backend behaviour should:
 
 - persist route suggestions as authenticated member submissions
@@ -131,6 +145,8 @@ This is a review aid, not a safety guarantee.
 | ROUTESUB-F11 | Route override publishing | API/frontend | Active | MVP | — | Approved section route adjustments publish current route geometry through route overrides without rewriting seed fixtures. |
 | ROUTESUB-F12 | Route edit impact review | Admin/moderation | Active | MVP | — | Route edit cards show distance change, endpoint drift, and POI corridor impact before moderation decisions. |
 | ROUTESUB-F13 | Public approved candidate routes | Map/search/API | Active | MVP | — | Approved route suggestions load through a public API and appear as low-confidence candidate routes. |
+| ROUTESUB-F14 | Known rivers tracing overlay | Map/route editor | Active | MVP | — | Route creators and moderators can show stored watercourse reference geometry while tracing or editing routes. |
+| ROUTESUB-F15 | OSM waterway routed snap | Map/API | Active | MVP | — | Route pins are snapped to nearby OSM waterways and expanded into a routed river trace for review. |
 
 ### Backlog
 

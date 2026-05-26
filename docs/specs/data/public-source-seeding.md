@@ -74,9 +74,14 @@ The seed system must support the following outcomes:
 
 Use open-data sources immediately for baseline observations and map context.
 
-Use OS Open Rivers as the next open-data watercourse geometry source for Great Britain snapping and map context. This layer should be imported as watercourse reference geometry, not as paddling routes, and should retain Ordnance Survey source metadata, OGL attribution, version/date, and confidence warnings.
+Use OSM waterways as the visual watercourse geometry source for route tracing,
+snap preview, and map context. This layer should be imported as watercourse
+reference geometry, not as paddling routes, and should retain OSM source
+metadata, ODbL attribution, version/date, and confidence warnings.
 
-The first import implementation should support extracted OS Open Rivers Shapefile input and GeoJSON input. Shapefile imports default to British National Grid (`EPSG:27700`) and transform geometries to WGS84 for PostGIS storage. GeoPackage remains the preferred OS delivery format for manual GIS workflows, but automated import may rely on Shapefile/GeoJSON until a GDAL/GeoPackage reader is introduced.
+The first OSM import implementation should support Overpass JSON input or a
+bounded live Overpass query for pilot areas. A full GB import should move to an
+offline OSM extract pipeline rather than repeated national Overpass queries.
 
 Imported watercourses should live in a `watercourses` table with source id, source version, source URL, licence, name fields, form/flow metadata, raw properties, source metadata, and a spatial index. The importer should be runnable locally and against staging/prod runtime config via npm scripts.
 
@@ -95,7 +100,7 @@ The first source-backed route work should concentrate on:
 - Which source owners should be approached first for permission or partnership?
 - What UI label should distinguish source-backed candidates from community-verified route records?
 - Should source-register entries become database records, or remain docs until the seed workflow is proven?
-- What legal review is needed before using OSM-derived or OS Open Rivers-derived geometry in production route records?
+- What legal review is needed before using OSM-derived geometry in production route records?
 
 ## Tracking
 
@@ -107,7 +112,8 @@ The first source-backed route work should concentrate on:
 | PUBSEED-F2 | Seed source classification | Data | Active | v0.2 | — | Requires licence/permission status before data import. |
 | PUBSEED-F3 | Candidate route workflow | Data/community | Queued | v0.2 | — | Converts public references into verification prompts rather than copied routes. |
 | PUBSEED-F4 | Partner import pathway | Data/partnership | Queued | later | — | Allows route import only when source owner grants permission and provenance is retained. |
-| PUBSEED-F5 | OS Open Rivers watercourse import | Data/backend | Active | MVP | — | Import GB watercourse geometry for snapping and context without treating waterways as paddleable routes. |
+| PUBSEED-F5 | Watercourse imports | Data/backend | Active | MVP | — | Import OSM waterways for visual snapping and map context without treating them as paddleable routes. |
+| PUBSEED-F6 | OSM waterway import | Data/backend | Active | MVP | — | Import OSM river, stream, and canal geometry as the default route snap/known-rivers overlay source. |
 
 ### Backlog
 
@@ -115,13 +121,13 @@ The first source-backed route work should concentrate on:
 | --- | --- | --- | --- | --- | --- |
 | PUBSEED-B1 | task | Review current sample catalogue source URLs | Open | v0.2 | Replace weak/generic source URLs with source-register entries and explicit classifications. |
 | PUBSEED-B2 | dependency | Paddle UK partnership decision | Open | v0.2 | Go Paddling/PaddlePoints appear strategically valuable but are permission-needed. |
-| PUBSEED-B3 | validation | OSM/OS geometry licence review | Open | v0.2 | Required before production route geometry is derived from map datasets. |
+| PUBSEED-B3 | validation | OSM geometry licence review | Open | v0.2 | Required before production route geometry is derived from map datasets. |
 | PUBSEED-B4 | task | Design contributor verification prompts | Open | v0.2 | Candidate sections should ask members for exact access, hazards, photos, and level interpretation. |
-| PUBSEED-B5 | task | Seed all GB watercourses from OS Open Rivers | Active | MVP | Build import script, PostGIS watercourse table, source metadata, and staging seed run for snap-to-river. |
+| PUBSEED-B5 | task | Seed all GB visual waterways from OSM | Active | MVP | Build import script, PostGIS watercourse table records, source metadata, and staging seed run for visual snap-to-river. |
 
 ## Change Log
 
 | Date | Change |
 | --- | --- |
 | 2026-05-25 | Added public source seeding spec and source-register workflow. |
-| 2026-05-25 | Added OS Open Rivers watercourse import as the next reference-geometry seed path. |
+| 2026-05-26 | Changed visual route snapping source to OSM waterways. |

@@ -134,6 +134,10 @@ import {
   fetchRouteOverrides,
   type RouteOverride,
 } from "./services/routeOverrideApi";
+import {
+  fetchWatercoursesForBounds,
+  type KnownWatercourse,
+} from "./services/watercourseApi";
 import type {
   Contribution,
   ContributionPhoto,
@@ -165,6 +169,7 @@ const ROUTE_SNAP_MAX_AVERAGE_DISTANCE_KM = 1.5;
 const COMPACT_MAP_CONTROLS_QUERY = "(max-width: 430px)";
 const ROUTE_IMPACT_CORRIDOR_METRES = 120;
 const ROUTE_IMPACT_ENDPOINT_WARNING_METRES = 350;
+const KNOWN_RIVER_FALLBACK_COLOUR = "#b42318";
 
 type RouteDetailsTab =
   | "details"
@@ -916,6 +921,19 @@ function routeEndpointBounds(route: LatLngTuple[]) {
 
 function formatLocation(location: LatLngTuple) {
   return `${location[0].toFixed(4)}, ${location[1].toFixed(4)}`;
+}
+
+function readCssColourToken(token: string, fallback: string) {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  return (
+    window
+      .getComputedStyle(document.documentElement)
+      .getPropertyValue(token)
+      .trim() || fallback
+  );
 }
 
 function formatDateTime(value: string | null | undefined) {
@@ -3080,6 +3098,7 @@ function App() {
   >(null);
   const [routeDraftSnapMessage, setRouteDraftSnapMessage] = useState("");
   const [isRouteSnapLoading, setIsRouteSnapLoading] = useState(false);
+  const [showKnownRivers, setShowKnownRivers] = useState(false);
   const [routeFormError, setRouteFormError] = useState("");
   const [routeRiverName, setRouteRiverName] = useState("");
   const [routeSectionName, setRouteSectionName] = useState("");
@@ -5381,7 +5400,7 @@ function App() {
         setRouteDraftOriginalPoints((current) => current ?? routeDraftPoints);
         setRouteDraftPoints(backendSnap.route);
         setRouteDraftSnapMessage(
-          `Snapped to OS Open Rivers reference geometry (${backendSnap.confidence} confidence). ${backendSnap.warnings[0]}`,
+          `Snapped to ${backendSnap.source.label} (${backendSnap.confidence} confidence). ${backendSnap.warnings[0]}`,
         );
         return;
       }
@@ -5410,7 +5429,7 @@ function App() {
 
     if (!snapped) {
       setRouteFormError(
-        "Could not snap this trace to a known watercourse. Add points closer to the river or save it as a rough trace.",
+        "Could not snap this trace to a known waterway. Add points closer to the river or save it as a rough trace.",
       );
       setRouteDraftSnapMessage("");
       return;
@@ -6024,6 +6043,19 @@ function App() {
               <MapPinned size={16} />
               Details
             </button>
+            <button
+              className={`ghost-button map-panel-toggle topbar-secondary-control ${
+                showKnownRivers ? "map-panel-toggle--active" : ""
+              }`}
+              type="button"
+              onClick={() => setShowKnownRivers((current) => !current)}
+              title="Show known rivers"
+              aria-label="Show known rivers"
+              aria-pressed={showKnownRivers}
+            >
+              <Waves size={16} />
+              Rivers
+            </button>
             {isCompactMapControls ? (
               <button
                 className={`ghost-button map-panel-toggle topbar-controls-toggle ${
@@ -6258,6 +6290,7 @@ function App() {
           searchFocusNonce={searchFocusNonce}
           isAddMode={isAddMode}
           routeCreateMode={routeCreateMode}
+          showKnownRivers={showKnownRivers}
           onMapClick={handleMapClick}
           onMoveRouteDraftPoint={updateRouteDraftPoint}
           focusNonce={sectionFocusNonce}
@@ -9644,6 +9677,7 @@ function RiverMap({
   searchFocusNonce,
   isAddMode,
   routeCreateMode,
+  showKnownRivers,
   onMapClick,
   onMoveRouteDraftPoint,
   focusNonce,
@@ -9672,6 +9706,7 @@ function RiverMap({
   searchFocusNonce: number;
   isAddMode: boolean;
   routeCreateMode: RouteCreateMode;
+  showKnownRivers: boolean;
   onMapClick: (
     location: LatLngTuple,
     nextType?: ContributionType,
@@ -9698,6 +9733,11 @@ function RiverMap({
   const previousRouteAdjustmentFocusNonceRef = useRef(routeAdjustmentFocusNonce);
   const previousLiveLocationFocusNonceRef = useRef(liveLocationFocusNonce);
   const shouldFitActiveSectionRef = useRef(true);
+  const knownWatercoursesRequestRef = useRef(0);
+  const [knownWatercourses, setKnownWatercourses] = useState<KnownWatercourse[]>(
+    [],
+  );
+  const [knownWatercourseStatus, setKnownWatercourseStatus] = useState("");
   const outboxByContributionId = useMemo(
     () =>
       new Map(
@@ -9774,6 +9814,78 @@ function RiverMap({
 
   useEffect(() => {
     const map = mapRef.current;
+
+    if (!map) {
+      return;
+    }
+
+    if (!showKnownRivers) {
+      setKnownWatercourses([]);
+      setKnownWatercourseStatus("");
+      return;
+    }
+
+    let isCancelled = false;
+    let timeoutId = 0;
+
+    const loadWatercourses = () => {
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        const bounds = map.getBounds();
+        const requestId = knownWatercoursesRequestRef.current + 1;
+        knownWatercoursesRequestRef.current = requestId;
+        setKnownWatercourseStatus("Loading known rivers...");
+
+        void fetchWatercoursesForBounds(
+          {
+            minLng: bounds.getWest(),
+            minLat: bounds.getSouth(),
+            maxLng: bounds.getEast(),
+            maxLat: bounds.getNorth(),
+          },
+          map.getZoom(),
+        )
+          .then((watercourses) => {
+            if (
+              isCancelled ||
+              knownWatercoursesRequestRef.current !== requestId
+            ) {
+              return;
+            }
+
+            setKnownWatercourses(watercourses);
+            setKnownWatercourseStatus(
+              watercourses.length
+                ? `${watercourses.length} known river lines in view`
+                : "No known river lines in this view",
+            );
+          })
+          .catch(() => {
+            if (
+              isCancelled ||
+              knownWatercoursesRequestRef.current !== requestId
+            ) {
+              return;
+            }
+
+            setKnownWatercourses([]);
+            setKnownWatercourseStatus("Known rivers unavailable in this view");
+          });
+      }, 180);
+    };
+
+    loadWatercourses();
+    map.on("moveend zoomend", loadWatercourses);
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(timeoutId);
+      map.off("moveend zoomend", loadWatercourses);
+    };
+  }, [showKnownRivers]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     const layers = layerRef.current;
 
     if (!map || !layers) {
@@ -9781,6 +9893,25 @@ function RiverMap({
     }
 
     layers.clearLayers();
+
+    if (showKnownRivers) {
+      const knownRiverColour = readCssColourToken(
+        "--known-river",
+        KNOWN_RIVER_FALLBACK_COLOUR,
+      );
+
+      knownWatercourses.forEach((watercourse) => {
+        watercourse.routes.forEach((route) => {
+          L.polyline(route, {
+            color: knownRiverColour,
+            dashArray: "4 5",
+            interactive: false,
+            opacity: 0.7,
+            weight: 2,
+          }).addTo(layers);
+        });
+      });
+    }
 
     sections.forEach((section) => {
       const isActive = section.id === activeSection.id;
@@ -10249,6 +10380,7 @@ function RiverMap({
     focusNonce,
     liveLocation,
     mapPois,
+    knownWatercourses,
     outboxByContributionId,
     routeAdjustments,
     routeAdjustmentFocusId,
@@ -10264,6 +10396,7 @@ function RiverMap({
     routeSuggestionFocusNonce,
     routeSuggestions,
     sections,
+    showKnownRivers,
   ]);
 
   useEffect(() => {
@@ -10288,6 +10421,16 @@ function RiverMap({
     <section className="map-stage" aria-label="River map">
       <div className="map-canvas" ref={mapContainerRef} />
       <div className="map-legend" aria-label="Map legend">
+        {showKnownRivers ? (
+          <span title={knownWatercourseStatus || undefined}>
+            <i className="legend-line legend-line--known-river" /> Known rivers
+            {knownWatercourseStatus ? (
+              <small className="map-legend__status">
+                {knownWatercourseStatus}
+              </small>
+            ) : null}
+          </span>
+        ) : null}
         <span>
           <i className="legend-dot legend-dot--section" /> Section
         </span>

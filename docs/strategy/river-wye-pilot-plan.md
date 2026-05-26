@@ -74,7 +74,6 @@ Likely baseline sources:
 - Environment Agency Flood Monitoring API for level/flow stations
 - Environment Agency or GOV.UK River Wye canoe guide material where clearly reusable
 - OpenStreetMap for waterways, bridges, paths, parking, campsites, pubs, and visible access features
-- OS Open Rivers for river geometry investigation
 
 Each source must be recorded with attribution and licence notes.
 
@@ -158,4 +157,3 @@ The demo should support:
 - Store source notes and confidence.
 - Prioritise local review before publishing broadly.
 - Keep official data separate from community interpretation.
-

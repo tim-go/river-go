@@ -25,7 +25,7 @@ The primary product object remains the river section. External data is useful on
 
 The hardest data problem is not maps, gauges, weather, or basemaps. Those can come from trusted public, open, or licensed providers. The hard problem is paddleable route knowledge: whether a river section is actually used, suitable, accessible, and represented responsibly.
 
-RiverLaunch.app must not create paddling routes purely from map analysis. A river line in OpenStreetMap, OS Open Rivers, or any other map source only proves that a watercourse exists. It does not prove:
+RiverLaunch.app must not create paddling routes purely from map analysis. A river line in OpenStreetMap or any other map source only proves that a watercourse exists. It does not prove:
 
 - the section is paddleable
 - access is practical or permitted
@@ -193,23 +193,23 @@ https://wiki.openstreetmap.org/wiki/Tag:canoe%3Dput_in
 
 https://wiki.openstreetmap.org/wiki/Key:portage
 
-### Ordnance Survey Open Rivers
+### OpenStreetMap Waterways
 
 Use for:
 
-- GB river network geometry
-- stable baseline river lines
-- river naming and network structure investigation
+- river, stream, and canal geometry
+- visual route snapping aligned to the visible map
+- map context while tracing or editing route candidates
 
 Notes:
 
-- refreshed every six months
-- derived from Ordnance Survey large-scale data
-- likely useful for seeding river geometry, but OSM may be richer for paddling-specific context
+- route geometry must visually align with the map users are looking at
+- OSM waterways are used as the active snap/overlay source
+- OSM waterway geometry is not paddling route evidence
 
 Reference:
 
-https://docs.os.uk/os-downloads/products/water-portfolio/os-open-rivers/os-open-rivers-overview/os-open-rivers-data
+https://wiki.openstreetmap.org/wiki/Key:waterway
 
 ## UK Paddling Route Sources
 
@@ -783,7 +783,7 @@ Then add NRW, SEPA, and DfI Rivers as separate providers once the model is prove
 ## Open Questions
 
 - Which UK region should be seeded first?
-- Should OpenStreetMap or OS Open Rivers be the primary river geometry baseline?
+- What offline OSM extract/import pipeline should provide full UK waterway coverage?
 - How should user-submitted access notes be moderated?
 - Should water quality appear in the MVP, or only later?
 - How should the app display contested access without creating legal risk?

@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS watercourses (
   source_id text NOT NULL,
   source_version text NOT NULL DEFAULT '',
   source_url text NOT NULL DEFAULT '',
-  licence text NOT NULL DEFAULT 'Open Government Licence',
+  licence text NOT NULL DEFAULT 'Open Database Licence',
   name text,
   alternate_name text,
   watercourse_type text NOT NULL DEFAULT 'watercourse',

@@ -73,9 +73,9 @@ named branch.
 Watercourses may provide geometry for snapping, search, map context, river-level
 association, and broad grouping. They do not prove a paddling route exists.
 
-The first national watercourse seed should use OS Open Rivers for Great Britain
-coverage. These records are reference geometry for snapping and context only;
-they must not be presented as paddleable routes or access/safety guidance.
+The visual snapping layer should use OSM waterways because route geometry must
+line up with the map the user sees. Watercourse geometry must not be presented
+as paddleable routes or used as route authority.
 
 Minimum target fields:
 
@@ -243,6 +243,10 @@ publishing.
 ### Snap-To-River Role
 
 Snap-to-river aligns human rough traces to known watercourse/route geometry.
+For route editing, visual alignment with the map is the primary requirement.
+Users judge and navigate routes against the visible map, so the snapping
+authority should match the map's OSM waterway geometry rather than an
+independent reference dataset when the two differ.
 
 It is a geometry aid only. It can reduce dry-land lines, but it must not imply:
 
@@ -256,11 +260,16 @@ It is a geometry aid only. It can reduce dry-land lines, but it must not imply:
 The target backend model should store the rough trace, snapped trace, snap
 source, confidence/warnings, and final reviewed geometry separately.
 
-The first backend snap endpoint should project each submitted rough trace point
-onto the nearest OS Open Rivers watercourse within a controlled distance and
-return the snapped points, match counts, distance summary, confidence, source
-label, licence, and warnings. This is a pragmatic first step, not full river
-network routing between links.
+The backend snap endpoint should treat the submitted points as control points:
+normally start, optional midpoints, and finish. It should snap each control point
+to nearby OSM waterway geometry, then route along connected waterway vertices
+between each pair of control points and return the expanded route trace. This
+remains a preview/assist action; the user or moderator must review and accept
+the result.
+
+The map should also be able to show this watercourse reference layer as a
+visible overlay. The overlay is for context, debugging, and route-tracing
+confidence only. It must be visually distinct from RiverLaunch paddling routes.
 
 ### Migration From Current Model
 
@@ -299,8 +308,9 @@ records.
 | GEO-F4 | Relationship-based route views | Map/API | Active | MVP | — | Route map POI reads now use `poi_route_links` for seeded map POIs; contribution reads include relationship-linked contribution POIs. |
 | GEO-F5 | Route change impact review | Admin/moderation | Active | MVP | — | Moderation now shows a first-pass route edit impact review using current geometry and known points; backend spatial impact review remains future work. |
 | GEO-F6 | Snap trace provenance | Route editor/API | Queued | MVP | — | Store rough trace, snapped trace, source geometry, warnings, and final reviewed geometry separately. |
-| GEO-F7 | GB watercourse reference layer | Backend/data | Active | MVP | — | Seed OS Open Rivers geometry as a national watercourse layer for snapping, search, and spatial context. |
-| GEO-F8 | Backend watercourse snap endpoint | API/map | Active | MVP | — | Snap rough route points to nearest stored watercourse geometry with confidence and warnings. |
+| GEO-F7 | GB watercourse reference layer | Backend/data | Active | MVP | — | Seed OSM waterway geometry for snapping, search, and spatial context; OSM waterways are the visual snap authority. |
+| GEO-F8 | Backend watercourse snap endpoint | API/map | Active | MVP | — | Snap route control points to stored OSM waterway geometry, route along connected vertices, and return confidence/warnings. |
+| GEO-F9 | Known rivers map overlay | Map/API | Active | MVP | — | Map can show visible OSM waterway reference geometry within the current viewport so users can see where visual snap support exists. |
 
 ### Backlog
 
@@ -311,10 +321,13 @@ records.
 | GEO-B3 | enhancement | Derived relationship engine | Open | MVP | Build spatial relationship queries for route corridor, current location, watercourse, and observation relevance. |
 | GEO-B4 | validation | Route impact thresholds | Active | MVP | First-pass frontend thresholds use a 120 m route corridor and 350 m endpoint warning distance; tune with field feedback and backend spatial queries. |
 | GEO-B5 | migration | Canonical route publishing | Active | MVP | Approved section route adjustments now publish to route overrides without rewriting seed/source route records. |
-| GEO-B6 | task | OS Open Rivers import | Active | MVP | Import GB watercourse geometry into PostGIS and expose it to backend snap-to-river. |
+| GEO-B6 | task | Watercourse imports | Active | MVP | Import OSM waterways for visual snapping and map context. |
+| GEO-B7 | validation | Known rivers overlay density | Open | MVP | Tune viewport limits, simplification, and styling after testing on dense urban/canal areas and small mobile screens. |
+| GEO-B8 | validation | OSM waterway routing quality | Active | MVP | Validate graph routing, branch handling, midpoint disambiguation, and snap distance thresholds on real user route submissions. |
 
 ## Change Log
 
 | Date | Change |
 | --- | --- |
 | 2026-05-25 | Created core geospatial domain model spec after route/POI ownership review. |
+| 2026-05-26 | Changed snap authority to OSM waterway visual routing. |

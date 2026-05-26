@@ -336,7 +336,7 @@ Seed a small pilot area manually:
 
 Do not attempt full UK coverage before the data model and contribution workflow are proven.
 
-Do not seed paddleable sections purely from map geometry. Map sources such as OpenStreetMap and OS Open Rivers can help draw or snap a line once a route is known, but route existence and suitability must come from paddling evidence, trusted local review, official trail material, licensed partner material, or direct community submission.
+Do not seed paddleable sections purely from map geometry. Map sources such as OpenStreetMap can help draw or snap a line once a route is known, but route existence and suitability must come from paddling evidence, trusted local review, official trail material, licensed partner material, or direct community submission.
 
 Third-party route datasets should not bypass this rule. A licence grants usage rights; it does not guarantee authority. Imported data should still be reviewed for source age, authorship, update process, hazards, access assumptions, and local confidence.
 

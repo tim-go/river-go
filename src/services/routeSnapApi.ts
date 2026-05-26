@@ -14,6 +14,7 @@ export interface RouteSnapResult {
     kind: "watercourse-reference";
     label: string;
     licence: string;
+    source: "osm_waterway";
   };
 }
 
@@ -33,7 +34,7 @@ export async function snapRouteToWatercourses(
       "content-type": "application/json",
       authorization: `Bearer ${authToken}`,
     },
-    body: JSON.stringify({ route, maxDistanceM }),
+    body: JSON.stringify({ route, maxDistanceM, source: "osm_waterway" }),
   });
 
   if (!response.ok) {

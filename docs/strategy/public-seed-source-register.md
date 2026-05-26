@@ -31,7 +31,7 @@ The register is not a scraping backlog. It records which public sources can be u
 | Environment Agency Flood Monitoring API | Public agency API | England | Stations, level readings, flow where available, flood alerts | Open data | Ingest through observation provider | Attribution required; route suitability still comes from community/section data. |
 | Natural Resources Wales river levels, rainfall, and sea data | Public agency API | Wales | River levels, rainfall totals, tide/sea levels, station history | Open data | Ingest through observation provider | API product describes recent and historical monitoring data; useful for Welsh routes and future route suggestions. |
 | SEPA water level data | Public agency API | Scotland | River, loch, rainfall, and coastal level readings | Open data / API access to confirm | Future observation provider | SEPA states rainfall and river level data is available via API; terms and usage limits need implementation review. |
-| OS Open Rivers | National mapping open data | Great Britain | Watercourse geometry and river network context | Open data | Geometry support only | May help snap/display routes after paddling evidence exists; not route authority. |
+| OpenStreetMap waterways | Open map data | Global | Waterway geometry and map context | Open data | Geometry support only | Active visual snap/overlay source; may help draw routes after paddling evidence exists, but is not route authority. |
 | OpenStreetMap | Community open map database | UK and Europe | River geometry, bridges, weirs, access tags, slipways, paths, facilities | Open data under ODbL | Basemap/context and prototype route traces | ODbL obligations apply; OSM tags are not legal/access assurance. |
 | National White Water Centre / Canolfan Tryweryn river guide | Venue/river-specific public page | Afon Tryweryn | Section split, approximate lengths, grade bands, venue warnings, obstruction notices | Reference only unless permission granted | Source metadata and verification prompts | Good source for Tryweryn seed context. Do not copy map, guide text, or exact POIs without permission/verification. |
 | National White Water Centre water level information | Venue/river-specific public page | Afon Tryweryn | Release calendar, flow notes, operational availability | Reference only unless permission/API agreed | Source metadata and manual release check | Production needs a stable release provider or permissioned ingest. |
@@ -86,7 +86,7 @@ Every sourced seed section should record:
 - Natural Resources Wales API portal: `https://api-portal.naturalresources.wales/products`
 - Natural Resources Wales data.gov.uk river levels dataset: `https://www.data.gov.uk/dataset/ef2fa5bc-2511-4522-b9e8-9d11c3caa20b/river-levels-application-programming-interface-api2`
 - SEPA water levels: `https://www.sepa.org.uk/environment/water/water-levels/`
-- OS Open Rivers: `https://osdatahub.os.uk/downloads/open/OpenRivers`
+- OpenStreetMap waterways: `https://wiki.openstreetmap.org/wiki/Key:waterway`
 - OpenStreetMap copyright and licence: `https://www.openstreetmap.org/copyright`
 - National White Water Centre river guide: `https://www.nationalwhitewatercentre.co.uk/the-river`
 - National White Water Centre water level information: `https://www.nationalwhitewatercentre.co.uk/water-level-information`

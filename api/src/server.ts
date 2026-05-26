@@ -66,7 +66,11 @@ import {
   runObservationBackfillJob,
   runObservationIngestionJob,
 } from "./observations.js";
-import { snapRouteToWatercourses } from "./watercourses.js";
+import {
+  listWatercoursesForViewport,
+  snapRouteToWatercourses,
+  type WatercourseSource,
+} from "./watercourses.js";
 
 async function route(
   requestUrl: string,
@@ -267,6 +271,17 @@ async function route(
     await requireAuthContext(headers);
     const snap = await snapRouteToWatercourses(body);
     return { status: 200, body: { snap } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/watercourses") {
+    const bbox = readBbox(url.searchParams.get("bbox"));
+    const watercourses = await listWatercoursesForViewport({
+      ...bbox,
+      zoom: readOptionalNumber(url.searchParams.get("zoom")),
+      limit: readOptionalNumber(url.searchParams.get("limit")),
+      source: readWatercourseSource(url.searchParams.get("source")),
+    });
+    return { status: 200, body: { watercourses } };
   }
 
   const contributionDeleteMatch = url.pathname.match(
@@ -560,6 +575,38 @@ function readBackfillHours(body: unknown): number {
   }
 
   return Math.max(1, Math.min(parsedHours, 672));
+}
+
+function readBbox(value: string | null) {
+  if (!value) {
+    throw new HttpError(400, "bbox is required.");
+  }
+
+  const parts = value.split(",").map((part) => Number.parseFloat(part.trim()));
+
+  if (parts.length !== 4 || parts.some((part) => !Number.isFinite(part))) {
+    throw new HttpError(400, "bbox must be minLng,minLat,maxLng,maxLat.");
+  }
+
+  const [minLng, minLat, maxLng, maxLat] = parts;
+  return { minLng, minLat, maxLng, maxLat };
+}
+
+function readOptionalNumber(value: string | null): number | null {
+  if (value == null || value.trim() === "") {
+    return null;
+  }
+
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readWatercourseSource(value: string | null): WatercourseSource | null {
+  if (value === "osm_waterway") {
+    return value;
+  }
+
+  return null;
 }
 
 async function requireObservationJobAccess(

@@ -12,8 +12,8 @@ ENV="${1:-}"
 shift || true
 
 if [[ "$ENV" != "staging" && "$ENV" != "prod" ]]; then
-  fail "Usage: import-os-open-rivers.sh <staging|prod> --file <WatercourseLink.shp|geojson> [import args...]"
-  print_summary "OS Open Rivers import"
+  fail "Usage: import-osm-waterways.sh <staging|prod> (--file overpass.json OR --bbox south,west,north,east) [import args...]"
+  print_summary "OSM waterways import"
   exit 1
 fi
 
@@ -28,14 +28,14 @@ runtime_value() {
   jq -er "$1" "$RUNTIME_CONFIG_PATH"
 }
 
-section "OS Open Rivers import preflight - $ENV"
+section "OSM waterways import preflight - $ENV"
 ok=true
 for command_name in jq gcloud cloud-sql-proxy npm node; do
   require_command "$command_name" || ok=false
 done
 
 if [[ "$ok" != true ]]; then
-  print_summary "OS Open Rivers import"
+  print_summary "OSM waterways import"
   exit 1
 fi
 
@@ -46,7 +46,7 @@ DATABASE_URL="$(runtime_value ".$ENV.database.migrationsUrl")"
 
 if [[ "$DATABASE_URL" == *"<"* || "$DATABASE_URL" == *">"* ]]; then
   fail "$ENV database.migrationsUrl in $RUNTIME_CONFIG_PATH still contains placeholder values"
-  print_summary "OS Open Rivers import"
+  print_summary "OSM waterways import"
   exit 1
 fi
 
@@ -71,15 +71,15 @@ sleep 3
 
 if ! kill -0 "$PROXY_PID" >/dev/null 2>&1; then
   fail "Cloud SQL Auth Proxy did not start; see /tmp/river-go-cloud-sql-proxy.log"
-  print_summary "OS Open Rivers import"
+  print_summary "OSM waterways import"
   exit 1
 fi
 
 pass "Cloud SQL Auth Proxy listening on 127.0.0.1:$DB_PORT"
 
-section "Run OS Open Rivers import"
+section "Run OSM waterways import"
 DATABASE_URL="$DATABASE_URL" \
-  npm --prefix "$REPO_DIR/api" run import:os-open-rivers -- "$@"
+  npm --prefix "$REPO_DIR/api" run import:osm-waterways -- "$@"
 
-pass "OS Open Rivers import completed"
-print_summary "OS Open Rivers import"
+pass "OSM waterways import completed"
+print_summary "OSM waterways import"

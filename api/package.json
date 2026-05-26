@@ -12,7 +12,7 @@
     "ingest:observations": "tsx src/ingest-observations.ts",
     "backfill:observations": "tsx src/backfill-observations.ts",
     "backfill:w3w": "tsx src/backfill-what3words.ts",
-    "import:os-open-rivers": "tsx src/import-os-open-rivers.ts",
+    "import:osm-waterways": "tsx src/import-osm-waterways.ts",
     "sync:smoke": "tsx src/smoke-sync.ts"
   },
   "dependencies": {
