@@ -1,5 +1,6 @@
 import type { LatLngTuple } from "../types";
 import { getApiBaseUrl } from "./apiConfig";
+import { getCurrentUserIdToken } from "./firebaseAuth";
 
 export interface WatercourseBounds {
   minLng: number;
@@ -39,6 +40,15 @@ export interface KnownWatercourse {
   };
 }
 
+export interface WatercourseImportStatus {
+  source: "osm_waterway";
+  sourceVersion: string;
+  licence: string;
+  featureCount: number;
+  namedFeatureCount: number;
+  latestUpdatedAt: string | null;
+}
+
 export async function fetchWatercoursesForBounds(
   bounds: WatercourseBounds,
   zoom: number,
@@ -67,4 +77,62 @@ export async function fetchWatercoursesForBounds(
   };
 
   return Array.isArray(result.watercourses) ? result.watercourses : [];
+}
+
+export async function searchWatercourses(
+  query: string,
+  limit = 20,
+): Promise<KnownWatercourse[]> {
+  const params = new URLSearchParams({
+    q: query,
+    limit: String(limit),
+    source: "osm_waterway",
+  });
+
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/watercourses/search?${params}`,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Watercourse search failed with HTTP ${response.status}`);
+  }
+
+  const result = (await response.json()) as {
+    watercourses?: KnownWatercourse[];
+  };
+
+  return Array.isArray(result.watercourses) ? result.watercourses : [];
+}
+
+export async function fetchWatercourseImportStatus(): Promise<
+  WatercourseImportStatus[]
+> {
+  const authToken = await getCurrentUserIdToken();
+
+  if (!authToken) {
+    throw new Error("Sign in before loading seed data status.");
+  }
+
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/admin/watercourses/status`,
+    {
+      headers: {
+        Accept: "application/json",
+        authorization: `Bearer ${authToken}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `Watercourse status failed with HTTP ${response.status}`);
+  }
+
+  const result = (await response.json()) as {
+    watercourseImports?: WatercourseImportStatus[];
+  };
+
+  return Array.isArray(result.watercourseImports)
+    ? result.watercourseImports
+    : [];
 }

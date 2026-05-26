@@ -135,8 +135,11 @@ import {
   type RouteOverride,
 } from "./services/routeOverrideApi";
 import {
+  fetchWatercourseImportStatus,
   fetchWatercoursesForBounds,
+  searchWatercourses,
   type KnownWatercourse,
+  type WatercourseImportStatus,
 } from "./services/watercourseApi";
 import type {
   Contribution,
@@ -331,7 +334,7 @@ type RouteSnapCandidate = {
   label: string;
   route: LatLngTuple[];
 };
-type SearchMode = "name" | "point" | "favourites";
+type SearchMode = "name" | "waterways" | "point" | "favourites";
 type ProfileMode =
   | "account"
   | "public"
@@ -395,7 +398,11 @@ const routeAdjustmentActions: Array<{
 
 type MemberRoleFilter = "all" | MemberRole;
 type MemberTrustFilter = "all" | MemberTrustLevel;
-type ModerationTab = "routes" | "contributions" | "corrections";
+type ModerationTab =
+  | "route-edits"
+  | "route-suggestions"
+  | "contributions"
+  | "corrections";
 type ModerationDraftDecision = ModerationDecision | "";
 type RouteModerationDraftDecision = RouteSuggestionDecision | "";
 type RouteAdjustmentDraftDecision = RouteAdjustmentDecision | "";
@@ -1218,6 +1225,16 @@ function routeDistanceKm(route: LatLngTuple[]) {
 
     return total + distanceKmBetween(route[index - 1], point);
   }, 0);
+}
+
+function watercourseCentre(watercourse: KnownWatercourse): LatLngTuple | null {
+  const firstRoute = watercourse.routes.find((route) => route.length > 0);
+
+  if (!firstRoute?.length) {
+    return null;
+  }
+
+  return firstRoute[Math.floor(firstRoute.length / 2)];
 }
 
 function routeImpactPoiLabel(kind: RouteImpactPoi["kind"]) {
@@ -3545,7 +3562,8 @@ function App() {
     useState<Record<string, RouteModerationDraftDecision>>({});
   const [routeAdjustmentDraftDecisions, setRouteAdjustmentDraftDecisions] =
     useState<Record<string, RouteAdjustmentDraftDecision>>({});
-  const [moderationTab, setModerationTab] = useState<ModerationTab>("routes");
+  const [moderationTab, setModerationTab] =
+    useState<ModerationTab>("route-edits");
   const [isModerationLoading, setIsModerationLoading] = useState(false);
   const [moderationMessage, setModerationMessage] = useState("");
   const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
@@ -3562,6 +3580,9 @@ function App() {
   const [sectionObservationMessage, setSectionObservationMessage] = useState("");
   const [observationJobRuns, setObservationJobRuns] = useState<
     ObservationJobRun[]
+  >([]);
+  const [watercourseImportStatus, setWatercourseImportStatus] = useState<
+    WatercourseImportStatus[]
   >([]);
   const [isObservationJobsLoading, setIsObservationJobsLoading] = useState(false);
   const [isObservationIngestionRunning, setIsObservationIngestionRunning] =
@@ -3584,6 +3605,17 @@ function App() {
   const [searchMode, setSearchMode] = useState<SearchMode>("name");
   const [profileMode, setProfileMode] = useState<ProfileMode>("account");
   const [riverSearchTerm, setRiverSearchTerm] = useState("");
+  const [watercourseSearchTerm, setWatercourseSearchTerm] = useState("");
+  const [watercourseSearchResults, setWatercourseSearchResults] = useState<
+    KnownWatercourse[]
+  >([]);
+  const [watercourseSearchMessage, setWatercourseSearchMessage] = useState("");
+  const [isWatercourseSearchLoading, setIsWatercourseSearchLoading] =
+    useState(false);
+  const [watercourseFocusId, setWatercourseFocusId] = useState<string | null>(
+    null,
+  );
+  const [watercourseFocusNonce, setWatercourseFocusNonce] = useState(0);
   const [locationSearchInput, setLocationSearchInput] = useState("");
   const [locationSearchResult, setLocationSearchResult] =
     useState<LocationSearchResult | null>(null);
@@ -5169,7 +5201,7 @@ function App() {
   async function openModerationPanel() {
     setActiveAppSection("admin");
     setActiveAdminPage("moderation");
-    setModerationTab("routes");
+    setModerationTab("route-edits");
     setIsModerationLoading(true);
     setModerationMessage("");
     setModerationDraftDecisions({});
@@ -5213,7 +5245,12 @@ function App() {
     setObservationCooldownNow(Date.now());
 
     try {
-      setObservationJobRuns(await fetchObservationJobRuns());
+      const [jobRuns, watercourseImports] = await Promise.all([
+        fetchObservationJobRuns(),
+        fetchWatercourseImportStatus(),
+      ]);
+      setObservationJobRuns(jobRuns);
+      setWatercourseImportStatus(watercourseImports);
     } catch (error) {
       setObservationJobMessage(
         error instanceof Error
@@ -5569,11 +5606,13 @@ function App() {
     );
   }
 
-  function startRouteSuggestionMode() {
+  function startRouteSuggestionMode(watercourse?: KnownWatercourse) {
     if (!isSignedIn) {
       requireSignInForSave();
       return;
     }
+
+    const watercourseFocus = watercourse ? watercourseCentre(watercourse) : null;
 
     setRouteDraftTarget({ type: "new" });
     setRouteDraftPoints([]);
@@ -5581,7 +5620,7 @@ function App() {
     setRouteDraftSnapMessage("");
     setRouteCreateMode("tracing");
     setRouteFormError("");
-    setRouteRiverName(activeSection.riverName);
+    setRouteRiverName(watercourse?.name ?? activeSection.riverName);
     setRouteSectionName("");
     setRouteDifficulty("");
     setRouteSummary("");
@@ -5591,9 +5630,20 @@ function App() {
     setIsFormOpen(false);
     setSelectedPoi(null);
     setIsPanelOpen(false);
-    setSearchFocusLocation(null);
-    setSearchFocusLabel("Searched location");
-    setShowSearchFocusMarker(false);
+    if (watercourse && watercourseFocus) {
+      setShowKnownRivers(true);
+      setWatercourseFocusId(watercourse.id);
+      setWatercourseFocusNonce((current) => current + 1);
+      setSearchFocusLocation(watercourseFocus);
+      setSearchFocusLabel(watercourse.name ?? "Known waterway");
+      setShowSearchFocusMarker(false);
+      setSearchFocusNonce((current) => current + 1);
+      setActiveAppSection("map");
+    } else {
+      setSearchFocusLocation(null);
+      setSearchFocusLabel("Searched location");
+      setShowSearchFocusMarker(false);
+    }
     setRouteSuggestionFocusId(null);
     setRouteAdjustmentFocusId(null);
   }
@@ -6226,6 +6276,39 @@ function App() {
     }
   }
 
+  async function handleWatercourseSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const searchValue = watercourseSearchTerm.trim();
+    setWatercourseSearchMessage("");
+    setWatercourseSearchResults([]);
+
+    if (searchValue.length < 2) {
+      setWatercourseSearchMessage("Enter at least 2 characters.");
+      return;
+    }
+
+    setIsWatercourseSearchLoading(true);
+
+    try {
+      const results = await searchWatercourses(searchValue);
+      setWatercourseSearchResults(results);
+      if (!results.length) {
+        setWatercourseSearchMessage("No matching known waterways found.");
+      }
+      void trackProductEvent("search", {
+        search_term: searchValue,
+        search_type: "watercourse",
+      });
+    } catch (error) {
+      setWatercourseSearchMessage(
+        error instanceof Error ? error.message : "Could not search waterways.",
+      );
+    } finally {
+      setIsWatercourseSearchLoading(false);
+    }
+  }
+
   function openSearchLocationOnMap(
     section: RiverSection,
     location: LatLngTuple,
@@ -6236,6 +6319,28 @@ function App() {
     setSearchFocusLocation(location);
     setSearchFocusLabel(label);
     setShowSearchFocusMarker(showMarker);
+    setSearchFocusNonce((current) => current + 1);
+    setSelectedLocation(null);
+    setSelectedPoi(null);
+    setIsFormOpen(false);
+    setIsAddMode(false);
+    setActiveAppSection("map");
+  }
+
+  function openWatercourseOnMap(watercourse: KnownWatercourse) {
+    const centre = watercourseCentre(watercourse);
+
+    if (!centre) {
+      setWatercourseSearchMessage("This waterway has no displayable geometry.");
+      return;
+    }
+
+    setShowKnownRivers(true);
+    setWatercourseFocusId(watercourse.id);
+    setWatercourseFocusNonce((current) => current + 1);
+    setSearchFocusLocation(centre);
+    setSearchFocusLabel(watercourse.name ?? "Known waterway");
+    setShowSearchFocusMarker(false);
     setSearchFocusNonce((current) => current + 1);
     setSelectedLocation(null);
     setSelectedPoi(null);
@@ -6504,7 +6609,7 @@ function App() {
               title="Suggest a missing route"
               aria-label="Suggest a missing route"
               aria-pressed={routeCreateMode !== "idle"}
-              onClick={startRouteSuggestionMode}
+              onClick={() => startRouteSuggestionMode()}
             >
               <Route size={16} />
               Suggest route
@@ -6631,6 +6736,8 @@ function App() {
           showRoutesLayer={showRoutesLayer}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
+          watercourseFocusId={watercourseFocusId}
+          watercourseFocusNonce={watercourseFocusNonce}
           onMapClick={handleMapClick}
           onMoveRouteDraftPoint={updateRouteDraftPoint}
           focusNonce={sectionFocusNonce}
@@ -7784,6 +7891,16 @@ function App() {
                     Name
                   </button>
                   <button
+                    className={searchMode === "waterways" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={searchMode === "waterways"}
+                    onClick={() => setSearchMode("waterways")}
+                  >
+                    <Waves size={16} />
+                    Rivers
+                  </button>
+                  <button
                     className={searchMode === "point" ? "active" : ""}
                     type="button"
                     role="tab"
@@ -7851,6 +7968,92 @@ function App() {
                       ) : null}
                     </div>
                   </section>
+                ) : searchMode === "waterways" ? (
+                  <form
+                    className="location-search-card"
+                    onSubmit={(event) => void handleWatercourseSearch(event)}
+                    aria-label="Search known rivers"
+                  >
+                    <div>
+                      <h3>Find a river or waterway</h3>
+                      <p>
+                        Search imported OSM waterway names, then open the local
+                        stretch on the map with the known-rivers layer enabled.
+                      </p>
+                    </div>
+                    <label>
+                      Waterway name
+                      <input
+                        value={watercourseSearchTerm}
+                        onChange={(event) =>
+                          setWatercourseSearchTerm(event.target.value)
+                        }
+                        placeholder="Tryweryn, Wye, Dee"
+                      />
+                    </label>
+                    <button
+                      className="primary-action"
+                      type="submit"
+                      disabled={isWatercourseSearchLoading}
+                    >
+                      <Search size={16} />
+                      {isWatercourseSearchLoading ? "Searching" : "Find"}
+                    </button>
+                    {watercourseSearchMessage ? (
+                      <p className="form-error">{watercourseSearchMessage}</p>
+                    ) : null}
+                    {watercourseSearchResults.length ? (
+                      <div className="placeholder-list">
+                        {watercourseSearchResults.map((watercourse) => {
+                          const distanceKm = watercourse.routes.reduce(
+                            (total, route) => total + routeDistanceKm(route),
+                            0,
+                          );
+
+                          return (
+                            <div
+                              className="placeholder-row watercourse-search-row"
+                              key={watercourse.id}
+                            >
+                              <span>
+                                <strong>
+                                  {watercourse.name ?? "Unnamed waterway"}
+                                </strong>
+                                <small>
+                                  {watercourseTypeLabel(
+                                    watercourse.watercourseType,
+                                  )}{" "}
+                                  · {distanceKm.toFixed(1)} km reference line ·{" "}
+                                  {watercourse.source.sourceVersion}
+                                </small>
+                              </span>
+                              <span className="status-chip">
+                                {watercourse.source.label}
+                              </span>
+                              <div className="location-result-actions">
+                                <button
+                                  className="ghost-button ghost-button--compact"
+                                  type="button"
+                                  onClick={() => openWatercourseOnMap(watercourse)}
+                                >
+                                  <MapIcon size={15} />
+                                  Open
+                                </button>
+                                <button
+                                  className="ghost-button ghost-button--compact"
+                                  type="button"
+                                  onClick={() => startRouteSuggestionMode(watercourse)}
+                                >
+                                  <Route size={15} />
+                                  Suggest route
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </form>
                 ) : searchMode === "point" ? (
                   <form
                     className="location-search-card"
@@ -9364,18 +9567,28 @@ function App() {
                                 aria-label="Moderation queue type"
                               >
                                 <button
-                                  className={moderationTab === "routes" ? "active" : ""}
+                                  className={moderationTab === "route-edits" ? "active" : ""}
                                   type="button"
                                   role="tab"
-                                  aria-selected={moderationTab === "routes"}
-                                  onClick={() => setModerationTab("routes")}
+                                  aria-selected={moderationTab === "route-edits"}
+                                  onClick={() => setModerationTab("route-edits")}
                                 >
                                   <Route size={16} />
-                                  Routes
-                                  <span>
-                                    {moderationRouteSuggestions.length +
-                                      moderationRouteAdjustments.length}
-                                  </span>
+                                  Route edits
+                                  <span>{moderationRouteAdjustments.length}</span>
+                                </button>
+                                <button
+                                  className={
+                                    moderationTab === "route-suggestions" ? "active" : ""
+                                  }
+                                  type="button"
+                                  role="tab"
+                                  aria-selected={moderationTab === "route-suggestions"}
+                                  onClick={() => setModerationTab("route-suggestions")}
+                                >
+                                  <MapPinned size={16} />
+                                  Suggestions
+                                  <span>{moderationRouteSuggestions.length}</span>
                                 </button>
                                 <button
                                   className={
@@ -9628,11 +9841,8 @@ function App() {
                                 </p>
                               )
                               ) : null}
-                              {moderationTab === "routes" ? (
-                                moderationRouteAdjustments.length ||
-                                moderationRouteSuggestions.length ? (
-                                  <>
-                                  {moderationRouteAdjustments.length ? (
+                              {moderationTab === "route-edits" ? (
+                                  moderationRouteAdjustments.length ? (
                                     <>
                                       <div className="moderation-section-heading">
                                         <h3>Route edits</h3>
@@ -9742,8 +9952,14 @@ function App() {
                                         );
                                       })}
                                     </>
-                                  ) : null}
-                                  {moderationRouteSuggestions.length ? (
+                                  ) : (
+                                    <p className="source-note">
+                                      No route edits need moderation.
+                                    </p>
+                                  )
+                              ) : null}
+                              {moderationTab === "route-suggestions" ? (
+                                  moderationRouteSuggestions.length ? (
                                     <>
                                       <div className="moderation-section-heading">
                                         <h3>Route suggestions</h3>
@@ -9857,13 +10073,11 @@ function App() {
                                     );
                                   })}
                                     </>
-                                  ) : null}
-                                </>
-                              ) : (
-                                <p className="source-note">
-                                  No route edits or suggestions need moderation.
-                                </p>
-                              )
+                                  ) : (
+                                    <p className="source-note">
+                                      No route suggestions need moderation.
+                                    </p>
+                                  )
                               ) : null}
                             </div>
                           )}
@@ -9957,6 +10171,53 @@ function App() {
                             ) : (
                               <p className="source-note">
                                 No observation jobs have been recorded yet.
+                              </p>
+                            )}
+                          </section>
+                          <section className="profile-card profile-card--stacked">
+                            <div className="block-title">
+                              <div>
+                                <h3>Waterway seed status</h3>
+                                <span>
+                                  {watercourseImportStatus.length
+                                    ? `${watercourseImportStatus.length} source version${
+                                        watercourseImportStatus.length === 1
+                                          ? ""
+                                          : "s"
+                                      }`
+                                    : "No status loaded"}
+                                </span>
+                              </div>
+                            </div>
+                            {isObservationJobsLoading ? (
+                              <p className="source-note">Loading seed status...</p>
+                            ) : watercourseImportStatus.length ? (
+                              <div className="placeholder-list">
+                                {watercourseImportStatus.map((status) => (
+                                  <div
+                                    className="placeholder-row system-job-row"
+                                    key={`${status.source}:${status.sourceVersion}`}
+                                  >
+                                    <span>
+                                      <strong>{status.sourceVersion}</strong>
+                                      <small>
+                                        {status.featureCount.toLocaleString()} waterways ·{" "}
+                                        {status.namedFeatureCount.toLocaleString()} named ·{" "}
+                                        {status.licence}
+                                        {status.latestUpdatedAt
+                                          ? ` · refreshed ${formatDateTime(
+                                              status.latestUpdatedAt,
+                                            )}`
+                                          : ""}
+                                      </small>
+                                    </span>
+                                    <Waves size={18} />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="source-note">
+                                No OSM waterway import status has been recorded yet.
                               </p>
                             )}
                           </section>
@@ -10115,6 +10376,8 @@ function RiverMap({
   showRoutesLayer,
   showSelectedRoutePath,
   showKnownRivers,
+  watercourseFocusId,
+  watercourseFocusNonce,
   onMapClick,
   onMoveRouteDraftPoint,
   focusNonce,
@@ -10147,6 +10410,8 @@ function RiverMap({
   showRoutesLayer: boolean;
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
+  watercourseFocusId: string | null;
+  watercourseFocusNonce: number;
   onMapClick: (
     location: LatLngTuple,
     nextType?: ContributionType,
@@ -10173,6 +10438,7 @@ function RiverMap({
   const previousRouteSuggestionFocusNonceRef = useRef(routeSuggestionFocusNonce);
   const previousRouteAdjustmentFocusNonceRef = useRef(routeAdjustmentFocusNonce);
   const previousLiveLocationFocusNonceRef = useRef(liveLocationFocusNonce);
+  const previousWatercourseFocusNonceRef = useRef(watercourseFocusNonce);
   const shouldFitActiveSectionRef = useRef(true);
   const knownWatercoursesRequestRef = useRef(0);
   const [knownWatercourses, setKnownWatercourses] = useState<KnownWatercourse[]>(
@@ -10367,6 +10633,26 @@ function RiverMap({
       setSelectedWatercourseId(null);
     }
   }, [knownWatercourses, selectedWatercourseId]);
+
+  useEffect(() => {
+    if (
+      !watercourseFocusId ||
+      previousWatercourseFocusNonceRef.current === watercourseFocusNonce
+    ) {
+      return;
+    }
+
+    const matchedWatercourse = knownWatercourses.find(
+      (watercourse) => watercourse.id === watercourseFocusId,
+    );
+
+    if (!matchedWatercourse) {
+      return;
+    }
+
+    previousWatercourseFocusNonceRef.current = watercourseFocusNonce;
+    setSelectedWatercourseId(matchedWatercourse.id);
+  }, [knownWatercourses, watercourseFocusId, watercourseFocusNonce]);
 
   useEffect(() => {
     const map = mapRef.current;

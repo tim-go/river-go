@@ -196,6 +196,7 @@ After any seed refresh:
 6. Test route snap on the pilot river and at least one non-pilot river.
 7. Confirm route details, POIs, photos, and community moderation still display existing staging data.
 8. Check API logs for import, query, or timeout errors.
+9. In Admin -> System, refresh status and confirm the waterway seed source version, feature count, named count, licence, and latest update time match the expected import.
 
 For OSM watercourse refreshes, specifically check that:
 
@@ -232,7 +233,7 @@ If a seed operation would require changing community-owned records, stop and cre
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
 | SEEDOPS-B1 | task | Add Cloud Scheduler provisioning for observation ingestion | Open | MVP | Replace manual/admin-triggered refresh with monitored scheduled ingestion. |
-| SEEDOPS-B2 | task | Record seed run history in Admin | Open | MVP | Show source version, row counts, runtime, and last success/failure. |
+| SEEDOPS-B2 | task | Record seed run history in Admin | Active | MVP | Admin System now exposes OSM waterway source version and row counts; full runtime/success/failure history remains open. |
 | SEEDOPS-B3 | validation | Define production promotion checklist for OSM refreshes | Open | MVP | Decide whether screenshots/manual approval are required before prod. |
 
 ## Change Log

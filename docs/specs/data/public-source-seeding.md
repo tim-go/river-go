@@ -97,6 +97,8 @@ Repeatable seed and refresh runs must follow
 
 Imported watercourses should live in a `watercourses` table with source id, source version, source URL, licence, name fields, form/flow metadata, raw properties, source metadata, and a spatial index. The importer should be runnable locally and against staging/prod runtime config via npm scripts.
 
+The app should expose OSM waterway names as browse/search context. Searching for a river or waterway should return matching reference geometries and let the user open that local stretch on the map with the known-rivers layer enabled. This remains a map-context workflow only; a found waterway is not a RiverLaunch route until a member submits or a moderator verifies a paddling section.
+
 Use Paddle UK / Go Paddling, PaddlePoints, UK Rivers Guidebook, Canoe Wales/Paddle Cymru, Paddle Scotland, Paddle NI, clubs, operators, and venue pages as discovery/reference material unless explicit permission or open licensing allows import.
 
 The first source-backed route work should concentrate on:

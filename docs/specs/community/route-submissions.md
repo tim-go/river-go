@@ -76,6 +76,12 @@ area so the user can tell whether the river they are trying to trace is present
 in the snap dataset. The overlay should show the same OSM waterway source used
 for visual snapping by default. It is an editing aid, not route evidence.
 
+Members should be able to start a route suggestion from a searched known
+waterway. This should prefill the river/waterway name, open the map with the
+known-rivers overlay visible, and then use the normal route-submission evidence
+flow. The waterway search result is context only and must not bypass evidence or
+moderation.
+
 Future backend behaviour should:
 
 - persist route suggestions as authenticated member submissions
@@ -97,7 +103,7 @@ Approved route suggestions should be public-visible as low-confidence `Candidate
 
 Approved candidates must remain visible to admins/moderators. They are not finished data; they are candidates that may still need trace cleanup, source checking, status changes, or later promotion. Moderators should be able to move an approved or rejected suggestion back to pending review.
 
-The moderation area should split route suggestions, point/photo contributions, and map point corrections into separate tabs. Route suggestions are strategically important enough that they should not be buried below photo or point queues.
+The moderation area should split route edits, route suggestions, point/photo contributions, and map point corrections into separate tabs. Route edits and suggestions are strategically important enough that they should not be buried below photo or point queues, and approved/rejected route candidates should remain reachable for later status changes or edit creation.
 
 Admins and contribution moderators must be able to create route adjustment records for any existing route target:
 

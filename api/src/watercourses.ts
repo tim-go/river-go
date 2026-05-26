@@ -42,6 +42,21 @@ export interface WatercourseViewportInput {
   source: WatercourseSource | null;
 }
 
+export interface WatercourseSearchInput {
+  query: string | null;
+  limit: number | null;
+  source: WatercourseSource | null;
+}
+
+export interface ApiWatercourseImportStatus {
+  source: WatercourseSource;
+  sourceVersion: string;
+  licence: string;
+  featureCount: number;
+  namedFeatureCount: number;
+  latestUpdatedAt: string | null;
+}
+
 export interface ApiWatercourseFeature {
   id: string;
   name: string | null;
@@ -285,6 +300,105 @@ export async function listWatercoursesForViewport(
       },
     ];
   });
+}
+
+export async function searchWatercoursesByName(
+  input: WatercourseSearchInput,
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiWatercourseFeature[]> {
+  const query = readWatercourseSearchQuery(input.query);
+  const limit = readSearchLimit(input.limit);
+  const source = input.source ?? OSM_WATERWAY_SOURCE;
+  const likeQuery = `%${query.replace(/[%_]/g, "\\$&")}%`;
+
+  const result = await client.query<WatercourseViewportRow>(
+    `SELECT
+      source_id,
+      source,
+      name,
+      watercourse_type,
+      form,
+      flow_direction,
+      source_version,
+      licence,
+      raw_properties,
+      ST_AsGeoJSON(
+        ST_SimplifyPreserveTopology(geometry, 0.00008)
+      )::json AS geometry_geojson
+    FROM watercourses
+    WHERE source = $3
+      AND name IS NOT NULL
+      AND name ILIKE $1 ESCAPE '\\'
+    ORDER BY
+      CASE
+        WHEN lower(name) = lower($2) THEN 1
+        WHEN lower(name) LIKE lower($2 || '%') THEN 2
+        ELSE 3
+      END,
+      ST_Length(geometry::geography) DESC
+    LIMIT $4`,
+    [likeQuery, query, source, limit],
+  );
+
+  return result.rows.flatMap((row) => {
+    const routes = routesFromGeoJson(row.geometry_geojson);
+
+    if (!routes.length) {
+      return [];
+    }
+
+    return [
+      {
+        id: row.source_id,
+        name: row.name,
+        watercourseType: row.watercourse_type,
+        form: row.form,
+        flowDirection: row.flow_direction,
+        hints: watercourseHints(row.raw_properties),
+        routes,
+        source: {
+          kind: "watercourse-reference",
+          label: sourceLabel(row.source),
+          licence: row.licence || sourceLicence(row.source),
+          sourceVersion: row.source_version,
+          source: row.source,
+        },
+      },
+    ];
+  });
+}
+
+export async function listWatercourseImportStatus(
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiWatercourseImportStatus[]> {
+  const result = await client.query<{
+    source: WatercourseSource;
+    source_version: string | null;
+    licence: string | null;
+    feature_count: string;
+    named_feature_count: string;
+    latest_updated_at: Date | null;
+  }>(
+    `SELECT
+      source,
+      COALESCE(source_version, 'unknown') AS source_version,
+      COALESCE(licence, '') AS licence,
+      COUNT(*) AS feature_count,
+      COUNT(*) FILTER (WHERE name IS NOT NULL AND name <> '') AS named_feature_count,
+      MAX(updated_at) AS latest_updated_at
+    FROM watercourses
+    GROUP BY source, source_version, licence
+    ORDER BY source, source_version DESC`,
+  );
+
+  return result.rows.map((row) => ({
+    source: row.source,
+    sourceVersion: row.source_version ?? "unknown",
+    licence: row.licence || sourceLicence(row.source),
+    featureCount: Number(row.feature_count),
+    namedFeatureCount: Number(row.named_feature_count),
+    latestUpdatedAt: row.latest_updated_at?.toISOString() ?? null,
+  }));
 }
 
 function watercourseHints(
@@ -791,6 +905,24 @@ function readViewportLimit(value: number | null): number {
   }
 
   return Math.max(50, Math.min(Math.round(value), 900));
+}
+
+function readSearchLimit(value: number | null): number {
+  if (value == null || !Number.isFinite(value)) {
+    return 20;
+  }
+
+  return Math.max(5, Math.min(Math.round(value), 50));
+}
+
+function readWatercourseSearchQuery(value: string | null): string {
+  const query = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+
+  if (query.length < 2) {
+    throw new HttpError(400, "Watercourse search query must be at least 2 characters.");
+  }
+
+  return query.slice(0, 80);
 }
 
 function simplificationToleranceForZoom(zoom: number | null): number {

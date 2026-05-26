@@ -67,7 +67,9 @@ import {
   runObservationIngestionJob,
 } from "./observations.js";
 import {
+  listWatercourseImportStatus,
   listWatercoursesForViewport,
+  searchWatercoursesByName,
   snapRouteToWatercourses,
   type WatercourseSource,
 } from "./watercourses.js";
@@ -182,6 +184,14 @@ async function route(
     return { status: 200, body: { jobRuns } };
   }
 
+  if (method === "GET" && url.pathname === "/api/admin/watercourses/status") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireAdmin(member);
+    const watercourseImports = await listWatercourseImportStatus();
+    return { status: 200, body: { watercourseImports } };
+  }
+
   if (method === "POST" && url.pathname === "/api/jobs/observations/ingest") {
     await requireObservationJobAccess(headers);
     const recentJobRun = await getRecentObservationIngestionJobRun(15);
@@ -278,6 +288,15 @@ async function route(
     const watercourses = await listWatercoursesForViewport({
       ...bbox,
       zoom: readOptionalNumber(url.searchParams.get("zoom")),
+      limit: readOptionalNumber(url.searchParams.get("limit")),
+      source: readWatercourseSource(url.searchParams.get("source")),
+    });
+    return { status: 200, body: { watercourses } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/watercourses/search") {
+    const watercourses = await searchWatercoursesByName({
+      query: url.searchParams.get("q"),
       limit: readOptionalNumber(url.searchParams.get("limit")),
       source: readWatercourseSource(url.searchParams.get("source")),
     });
