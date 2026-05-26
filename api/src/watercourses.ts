@@ -332,8 +332,10 @@ export async function searchWatercoursesByName(
     ORDER BY
       CASE
         WHEN lower(name) = lower($2) THEN 1
-        WHEN lower(name) LIKE lower($2 || '%') THEN 2
-        ELSE 3
+        WHEN lower(name) LIKE lower('% ' || $2)
+          OR lower(name) LIKE lower('% ' || $2 || ' %') THEN 2
+        WHEN lower(name) LIKE lower($2 || '%') THEN 3
+        ELSE 4
       END,
       CASE
         WHEN watercourse_type IN ('river', 'canal') THEN 1
