@@ -335,6 +335,11 @@ export async function searchWatercoursesByName(
         WHEN lower(name) LIKE lower($2 || '%') THEN 2
         ELSE 3
       END,
+      CASE
+        WHEN watercourse_type IN ('river', 'canal') THEN 1
+        WHEN watercourse_type IN ('stream', 'drain', 'ditch') THEN 3
+        ELSE 2
+      END,
       ST_Length(geometry::geography) DESC
     LIMIT $4`,
     [likeQuery, query, source, limit],
