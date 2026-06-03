@@ -10,7 +10,7 @@ maturity: Draft
 # Platform Configuration
 
 **Work state:** Active
-**Last updated:** 2026-05-23
+**Last updated:** 2026-06-03
 **Scope:** In-repository platform configuration for publishing RiverLaunch.app with Firebase and GCP.
 
 ## Purpose
@@ -99,7 +99,7 @@ Staging rollout order:
 
 - Should the public brand remain RiverLaunch.app while keeping repo/project IDs as `river-go`?
 - Should production use `europe-west2` for UK locality or match Kinetiq's existing `europe-west1` convention?
-- What production domain cutover sequence should be used for `riverlaunch.app`?
+- What production cutover sequence should be used once `riverlaunch.info` becomes the primary public domain?
 
 ## Tracking
 
@@ -120,14 +120,14 @@ Staging rollout order:
 | PLATFORM-F11 | Scheduled backend jobs | Ops/scheduler | Active | MVP | — | Observation ingestion starts as a guarded Cloud Run endpoint with Secret Manager-backed job token; Cloud Scheduler provisioning is queued. |
 | PLATFORM-F11 | Preview-first Hosting deployment | Ops/deploy | Active | v0.3 | — | Deploys API rewrite to a Firebase preview channel before live Hosting cutover. |
 | PLATFORM-F12 | Cloud SQL migration script | Ops/deploy | Active | v0.3 | — | Runs SQL migrations through Cloud SQL Auth Proxy using the migration DB URL. |
-| PLATFORM-F13 | Hosted Firebase Auth flow | Ops/auth | Landed | v0.3 | — | Hosted web builds use inline redirect sign-in with the public Hosting domain as Firebase `authDomain`; local dev uses popup sign-in; auth diagnostics print the exact OAuth client and redirect URI before deploys. |
+| PLATFORM-F13 | Hosted Firebase Auth flow | Ops/auth | Landed | v0.3 | — | Hosted web builds use inline redirect sign-in with the active hosted hostname as Firebase `authDomain`; local dev uses popup sign-in; auth diagnostics print the expected OAuth client and redirect URI before deploys. |
 | PLATFORM-F14 | what3words backfill script | Ops/data | Active | MVP | — | Runs an operator-controlled Cloud SQL backfill for point contributions missing stored what3words metadata. |
 
 ### Backlog
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
-| PLATFORM-B1 | decision | Confirm domains | Active | v0.2 | RiverLaunch.app uses `riverlaunch.app`; staging is available at `staging.riverlaunch.app`; repo/project IDs remain `river-go`. |
+| PLATFORM-B1 | decision | Confirm domains | Active | v0.2 | RiverLaunch.app uses `riverlaunch.info`; staging is available at `staging.riverlaunch.info`; repo/project IDs remain `river-go`. Hosted auth return domains derive from the origin hostname. |
 | PLATFORM-B2 | decision | Confirm GCP region | Open | v0.2 | Template uses `europe-west2`; can switch before provisioning. |
 | PLATFORM-B3 | decision | Choose first publish shape | Resolved | v0.2 | Use Firebase Hosting plus Cloud Run, deployed backend-first and preview-first. |
 | PLATFORM-B4 | dependency | Create or select GCP/Firebase projects | Active | v0.3 | Setup script can create projects with `--create-resources` once billing config is set. |
@@ -158,6 +158,7 @@ Staging rollout order:
 | 2026-05-22 | Added isolated local PostGIS database configuration for backend development. |
 | 2026-05-23 | Added Cloud Run API deploy, Cloud SQL migration, Firebase preview/live deploy, and end-to-end smoke scripts. |
 | 2026-05-23 | Updated Cloud Run deploy path for organisation policy that blocks `allUsers` IAM bindings. |
-| 2026-05-23 | Updated public brand/domain notes to RiverLaunch.app and `staging.riverlaunch.app`. |
+| 2026-05-23 | Updated public brand/domain notes to RiverLaunch.app and `staging.riverlaunch.info`. |
+| 2026-06-03 | Changed primary public domain references to `riverlaunch.info` and documented origin-derived Firebase Auth redirects. |
 | 2026-05-21 | Added initial GCP/Firebase provisioning script. |
 | 2026-05-21 | Added initial in-repo platform configuration spec. |

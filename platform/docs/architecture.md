@@ -10,8 +10,8 @@ The deployment shape should support the current web demo, the future backend API
 
 | Environment | Purpose | Typical URL |
 | --- | --- | --- |
-| `staging` | Public pilot/demo testing | `https://staging.riverlaunch.app` |
-| `prod` | Public launch service | `https://riverlaunch.app` |
+| `staging` | Public pilot/demo testing | `https://staging.riverlaunch.info` |
+| `prod` | Public launch service | `https://riverlaunch.info` |
 
 The exact domains can change in local config. The templates use placeholder domains until real DNS is chosen.
 
@@ -48,7 +48,7 @@ Cloud Run API
 | Secret Manager | Database URLs, service credentials, API tokens, and webhook secrets. |
 | GitHub Actions | Build, test, deploy, and environment-scoped secret delivery. |
 
-Hosted web sign-in uses Firebase redirect sign-in with the public Hosting domain as the SDK `authDomain`. Staging uses `staging.riverlaunch.app` and production uses `riverlaunch.app`; both domains must remain listed in Firebase Auth authorised domains and as Google OAuth redirect URIs using the `/__/auth/handler` suffix. Popup sign-in with the Firebase project helper domain is the rollback path if a custom-domain OAuth provider blocks redirect sign-in.
+Hosted web sign-in uses Firebase redirect sign-in with the active browser hostname as the SDK `authDomain`, so the OAuth handler returns to the same hosted origin that started sign-in. Staging uses `staging.riverlaunch.info` and production uses `riverlaunch.info`; any hosted domain must remain listed in Firebase Auth authorised domains and as a Google OAuth redirect URI using the `/__/auth/handler` suffix. Local/private-network development keeps the configured Firebase auth domain and uses popup sign-in.
 
 ## Repository Boundary
 

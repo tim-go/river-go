@@ -24,7 +24,7 @@
       "projectDomain": "river-go-staging.firebaseapp.com",
       "client": {
         "apiKey": "",
-        "authDomain": "staging.riverlaunch.app",
+        "authDomain": "staging.riverlaunch.info",
         "projectId": "river-go-staging",
         "storageBucket": "river-go-staging.firebasestorage.app",
         "messagingSenderId": "",
@@ -53,8 +53,8 @@
   },
   "staging": {
     "urls": {
-      "web": "https://staging.riverlaunch.app",
-      "api": "https://staging.riverlaunch.app/api"
+      "web": "https://staging.riverlaunch.info",
+      "api": "https://staging.riverlaunch.info/api"
     },
     "database": {
       "url": "postgresql://river_go_app:<app-password>@localhost/river_go",
@@ -65,7 +65,7 @@
       "projectDomain": "river-go-staging.firebaseapp.com",
       "client": {
         "apiKey": "",
-        "authDomain": "staging.riverlaunch.app",
+        "authDomain": "staging.riverlaunch.info",
         "projectId": "river-go-staging",
         "storageBucket": "river-go-staging.firebasestorage.app",
         "messagingSenderId": "",
@@ -94,8 +94,8 @@
   },
   "prod": {
     "urls": {
-      "web": "https://riverlaunch.app",
-      "api": "https://riverlaunch.app/api"
+      "web": "https://riverlaunch.info",
+      "api": "https://riverlaunch.info/api"
     },
     "database": {
       "url": "postgresql://river_go_app:<app-password>@localhost/river_go",
@@ -106,7 +106,7 @@
       "projectDomain": "river-go-prod.firebaseapp.com",
       "client": {
         "apiKey": "",
-        "authDomain": "riverlaunch.app",
+        "authDomain": "riverlaunch.info",
         "projectId": "river-go-prod",
         "storageBucket": "river-go-prod.firebasestorage.app",
         "messagingSenderId": "",

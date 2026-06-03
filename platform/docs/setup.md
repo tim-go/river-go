@@ -70,6 +70,13 @@ The Kinetiq workspace already runs a shared `kinetiq-db` container on `localhost
 
 RiverLaunch.app owns a separate local PostGIS container on `127.0.0.1:5435`.
 
+For the full local development sequence, including migrations, API startup,
+Vite, LAN testing, and Firebase Auth local env setup, use:
+
+```text
+docs/development/local-development.md
+```
+
 ```bash
 npm run db:local:up
 npm run db:local:check
@@ -220,7 +227,7 @@ Manual follow-up remains required for:
 
 - Firebase terms acceptance if your account has not accepted them
 - Blaze plan upgrade where Storage or paid GCP resources require it
-- Google sign-in OAuth provider configuration, including `https://staging.riverlaunch.app/__/auth/handler` for staging and `https://riverlaunch.app/__/auth/handler` for production.
+- Google sign-in OAuth provider configuration, including `https://staging.riverlaunch.info/__/auth/handler` for staging and `https://riverlaunch.info/__/auth/handler` for production. Add each hosted domain that can start sign-in; the web app uses the active hostname as the Firebase redirect auth domain.
 - Cloud SQL user passwords and database grants
 - PostGIS extension enablement
 - production custom domains and DNS
@@ -283,14 +290,14 @@ If live Hosting needs to be rolled back, use the Firebase Console Hosting releas
 
 ## Hosted Web Auth Flow
 
-Staging currently uses inline redirect sign-in through the custom Hosting domain:
+Hosted builds use inline redirect sign-in through the current browser hostname. The runtime config keeps the expected custom Hosting domain as the deployment/check fallback:
 
 ```json
 {
   "staging": {
     "firebase": {
       "client": {
-        "authDomain": "staging.riverlaunch.app"
+        "authDomain": "staging.riverlaunch.info"
       }
     },
     "auth": {
@@ -306,7 +313,7 @@ Before deploying auth changes, run:
 npm run platform:auth:inline:staging
 ```
 
-That command prints the exact Firebase authorised domain, Google OAuth JavaScript origin, OAuth redirect URI, generated Google client ID, and generated redirect URI that must match the Google Cloud OAuth client.
+That command prints the expected Firebase authorised domain, Google OAuth JavaScript origin, OAuth redirect URI, generated Google client ID, and generated redirect URI that must match the Google Cloud OAuth client. At runtime, non-local hosted pages use `window.location.hostname` for the Firebase `authDomain`, so the return handler stays on the originating domain.
 
 The popup rollback values are:
 

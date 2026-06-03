@@ -16,8 +16,8 @@
       "firebaseProject": "river-go-staging",
       "region": "europe-west2",
       "domains": {
-        "web": "staging.riverlaunch.app",
-        "api": "staging.riverlaunch.app/api"
+        "web": "staging.riverlaunch.info",
+        "api": "staging.riverlaunch.info/api"
       },
       "firebaseHostingSite": "river-go-staging",
       "cloudRunService": "river-go-api-staging",
@@ -57,8 +57,8 @@
       "firebaseProject": "river-go-prod",
       "region": "europe-west2",
       "domains": {
-        "web": "riverlaunch.app",
-        "api": "riverlaunch.app/api"
+        "web": "riverlaunch.info",
+        "api": "riverlaunch.info/api"
       },
       "firebaseHostingSite": "river-go",
       "cloudRunService": "river-go-api-prod",

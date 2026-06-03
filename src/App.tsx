@@ -2542,14 +2542,13 @@ function AuthPromptSheet({
           ) : null}
           <div
             className="segmented-control auth-mode-tabs"
-            role="tablist"
+            role="group"
             aria-label="Account action"
           >
             <button
               className={authPanelMode === "create" ? "active" : ""}
               type="button"
-              role="tab"
-              aria-selected={authPanelMode === "create"}
+              aria-pressed={authPanelMode === "create"}
               onClick={() => setAuthPanelMode("create")}
             >
               Create account
@@ -2557,11 +2556,17 @@ function AuthPromptSheet({
             <button
               className={authPanelMode === "signin" ? "active" : ""}
               type="button"
-              role="tab"
-              aria-selected={authPanelMode === "signin"}
+              aria-pressed={authPanelMode === "signin"}
               onClick={() => setAuthPanelMode("signin")}
             >
               Sign in
+            </button>
+            <button
+              className="auth-guest-button"
+              type="button"
+              onClick={onContinueAsGuest}
+            >
+              Continue as guest
             </button>
           </div>
           <form className="auth-form" onSubmit={submitEmailAuth}>
@@ -2634,8 +2639,8 @@ function AuthPromptSheet({
               ? "Create account with Google"
               : "Sign in with Google"}
           </button>
-          <div className="auth-sheet__actions">
-            {authPanelMode === "signin" ? (
+          {authPanelMode === "signin" ? (
+            <div className="auth-sheet__actions">
               <button
                 className="ghost-button"
                 type="button"
@@ -2644,15 +2649,8 @@ function AuthPromptSheet({
               >
                 Reset password
               </button>
-            ) : null}
-            <button
-              className="ghost-button auth-guest-button"
-              type="button"
-              onClick={onContinueAsGuest}
-            >
-              Continue as guest
-            </button>
-          </div>
+            </div>
+          ) : null}
           {!isAuthConfigured ? (
             <p className="auth-sheet__note">
               Sign-in is not configured in this environment.

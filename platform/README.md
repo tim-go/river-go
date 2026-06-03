@@ -30,6 +30,14 @@ platform/
 
 ## Quick Start
 
+For the full local app startup sequence, use:
+
+```text
+docs/development/local-development.md
+```
+
+The platform-specific setup starts with local config.
+
 Create local config from the committed templates:
 
 ```bash
@@ -86,6 +94,13 @@ Cloud SQL passwords, PostGIS extension setup, custom domains, and deployment sec
 ## Local Database
 
 RiverLaunch.app uses a separate local PostGIS database so it does not disturb the shared Kinetiq `kinetiq-db` container on `localhost:5432`.
+
+For the full local development flow, including migrations, API startup, Vite,
+LAN testing, and auth configuration, see:
+
+```text
+docs/development/local-development.md
+```
 
 Start the local RiverLaunch.app database:
 
