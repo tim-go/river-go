@@ -37,6 +37,8 @@ export type PhotoLightboxItem = {
   alt?: string;
 };
 
+export type AuthSheetMode = "welcome" | "signin" | "save-required";
+
 export type LevelBand = "too-low" | "good" | "high" | "unknown";
 
 export type AccessType = "put-in" | "take-out" | "portage" | "parking";
