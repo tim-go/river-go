@@ -126,6 +126,8 @@ import { PhotoLightbox } from "./components/PhotoLightbox";
 import { AuthPromptSheet } from "./components/AuthPromptSheet";
 import { PoiDetailPanel } from "./components/PoiDetailPanel";
 import { RiverMap } from "./components/RiverMap";
+import { RiverCard } from "./components/RiverCard";
+import { useDiscovery } from "./discovery/DiscoveryContext";
 import { RouteAdjustmentImpactPanel } from "./components/RouteAdjustmentImpactPanel";
 import { Metric } from "./components/Metric";
 import { contributionStatusLabel, moderationActions, syncStatusLabel } from "./lib/contributionLabels";
@@ -274,6 +276,10 @@ function App() {
   );
   const [selectedCanonicalRiverId, setSelectedCanonicalRiverId] =
     useState<string | null>(null);
+  const { selectRiver: selectDiscoveryRiver } = useDiscovery();
+  useEffect(() => {
+    selectDiscoveryRiver(selectedCanonicalRiverId);
+  }, [selectedCanonicalRiverId, selectDiscoveryRiver]);
   const [isSelectedRiverPanelOpen, setIsSelectedRiverPanelOpen] =
     useState(false);
   const [isSelectedRiverPanelExpanded, setIsSelectedRiverPanelExpanded] =
@@ -4453,10 +4459,29 @@ function App() {
           />
         ) : null}
 
-        <section
-          className={`detail-panel ${isPanelOpen ? "detail-panel--open" : ""}`}
-          aria-label="Selected river section"
-        >
+        {isCanonicalRiverOverviewActive && isPanelOpen ? (
+          <section
+            className="detail-panel detail-panel--open"
+            aria-label="Selected river"
+          >
+            <button
+              className="panel-close"
+              type="button"
+              aria-label="Close river panel"
+              title="Close"
+              onClick={() => setIsPanelOpen(false)}
+            >
+              <X size={18} />
+            </button>
+            <RiverCard />
+          </section>
+        ) : null}
+
+        {!isCanonicalRiverOverviewActive ? (
+          <section
+            className={`detail-panel ${isPanelOpen ? "detail-panel--open" : ""}`}
+            aria-label="Selected river section"
+          >
           <button
             className="panel-close"
             type="button"
@@ -5077,6 +5102,7 @@ function App() {
             ) : null}
           </div>
         </section>
+        ) : null}
       </section>
           ) : activeAppSection === "search" ? (
             <PlaceholderPage section="search" title="Search">
