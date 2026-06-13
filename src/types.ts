@@ -6,6 +6,14 @@ export type LiveLocationSnapshot = {
   updatedAt: number;
 };
 
+export type MarkerClickMode = "info" | "detail";
+
+export type SyncBannerDismissal = {
+  queuedOutboxCount: number;
+  failedOutboxCount: number;
+  expiresAt: number;
+};
+
 export type LevelBand = "too-low" | "good" | "high" | "unknown";
 
 export type AccessType = "put-in" | "take-out" | "portage" | "parking";
