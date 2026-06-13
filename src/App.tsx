@@ -3876,11 +3876,7 @@ function App() {
                     <span className="candidate-pill">
                       {river.reviewNeededCandidatePoiCount} candidates
                     </span>
-                  ) : (
-                    <span className="level-pill level-pill--unknown">
-                      {river.curationStatus}
-                    </span>
-                  )}
+                  ) : null}
                 </button>
               ))}
             </div>
@@ -3889,13 +3885,6 @@ function App() {
               River records unavailable.
             </p>
           )}
-          <div className="section-list__header section-list__header--sub">
-            <span>Reviewed sections</span>
-          </div>
-          <p className="source-note source-note--section-list">
-            Section routes and reviewed public POIs have been removed from the
-            active frontend until they are rebuilt from the canonical model.
-          </p>
         </aside>
 
         <RiverMap
