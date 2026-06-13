@@ -1,5 +1,6 @@
 import L from "leaflet";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useDiscovery } from "../discovery/DiscoveryContext";
 import { MapPin, Maximize2, Minimize2, Route, X } from "lucide-react";
 import type {
   Contribution,
@@ -166,6 +167,23 @@ export function RiverMap({
 }) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const { selectedRiver } = useDiscovery();
+
+  // Spatial connection: selecting a river flies the map to it.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedRiver) {
+      return;
+    }
+    const [west, south, east, north] = selectedRiver.bbox;
+    map.flyToBounds(
+      [
+        [south, west],
+        [north, east],
+      ],
+      { padding: [48, 48], duration: 0.7, maxZoom: 14 },
+    );
+  }, [selectedRiver]);
   const layerRef = useRef<L.LayerGroup | null>(null);
   const callbackRef = useRef(onSelectSection);
   const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
