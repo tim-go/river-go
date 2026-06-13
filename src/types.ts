@@ -14,6 +14,14 @@ export type SyncBannerDismissal = {
   expiresAt: number;
 };
 
+export type AppSection =
+  | "search"
+  | "map"
+  | "groups"
+  | "profile"
+  | "more"
+  | "admin";
+
 export type LevelBand = "too-low" | "good" | "high" | "unknown";
 
 export type AccessType = "put-in" | "take-out" | "portage" | "parking";
