@@ -22,6 +22,21 @@ export type AppSection =
   | "more"
   | "admin";
 
+export type AppNotificationTone = "success" | "info" | "error";
+
+export type AppNotification = {
+  id: number;
+  message: string;
+  tone: AppNotificationTone;
+};
+
+export type PhotoLightboxItem = {
+  src: string;
+  title: string;
+  caption?: string;
+  alt?: string;
+};
+
 export type LevelBand = "too-low" | "good" | "high" | "unknown";
 
 export type AccessType = "put-in" | "take-out" | "portage" | "parking";

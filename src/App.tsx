@@ -34,7 +34,7 @@ import {
   X,
 } from "lucide-react";
 import L from "leaflet";
-import { FormEvent, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getSeedPoiWhat3Words } from "./data/seedLocationReferences";
 import {
   setAnalyticsConsentPreference,
@@ -128,6 +128,10 @@ import { loadContributions, loadFavouriteSectionIds, loadRouteSuggestions, loadA
 import { SyncOutboxBanner } from "./components/SyncOutboxBanner";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
+import { AppBrandPanel } from "./components/AppBrandPanel";
+import { AppNotificationBanner } from "./components/AppNotificationBanner";
+import { PlaceholderPage } from "./components/PlaceholderPage";
+import { PhotoLightbox } from "./components/PhotoLightbox";
 import {
   applyRouteSuggestionDecision,
   createRouteSuggestion,
@@ -173,6 +177,9 @@ import type {
   MarkerClickMode,
   SyncBannerDismissal,
   AppSection,
+  AppNotification,
+  AppNotificationTone,
+  PhotoLightboxItem,
 } from "./types";
 
 const MIN_ACCOUNT_PASSWORD_LENGTH = 12;
@@ -331,12 +338,6 @@ const categoryOptions: Record<ContributionType, string[]> = {
 type AdminPage = "index" | "members" | "member-detail" | "moderation" | "system";
 type AuthSheetMode = "welcome" | "signin" | "save-required";
 type AuthPanelMode = "create" | "signin";
-type AppNotificationTone = "success" | "info" | "error";
-type AppNotification = {
-  id: number;
-  message: string;
-  tone: AppNotificationTone;
-};
 type RouteCreateMode = "idle" | "tracing" | "form";
 type RouteDraftTarget =
   | { type: "new" }
@@ -434,12 +435,6 @@ type RouteAdjustmentDraftDecision = RouteAdjustmentDecision | "";
 type SourceCandidateDraftStatus = SourceCandidatePoiStatus | "";
 type PendingPhotoDelete = { id: string; title: string };
 type PendingPointDelete = { id: string; title: string };
-type PhotoLightboxItem = {
-  src: string;
-  title: string;
-  caption?: string;
-  alt?: string;
-};
 type LiveLocationStatus =
   | "idle"
   | "locating"
@@ -1776,40 +1771,7 @@ function mergeSectionContributions(
 
 
 
-function AppBrandPanel() {
-  return (
-    <div className="app-brand-panel">
-      <span className="brand-mark">
-        <Waves size={22} strokeWidth={2.3} />
-      </span>
-      <div>
-        <strong>RiverLaunch.app</strong>
-        <span>Community river intelligence for paddlers.</span>
-      </div>
-    </div>
-  );
-}
 
-function AppNotificationBanner({
-  notification,
-  onDismiss,
-}: {
-  notification: AppNotification;
-  onDismiss: () => void;
-}) {
-  return (
-    <div
-      className={`app-notification app-notification--${notification.tone}`}
-      role="status"
-    >
-      <CheckCircle2 size={16} />
-      <span>{notification.message}</span>
-      <button type="button" onClick={onDismiss} aria-label="Dismiss notification">
-        <X size={15} />
-      </button>
-    </div>
-  );
-}
 
 function AuthPromptSheet({
   mode,
@@ -2074,70 +2036,7 @@ function AuthPromptSheet({
   );
 }
 
-function PlaceholderPage({
-  section,
-  title,
-  children,
-}: {
-  section: AppSection;
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className={`app-page app-page--${section}`} aria-label={title}>
-      <div className="app-page__header">
-        <h2>{title}</h2>
-      </div>
-      <div className="app-page__content">{children}</div>
-    </section>
-  );
-}
 
-function PhotoLightbox({
-  photo,
-  onClose,
-}: {
-  photo: PhotoLightboxItem;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  return (
-    <div className="photo-lightbox-backdrop" role="presentation" onClick={onClose}>
-      <section
-        className="photo-lightbox"
-        role="dialog"
-        aria-modal="true"
-        aria-label={photo.title}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <button
-          className="icon-button photo-lightbox__close"
-          type="button"
-          aria-label="Close photo"
-          title="Close"
-          onClick={onClose}
-        >
-          <X size={18} />
-        </button>
-        <img src={photo.src} alt={photo.alt ?? photo.title} />
-        <footer>
-          <strong>{photo.title}</strong>
-          {photo.caption ? <span>{photo.caption}</span> : null}
-        </footer>
-      </section>
-    </div>
-  );
-}
 
 function PoiDetailPanel({
   poi,
