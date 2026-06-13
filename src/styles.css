@@ -914,7 +914,7 @@ h1 {
 }
 
 .workspace--sections-open {
-  grid-template-columns: 292px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .app-page {
@@ -1584,10 +1584,17 @@ h1 {
 }
 
 .section-list {
-  z-index: 450;
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 460;
+  width: min(300px, calc(100vw - 44px));
+  max-height: calc(100% - 32px);
   overflow-y: auto;
-  border-right: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: 8px;
   background: #fbfcf8;
+  box-shadow: var(--shadow);
 }
 
 .section-list--closed {
@@ -4885,3 +4892,8 @@ textarea {
 .river-card__level strong { font-size: 1.4rem; }
 .river-card__trend { font-size: 0.85rem; color: #5b6b66; text-transform: capitalize; }
 .river-card__level small { flex-basis: 100%; font-size: 0.72rem; color: #7a8884; }
+
+/* Map-first: shift map's top-left controls clear of the floating river list */
+.workspace--sections-open .map-stage .leaflet-top.leaflet-left {
+  transform: translateX(312px);
+}
