@@ -1,5 +1,11 @@
 export type LatLngTuple = [number, number];
 
+export type LiveLocationSnapshot = {
+  location: LatLngTuple;
+  accuracyMeters: number | null;
+  updatedAt: number;
+};
+
 export type LevelBand = "too-low" | "good" | "high" | "unknown";
 
 export type AccessType = "put-in" | "take-out" | "portage" | "parking";
