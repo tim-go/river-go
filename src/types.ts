@@ -39,6 +39,31 @@ export type PhotoLightboxItem = {
 
 export type AuthSheetMode = "welcome" | "signin" | "save-required";
 
+export type PoiDetailsTab = "details" | "location" | "verification" | "photos";
+
+export interface SelectedPoi {
+  id: string;
+  kind: MapPoiKind | "contribution";
+  title: string;
+  subtitle: string;
+  summary: string;
+  sectionLabel: string;
+  location: LatLngTuple;
+  status?: string;
+  sourceLabel?: string;
+  sourceConfidence?: string;
+  navigationLocation?: LatLngTuple;
+  what3words?: string;
+  syncStatus?: ContributionSyncStatus;
+  photos?: ContributionPhoto[];
+  category?: string;
+  author?: string;
+  dateObserved?: string;
+  createdAt?: string;
+  contributionType?: ContributionType;
+  mapPoi?: MapPoi;
+}
+
 export type LevelBand = "too-low" | "good" | "high" | "unknown";
 
 export type AccessType = "put-in" | "take-out" | "portage" | "parking";
