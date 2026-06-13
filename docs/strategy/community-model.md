@@ -6,142 +6,18 @@ RiverLaunch.app is community-driven. Users should be encouraged to upload photos
 
 The community model must be structured from day one. Contributions should be typed, date-stamped, attached to river objects, and open to confirmation or dispute. The product should help users judge freshness and confidence rather than simply showing old pins forever.
 
+This doc owns the **contribution model**: types, trust and freshness, status values, reputation, moderation, and contribution UX. The **data strategy** (why community data is the product, acquisition, sourcing, legal position, flywheel) lives in `/docs/strategy/community-data-strategy.md`.
+
 ## Contribution Types
 
-### Photos
+Contributions are typed so they can be searched, filtered, moderated, and shown with confidence. The full type lists (hazard types, feature types, access types, photo categories, runnable-range bands, craft suitability) are canonical in `/docs/strategy/feature-taxonomy.md`; entity fields are in `/docs/strategy/data-model.md`. This section covers what each type is *for* and the model/UX expectations.
 
-Photos provide visual evidence and help users recognise river features.
-
-Photo categories:
-
-- river view
-- put-in
-- take-out
-- access path
-- parking
-- weir
-- rapid
-- obstruction
-- bridge
-- lock
-- portage
-- gauge
-- campsite
-- facility
-- flood or high-water condition
-- low-water condition
-
-Photos should be attached to one or more of:
-
-- river section
-- access point
-- hazard
-- feature
-- condition report
-
-### Hazards
-
-Hazards are safety-relevant contributions and need stronger structure than normal notes.
-
-Hazard examples:
-
-- weir
-- strainer or fallen tree
-- blockage
-- dangerous current
-- low bridge
-- siphon or undercut
-- construction works
-- damaged landing
-- private land conflict
-- aggressive animals or livestock
-- flood debris
-- lock or sluice danger
-
-Hazards should have:
-
-- location
-- type
-- severity
-- status
-- description
-- date reported
-- date last confirmed
-- evidence photos
-- related river level if relevant
-- confidence score
-
-### River Features
-
-Features describe the character and practical use of a river section.
-
-Feature examples:
-
-- rapid
-- riffle
-- pool
-- rock garden
-- island
-- bend
-- confluence
-- bridge
-- lock
-- sluice
-- portage
-- eddy
-- beach
-- landing
-- campsite
-- pub
-- toilet
-- train station
-- bus stop
-
-### Access Notes
-
-Access notes explain how practical and appropriate it is to use a put-in, take-out, portage, or path.
-
-Access notes should distinguish between:
-
-- physical practicality
-- parking availability
-- landowner sensitivity
-- licence or navigation authority context
-- seasonal restrictions
-- club or local agreement
-- source uncertainty
-
-Access notes should avoid pretending to be legal advice.
-
-### Condition Reports
-
-Condition reports are time-sensitive updates from recent paddlers or local observers.
-
-Examples:
-
-- "Paddled today; good level for open canoes."
-- "Tree down river left below the bridge."
-- "Too shallow through the middle section."
-- "Take-out gate locked."
-- "Fast flow after heavy rain."
-- "Portage muddy but usable."
-
-Condition reports should expire or become visually stale over time.
-
-### Runnable Ranges
-
-Runnable ranges connect river sections to gauge readings.
-
-They can include:
-
-- too low
-- scrapeable
-- good
-- high
-- very high
-- not recommended
-
-Ranges should be community-guided and may vary by craft, ability, and season.
+- **Photos** — visual evidence that helps users recognise features and judge conditions. Attach to a river, section, access point, hazard, feature, or condition report — never a loose gallery.
+- **Hazards** — safety-relevant contributions that need stronger structure than a note: type, location, severity, status, dates reported/last-confirmed, evidence photos, level dependency, and confidence. Hazards drive moderation priority and staleness.
+- **River features** — the character and practical use of a section (rapids, eddies, weirs, bridges, portages, landings, facilities).
+- **Access notes** — how practical and appropriate a put-in/take-out/portage/path is, distinguishing physical practicality, parking, landowner sensitivity, licence/navigation context, seasonal restriction, club agreement, and source uncertainty. Access notes are informational, not legal advice (see `/docs/specs/principles/no-advice-and-liability-language.md`).
+- **Condition reports** — time-sensitive observations from recent paddlers; they should expire / visually stale over time.
+- **Runnable ranges** — community interpretation of what gauge levels mean for a section, varying by craft, ability, and season; guidance, not safety certification.
 
 ## Trust and Freshness
 
@@ -264,21 +140,4 @@ Moderators should be able to:
 
 ## Safety Language
 
-The app should avoid labels that imply guaranteed safety.
-
-Preferred wording:
-
-- recent reports
-- community guidance
-- known hazards
-- last confirmed
-- may be suitable
-- conditions can change quickly
-
-Avoid:
-
-- safe
-- guaranteed
-- approved
-- risk-free
-- definitely passable
+The no-advice / safety-wording rule (use "recent reports", "last confirmed", "may be suitable"; avoid "safe", "guaranteed", "approved", "risk-free") is now the canonical product principle with the full use/avoid list. See `/docs/specs/principles/no-advice-and-liability-language.md`.

@@ -22,7 +22,7 @@ River levels are useful, but they are not the whole planning problem. Canoeists 
 - whether access is physically practical and locally sensitive
 - whether anyone has paddled or checked the section recently
 
-Those answers often live in clubs, guidebooks, informal groups, local memory, trip reports, photos, and word of mouth. The opportunity is to turn that scattered local knowledge into structured, fresh, trusted river-section data.
+Those answers often live in clubs, guidebooks, informal groups, local memory, trip reports, photos, and word of mouth. The opportunity is to turn that scattered local knowledge into structured, fresh, trusted river and section data.
 
 ## Competitive Reality
 
@@ -38,7 +38,7 @@ The better gap is depth and trust around local section knowledge:
 
 - UK-first rather than global-first
 - canoe-first rather than generic river-use-first
-- river-section planning rather than gauge browsing
+- river-first discovery and section-level planning rather than gauge browsing
 - structured community data rather than loose notes
 - offline-first field use rather than always-online planning only
 - freshness and confidence indicators as first-class product features
@@ -58,9 +58,13 @@ References:
 
 RiverLaunch.app becomes valuable when every trip can improve the map.
 
+Rivers should be the public discovery container. Sections/routes remain the
+detailed paddling interpretations that carry put-in, take-out, distance, grade,
+access, level, source, and evidence context.
+
 The product loop is:
 
-1. A paddler views a useful river section.
+1. A paddler finds a useful river or river section.
 2. They understand the section through levels, features, access notes, hazards, photos, and recent reports.
 3. They paddle, scout, or locally verify part of it.
 4. They add structured local knowledge.
@@ -84,7 +88,7 @@ RiverLaunch.app should not start as:
 
 RiverLaunch.app should start as:
 
-- a small number of high-quality river sections
+- a small number of high-quality rivers/sections
 - a clear map of practical river knowledge
 - an easy way to add local knowledge
 - a trust model for community data
@@ -117,7 +121,7 @@ The MVP should prove:
 - members can sign in
 - members can add local knowledge quickly
 - contributions are typed and structured
-- contributions attach to river sections or exact locations
+- contributions attach to rivers, sections, existing POIs, or exact locations
 - hazards and access notes show freshness
 - users can confirm, dispute, or resolve existing information
 - offline contributions survive poor signal and sync later
@@ -141,7 +145,7 @@ The next major validation is whether paddlers will contribute useful data.
 
 Useful test:
 
-- choose 3-5 river sections
+- choose 3-5 rivers/sections
 - seed them to a genuinely helpful level
 - ask real paddlers or club contacts to use them
 - watch whether they add or correct knowledge after a trip
@@ -175,4 +179,4 @@ Continue, but keep the next milestone narrow:
 
 The strategic question is not "Can we build another paddling app?"
 
-The strategic question is "Can RiverLaunch.app become the trusted, fresh, community-maintained knowledge layer for real river sections?"
+The strategic question is "Can RiverLaunch.app become the trusted, fresh, community-maintained knowledge layer for real rivers and sections?"

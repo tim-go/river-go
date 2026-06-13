@@ -6,6 +6,13 @@ import {
 } from "./auth.js";
 import { getObservationJobToken, getPort } from "./config.js";
 import {
+  getCanonicalRiver,
+  isSourceCandidatePoiStatus,
+  listCanonicalRivers,
+  listSourceCandidatePois,
+  updateSourceCandidatePoiStatus,
+} from "./canonical-rivers.js";
+import {
   applyModerationDecision,
   isModerationDecision,
   listContributionsForMember,
@@ -20,6 +27,7 @@ import {
   isMapPoiReviewAction,
   isMapPoiReviewDecision,
   listMapPoiCorrectionReviews,
+  listMapPoisForRiver,
   listMapPoisForSection,
   reviewMapPoi,
   updateMapPoiVerificationStatus,
@@ -270,6 +278,28 @@ async function route(
     return { status: 200, body: { routeSuggestions } };
   }
 
+  if (method === "GET" && url.pathname === "/api/rivers") {
+    const rivers = await listCanonicalRivers();
+    return { status: 200, body: { rivers } };
+  }
+
+  const riverMapPoisMatch = url.pathname.match(/^\/api\/rivers\/([^/]+)\/map-pois$/);
+  if (method === "GET" && riverMapPoisMatch) {
+    const authContext = await getOptionalAuthContext(headers);
+    const member = authContext ? await upsertMemberFromAuth(authContext) : null;
+    const pois = await listMapPoisForRiver(
+      decodeURIComponent(riverMapPoisMatch[1]),
+      member?.id,
+    );
+    return { status: 200, body: { pois } };
+  }
+
+  const riverDetailMatch = url.pathname.match(/^\/api\/rivers\/([^/]+)$/);
+  if (method === "GET" && riverDetailMatch) {
+    const river = await getCanonicalRiver(decodeURIComponent(riverDetailMatch[1]));
+    return { status: 200, body: { river } };
+  }
+
   if (method === "POST" && url.pathname === "/api/route-suggestions") {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
@@ -361,6 +391,18 @@ async function route(
     requireModerator(member);
     const reviews = await listMapPoiCorrectionReviews();
     return { status: 200, body: { reviews } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/moderation/source-candidate-pois") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+    const candidates = await listSourceCandidatePois({
+      riverId: url.searchParams.get("riverId"),
+      status: readSourceCandidatePoiStatus(url.searchParams.get("status")),
+      limit: readOptionalNumber(url.searchParams.get("limit")),
+    });
+    return { status: 200, body: { candidates } };
   }
 
   if (method === "GET" && url.pathname === "/api/moderation/route-suggestions") {
@@ -476,6 +518,27 @@ async function route(
       body.status,
     );
     return { status: 200, body: { poi } };
+  }
+
+  const sourceCandidateStatusMatch = url.pathname.match(
+    /^\/api\/moderation\/source-candidate-pois\/([^/]+)\/status$/,
+  );
+  if (method === "POST" && sourceCandidateStatusMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+
+    if (!isRecord(body) || !isSourceCandidatePoiStatus(body.status)) {
+      throw new HttpError(400, "status is required.");
+    }
+
+    const candidate = await updateSourceCandidatePoiStatus(
+      decodeURIComponent(sourceCandidateStatusMatch[1]),
+      body.status,
+      member,
+      typeof body.note === "string" ? body.note : null,
+    );
+    return { status: 200, body: { candidate } };
   }
 
   const sectionContributionsMatch = url.pathname.match(
@@ -626,6 +689,18 @@ function readWatercourseSource(value: string | null): WatercourseSource | null {
   }
 
   return null;
+}
+
+function readSourceCandidatePoiStatus(value: string | null) {
+  if (!value || value === "all") {
+    return null;
+  }
+
+  if (!isSourceCandidatePoiStatus(value)) {
+    throw new HttpError(400, "Invalid candidate status.");
+  }
+
+  return value;
 }
 
 async function requireObservationJobAccess(

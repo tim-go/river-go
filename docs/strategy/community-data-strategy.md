@@ -24,12 +24,14 @@ Instead, RiverLaunch.app should build its own first-party community dataset:
 - contributed by clubs and trusted local paddlers
 - sourced from official/open data where permitted
 - independently verified when reference material is used for discovery
-- structured into RiverLaunch.app's river-section model
+- structured into RiverLaunch.app's river/section model
 - moderated and maintained over time
 
 This makes community data both the product's main value and its defensible asset.
 
 The strategic test is simple: if members do not add, confirm, correct, or refresh local river knowledge, RiverLaunch.app becomes another thin map. If they do, the product becomes more useful after every trip.
+
+This doc owns the **data strategy**: why community data is the product, acquisition, sourcing, legal position, and the flywheel. The **contribution model** (types, trust/freshness, status values, reputation, moderation, contribution UX) lives in `/docs/strategy/community-model.md`.
 
 ## Source Register, Not Scraping
 
@@ -90,172 +92,16 @@ The strongest product experience should combine:
 
 ## Community Data Categories
 
-## Runnable Ranges
+These are the community data types that make RiverLaunch.app more than a map. The type vocabularies and field lists are canonical in `/docs/strategy/feature-taxonomy.md` (types) and `/docs/strategy/data-model.md` (fields); this section explains why each category matters strategically.
 
-Community members help define what gauge levels mean for each river section.
-
-Data to collect:
-
-- linked gauge
-- too low
-- low but possible
-- good
-- high
-- not recommended
-- craft type
-- ability level
-- notes
-- evidence reports
-- confidence score
-
-Runnable ranges should be treated as guidance, not safety certification.
-
-## Gauge-to-Section Knowledge
-
-Gauge data is often only indirectly useful. Local users can explain how a gauge relates to a section.
-
-Data to collect:
-
-- primary gauge
-- secondary gauge
-- upstream or downstream relevance
-- rainfall lag
-- tributary effects
-- sluice or navigation effects
-- known mismatch between gauge and real conditions
-
-## Hazards
-
-Hazards are one of the most valuable and time-sensitive community data types.
-
-Data to collect:
-
-- hazard type
-- exact location
-- severity
-- status
-- date observed
-- last confirmed
-- photos
-- level dependency
-- portage note
-- confirmation count
-- dispute count
-- resolved date
-
-Important hazard types:
-
-- weirs
-- fallen trees
-- strainers
-- flood debris
-- low bridges
-- dangerous lock or sluice approaches
-- blocked channels
-- damaged landings
-- construction works
-- pollution reports
-
-## Access Practicality
-
-Official/legal access context is not the same as practical canoe access.
-
-Data to collect:
-
-- put-in quality
-- take-out quality
-- parking
-- carry distance
-- bank steepness
-- mud
-- steps
-- gates
-- locked barriers
-- public transport
-- seasonal crowding
-- local sensitivity
-
-Access notes should be moderated and should avoid giving legal advice unless sourced from official material.
-
-## Portages
-
-Portage information is especially important for canoeists and often missing from generic maps.
-
-Data to collect:
-
-- portage start
-- portage end
-- route geometry
-- distance
-- surface
-- steepness
-- gates, steps, or stiles
-- suitability for canoe wheels
-- difficulty with loaded canoes
-- photos
-- seasonal issues
-
-## Photos
-
-Photos are evidence. They help users judge conditions and recognise places.
-
-Priority photos:
-
-- put-in
-- take-out
-- weir
-- hazard
-- portage start and end
-- bridge
-- access path
-- parking
-- river character
-- water level reference view
-
-Photos should be attached to specific objects, not just uploaded as a loose gallery.
-
-## Recent Condition Reports
-
-Reports capture time-sensitive conditions.
-
-Examples:
-
-- paddled today
-- good level
-- too low
-- high and fast
-- tree still present
-- take-out blocked
-- parking full
-- portage muddy
-- water quality concern
-
-Reports should become visually stale over time.
-
-## Canoe Suitability
-
-Community data should explain suitability by craft and ability.
-
-Craft types:
-
-- open canoe
-- tandem canoe
-- solo canoe
-- inflatable canoe
-- touring kayak
-- whitewater kayak
-- SUP
-- packraft
-
-Suitability dimensions:
-
-- beginner
-- novice
-- intermediate
-- advanced
-- family-friendly
-- multi-day suitable
-- club-trip suitable
+- **Runnable ranges** — community interpretation of what a gauge level means for a section, by craft and ability. Guidance, not safety certification. Core differentiating knowledge that official gauges cannot provide.
+- **Gauge-to-section knowledge** — how a gauge actually relates to a section (primary/secondary gauge, upstream/downstream relevance, rainfall lag, tributary and sluice effects, known mismatches). Gauge data is often only indirectly useful without this local knowledge.
+- **Hazards** — one of the most valuable and time-sensitive types: location, severity, status, level dependency, portage note, confirmation/dispute counts, and freshness. High moderation priority.
+- **Access practicality** — official/legal access is not the same as practical canoe access (put-in/take-out quality, parking, carry distance, bank steepness, gates, public transport, seasonal crowding, local sensitivity). Moderated; informational, not legal advice.
+- **Portages** — especially important for canoeists and usually missing from generic maps (route, distance, surface, steepness, gates/steps, canoe-wheel suitability).
+- **Photos** — evidence attached to specific objects, not a loose gallery; help users judge conditions and recognise places.
+- **Recent condition reports** — time-sensitive observations that should visually stale over time.
+- **Canoe/craft suitability** — suitability by craft and ability (open canoe through whitewater kayak, SUP, packraft; beginner through advanced, family-friendly, multi-day, club-trip).
 
 ## Data Acquisition Model
 
@@ -290,7 +136,7 @@ Clubs and experienced local paddlers should be a core part of the acquisition st
 
 They can help:
 
-- seed river sections
+- seed rivers and river sections
 - confirm access notes
 - maintain local hazards
 - define runnable ranges
@@ -327,7 +173,7 @@ The app needs useful initial data before community flywheel effects begin.
 
 Seed a small pilot area manually:
 
-- define river sections
+- define river and section records
 - add put-ins and take-outs
 - link gauges
 - add known fixed hazards from open/official sources where permitted
@@ -433,6 +279,8 @@ Moderator actions:
 Access notes should receive stricter moderation than general photos or features.
 
 ## Legal and Ethical Position
+
+This section is the rationale for the no-advice product principle; the enforceable wording rules live in `/docs/specs/principles/no-advice-and-liability-language.md`.
 
 RiverLaunch.app should be explicit:
 

@@ -2,7 +2,7 @@
 
 ## Working Concept
 
-RiverLaunch.app is a UK-first canoeing app that combines live river data with community-maintained local knowledge. The app helps paddlers understand river sections before they travel: current levels, access points, hazards, photos, portages, runnable ranges, and recent condition reports.
+RiverLaunch.app is a UK-first canoeing app that combines live river data with community-maintained local knowledge. The app helps paddlers discover rivers and understand specific sections before they travel: current levels, access points, hazards, photos, portages, runnable ranges, and recent condition reports.
 
 The repository, GCP projects, and Firebase projects continue to use the internal `river-go` name. RiverLaunch.app is the public product brand.
 
@@ -16,7 +16,7 @@ RiverLaunch.app should not be positioned as a smaller river-level app. River lev
 
 ## Initial Market
 
-Start with the UK, then expand into Europe once the contribution model, river-section model, and data-ingestion patterns are proven.
+Start with the UK, then expand into Europe once the contribution model, river/section model, and data-ingestion patterns are proven.
 
 The UK is a strong starting market because:
 
@@ -42,9 +42,9 @@ Secondary users:
 
 ## Core Jobs
 
-### Can I paddle this river section soon?
+### Can I paddle this river or section soon?
 
-Show current level, trend, relevant gauge data, recent reports, known hazards, and community guidance for the section.
+Show current level, trend, relevant gauge data, recent reports, known hazards, and community guidance for the river or selected section.
 
 ### What is this section like?
 
@@ -60,7 +60,7 @@ Make it easy to add photos, hazards, features, access notes, condition reports, 
 
 ## Product Principles
 
-- River sections are the primary unit of planning.
+- Rivers are the primary discovery container; sections/routes are sourced planning interpretations for put-in, take-out, distance, grade, access, level, and evidence context.
 - Community contributions should be typed, structured, date-stamped, and verifiable.
 - Hazards and access notes need freshness and confidence indicators.
 - The app should avoid claiming that a river is "safe"; it should present recent information and clear uncertainty.
@@ -71,7 +71,7 @@ Make it easy to add photos, hazards, features, access notes, condition reports, 
 
 RiverLaunch.app should differentiate on:
 
-- UK-first access and river-section context.
+- UK-first access and river/section context.
 - Canoe-specific suitability and trip planning.
 - Community-verified hazards and features.
 - Photos attached to real river objects.
@@ -91,7 +91,7 @@ Early product success should be measured by whether users can answer:
 
 - Where can I get in and out?
 - What is the current level doing?
-- Is this section likely to be suitable for my canoeing ability and craft?
+- Is this river or selected section likely to be suitable for my canoeing ability and craft?
 - What are the known hazards?
 - Has anyone paddled or checked it recently?
 - What has changed since the last known report?

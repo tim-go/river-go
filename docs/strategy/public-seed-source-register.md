@@ -6,6 +6,8 @@ RiverLaunch.app should source seed data from public material, but only through a
 
 The register is not a scraping backlog. It records which public sources can be used as open data, which can only be used as references, and which need permission or partnership before any route geometry, POIs, text, photos, GPX, or structured trail data is imported.
 
+This is the **canonical source register**. `/docs/strategy/data-sources-and-gaps.md` covers the wider source landscape and gaps; `/docs/strategy/community-data-strategy.md` §Source Register explains the policy.
+
 ## Seed Source Rules
 
 - Do not create a paddleable route from map geometry alone.
@@ -31,8 +33,15 @@ The register is not a scraping backlog. It records which public sources can be u
 | Environment Agency Flood Monitoring API | Public agency API | England | Stations, level readings, flow where available, flood alerts | Open data | Ingest through observation provider | Attribution required; route suitability still comes from community/section data. |
 | Natural Resources Wales river levels, rainfall, and sea data | Public agency API | Wales | River levels, rainfall totals, tide/sea levels, station history | Open data | Ingest through observation provider | API product describes recent and historical monitoring data; useful for Welsh routes and future route suggestions. |
 | SEPA water level data | Public agency API | Scotland | River, loch, rainfall, and coastal level readings | Open data / API access to confirm | Future observation provider | SEPA states rainfall and river level data is available via API; terms and usage limits need implementation review. |
+| OS Open Rivers | National mapping open dataset | Great Britain | Watercourse geometry, names, flow/connectivity context, freshwater rivers, tidal estuaries, canals | Open data | Canonical river bootstrap candidate | Strongest identified GB river-network source; source-owned import only. Direct OS GeoPackage download returned a datastore error during the 2026-06-05 spike, so schema sampling remains open. |
+| OS Open Names | National mapping open dataset | Great Britain | Gazetteer names, alternate names, Welsh/Scots/Gaelic language variants, search context | Open data | Name/search enrichment | Not a watercourse geometry source; useful for river page search and alternate-name links. |
+| Environment Agency Statutory Main River Map | Public agency spatial dataset | England | Main-river status, line geometry, length | Public spatial data / licence confirmation needed | Official status overlay | Sampled GeoJSON exposed `status`, `length_km`, and MultiLineString geometry but no river names; use only as status context. |
+| Environment Agency WFD River, Canal and Surface Water Transfer Waterbodies Cycle 2 | Public agency spatial dataset | England | Official waterbody IDs, waterbody names, river basin district IDs/names, category, length | Public spatial data / licence confirmation needed | Official waterbody and basin links | Sampled GeoJSON exposed `wb_id`, `wb_name`, `rbd_id`, `rbd_name`, `wb_cat`, `length_m`; environmental units, not paddling sections. |
+| Environment Agency WFD River Waterbody Catchments Cycle 2 | Public agency spatial dataset | England | Catchment polygons, waterbody IDs/names, basin context, area/length | Public spatial data / licence confirmation needed | Catchment context links | Useful for official context and provider linking; polygon catchments are not river-line geometry. |
+| NRW WFD River Waterbodies / Catchments | Public agency spatial datasets | Wales | Official WFD waterbody/catchment context | Open data / licence confirmation needed | Welsh official waterbody links | DataMapWales/data.gov resources exist; direct file sampling and licence confirmation remain open. |
+| OpenDataNI / DAERA WFD River Water Bodies 2nd Cycle | Public agency spatial dataset | Northern Ireland | WFD river waterbody polygons, local IDs, namespace/name context, area | Open data under UK OGL | NI official waterbody links | Sampled GeoJSON exposed `localid`, `namespace`, `spzonetype`, `area_km2`, and polygon geometry. |
 | OpenStreetMap waterways | Open map data | Global | Waterway geometry and map context | Open data | Geometry support only | Active visual snap/overlay source; may help draw routes after paddling evidence exists, but is not route authority. |
-| OpenStreetMap | Community open map database | UK and Europe | River geometry, bridges, weirs, access tags, slipways, paths, facilities | Open data under ODbL | Basemap/context and prototype route traces | ODbL obligations apply; OSM tags are not legal/access assurance. |
+| OpenStreetMap | Community open map database | UK and Europe | River geometry, rapids, weirs, waterfalls, dams, sluices, locks, bridges, tunnels, access/canoe/boat tags, tidal/intermittent flags, Wikidata/Wikipedia links, paths, facilities | Open data under ODbL | Basemap/context, prototype route traces, and review-needed candidate POIs | ODbL obligations apply; OSM tags are uneven and not legal/access/safety assurance. |
 | National White Water Centre / Canolfan Tryweryn river guide | Venue/river-specific public page | Afon Tryweryn | Section split, approximate lengths, grade bands, venue warnings, obstruction notices | Reference only unless permission granted | Source metadata and verification prompts | Good source for Tryweryn seed context. Do not copy map, guide text, or exact POIs without permission/verification. |
 | National White Water Centre water level information | Venue/river-specific public page | Afon Tryweryn | Release calendar, flow notes, operational availability | Reference only unless permission/API agreed | Source metadata and manual release check | Production needs a stable release provider or permissioned ingest. |
 | Go Paddling Paddling Trails | Paddle UK route/trail pages | UK | Published trails, PDF downloads, GPX files, distance/time/difficulty, start/end context | Permission needed | Discovery and source register only | Valuable first partnership target. Public page reports 171 trails and GPX downloads, but terms do not grant RiverLaunch.app import rights. |
@@ -86,6 +95,14 @@ Every sourced seed section should record:
 - Natural Resources Wales API portal: `https://api-portal.naturalresources.wales/products`
 - Natural Resources Wales data.gov.uk river levels dataset: `https://www.data.gov.uk/dataset/ef2fa5bc-2511-4522-b9e8-9d11c3caa20b/river-levels-application-programming-interface-api2`
 - SEPA water levels: `https://www.sepa.org.uk/environment/water/water-levels/`
+- OS Open Rivers docs: `https://docs.os.uk/os-downloads/networks/os-open-rivers`
+- OS Open Rivers CKAN: `https://ckan.publishing.service.gov.uk/dataset/os-open-rivers1`
+- OS Open Names docs: `https://docs.os.uk/os-downloads/addressing-and-location/os-open-names`
+- OS Open Names CKAN: `https://ckan.publishing.service.gov.uk/dataset/os-open-names1`
+- Environment Agency Statutory Main River Map: `https://ckan.publishing.service.gov.uk/dataset/statutory-main-river-map`
+- Environment Agency WFD River, Canal and Surface Water Transfer Waterbodies Cycle 2: `https://ckan.publishing.service.gov.uk/dataset/wfd-river-canal-and-surface-water-transfer-waterbodies-cycle-2`
+- Environment Agency WFD River Waterbody Catchments Cycle 2: `https://ckan.publishing.service.gov.uk/dataset/wfd-river-waterbody-catchments-cycle-2`
+- OpenDataNI WFD River Water Bodies 2nd Cycle: `https://ckan.publishing.service.gov.uk/dataset/wfd-river-water-bodies-2nd-cycle11`
 - OpenStreetMap waterways: `https://wiki.openstreetmap.org/wiki/Key:waterway`
 - OpenStreetMap copyright and licence: `https://www.openstreetmap.org/copyright`
 - National White Water Centre river guide: `https://www.nationalwhitewatercentre.co.uk/the-river`
@@ -94,4 +111,4 @@ Every sourced seed section should record:
 - PaddlePoints terms: `https://gopaddling.info/blog/paddlepoints/paddlepoints-terms-of-use/`
 - UK Rivers Guidebook river index: `https://www.ukriversguidebook.co.uk/rivers/`
 
-**Last checked:** 2026-05-25
+**Last checked:** 2026-06-05

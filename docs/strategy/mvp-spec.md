@@ -2,13 +2,13 @@
 
 ## Goal
 
-Build the first useful version of RiverLaunch.app for UK canoeists. The MVP should help users choose and understand river sections using live data plus community-contributed local knowledge.
+Build the first useful version of RiverLaunch.app for UK canoeists. The MVP should help users discover rivers and understand specific sections using live data plus community-contributed local knowledge.
 
 ## MVP Scope
 
 The MVP should include:
 
-- browse river sections on a map
+- browse rivers and river sections on a map
 - view a river section detail page
 - show linked river-level data where available
 - show put-ins, take-outs, and access notes
@@ -33,7 +33,7 @@ The MVP should not initially include:
 
 1. User opens the map.
 2. User searches or browses a UK river.
-3. User selects a river section.
+3. User selects a river, then a section where section detail is needed.
 4. App shows current level, recent reports, hazards, access points, and photos.
 5. User decides whether the section may be suitable for their trip.
 6. After paddling or scouting, user adds a report, photo, hazard, or confirmation.
@@ -192,22 +192,7 @@ Each data source should be wrapped behind a provider abstraction so Europe expan
 
 ## Safety and Liability
 
-The MVP should use cautious wording.
-
-Use:
-
-- "community guidance"
-- "recent reports"
-- "known hazards"
-- "last confirmed"
-- "conditions may change"
-
-Avoid:
-
-- "safe"
-- "approved"
-- "guaranteed"
-- "definitely passable"
+The MVP must follow the no-advice / liability-language principle: present facts, never a go/no-go verdict, and use cautious wording (use "community guidance", "recent reports", "last confirmed"; avoid "safe", "approved", "guaranteed"). See `/docs/specs/principles/no-advice-and-liability-language.md`.
 
 ## MVP Success Metrics
 
@@ -237,4 +222,3 @@ Quality metrics:
 5. Integrate river-level data.
 6. Add watchlists and notifications.
 7. Expand region coverage.
-

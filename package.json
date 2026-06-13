@@ -21,6 +21,8 @@
     "api:backfill:observations": "npm --prefix api run backfill:observations --",
     "api:backfill:w3w": "node scripts/run-api-runtime-command.mjs local npm --prefix api run backfill:w3w --",
     "api:import:osm-waterways": "RIVER_GO_DATABASE_URL_KEY=adminUrl node scripts/run-api-runtime-command.mjs local npm --prefix api run import:osm-waterways --",
+    "data:seed:canonical-river-pilots": "RIVER_GO_DATABASE_URL_KEY=adminUrl node scripts/run-api-runtime-command.mjs local npm --prefix api run seed:canonical-river-pilots --",
+    "data:spike:canonical-rivers": "npm --prefix api run spike:canonical-rivers --",
     "osm:download-extract": "scripts/download-osm-extract.sh",
     "osm:prepare-waterways": "scripts/prepare-osm-waterways.sh",
     "platform:import:osm-waterways:staging": "npm --prefix platform run import:osm-waterways:staging --",
@@ -59,6 +61,7 @@
     "firebase": "^12.13.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.561.0",
+    "playwright-core": "^1.60.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },

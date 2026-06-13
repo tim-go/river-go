@@ -99,7 +99,7 @@ The imported `watercourses` records are visual reference geometry for snapping
 and map context only. They are not paddling route data and do not indicate
 access, safety, grade, or runnable conditions.
 
-The full seed-data operations runbook is `/docs/specs/ops/seed-data-operations.md`.
+The full seed-data operations runbook is `/docs/specs/foundations/seed-data-operations.md`.
 Use it for staging-first imports, refresh cadence, validation, and rollback.
 
 ## Local Database Defaults

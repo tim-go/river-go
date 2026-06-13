@@ -142,6 +142,28 @@ export async function listMapPoisForSection(
   return result.rows.map(mapPoiRow);
 }
 
+export async function listMapPoisForRiver(
+  riverId: string,
+  viewerMemberId?: string | null,
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiMapPoi[]> {
+  const result = await client.query<MapPoiRow>(
+    `SELECT DISTINCT ON (p.id)
+      ${mapPoiSelectColumnsSql(viewerMemberId)}
+    FROM map_pois p
+    JOIN canonical_river_section_links crsl
+      ON crsl.section_id = p.section_id
+      AND crsl.route_source = 'section_fixture'
+      AND crsl.status = 'active'
+    WHERE crsl.river_id = $1
+      AND p.verification_status = 'confirmed'
+    ORDER BY p.id, p.kind ASC, p.title ASC`,
+    viewerMemberId ? [riverId, viewerMemberId] : [riverId],
+  );
+
+  return result.rows.map(mapPoiRow);
+}
+
 function locationBackedMapPoiSelectColumnsSql(viewerMemberId?: string | null) {
   return `
     p.id,

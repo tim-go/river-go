@@ -20,7 +20,7 @@ Strategy documents live in `/docs/strategy`. Specs live here under `/docs/specs`
 - Update the spec before or alongside implementation.
 - If implementation reveals the spec is wrong, update the spec rather than letting code become the only source of truth.
 - Do not stamp `Delivered` during normal work. `Delivered` is release history and should only be set during an explicit release-cut task.
-- Use root-relative links when referencing docs, for example `/docs/specs/core/river-section-map.md`.
+- Use root-relative links when referencing docs, for example `/docs/specs/discovery/river-section-map.md`.
 
 ## Spec Schema
 
@@ -132,11 +132,15 @@ Supported maturity values:
 
 ## Spec Buckets
 
-- `/docs/specs/core/` - app/product features and shared domain behaviour
-- `/docs/specs/data/` - external data providers, seed data, and normalisation
-- `/docs/specs/backend/` - backend API, auth, storage, persistence, and server-side integration design
-- `/docs/specs/community/` - contribution, trust, moderation, and contributor workflows
-- `/docs/specs/release/` - prototype/MVP/release-level delivery specs
-- `/docs/specs/ops/` - operational processes when needed
+Buckets follow the product tier model (see `/docs/strategy/feature-register.md`), not engineering layers:
+
+- `/docs/specs/discovery/` - anonymous river/map/POI discovery, live data, and discovery data (canonical rivers, sources, seed datasets, amenities)
+- `/docs/specs/identity/` - account, known-member identity, public profile, and ICE store (the contribution on-ramp)
+- `/docs/specs/contributions/` - typed contributions, photos, trust and moderation, and community-sourced sections (free, known members)
+- `/docs/specs/member-tools/` - individual member depth: history, stats, kit, skills, training (paid)
+- `/docs/specs/group-tools/` - private sharing: clubs, sessions/meetups, check-in, messaging, ICE sharing (paid)
+- `/docs/specs/commerce/` - recommendations, marketplace, monetisation, and learning surfaces
+- `/docs/specs/foundations/` - cross-cutting infrastructure: API, data/sync model, geospatial model, observation ingestion, offline, platform, ops, analytics, release shell
+- `/docs/specs/principles/` - cross-cutting product principles such as no-advice / liability language
 
 Start with `/docs/specs/spec-consolidation-map.md` when looking for the owning spec.

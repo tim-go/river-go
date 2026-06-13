@@ -9,6 +9,8 @@ RiverLaunch.app needs two categories of data:
 
 The product should use official and open data for the baseline, then differentiate through community-confirmed section-level knowledge.
 
+This doc is the baseline-source landscape and gap analysis. The canonical, actionable source list (with licence/permission classification per source) is `/docs/strategy/public-seed-source-register.md`; this doc should not duplicate that register.
+
 ## Data Strategy
 
 RiverLaunch.app should not try to own every data source directly at the start. It should use a provider model:
@@ -19,7 +21,7 @@ RiverLaunch.app should not try to own every data source directly at the start. I
 - official data is kept separate from user-submitted interpretation
 - community data can refine, confirm, or contextualise official data
 
-The primary product object remains the river section. External data is useful only when it helps users understand a specific section.
+Rivers are the primary discovery container. Sections/routes remain the planning object for put-in, take-out, distance, grade, access, level, source, and evidence context. External data is useful only when it helps users understand a river or a specific section without blurring official baseline data and community interpretation.
 
 ## Route Source Principle
 

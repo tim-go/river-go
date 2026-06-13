@@ -1,5 +1,7 @@
 # Roadmap
 
+This is the phased delivery view. The tiered feature inventory is `/docs/strategy/feature-register.md`; current delivery state is `/docs/strategy/delivery-plan.md`.
+
 ## Phase 0: Strategy and Validation
 
 Goals:
@@ -8,7 +10,7 @@ Goals:
 - Select first UK region or river cluster.
 - Identify initial data sources.
 - Speak with paddlers, clubs, and trip leaders.
-- Seed an initial list of river sections.
+- Seed an initial list of rivers and river sections.
 
 Outputs:
 
@@ -21,12 +23,12 @@ Outputs:
 
 ## Phase 1: Seeded River Guide
 
-Goal: create a useful read-only guide for a small number of river sections.
+Goal: create a useful read-only guide for a small number of rivers and river sections.
 
 Features:
 
 - river map
-- river section pages
+- river and river section pages
 - put-ins and take-outs
 - access notes
 - hazards and features

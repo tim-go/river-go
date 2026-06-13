@@ -4,6 +4,8 @@
 
 This taxonomy defines the first set of contribution and map-feature types for RiverLaunch.app. It should keep user-submitted data consistent enough to search, filter, moderate, and display clearly.
 
+This is the canonical home for object/contribution **types** (the lists below). Entity **fields** live in `/docs/strategy/data-model.md`; the tiered feature inventory lives in `/docs/strategy/feature-register.md`. Other docs should reference these lists rather than restate them.
+
 ## Top-Level Object Types
 
 ### River
@@ -12,7 +14,7 @@ A named watercourse, such as the River Wye or River Dart.
 
 ### River Section
 
-A paddleable stretch of a river between a put-in and take-out. This is the primary planning object in the app.
+A paddleable stretch of a river between a put-in and take-out. Rivers are the primary discovery container; sections are sourced paddling interpretations of part of a river.
 
 ### Gauge
 

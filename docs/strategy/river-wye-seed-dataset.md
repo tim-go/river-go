@@ -84,7 +84,7 @@ For each section, ask local contributors:
 
 The dataset should drive these prototype behaviours:
 
-- section-first browsing
+- river/section browsing
 - map-click contribution placement
 - hazard confirmation and resolution
 - observed-date capture
@@ -104,4 +104,3 @@ Next improvements:
 - add portage candidates where relevant
 - add access moderation status
 - add local contributor attribution once confirmed
-

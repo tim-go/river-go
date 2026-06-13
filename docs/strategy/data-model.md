@@ -4,7 +4,7 @@
 
 This document defines the initial product-level data model for RiverLaunch.app. It is not yet a database schema, but it should guide future implementation.
 
-The model centres on river sections, with gauges, access points, features, hazards, photos, condition reports, and community confirmations attached to them.
+The model uses rivers as the discovery container and river sections/routes as sourced planning interpretations. Gauges, access points, features, hazards, photos, condition reports, and community confirmations should attach through explicit relationships so they can be viewed by river, section, route, POI, or location context.
 
 ## Core Entities
 
@@ -454,4 +454,3 @@ Suggested common values:
 - How should contested access be represented without making legal claims?
 - How much historical gauge data should be stored locally versus fetched on demand?
 - Should runnable ranges be crowd-sourced directly or curated from repeated condition reports?
-

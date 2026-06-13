@@ -1654,6 +1654,57 @@ h1 {
   gap: 6px;
 }
 
+.canonical-river-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 8px 12px;
+}
+
+.canonical-river-row {
+  display: flex;
+  width: 100%;
+  min-height: 74px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #d8e4dc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.canonical-river-row:hover,
+.canonical-river-row--active {
+  border-color: #9fcab7;
+  background: #edf5ee;
+}
+
+.canonical-river-row strong,
+.canonical-river-row small {
+  display: block;
+}
+
+.canonical-river-row strong {
+  font-size: 0.96rem;
+}
+
+.canonical-river-row small {
+  margin-top: 5px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.section-list__header--sub {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.source-note--section-list {
+  margin: 0 16px 14px;
+}
+
 .candidate-pill {
   flex: 0 0 auto;
   padding: 5px 8px;
@@ -1791,6 +1842,11 @@ h1 {
   box-shadow: 0 16px 44px rgba(23, 33, 43, 0.18);
 }
 
+.watercourse-panel--expanded {
+  bottom: 14px;
+  max-height: none;
+}
+
 .watercourse-panel__header {
   display: flex;
   align-items: flex-start;
@@ -1862,6 +1918,29 @@ h1 {
   margin: 0;
   color: var(--ink);
   font-size: var(--text-sm);
+}
+
+.poi-filter-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.poi-filter-chip {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid #d5ddd8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #425466;
+  font-size: var(--text-xs);
+  font-weight: 750;
+}
+
+.poi-filter-chip--active {
+  border-color: var(--river-dark);
+  background: #e8f4ee;
+  color: var(--river-dark);
 }
 
 .watercourse-list {
@@ -1959,6 +2038,15 @@ h1 {
   outline: 4px solid rgba(124, 58, 237, 0.25);
 }
 
+.map-marker--river,
+.map-marker--river-active {
+  background: #1f6f8b;
+}
+
+.map-marker--river-active {
+  outline: 5px solid rgba(31, 111, 139, 0.24);
+}
+
 .map-marker--access {
   background: var(--sky);
 }
@@ -1969,6 +2057,28 @@ h1 {
 
 .map-marker--feature {
   background: #816533;
+}
+
+.map-marker--rapid {
+  border-radius: 35% 65% 35% 65%;
+  background: #0f766e;
+}
+
+.map-marker--whitewater {
+  border-radius: 6px;
+  background: #2563eb;
+}
+
+.map-marker--structure {
+  background: #b42318;
+}
+
+.map-marker--navigation {
+  background: #7c3aed;
+}
+
+.map-marker--utility {
+  background: #475569;
 }
 
 .map-marker--gauge {
@@ -2315,7 +2425,7 @@ h1 {
 }
 
 .moderation-tabs {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .moderation-tabs button span {
@@ -2539,6 +2649,52 @@ h1 {
   font-size: 0.82rem;
 }
 
+.source-candidate-tags {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.source-candidate-tags div {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.source-candidate-tags dt {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.source-candidate-tags dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.inline-link {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  color: var(--river-dark);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.inline-link:hover {
+  text-decoration: underline;
+}
+
 .moderation-apply-button {
   width: 100%;
 }
@@ -2707,6 +2863,20 @@ h1 {
   right: 10px;
   z-index: 2;
   background: rgba(255, 255, 255, 0.92);
+}
+
+.panel-expand {
+  position: absolute;
+  top: 10px;
+  right: 48px;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.panel-icon-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
 }
 
 .section-hero {
@@ -4395,9 +4565,19 @@ textarea {
 
   .poi-detail-panel {
     position: fixed;
-    inset: 0;
+    top: auto;
+    right: 8px;
+    bottom: calc(var(--bottom-nav-height) + var(--bottom-overlay-gap));
+    left: 8px;
     z-index: 1400;
     width: auto;
+    height: min(50vh, calc(100% - var(--bottom-nav-height) - 24px));
+    max-height: min(50vh, calc(100% - var(--bottom-nav-height) - 24px));
+    border-radius: 8px;
+  }
+
+  .poi-detail-panel--expanded {
+    inset: 0;
     height: auto;
     max-height: none;
     border-radius: 0;
@@ -4456,10 +4636,25 @@ textarea {
   }
 
   .watercourse-panel {
-    inset: 0;
+    position: fixed;
+    top: auto;
+    right: 8px;
+    bottom: calc(var(--bottom-nav-height) + var(--bottom-overlay-gap));
+    left: 8px;
+    z-index: 1400;
     width: auto;
-    max-height: none;
+    height: min(50vh, calc(100% - var(--bottom-nav-height) - 24px));
+    max-height: min(52vh, calc(100% - var(--bottom-nav-height) - 24px));
     padding: 14px;
+    border-radius: 8px;
+  }
+
+  .watercourse-panel--expanded {
+    position: fixed;
+    inset: 0;
+    z-index: 1400;
+    height: auto;
+    max-height: none;
     border-radius: 0;
   }
 

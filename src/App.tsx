@@ -14,7 +14,9 @@ import {
   Map as MapIcon,
   MapPinned,
   MapPin,
+  Maximize2,
   MessageSquare,
+  Minimize2,
   MoreHorizontal,
   Navigation,
   Plus,
@@ -33,7 +35,6 @@ import {
 } from "lucide-react";
 import L from "leaflet";
 import { FormEvent, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { riverSections } from "./data/demoData";
 import { getSeedPoiWhat3Words } from "./data/seedLocationReferences";
 import {
   setAnalyticsConsentPreference,
@@ -41,6 +42,14 @@ import {
   trackProductEvent,
   type AnalyticsConsent,
 } from "./services/analytics";
+import {
+  fetchCanonicalRivers,
+  fetchSourceCandidatePois,
+  updateSourceCandidatePoiStatus,
+  type CanonicalRiverSummary,
+  type SourceCandidatePoi,
+  type SourceCandidatePoiStatus,
+} from "./services/canonicalRiverApi";
 import {
   applyContributionModerationDecision,
   deleteContribution,
@@ -99,6 +108,7 @@ import {
 } from "./services/photoApi";
 import {
   fetchModerationMapPoiReviews,
+  fetchRiverMapPois,
   fetchSectionMapPois,
   reviewMapPoi,
   updateMapPoiVerificationStatus,
@@ -162,10 +172,13 @@ const ANALYTICS_CONSENT_STORAGE_KEY = "riverlaunch-analytics-consent-v1";
 const WELCOME_SESSION_STORAGE_KEY = "riverlaunch-welcome-dismissed-session";
 const SYNC_BANNER_DISMISSAL_STORAGE_KEY = "riverlaunch-sync-banner-dismissal";
 const LIVE_LOCATION_STORAGE_KEY = "riverlaunch-live-location-enabled";
+const MARKER_CLICK_MODE_STORAGE_KEY = "riverlaunch-marker-click-mode";
 const MIN_ACCOUNT_PASSWORD_LENGTH = 12;
 const SYNC_BANNER_DISMISS_MS = 60 * 60 * 1000;
 const SEARCH_FOCUS_ZOOM = 15;
 const LIVE_LOCATION_FOCUS_ZOOM = 16;
+const POI_FOCUS_ZOOM = 17;
+const MOBILE_DETAIL_PANEL_QUERY = "(max-width: 720px)";
 const NEARBY_POI_MAX_KM = 5;
 const ROUTE_POINT_DEDUPE_METRES = 3;
 const ROUTE_SNAP_MAX_AVERAGE_DISTANCE_KM = 1.5;
@@ -396,16 +409,28 @@ const routeAdjustmentActions: Array<{
   { decision: "hide", label: "Hide" },
 ];
 
+const sourceCandidateStatusActions: Array<{
+  status: SourceCandidatePoiStatus;
+  label: string;
+}> = [
+  { status: "confirmed", label: "Confirm candidate" },
+  { status: "rejected", label: "Reject" },
+  { status: "merged", label: "Mark merged" },
+  { status: "review_needed", label: "Back to review" },
+];
+
 type MemberRoleFilter = "all" | MemberRole;
 type MemberTrustFilter = "all" | MemberTrustLevel;
 type ModerationTab =
   | "route-edits"
   | "route-suggestions"
   | "contributions"
-  | "corrections";
+  | "corrections"
+  | "source-candidates";
 type ModerationDraftDecision = ModerationDecision | "";
 type RouteModerationDraftDecision = RouteSuggestionDecision | "";
 type RouteAdjustmentDraftDecision = RouteAdjustmentDecision | "";
+type SourceCandidateDraftStatus = SourceCandidatePoiStatus | "";
 type PendingPhotoDelete = { id: string; title: string };
 type PendingPointDelete = { id: string; title: string };
 type PhotoLightboxItem = {
@@ -499,6 +524,39 @@ interface SelectedPoi {
   createdAt?: string;
   contributionType?: ContributionType;
   mapPoi?: MapPoi;
+}
+
+type MapFocusPlacement =
+  | "center"
+  | "mobile-top-half"
+  | "mobile-top-half-or-center";
+type MarkerClickMode = "info" | "detail";
+type MapPoiDisplayCategory =
+  | "rapid"
+  | "whitewater"
+  | "structure"
+  | "access"
+  | "navigation"
+  | "utility"
+  | "hazard"
+  | "gauge"
+  | "feature";
+interface MapCameraSnapshot {
+  centre: LatLngTuple;
+  zoom: number;
+}
+
+interface MapPoiDisplayMeta {
+  category: MapPoiDisplayCategory;
+  label: string;
+  markerKind: string;
+  markerLabel: string;
+  grade?: string;
+}
+
+interface OpenPoiDetailsOptions {
+  focusMap?: boolean;
+  focusPlacement?: MapFocusPlacement;
 }
 
 const appNavItems: Array<{
@@ -643,8 +701,8 @@ function optionForType(type: ContributionType) {
 
 function loadContributions(): Contribution[] {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? (JSON.parse(stored) as Contribution[]) : [];
+    localStorage.removeItem(STORAGE_KEY);
+    return [];
   } catch {
     return [];
   }
@@ -652,8 +710,8 @@ function loadContributions(): Contribution[] {
 
 function loadFavouriteSectionIds(): string[] {
   try {
-    const stored = localStorage.getItem(FAVOURITES_STORAGE_KEY);
-    return stored ? (JSON.parse(stored) as string[]) : [];
+    localStorage.removeItem(FAVOURITES_STORAGE_KEY);
+    return [];
   } catch {
     return [];
   }
@@ -661,15 +719,8 @@ function loadFavouriteSectionIds(): string[] {
 
 function loadRouteSuggestions(): RouteSuggestion[] {
   try {
-    const stored = localStorage.getItem(ROUTE_SUGGESTIONS_STORAGE_KEY);
-    const suggestions = stored ? (JSON.parse(stored) as RouteSuggestion[]) : [];
-    return suggestions.filter(
-      (suggestion) =>
-        Array.isArray(suggestion.route) &&
-        suggestion.route.length >= 2 &&
-        typeof suggestion.riverName === "string" &&
-        typeof suggestion.sectionName === "string",
-    );
+    localStorage.removeItem(ROUTE_SUGGESTIONS_STORAGE_KEY);
+    return [];
   } catch {
     return [];
   }
@@ -726,6 +777,23 @@ function saveLiveLocationEnabled(enabled: boolean) {
     localStorage.setItem(LIVE_LOCATION_STORAGE_KEY, enabled ? "true" : "false");
   } catch {
     // Non-critical; live location can still run for the current session.
+  }
+}
+
+function loadMarkerClickMode(): MarkerClickMode {
+  try {
+    const stored = localStorage.getItem(MARKER_CLICK_MODE_STORAGE_KEY);
+    return stored === "detail" ? "detail" : "info";
+  } catch {
+    return "info";
+  }
+}
+
+function saveMarkerClickMode(mode: MarkerClickMode) {
+  try {
+    localStorage.setItem(MARKER_CLICK_MODE_STORAGE_KEY, mode);
+  } catch {
+    // Non-critical; the current session setting still applies.
   }
 }
 
@@ -1227,6 +1295,35 @@ function routeDistanceKm(route: LatLngTuple[]) {
   }, 0);
 }
 
+function focusMapOnDetailLocation(
+  map: L.Map,
+  location: LatLngTuple,
+  placement: MapFocusPlacement,
+) {
+  const zoom = Math.max(map.getZoom(), POI_FOCUS_ZOOM);
+  map.invalidateSize();
+
+  const shouldUseMobileTopHalf =
+    (placement === "mobile-top-half" ||
+      placement === "mobile-top-half-or-center") &&
+    typeof window !== "undefined" &&
+    window.matchMedia(MOBILE_DETAIL_PANEL_QUERY).matches;
+
+  if (shouldUseMobileTopHalf) {
+    const size = map.getSize();
+    const point = map.project(L.latLng(location), zoom);
+    const centrePoint = point.add([0, size.y * 0.25]);
+    map.setView(map.unproject(centrePoint, zoom), zoom, { animate: false });
+    return;
+  }
+
+  if (placement === "mobile-top-half") {
+    return;
+  }
+
+  map.setView(location, zoom, { animate: false });
+}
+
 function watercourseCentre(watercourse: KnownWatercourse): LatLngTuple | null {
   const firstRoute = watercourse.routes.find((route) => route.length > 0);
 
@@ -1455,141 +1552,79 @@ function calculateRouteAdjustmentImpact(
   };
 }
 
-function routeCentre(route: LatLngTuple[]) {
-  if (!route.length) {
-    return null;
-  }
-
-  const middle = route[Math.floor(route.length / 2)];
-  return middle ?? null;
+function canonicalRiverOverviewSectionId(riverId: string) {
+  return `canonical-river:${riverId}`;
 }
 
-function applyRouteOverridesToSections(
-  sections: RiverSection[],
-  overrides: RouteOverride[],
-) {
-  if (!overrides.length) {
-    return sections;
-  }
+const emptyCanonicalOverviewSection: RiverSection = {
+  id: "canonical-river:loading",
+  riverName: "Rivers",
+  sectionName: "Loading river records",
+  summary: "Canonical river records are loading from the backend.",
+  centre: [54.5, -3],
+  route: [[54.5, -3]],
+  distanceKm: 0,
+  estimatedTime: "Not set",
+  difficulty: "Not assessed",
+  suitability: [],
+  levelBand: "unknown",
+  levelLabel: "No level linked",
+  runnableGuidance:
+    "River records are source context only until sections, levels, and POIs are reviewed.",
+  accessSummary: "No reviewed access information is linked yet.",
+  gauge: {
+    id: "no-linked-gauge",
+    name: "No linked gauge",
+    location: [54.5, -3],
+    value: "No reading",
+    trend: "steady",
+    observedAt: "Not recorded",
+  },
+  accessPoints: [],
+  hazards: [],
+  features: [],
+  photos: [],
+  reports: [],
+  source: {
+    kind: "derived",
+    label: "Canonical river overview",
+    confidence: "low",
+    updatedAt: new Date().toISOString().slice(0, 10),
+    notes:
+      "Temporary frontend overview row derived from the backend canonical river API.",
+  },
+};
 
-  const overridesBySectionId = new Map(
-    overrides
-      .filter((override) => override.routeSource === "section_fixture")
-      .map((override) => [override.routeId, override] as const),
-  );
-
-  return sections.map((section) => {
-    const override = overridesBySectionId.get(section.id);
-
-    if (!override || override.route.length < 2) {
-      return section;
-    }
-
-    return {
-      ...section,
-      riverName: override.metadata?.riverName ?? section.riverName,
-      sectionName: override.metadata?.sectionName ?? section.sectionName,
-      summary: override.metadata?.summary ?? section.summary,
-      difficulty: override.metadata?.difficulty ?? section.difficulty,
-      accessSummary: override.metadata?.accessNotes ?? section.accessSummary,
-      route: override.route,
-      centre: routeCentre(override.route) ?? section.centre,
-      distanceKm: Number(routeDistanceKm(override.route).toFixed(1)),
-      source: section.source
-        ? {
-            ...section.source,
-            notes: `${section.source.notes} Route geometry has a moderator-approved override.`,
-            updatedAt: override.appliedAt.slice(0, 10),
-          }
-        : section.source,
-    };
-  });
-}
-
-function routeSuggestionToCandidateSection(suggestion: RouteSuggestion): RiverSection {
-  const route = suggestion.route;
-  const centre = routeCentre(route) ?? route[0] ?? ([0, 0] as LatLngTuple);
-  const updatedDate =
-    suggestion.updatedAt?.slice(0, 10) ?? suggestion.createdAt.slice(0, 10);
-
+function canonicalRiverToOverviewSection(river: CanonicalRiverSummary): RiverSection {
   return {
-    id: `candidate-route:${suggestion.id}`,
-    riverName: suggestion.riverName,
-    sectionName: suggestion.sectionName,
-    summary: suggestion.summary,
-    centre,
-    route,
-    distanceKm: Number(routeDistanceKm(route).toFixed(1)),
-    estimatedTime: "Needs review",
-    difficulty: suggestion.difficulty || "Needs grading",
-    suitability: ["community candidate", "needs local verification"],
-    levelBand: "unknown",
-    levelLabel: "No linked level data",
+    ...emptyCanonicalOverviewSection,
+    id: canonicalRiverOverviewSectionId(river.id),
+    riverName: river.displayName,
+    sectionName: "River overview",
+    summary: river.summary,
+    centre: river.centre,
+    route: [river.centre],
+    difficulty: "River record",
+    levelLabel: "No section level linked",
     runnableGuidance:
-      "Community candidate route. Treat this as unverified until local contributors confirm access, hazards, grade, and runnable conditions.",
-    accessSummary: suggestion.accessNotes || "Access needs local review.",
+      "Canonical river record only. Review linked sections, source candidates, and local evidence before treating this as paddling information.",
+    accessSummary: "No reviewed access information is linked to this river overview yet.",
     gauge: {
-      id: `candidate-gauge:${suggestion.id}`,
-      name: "No linked gauge yet",
-      location: centre,
-      value: "Unlinked",
-      trend: "steady",
-      observedAt: "Needs gauge review",
-      source: {
-        kind: "community",
-        label: "Community route candidate",
-        confidence: "low",
-        updatedAt: updatedDate,
-        notes:
-          "Candidate route approved for community review. It is not verified trip advice or canonical route data.",
-      },
+      ...emptyCanonicalOverviewSection.gauge,
+      location: river.centre,
     },
-    accessPoints: [],
-    hazards: [],
-    features: [],
-    photos: [],
-    reports: [
-      {
-        id: `candidate-evidence:${suggestion.id}`,
-        author: suggestion.author,
-        dateObserved: suggestion.createdAt.slice(0, 10),
-        type: "Route evidence",
-        text: suggestion.evidence,
-        source: {
-          kind: "community",
-          label: "Route suggestion evidence",
-          confidence: "low",
-          updatedAt: suggestion.createdAt.slice(0, 10),
-          notes:
-            "Evidence supplied by the route suggester. Moderators should verify before promotion.",
-        },
-      },
-    ],
     source: {
-      kind: "community",
-      label: "Community route candidate",
+      kind: "derived",
+      label: "Canonical river API",
       confidence: "low",
-      updatedAt: updatedDate,
-      notes:
-        "Approved candidate route for community review. Not yet canonical, verified, or promoted as paddling advice.",
+      updatedAt: river.updatedAt.slice(0, 10),
+      notes: `${river.curationStatus}; ${river.sourceConfidence}.`,
     },
   };
 }
 
-function mergeApprovedCandidateSections(
-  sections: RiverSection[],
-  suggestions: RouteSuggestion[],
-) {
-  const existingIds = new Set(sections.map((section) => section.id));
-  const candidates = suggestions
-    .filter(
-      (suggestion) =>
-        suggestion.status === "approved" && suggestion.route.length >= 2,
-    )
-    .map(routeSuggestionToCandidateSection)
-    .filter((section) => !existingIds.has(section.id));
-
-  return [...sections, ...candidates];
+function isCanonicalOverviewSection(section: RiverSection) {
+  return section.id.startsWith("canonical-river:");
 }
 
 function isCandidateSection(section: RiverSection) {
@@ -1992,6 +2027,10 @@ function navigationUrl(location: LatLngTuple) {
 }
 
 function fallbackMapPoisForSection(section: RiverSection): MapPoi[] {
+  if (isCanonicalOverviewSection(section)) {
+    return [];
+  }
+
   const source = section.source;
   const sourceFor = (itemSource = source) => itemSource;
 
@@ -2101,14 +2140,186 @@ function readPayloadString(
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function readPayloadRecord(
+  payload: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> {
+  const value = payload[key];
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function readRecordString(
+  record: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = record[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function sourceCandidateWaterwayValue(candidateType?: string) {
+  return candidateType?.startsWith("waterway=")
+    ? candidateType.slice("waterway=".length)
+    : undefined;
+}
+
+function mapPoiDisplayMeta(poi: MapPoi): MapPoiDisplayMeta {
+  const rawProperties = readPayloadRecord(poi.payload, "rawProperties");
+  const candidateType = readPayloadString(poi.payload, "candidateType");
+  const waterway =
+    sourceCandidateWaterwayValue(candidateType) ??
+    readRecordString(rawProperties, "waterway");
+  const grade =
+    readRecordString(rawProperties, "rapids") ??
+    readRecordString(rawProperties, "whitewater:section_grade");
+
+  if (
+    candidateType === "rapids" ||
+    waterway === "rapids" ||
+    readRecordString(rawProperties, "rapids")
+  ) {
+    return {
+      category: "rapid",
+      label: grade ? `Rapid grade ${grade}` : "Rapid",
+      markerKind: "rapid",
+      markerLabel: grade ?? "R",
+      grade,
+    };
+  }
+
+  if (
+    candidateType === "whitewater-section" ||
+    readRecordString(rawProperties, "whitewater:section_grade") ||
+    readRecordString(rawProperties, "whitewater:section_name")
+  ) {
+    return {
+      category: "whitewater",
+      label: grade ? `Whitewater grade ${grade}` : "Whitewater",
+      markerKind: "whitewater",
+      markerLabel: grade ?? "W",
+      grade,
+    };
+  }
+
+  if (
+    waterway === "weir" ||
+    waterway === "dam" ||
+    waterway === "waterfall" ||
+    waterway === "sluice_gate" ||
+    waterway === "lock_gate" ||
+    waterway === "lock"
+  ) {
+    return {
+      category: "structure",
+      label: waterway.replace(/_/g, " "),
+      markerKind: "structure",
+      markerLabel: "S",
+    };
+  }
+
+  if (waterway === "turning_point") {
+    return {
+      category: "navigation",
+      label: "Navigation",
+      markerKind: "navigation",
+      markerLabel: "N",
+    };
+  }
+
+  if (waterway === "sanitary_dump_station") {
+    return {
+      category: "utility",
+      label: "Utility",
+      markerKind: "utility",
+      markerLabel: "U",
+    };
+  }
+
+  if (poi.kind === "access") {
+    return {
+      category: "access",
+      label: "Access",
+      markerKind: "access",
+      markerLabel: readPayloadString(poi.payload, "accessType") === "put-in"
+        ? "I"
+        : "O",
+    };
+  }
+
+  if (poi.kind === "hazard") {
+    return {
+      category: "hazard",
+      label: "Hazard",
+      markerKind: "hazard",
+      markerLabel: "!",
+    };
+  }
+
+  if (poi.kind === "gauge") {
+    return {
+      category: "gauge",
+      label: "Gauge",
+      markerKind: "gauge",
+      markerLabel: "~",
+    };
+  }
+
+  return {
+    category: "feature",
+    label: "Feature",
+    markerKind: "feature",
+    markerLabel: "*",
+  };
+}
+
+const mapPoiCategoryLabels: Record<MapPoiDisplayCategory, string> = {
+  rapid: "Rapids",
+  whitewater: "Whitewater",
+  structure: "Structures",
+  access: "Access",
+  navigation: "Navigation",
+  utility: "Utility",
+  hazard: "Hazards",
+  gauge: "Gauges",
+  feature: "Features",
+};
+
 function mapPoiToSelectedPoi(poi: MapPoi, section: RiverSection): SelectedPoi {
+  const displayMeta = mapPoiDisplayMeta(poi);
   return {
     id: poi.id,
     kind: poi.kind,
     title: poi.title,
-    subtitle: poi.subtitle,
+    subtitle: displayMeta.grade
+      ? `${displayMeta.label} · ${poi.subtitle}`
+      : `${displayMeta.label} · ${poi.subtitle}`,
     summary: poi.summary,
     sectionLabel: section.sectionName,
+    location: poi.location,
+    status: poi.verificationStatus,
+    sourceLabel: poi.source?.label,
+    sourceConfidence: poi.source?.confidence,
+    navigationLocation: poi.location,
+    what3words: readPayloadString(poi.payload, "what3wordsAddress"),
+    mapPoi: poi,
+  };
+}
+
+function riverMapPoiToSelectedPoi(
+  poi: MapPoi,
+  river: CanonicalRiverSummary,
+): SelectedPoi {
+  const displayMeta = mapPoiDisplayMeta(poi);
+  return {
+    id: poi.id,
+    kind: poi.kind,
+    title: poi.title,
+    subtitle: displayMeta.grade
+      ? `${displayMeta.label} · ${poi.subtitle}`
+      : `${displayMeta.label} · ${poi.subtitle}`,
+    summary: poi.summary,
+    sectionLabel: river.displayName,
     location: poi.location,
     status: poi.verificationStatus,
     sourceLabel: poi.source?.label,
@@ -2181,6 +2392,40 @@ function contributionStatusLabel(status: Contribution["status"]) {
   };
 
   return labels[status] ?? status;
+}
+
+function sourceCandidateStatusLabel(status: SourceCandidatePoiStatus) {
+  const labels: Record<SourceCandidatePoiStatus, string> = {
+    review_needed: "review needed",
+    confirmed: "confirmed",
+    rejected: "rejected",
+    merged: "merged",
+  };
+
+  return labels[status];
+}
+
+function formatSourceCandidateValue(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => formatSourceCandidateValue(item))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (value && typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  return "";
 }
 
 function moderationResultMessage(
@@ -2729,6 +2974,8 @@ function PhotoLightbox({
 
 function PoiDetailPanel({
   poi,
+  isExpanded,
+  onToggleExpanded,
   onClose,
   onAddPhoto,
   onOpenPhoto,
@@ -2741,6 +2988,8 @@ function PoiDetailPanel({
   canManagePoiStatus,
 }: {
   poi: SelectedPoi;
+  isExpanded: boolean;
+  onToggleExpanded: () => void;
   onClose: () => void;
   onAddPhoto: () => void;
   onOpenPhoto: (photo: PhotoLightboxItem) => void;
@@ -2848,7 +3097,21 @@ function PoiDetailPanel({
   );
 
   return (
-    <section className="poi-detail-panel" aria-label="Point of interest details">
+    <section
+      className={`poi-detail-panel ${
+        isExpanded ? "poi-detail-panel--expanded" : ""
+      }`}
+      aria-label="Point of interest details"
+    >
+      <button
+        className="icon-button panel-expand"
+        type="button"
+        aria-label={isExpanded ? "Collapse point details" : "Expand point details"}
+        title={isExpanded ? "Collapse" : "Expand"}
+        onClick={onToggleExpanded}
+      >
+        {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+      </button>
       <button
         className="panel-close"
         type="button"
@@ -3384,7 +3647,7 @@ function App() {
     useState<AppSection>("map");
   const [activeAdminPage, setActiveAdminPage] = useState<AdminPage>("index");
   const [isAppNavCollapsed, setIsAppNavCollapsed] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState(riverSections[0].id);
+  const [activeSectionId, setActiveSectionId] = useState("");
   const [sectionFocusNonce, setSectionFocusNonce] = useState(0);
   const [pendingUnfavouriteSection, setPendingUnfavouriteSection] =
     useState<RiverSection | null>(null);
@@ -3400,11 +3663,20 @@ function App() {
   const [routeSuggestions, setRouteSuggestions] = useState<RouteSuggestion[]>(
     loadRouteSuggestions,
   );
-  const [approvedRouteSuggestions, setApprovedRouteSuggestions] = useState<
+  const [, setApprovedRouteSuggestions] = useState<
     RouteSuggestion[]
   >([]);
   const [routeAdjustments, setRouteAdjustments] = useState<RouteAdjustment[]>([]);
-  const [routeOverrides, setRouteOverrides] = useState<RouteOverride[]>([]);
+  const [, setRouteOverrides] = useState<RouteOverride[]>([]);
+  const [canonicalRivers, setCanonicalRivers] = useState<CanonicalRiverSummary[]>(
+    [],
+  );
+  const [selectedCanonicalRiverId, setSelectedCanonicalRiverId] =
+    useState<string | null>(null);
+  const [isSelectedRiverPanelOpen, setIsSelectedRiverPanelOpen] =
+    useState(false);
+  const [isSelectedRiverPanelExpanded, setIsSelectedRiverPanelExpanded] =
+    useState(false);
   const [routeCreateMode, setRouteCreateMode] =
     useState<RouteCreateMode>("idle");
   const [routeDraftTarget, setRouteDraftTarget] =
@@ -3416,8 +3688,11 @@ function App() {
   const [routeDraftSnapMessage, setRouteDraftSnapMessage] = useState("");
   const [isRouteSnapLoading, setIsRouteSnapLoading] = useState(false);
   const [showKnownRivers, setShowKnownRivers] = useState(false);
-  const [showRoutesLayer, setShowRoutesLayer] = useState(true);
-  const [showSelectedRoutePath, setShowSelectedRoutePath] = useState(true);
+  const [markerClickMode, setMarkerClickMode] = useState<MarkerClickMode>(
+    loadMarkerClickMode,
+  );
+  const [showRoutesLayer, setShowRoutesLayer] = useState(false);
+  const [showSelectedRoutePath, setShowSelectedRoutePath] = useState(false);
   const [routeFormError, setRouteFormError] = useState("");
   const [routeRiverName, setRouteRiverName] = useState("");
   const [routeSectionName, setRouteSectionName] = useState("");
@@ -3467,6 +3742,13 @@ function App() {
   );
   const [areMapControlsExpanded, setAreMapControlsExpanded] = useState(false);
   const [selectedPoi, setSelectedPoi] = useState<SelectedPoi | null>(null);
+  const [isPoiDetailExpanded, setIsPoiDetailExpanded] = useState(false);
+  const [detailFocusLocation, setDetailFocusLocation] =
+    useState<LatLngTuple | null>(null);
+  const [detailFocusPlacement, setDetailFocusPlacement] =
+    useState<MapFocusPlacement>("center");
+  const [detailFocusNonce, setDetailFocusNonce] = useState(0);
+  const [detailRestoreNonce, setDetailRestoreNonce] = useState(0);
   const [selectedTargetLabel, setSelectedTargetLabel] = useState(
     "Selected map location",
   );
@@ -3553,6 +3835,9 @@ function App() {
   const [moderationRouteAdjustments, setModerationRouteAdjustments] = useState<
     RouteAdjustment[]
   >([]);
+  const [sourceCandidatePois, setSourceCandidatePois] = useState<
+    SourceCandidatePoi[]
+  >([]);
   const [moderationDraftDecisions, setModerationDraftDecisions] = useState<
     Record<string, ModerationDraftDecision>
   >({});
@@ -3560,6 +3845,8 @@ function App() {
     useState<Record<string, RouteModerationDraftDecision>>({});
   const [routeAdjustmentDraftDecisions, setRouteAdjustmentDraftDecisions] =
     useState<Record<string, RouteAdjustmentDraftDecision>>({});
+  const [sourceCandidateDraftStatuses, setSourceCandidateDraftStatuses] =
+    useState<Record<string, SourceCandidateDraftStatus>>({});
   const [moderationTab, setModerationTab] =
     useState<ModerationTab>("route-edits");
   const [isModerationLoading, setIsModerationLoading] = useState(false);
@@ -3591,6 +3878,7 @@ function App() {
   );
   const [sectionMapPois, setSectionMapPois] = useState<MapPoi[]>([]);
   const [isSectionMapPoisLoaded, setIsSectionMapPoisLoaded] = useState(false);
+  const [selectedRiverMapPois, setSelectedRiverMapPois] = useState<MapPoi[]>([]);
   const [mapPoiReviewMessage, setMapPoiReviewMessage] = useState("");
   const [isMapPoiReviewSaving, setIsMapPoiReviewSaving] = useState(false);
   const [isPoiStatusSaving, setIsPoiStatusSaving] = useState(false);
@@ -3621,25 +3909,23 @@ function App() {
   const [isLocationSearchLoading, setIsLocationSearchLoading] = useState(false);
 
   const appRiverSections = useMemo(
-    () =>
-      mergeApprovedCandidateSections(
-        applyRouteOverridesToSections(riverSections, routeOverrides),
-        approvedRouteSuggestions,
-      ),
-    [approvedRouteSuggestions, routeOverrides],
+    () => canonicalRivers.map(canonicalRiverToOverviewSection),
+    [canonicalRivers],
   );
   const activeSection = useMemo(
     () =>
       appRiverSections.find((section) => section.id === activeSectionId) ??
-      appRiverSections[0],
+      appRiverSections[0] ??
+      emptyCanonicalOverviewSection,
     [activeSectionId, appRiverSections],
   );
-  const activeRiverSections = useMemo(
+  const selectedCanonicalRiver = useMemo(
     () =>
-      appRiverSections.filter(
-        (section) => section.riverName === activeSection.riverName,
-      ),
-    [activeSection.riverName, appRiverSections],
+      selectedCanonicalRiverId
+        ? canonicalRivers.find((river) => river.id === selectedCanonicalRiverId) ??
+          null
+        : null,
+    [canonicalRivers, selectedCanonicalRiverId],
   );
   const observationSectionIdRef = useRef(activeSection.id);
 
@@ -3650,10 +3936,9 @@ function App() {
     () => fallbackMapPoisForSection(activeSection),
     [activeSection],
   );
-  const visibleSectionMapPois =
-    isSectionMapPoisLoaded && sectionMapPois.length
-      ? sectionMapPois
-      : fallbackSectionMapPois;
+  const visibleSectionMapPois = isSectionMapPoisLoaded
+    ? sectionMapPois
+    : fallbackSectionMapPois;
   const visibleAccessPois = visibleSectionMapPois.filter(
     (poi) => poi.kind === "access",
   );
@@ -3814,6 +4099,10 @@ function App() {
   }, [adminMembers, memberRoleFilter, memberSearch, memberTrustFilter]);
 
   useEffect(() => subscribeToAuthState(setAuthState), []);
+
+  useEffect(() => {
+    void loadCanonicalRivers();
+  }, []);
 
   useEffect(() => {
     setAnalyticsConsentPreference(analyticsConsent);
@@ -4237,6 +4526,14 @@ function App() {
     setIsSectionMapPoisLoaded(false);
     setSectionMapPois([]);
     setMapPoiReviewMessage("");
+
+    if (isCanonicalOverviewSection(activeSection)) {
+      setIsSectionMapPoisLoaded(true);
+      return () => {
+        isMounted = false;
+      };
+    }
+
     fetchSectionMapPois(activeSection.id)
       .then((pois) => {
         if (isMounted) {
@@ -4258,6 +4555,40 @@ function App() {
 
   useEffect(() => {
     let isMounted = true;
+
+    setSelectedRiverMapPois([]);
+
+    if (!selectedCanonicalRiverId) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    fetchRiverMapPois(selectedCanonicalRiverId)
+      .then((pois) => {
+        if (isMounted) {
+          setSelectedRiverMapPois(pois);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSelectedRiverMapPois([]);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authState.user?.uid, selectedCanonicalRiverId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (isCanonicalOverviewSection(activeSection)) {
+      return () => {
+        isMounted = false;
+      };
+    }
 
     fetchSectionContributions(activeSection.id)
       .then((backendContributions) => {
@@ -4311,6 +4642,21 @@ function App() {
   useEffect(() => {
     let isMounted = true;
     const isNewSection = observationSectionIdRef.current !== activeSection.id;
+
+    if (isCanonicalOverviewSection(activeSection)) {
+      if (isNewSection) {
+        observationSectionIdRef.current = activeSection.id;
+      }
+      setLiveGauge(null);
+      setSectionObservations([]);
+      setIsGaugeLoading(false);
+      setIsSectionObservationsLoading(false);
+      setSectionObservationMessage("");
+
+      return () => {
+        isMounted = false;
+      };
+    }
 
     if (isNewSection) {
       observationSectionIdRef.current = activeSection.id;
@@ -4968,6 +5314,13 @@ function App() {
     }
 
     setActiveSectionId(section.id);
+    setSelectedCanonicalRiverId(
+      isCanonicalOverviewSection(section)
+        ? section.id.replace("canonical-river:", "")
+        : null,
+    );
+    setIsSelectedRiverPanelOpen(isCanonicalOverviewSection(section));
+    setIsSelectedRiverPanelExpanded(false);
     setSectionFocusNonce((current) => current + 1);
     setIsPanelOpen(false);
     setSelectedPoi(null);
@@ -5159,6 +5512,31 @@ function App() {
     }
   }
 
+  async function loadCanonicalRivers() {
+    try {
+      const rivers = await fetchCanonicalRivers();
+      setCanonicalRivers(rivers);
+      setSelectedCanonicalRiverId((current) =>
+        current && rivers.some((river) => river.id === current) ? current : null,
+      );
+      setActiveSectionId((current) => {
+        if (
+          current &&
+          rivers.some((river) => canonicalRiverOverviewSectionId(river.id) === current)
+        ) {
+          return current;
+        }
+
+        return rivers[0] ? canonicalRiverOverviewSectionId(rivers[0].id) : "";
+      });
+    } catch {
+      setCanonicalRivers([]);
+      setSelectedCanonicalRiverId(null);
+      setIsSelectedRiverPanelOpen(false);
+      setActiveSectionId("");
+    }
+  }
+
   async function openAdminPanel() {
     setActiveAppSection("admin");
     setActiveAdminPage("members");
@@ -5208,6 +5586,8 @@ function App() {
     setRouteModerationDraftDecisions({});
     setModerationRouteAdjustments([]);
     setRouteAdjustmentDraftDecisions({});
+    setSourceCandidatePois([]);
+    setSourceCandidateDraftStatuses({});
 
     try {
       const [
@@ -5215,22 +5595,65 @@ function App() {
         mapPoiReviews,
         routeSuggestions,
         routeAdjustments,
+        sourceCandidates,
       ] = await Promise.all([
         fetchModerationContributions(),
         fetchModerationMapPoiReviews(),
         fetchModerationRouteSuggestions(),
         fetchModerationRouteAdjustments(),
+        fetchSourceCandidatePois({ status: "review_needed", limit: 150 }),
       ]);
       setModerationContributions(contributions);
       setModerationMapPoiReviews(mapPoiReviews);
       setModerationRouteSuggestions(routeSuggestions);
       setModerationRouteAdjustments(routeAdjustments);
       setRouteAdjustments(routeAdjustments);
+      setSourceCandidatePois(sourceCandidates);
     } catch (error) {
       setModerationMessage(
         error instanceof Error
           ? error.message
           : "Could not load moderation queue.",
+      );
+    } finally {
+      setIsModerationLoading(false);
+    }
+  }
+
+  async function applySourceCandidateStatus(candidate: SourceCandidatePoi) {
+    const status = sourceCandidateDraftStatuses[candidate.id];
+
+    if (!status) {
+      return;
+    }
+
+    setModerationMessage("");
+    setIsModerationLoading(true);
+
+    try {
+      const updatedCandidate = await updateSourceCandidatePoiStatus(
+        candidate.id,
+        status,
+      );
+      setSourceCandidatePois((current) =>
+        status === "review_needed"
+          ? current.map((item) =>
+              item.id === updatedCandidate.id ? updatedCandidate : item,
+            )
+          : current.filter((item) => item.id !== updatedCandidate.id),
+      );
+      setSourceCandidateDraftStatuses((current) => {
+        const next = { ...current };
+        delete next[candidate.id];
+        return next;
+      });
+      void loadCanonicalRivers();
+      setModerationMessage(`Updated ${updatedCandidate.title}.`);
+    } catch (error) {
+      setModerationMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not update source candidate.",
       );
     } finally {
       setIsModerationLoading(false);
@@ -6078,9 +6501,17 @@ function App() {
   }
 
   function selectSection(section: RiverSection) {
+    const isRiverOverview = isCanonicalOverviewSection(section);
     setActiveSectionId(section.id);
-    setShowRoutesLayer(true);
-    setShowSelectedRoutePath(true);
+    setSelectedCanonicalRiverId(
+      isRiverOverview ? section.id.replace("canonical-river:", "") : null,
+    );
+    setIsSelectedRiverPanelOpen(isRiverOverview);
+    setIsSelectedRiverPanelExpanded(false);
+    setSelectedPoi(null);
+    setIsPoiDetailExpanded(false);
+    setShowRoutesLayer(!isRiverOverview);
+    setShowSelectedRoutePath(!isRiverOverview);
     setIsRouteStatusCardVisible(true);
     setSectionFocusNonce((current) => current + 1);
     setIsSectionListOpen(false);
@@ -6092,6 +6523,75 @@ function App() {
       item_id: section.id,
       river_name: section.riverName,
     });
+  }
+
+  function selectCanonicalRiver(riverId: string | null) {
+    setSelectedCanonicalRiverId(riverId);
+    setIsSelectedRiverPanelOpen(Boolean(riverId));
+    setIsSelectedRiverPanelExpanded(false);
+    const river = riverId
+      ? canonicalRivers.find((item) => item.id === riverId)
+      : null;
+    if (river) {
+      focusDetailLocation(river.centre, "mobile-top-half");
+    }
+    setSelectedPoi(null);
+    setIsPoiDetailExpanded(false);
+    setIsPanelOpen(false);
+    setIsFormOpen(false);
+    setIsAddMode(false);
+    setRouteCreateMode("idle");
+    setRouteDraftPoints([]);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
+    setMapPoiReviewMessage("");
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
+  }
+
+  function selectCanonicalRiverContext(riverId: string | null) {
+    setSelectedCanonicalRiverId(riverId);
+    setIsSelectedRiverPanelOpen(false);
+    setIsSelectedRiverPanelExpanded(false);
+    setSelectedPoi(null);
+    setIsPoiDetailExpanded(false);
+    setIsPanelOpen(false);
+    setIsFormOpen(false);
+    setIsAddMode(false);
+    setRouteCreateMode("idle");
+    setRouteDraftPoints([]);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
+    setMapPoiReviewMessage("");
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
+  }
+
+  function closeSelectedRiverPanel() {
+    restoreDetailMapView();
+    setIsSelectedRiverPanelOpen(false);
+    setIsSelectedRiverPanelExpanded(false);
+  }
+
+  function reopenSelectedRiverPanel(river: CanonicalRiverSummary) {
+    setIsSelectedRiverPanelOpen(true);
+    setIsSelectedRiverPanelExpanded(false);
+    focusDetailLocation(river.centre, "mobile-top-half");
+  }
+
+  function focusDetailLocation(
+    location: LatLngTuple,
+    placement: MapFocusPlacement,
+  ) {
+    setDetailFocusLocation(location);
+    setDetailFocusPlacement(placement);
+    setDetailFocusNonce((current) => current + 1);
+  }
+
+  function restoreDetailMapView() {
+    setDetailRestoreNonce((current) => current + 1);
   }
 
   function openRouteDetails(section: RiverSection) {
@@ -6133,8 +6633,17 @@ function App() {
     });
   }
 
-  function openPoiDetails(poi: SelectedPoi) {
+  function openPoiDetails(
+    poi: SelectedPoi,
+    options: OpenPoiDetailsOptions = {},
+  ) {
     setSelectedPoi(poi);
+    setIsPoiDetailExpanded(false);
+    setIsSelectedRiverPanelOpen(false);
+    setIsSelectedRiverPanelExpanded(false);
+    if (options.focusMap) {
+      focusDetailLocation(poi.location, options.focusPlacement ?? "center");
+    }
     setIsPanelOpen(false);
     setIsFormOpen(false);
     setIsAddMode(false);
@@ -6151,6 +6660,14 @@ function App() {
       item_id: poi.id,
       poi_kind: poi.kind,
     });
+  }
+
+  function closePoiDetails() {
+    restoreDetailMapView();
+    setSelectedPoi(null);
+    setIsPoiDetailExpanded(false);
+    setIsSelectedRiverPanelOpen(false);
+    setIsSelectedRiverPanelExpanded(false);
   }
 
   async function submitMapPoiReview(
@@ -6347,6 +6864,14 @@ function App() {
     setActiveAppSection("map");
   }
 
+  function toggleMarkerClickMode() {
+    setMarkerClickMode((current) => {
+      const next = current === "info" ? "detail" : "info";
+      saveMarkerClickMode(next);
+      return next;
+    });
+  }
+
   function toggleFavouriteSection(section: RiverSection) {
     if (!isSignedIn) {
       requireSignInForSave();
@@ -6377,6 +6902,7 @@ function App() {
     authState.user?.email ??
     "Browse freely; sign in to save";
   const accountRole = memberProfile?.role ?? (isSignedIn ? "Member" : "Signed out");
+  const isCanonicalRiverOverviewActive = isCanonicalOverviewSection(activeSection);
 
   return (
     <main
@@ -6434,68 +6960,93 @@ function App() {
               }`}
               type="button"
               onClick={() => setIsSectionListOpen((current) => !current)}
-              title="Sections"
-              aria-label="Sections"
+              title="Rivers"
+              aria-label="Rivers"
               aria-pressed={isSectionListOpen}
             >
-              <Route size={16} />
-              Sections
+              <Waves size={16} />
+              Rivers
             </button>
-            <button
-              className={`ghost-button map-panel-toggle ${
-                showRoutesLayer ? "map-panel-toggle--active" : ""
-              }`}
-              type="button"
-              onClick={() => setShowRoutesLayer((current) => !current)}
-              title={showRoutesLayer ? "Hide routes" : "Show routes"}
-              aria-label={showRoutesLayer ? "Hide routes" : "Show routes"}
-              aria-pressed={showRoutesLayer}
-            >
-              <MapPinned size={16} />
-              Routes
-            </button>
-            <button
-              className={`ghost-button map-panel-toggle ${
-                isPanelOpen && routeDetailsTab === "levels"
-                  ? "map-panel-toggle--active"
-                  : ""
-              }`}
-              type="button"
-              onClick={() => openCurrentRouteDetailsTab("levels")}
-              title="View levels"
-              aria-label="View levels"
-              aria-pressed={isPanelOpen && routeDetailsTab === "levels"}
-            >
-              <Droplets size={16} />
-              Levels
-            </button>
-            <button
-              className={`ghost-button map-panel-toggle ${
-                isPanelOpen && routeDetailsTab !== "levels"
-                  ? "map-panel-toggle--active"
-                  : ""
-              }`}
-              type="button"
-              onClick={toggleRouteDetailsPanel}
-              title="Section details"
-              aria-label="Section details"
-              aria-pressed={isPanelOpen && routeDetailsTab !== "levels"}
-            >
-              <MapPinned size={16} />
-              Details
-            </button>
+            {!isCanonicalRiverOverviewActive ? (
+              <>
+                <button
+                  className={`ghost-button map-panel-toggle ${
+                    showRoutesLayer ? "map-panel-toggle--active" : ""
+                  }`}
+                  type="button"
+                  onClick={() => setShowRoutesLayer((current) => !current)}
+                  title={showRoutesLayer ? "Hide routes" : "Show routes"}
+                  aria-label={showRoutesLayer ? "Hide routes" : "Show routes"}
+                  aria-pressed={showRoutesLayer}
+                >
+                  <MapPinned size={16} />
+                  Routes
+                </button>
+                <button
+                  className={`ghost-button map-panel-toggle ${
+                    isPanelOpen && routeDetailsTab === "levels"
+                      ? "map-panel-toggle--active"
+                      : ""
+                  }`}
+                  type="button"
+                  onClick={() => openCurrentRouteDetailsTab("levels")}
+                  title="View levels"
+                  aria-label="View levels"
+                  aria-pressed={isPanelOpen && routeDetailsTab === "levels"}
+                >
+                  <Droplets size={16} />
+                  Levels
+                </button>
+                <button
+                  className={`ghost-button map-panel-toggle ${
+                    isPanelOpen && routeDetailsTab !== "levels"
+                      ? "map-panel-toggle--active"
+                      : ""
+                  }`}
+                  type="button"
+                  onClick={toggleRouteDetailsPanel}
+                  title="Section details"
+                  aria-label="Section details"
+                  aria-pressed={isPanelOpen && routeDetailsTab !== "levels"}
+                >
+                  <MapPinned size={16} />
+                  Details
+                </button>
+              </>
+            ) : null}
             <button
               className={`ghost-button map-panel-toggle topbar-secondary-control ${
                 showKnownRivers ? "map-panel-toggle--active" : ""
               }`}
               type="button"
               onClick={() => setShowKnownRivers((current) => !current)}
-              title="Show known rivers"
-              aria-label="Show known rivers"
+              title="Show reference waterways"
+              aria-label="Show reference waterways"
               aria-pressed={showKnownRivers}
             >
               <Waves size={16} />
-              Rivers
+              Waterways
+            </button>
+            <button
+              className={`ghost-button map-panel-toggle topbar-secondary-control ${
+                markerClickMode === "detail" ? "map-panel-toggle--active" : ""
+              }`}
+              type="button"
+              onClick={toggleMarkerClickMode}
+              title={
+                markerClickMode === "info"
+                  ? "Marker clicks show quick info first"
+                  : "Marker clicks open details directly"
+              }
+              aria-label={
+                markerClickMode === "info"
+                  ? "Marker clicks show quick info first"
+                  : "Marker clicks open details directly"
+              }
+              aria-pressed={markerClickMode === "detail"}
+            >
+              <MessageSquare size={16} />
+              Click: {markerClickMode === "info" ? "Info" : "Detail"}
             </button>
             {isCompactMapControls ? (
               <button
@@ -6533,33 +7084,35 @@ function App() {
                 <span className="sync-badge">{queuedOutboxCount}</span>
               ) : null}
             </button>
-            <button
-              className={`icon-button topbar-secondary-control ${
-                isActiveSectionFavourite ? "icon-button--active" : ""
-              }`}
-              type="button"
-              title={
-                !isSignedIn
-                  ? "Create account to save favourites"
-                  : isActiveSectionFavourite
-                  ? "Remove from favourites"
-                  : "Add to favourites"
-              }
-              aria-label={
-                !isSignedIn
-                  ? "Create account to save favourites"
-                  : isActiveSectionFavourite
-                  ? "Remove from favourites"
-                  : "Add to favourites"
-              }
-              aria-pressed={isActiveSectionFavourite}
-              onClick={() => toggleFavouriteSection(activeSection)}
-            >
-              <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
-              <span className="topbar-control-label">
-                {isActiveSectionFavourite ? "Saved" : "Favourite"}
-              </span>
-            </button>
+            {!isCanonicalRiverOverviewActive ? (
+              <button
+                className={`icon-button topbar-secondary-control ${
+                  isActiveSectionFavourite ? "icon-button--active" : ""
+                }`}
+                type="button"
+                title={
+                  !isSignedIn
+                    ? "Create account to save favourites"
+                    : isActiveSectionFavourite
+                    ? "Remove from favourites"
+                    : "Add to favourites"
+                }
+                aria-label={
+                  !isSignedIn
+                    ? "Create account to save favourites"
+                    : isActiveSectionFavourite
+                    ? "Remove from favourites"
+                    : "Add to favourites"
+                }
+                aria-pressed={isActiveSectionFavourite}
+                onClick={() => toggleFavouriteSection(activeSection)}
+              >
+                <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
+                <span className="topbar-control-label">
+                  {isActiveSectionFavourite ? "Saved" : "Favourite"}
+                </span>
+              </button>
+            ) : null}
             <button
               className={`icon-button topbar-secondary-control ${
                 isLiveLocationEnabled ? "icon-button--active" : ""
@@ -6582,7 +7135,7 @@ function App() {
               <Navigation size={18} />
               <span className="topbar-control-label">Location</span>
             </button>
-            {canAccessAdminTools ? (
+            {canAccessAdminTools && !isCanonicalRiverOverviewActive ? (
               <button
                 className={`ghost-button map-panel-toggle topbar-secondary-control ${
                   routeDraftTarget.type !== "new" ? "map-panel-toggle--active" : ""
@@ -6597,30 +7150,34 @@ function App() {
                 Edit route
               </button>
             ) : null}
-            <button
-              className={`ghost-button map-panel-toggle topbar-secondary-control ${
-                routeCreateMode !== "idle" && routeDraftTarget.type === "new"
-                  ? "map-panel-toggle--active"
-                  : ""
-              }`}
-              type="button"
-              title="Suggest a missing route"
-              aria-label="Suggest a missing route"
-              aria-pressed={routeCreateMode !== "idle"}
-              onClick={() => startRouteSuggestionMode()}
-            >
-              <Route size={16} />
-              Suggest route
-            </button>
-            <button
-              className="primary-action topbar-secondary-control"
-              type="button"
-              title="Add local knowledge"
-              onClick={() => startAddMode()}
-            >
-              <Plus size={18} />
-              Add info
-            </button>
+            {!isCanonicalRiverOverviewActive ? (
+              <>
+                <button
+                  className={`ghost-button map-panel-toggle topbar-secondary-control ${
+                    routeCreateMode !== "idle" && routeDraftTarget.type === "new"
+                      ? "map-panel-toggle--active"
+                      : ""
+                  }`}
+                  type="button"
+                  title="Suggest a missing route"
+                  aria-label="Suggest a missing route"
+                  aria-pressed={routeCreateMode !== "idle"}
+                  onClick={() => startRouteSuggestionMode()}
+                >
+                  <Route size={16} />
+                  Suggest route
+                </button>
+                <button
+                  className="primary-action topbar-secondary-control"
+                  type="button"
+                  title="Add local knowledge"
+                  onClick={() => startAddMode()}
+                >
+                  <Plus size={18} />
+                  Add info
+                </button>
+              </>
+            ) : null}
             {authMessage || authState.error || liveLocationAlert ? (
               <p className="topbar-message">
                 {authMessage || authState.error || liveLocationAlert}
@@ -6673,7 +7230,7 @@ function App() {
           aria-label="River sections"
         >
           <div className="section-list__header">
-            <span>{activeSection.riverName} sections</span>
+            <span>Rivers</span>
             <button
               className="icon-button icon-button--compact section-list__close"
               type="button"
@@ -6684,35 +7241,66 @@ function App() {
               <X size={16} />
             </button>
           </div>
-          {activeRiverSections.map((section) => (
-            <button
-              className={`section-row ${
-                section.id === activeSection.id ? "section-row--active" : ""
-              }`}
-              key={section.id}
-              type="button"
-              onClick={() => selectSection(section)}
-            >
-              <span>
-                <strong>{section.riverName}</strong>
-                <small>{section.sectionName}</small>
-              </span>
-              <span className="section-row__badges">
-                {isCandidateSection(section) ? (
-                  <span className="candidate-pill">Candidate</span>
-                ) : null}
-                <span className={`level-pill level-pill--${section.levelBand}`}>
-                  {bandLabels[section.levelBand]}
-                </span>
-              </span>
-            </button>
-          ))}
+          {canonicalRivers.length ? (
+            <div className="canonical-river-list">
+              {canonicalRivers.map((river) => (
+                <button
+                  className={`canonical-river-row ${
+                    river.id === selectedCanonicalRiverId
+                      ? "canonical-river-row--active"
+                      : ""
+                  }`}
+                  key={river.id}
+                  type="button"
+                  onClick={() =>
+                    selectedCanonicalRiverId === river.id
+                      ? reopenSelectedRiverPanel(river)
+                      : selectCanonicalRiver(river.id)
+                  }
+                >
+                  <span>
+                    <strong>{river.displayName}</strong>
+                    <small>
+                      {river.region} · {river.sectionCount} section
+                      {river.sectionCount === 1 ? "" : "s"}
+                    </small>
+                  </span>
+                  {river.reviewNeededCandidatePoiCount ? (
+                    <span className="candidate-pill">
+                      {river.reviewNeededCandidatePoiCount} candidates
+                    </span>
+                  ) : (
+                    <span className="level-pill level-pill--unknown">
+                      {river.curationStatus}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="source-note source-note--section-list">
+              River records unavailable.
+            </p>
+          )}
+          <div className="section-list__header section-list__header--sub">
+            <span>Reviewed sections</span>
+          </div>
+          <p className="source-note source-note--section-list">
+            Section routes and reviewed public POIs have been removed from the
+            active frontend until they are rebuilt from the canonical model.
+          </p>
         </aside>
 
         <RiverMap
           sections={appRiverSections}
           activeSection={activeSection}
+          canonicalRivers={canonicalRivers}
+          selectedCanonicalRiver={selectedCanonicalRiver}
+          isSelectedRiverPanelOpen={isSelectedRiverPanelOpen}
+          isSelectedRiverPanelExpanded={isSelectedRiverPanelExpanded}
+          isPoiDetailsOpen={Boolean(selectedPoi)}
           mapPois={visibleSectionMapPois}
+          selectedRiverMapPois={selectedRiverMapPois}
           contributions={contributions}
           routeSuggestions={routeSuggestions}
           routeAdjustments={routeAdjustments}
@@ -6725,12 +7313,17 @@ function App() {
           routeDraftPoints={routeDraftPoints}
           liveLocation={liveLocation}
           liveLocationFocusNonce={liveLocationFocusNonce}
+          detailFocusLocation={detailFocusLocation}
+          detailFocusPlacement={detailFocusPlacement}
+          detailFocusNonce={detailFocusNonce}
+          detailRestoreNonce={detailRestoreNonce}
           searchFocusLocation={searchFocusLocation}
           searchFocusLabel={searchFocusLabel}
           showSearchFocusMarker={showSearchFocusMarker}
           searchFocusNonce={searchFocusNonce}
           isAddMode={isAddMode}
           routeCreateMode={routeCreateMode}
+          markerClickMode={markerClickMode}
           showRoutesLayer={showRoutesLayer}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
@@ -6743,9 +7336,15 @@ function App() {
           onOpenRouteDetails={openRouteDetails}
           onOpenPhoto={setLightboxPhoto}
           onSelectSection={selectSection}
+          onSelectCanonicalRiver={selectCanonicalRiver}
+          onSelectCanonicalRiverContext={selectCanonicalRiverContext}
+          onCloseSelectedRiverPanel={closeSelectedRiverPanel}
+          onToggleSelectedRiverPanelExpanded={() =>
+            setIsSelectedRiverPanelExpanded((current) => !current)
+          }
         />
 
-        {isRouteStatusCardVisible ? (
+        {!isCanonicalRiverOverviewActive && isRouteStatusCardVisible ? (
           <section className="route-status-card" aria-label="Selected route level">
             <div className="route-status-card__main">
               <span className="route-status-card__icon">
@@ -6778,7 +7377,7 @@ function App() {
               <span>Updated {routeStatusSummary.observedAt}</span>
             </div>
           </section>
-        ) : (
+        ) : !isCanonicalRiverOverviewActive ? (
           <button
             className="route-status-toggle"
             type="button"
@@ -6787,7 +7386,7 @@ function App() {
             <Droplets size={15} />
             Show levels
           </button>
-        )}
+        ) : null}
 
         {isFormOpen ? (
           <section className="quick-add-panel" aria-label="Add contribution">
@@ -7230,7 +7829,11 @@ function App() {
         {selectedPoi ? (
           <PoiDetailPanel
             poi={selectedPoi}
-            onClose={() => setSelectedPoi(null)}
+            isExpanded={isPoiDetailExpanded}
+            onToggleExpanded={() =>
+              setIsPoiDetailExpanded((current) => !current)
+            }
+            onClose={closePoiDetails}
             onAddPhoto={() => startAddMode("photo")}
             onOpenPhoto={setLightboxPhoto}
             onReviewMapPoi={(poi, decision, action, note) =>
@@ -7970,7 +8573,7 @@ function App() {
                   <form
                     className="location-search-card"
                     onSubmit={(event) => void handleWatercourseSearch(event)}
-                    aria-label="Search known rivers"
+                    aria-label="Search waterways"
                   >
                     <div>
                       <h3>Find a river or waterway</h3>
@@ -9614,6 +10217,23 @@ function App() {
                                   Corrections
                                   <span>{moderationMapPoiReviews.length}</span>
                                 </button>
+                                <button
+                                  className={
+                                    moderationTab === "source-candidates"
+                                      ? "active"
+                                      : ""
+                                  }
+                                  type="button"
+                                  role="tab"
+                                  aria-selected={
+                                    moderationTab === "source-candidates"
+                                  }
+                                  onClick={() => setModerationTab("source-candidates")}
+                                >
+                                  <Waves size={16} />
+                                  Candidates
+                                  <span>{sourceCandidatePois.length}</span>
+                                </button>
                               </div>
                               {moderationTab === "contributions" && moderationContributionPhotoCount ? (
                                 <p className="source-note">
@@ -10077,6 +10697,139 @@ function App() {
                                     </p>
                                   )
                               ) : null}
+                              {moderationTab === "source-candidates" ? (
+                                sourceCandidatePois.length ? (
+                                  <>
+                                    <div className="moderation-section-heading">
+                                      <h3>Source candidate POIs</h3>
+                                      <span>{sourceCandidatePois.length} items</span>
+                                    </div>
+                                    {sourceCandidatePois.map((candidate) => {
+                                      const draftStatus =
+                                        sourceCandidateDraftStatuses[
+                                          candidate.id
+                                        ] ?? "";
+                                      const tagEntries = Object.entries(
+                                        candidate.rawProperties ?? {},
+                                      )
+                                        .filter(([, value]) =>
+                                          Boolean(formatSourceCandidateValue(value)),
+                                        )
+                                        .slice(0, 6);
+
+                                      return (
+                                        <article
+                                          className="moderation-row"
+                                          key={candidate.id}
+                                        >
+                                          <div className="moderation-row__content">
+                                            <strong>{candidate.title}</strong>
+                                            <span className="moderation-row__meta">
+                                              {candidate.riverDisplayName ??
+                                                "Unlinked river"}{" "}
+                                              · {candidate.candidateType} ·{" "}
+                                              {candidate.source}
+                                            </span>
+                                            {candidate.location ? (
+                                              <p>
+                                                {formatLocation(candidate.location)}
+                                              </p>
+                                            ) : null}
+                                            {tagEntries.length ? (
+                                              <dl className="source-candidate-tags">
+                                                {tagEntries.map(([key, value]) => (
+                                                  <div key={key}>
+                                                    <dt>{key}</dt>
+                                                    <dd>
+                                                      {formatSourceCandidateValue(
+                                                        value,
+                                                      )}
+                                                    </dd>
+                                                  </div>
+                                                ))}
+                                              </dl>
+                                            ) : (
+                                              <p>No source tags were captured.</p>
+                                            )}
+                                            <small className="moderation-row__meta">
+                                              {candidate.sourceId} ·{" "}
+                                              {candidate.licence} · updated{" "}
+                                              {formatDateTime(candidate.updatedAt)}
+                                            </small>
+                                            {candidate.sourceUrl ? (
+                                              <a
+                                                className="inline-link"
+                                                href={candidate.sourceUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                              >
+                                                <ExternalLink size={14} />
+                                                View source
+                                              </a>
+                                            ) : null}
+                                          </div>
+                                          <div className="moderation-status">
+                                            <span
+                                              className={`status-chip status-chip--${candidate.status}`}
+                                            >
+                                              {sourceCandidateStatusLabel(
+                                                candidate.status,
+                                              )}
+                                            </span>
+                                          </div>
+                                          <div className="moderation-actions">
+                                            <label>
+                                              <span>Status</span>
+                                              <select
+                                                aria-label={`Source candidate decision for ${candidate.title}`}
+                                                value={draftStatus}
+                                                onChange={(event) => {
+                                                  setSourceCandidateDraftStatuses(
+                                                    (current) => ({
+                                                      ...current,
+                                                      [candidate.id]: event.target
+                                                        .value as SourceCandidateDraftStatus,
+                                                    }),
+                                                  );
+                                                }}
+                                              >
+                                                <option value="">Choose...</option>
+                                                {sourceCandidateStatusActions.map(
+                                                  (action) => (
+                                                    <option
+                                                      key={action.status}
+                                                      value={action.status}
+                                                    >
+                                                      {action.label}
+                                                    </option>
+                                                  ),
+                                                )}
+                                              </select>
+                                            </label>
+                                            <button
+                                              className="ghost-button ghost-button--compact moderation-apply-button"
+                                              type="button"
+                                              disabled={!draftStatus}
+                                              onClick={() =>
+                                                void applySourceCandidateStatus(
+                                                  candidate,
+                                                )
+                                              }
+                                            >
+                                              Apply
+                                            </button>
+                                          </div>
+                                        </article>
+                                      );
+                                    })}
+                                  </>
+                                ) : (
+                                  <p className="source-note">
+                                    No source-derived candidate POIs need
+                                    moderation.
+                                  </p>
+                                )
+                              ) : null}
                             </div>
                           )}
                         </>
@@ -10352,7 +11105,13 @@ function App() {
 function RiverMap({
   sections,
   activeSection,
+  canonicalRivers,
+  selectedCanonicalRiver,
+  isSelectedRiverPanelOpen,
+  isSelectedRiverPanelExpanded,
+  isPoiDetailsOpen,
   mapPois,
+  selectedRiverMapPois,
   contributions,
   routeSuggestions,
   routeAdjustments,
@@ -10365,12 +11124,17 @@ function RiverMap({
   routeDraftPoints,
   liveLocation,
   liveLocationFocusNonce,
+  detailFocusLocation,
+  detailFocusPlacement,
+  detailFocusNonce,
+  detailRestoreNonce,
   searchFocusLocation,
   searchFocusLabel,
   showSearchFocusMarker,
   searchFocusNonce,
   isAddMode,
   routeCreateMode,
+  markerClickMode,
   showRoutesLayer,
   showSelectedRoutePath,
   showKnownRivers,
@@ -10383,10 +11147,20 @@ function RiverMap({
   onOpenRouteDetails,
   onOpenPhoto,
   onSelectSection,
+  onSelectCanonicalRiver,
+  onSelectCanonicalRiverContext,
+  onCloseSelectedRiverPanel,
+  onToggleSelectedRiverPanelExpanded,
 }: {
   sections: RiverSection[];
   activeSection: RiverSection;
+  canonicalRivers: CanonicalRiverSummary[];
+  selectedCanonicalRiver: CanonicalRiverSummary | null;
+  isSelectedRiverPanelOpen: boolean;
+  isSelectedRiverPanelExpanded: boolean;
+  isPoiDetailsOpen: boolean;
   mapPois: MapPoi[];
+  selectedRiverMapPois: MapPoi[];
   contributions: Contribution[];
   routeSuggestions: RouteSuggestion[];
   routeAdjustments: RouteAdjustment[];
@@ -10399,12 +11173,17 @@ function RiverMap({
   routeDraftPoints: LatLngTuple[];
   liveLocation: LiveLocationSnapshot | null;
   liveLocationFocusNonce: number;
+  detailFocusLocation: LatLngTuple | null;
+  detailFocusPlacement: MapFocusPlacement;
+  detailFocusNonce: number;
+  detailRestoreNonce: number;
   searchFocusLocation: LatLngTuple | null;
   searchFocusLabel: string;
   showSearchFocusMarker: boolean;
   searchFocusNonce: number;
   isAddMode: boolean;
   routeCreateMode: RouteCreateMode;
+  markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
@@ -10417,15 +11196,24 @@ function RiverMap({
   ) => void;
   onMoveRouteDraftPoint: (index: number, location: LatLngTuple) => void;
   focusNonce: number;
-  onOpenPoiDetails: (poi: SelectedPoi) => void;
+  onOpenPoiDetails: (
+    poi: SelectedPoi,
+    options?: OpenPoiDetailsOptions,
+  ) => void;
   onOpenRouteDetails: (section: RiverSection) => void;
   onOpenPhoto: (photo: PhotoLightboxItem) => void;
   onSelectSection: (section: RiverSection) => void;
+  onSelectCanonicalRiver: (riverId: string | null) => void;
+  onSelectCanonicalRiverContext: (riverId: string | null) => void;
+  onCloseSelectedRiverPanel: () => void;
+  onToggleSelectedRiverPanelExpanded: () => void;
 }) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
   const callbackRef = useRef(onSelectSection);
+  const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
+  const canonicalRiverContextSelectRef = useRef(onSelectCanonicalRiverContext);
   const mapClickRef = useRef(onMapClick);
   const moveRouteDraftPointRef = useRef(onMoveRouteDraftPoint);
   const poiDetailsRef = useRef(onOpenPoiDetails);
@@ -10436,6 +11224,9 @@ function RiverMap({
   const previousRouteSuggestionFocusNonceRef = useRef(routeSuggestionFocusNonce);
   const previousRouteAdjustmentFocusNonceRef = useRef(routeAdjustmentFocusNonce);
   const previousLiveLocationFocusNonceRef = useRef(liveLocationFocusNonce);
+  const previousDetailFocusNonceRef = useRef(detailFocusNonce);
+  const previousDetailRestoreNonceRef = useRef(detailRestoreNonce);
+  const detailRestoreViewRef = useRef<MapCameraSnapshot | null>(null);
   const previousWatercourseFocusNonceRef = useRef(watercourseFocusNonce);
   const shouldFitActiveSectionRef = useRef(true);
   const knownWatercoursesRequestRef = useRef(0);
@@ -10443,6 +11234,9 @@ function RiverMap({
     [],
   );
   const [knownWatercourseStatus, setKnownWatercourseStatus] = useState("");
+  const [hiddenPoiCategories, setHiddenPoiCategories] = useState<
+    Set<MapPoiDisplayCategory>
+  >(() => new Set());
   const [selectedWatercourseId, setSelectedWatercourseId] = useState<string | null>(
     null,
   );
@@ -10481,10 +11275,41 @@ function RiverMap({
         : [],
     [sections, selectedWatercourse],
   );
+  const selectedRiverPoiCategoryCounts = useMemo(() => {
+    const counts = new Map<MapPoiDisplayCategory, number>();
+
+    selectedRiverMapPois.forEach((poi) => {
+      const category = mapPoiDisplayMeta(poi).category;
+      counts.set(category, (counts.get(category) ?? 0) + 1);
+    });
+
+    return Array.from(counts.entries())
+      .map(([category, count]) => ({ category, count }))
+      .sort((left, right) =>
+        mapPoiCategoryLabels[left.category].localeCompare(
+          mapPoiCategoryLabels[right.category],
+        ),
+      );
+  }, [selectedRiverMapPois]);
+  const visibleSelectedRiverMapPois = useMemo(
+    () =>
+      selectedRiverMapPois.filter(
+        (poi) => !hiddenPoiCategories.has(mapPoiDisplayMeta(poi).category),
+      ),
+    [hiddenPoiCategories, selectedRiverMapPois],
+  );
 
   useEffect(() => {
     callbackRef.current = onSelectSection;
   }, [onSelectSection]);
+
+  useEffect(() => {
+    canonicalRiverSelectRef.current = onSelectCanonicalRiver;
+  }, [onSelectCanonicalRiver]);
+
+  useEffect(() => {
+    canonicalRiverContextSelectRef.current = onSelectCanonicalRiverContext;
+  }, [onSelectCanonicalRiverContext]);
 
   useEffect(() => {
     mapClickRef.current = onMapClick;
@@ -10571,7 +11396,7 @@ function RiverMap({
         const bounds = map.getBounds();
         const requestId = knownWatercoursesRequestRef.current + 1;
         knownWatercoursesRequestRef.current = requestId;
-        setKnownWatercourseStatus("Loading known rivers...");
+        setKnownWatercourseStatus("Loading reference waterways...");
 
         void fetchWatercoursesForBounds(
           {
@@ -10606,7 +11431,7 @@ function RiverMap({
             }
 
             setKnownWatercourses([]);
-            setKnownWatercourseStatus("Known rivers unavailable in this view");
+            setKnownWatercourseStatus("Reference waterways unavailable in this view");
           });
       }, 180);
     };
@@ -10661,6 +11486,104 @@ function RiverMap({
     }
 
     layers.clearLayers();
+
+    canonicalRivers.forEach((river) => {
+      const isSelected = selectedCanonicalRiver?.id === river.id;
+      const label = river.displayName.trim().charAt(0).toUpperCase() || "R";
+      const marker = L.marker(river.centre, {
+        bubblingMouseEvents: false,
+        icon: L.divIcon({
+          className: "",
+          html: markerHtml(isSelected ? "river-active" : "river", label),
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+        }),
+      });
+      const openRiverDetails = () => {
+        map.closePopup();
+        canonicalRiverSelectRef.current(river.id);
+      };
+      const selectRiverContext = () => {
+        map.closePopup();
+        canonicalRiverContextSelectRef.current(river.id);
+      };
+
+      marker.addTo(layers);
+      if (markerClickMode === "info") {
+        marker.bindPopup(
+          createMapPopupContent({
+            title: river.displayName,
+            subtitle: `${river.region} · ${river.sectionCount} section${
+              river.sectionCount === 1 ? "" : "s"
+            }`,
+            summary: river.summary,
+            detailsLabel: "Details",
+            onDetails: openRiverDetails,
+            selectLabel: "Select river",
+            onSelect: selectRiverContext,
+          }),
+        );
+      }
+      marker.on("click", (event) => {
+        L.DomEvent.stop(event.originalEvent);
+        if (markerClickMode === "info") {
+          marker.openPopup();
+          return;
+        }
+        openRiverDetails();
+      });
+    });
+
+    if (selectedCanonicalRiver) {
+      visibleSelectedRiverMapPois.forEach((poi) => {
+        const displayMeta = mapPoiDisplayMeta(poi);
+        const markerSize =
+          displayMeta.category === "rapid" || displayMeta.category === "whitewater"
+            ? 30
+            : displayMeta.category === "structure" || displayMeta.category === "hazard"
+              ? 30
+              : 28;
+        const marker = L.marker(poi.location, {
+          bubblingMouseEvents: false,
+          icon: L.divIcon({
+            className: "",
+            html: markerHtml(displayMeta.markerKind, displayMeta.markerLabel),
+            iconSize: [markerSize, markerSize],
+            iconAnchor: [markerSize / 2, markerSize / 2],
+          }),
+        });
+        const openPoiDetails = () => {
+          map.closePopup();
+          poiDetailsRef.current(
+            riverMapPoiToSelectedPoi(poi, selectedCanonicalRiver),
+            { focusMap: true, focusPlacement: "mobile-top-half" },
+          );
+        };
+
+        marker.addTo(layers);
+        if (markerClickMode === "info") {
+          marker.bindPopup(
+            createMapPopupContent({
+              title: poi.title,
+              subtitle: `${selectedCanonicalRiver.displayName} · ${displayMeta.label}`,
+              summary: poi.summary,
+              navigationLocation: poi.location,
+              navigationLabel: poi.kind === "access" ? "Directions" : "Maps",
+              navigationMode: poi.kind === "access" ? "directions" : "map",
+              onDetails: openPoiDetails,
+            }),
+          );
+        }
+        marker.on("click", (event) => {
+          L.DomEvent.stop(event.originalEvent);
+          if (markerClickMode === "info") {
+            marker.openPopup();
+            return;
+          }
+          openPoiDetails();
+        });
+      });
+    }
 
     if (showKnownRivers) {
       const knownRiverColour = readCssColourToken(
@@ -10830,45 +11753,52 @@ function RiverMap({
       mapPois
         .filter((poi) => poi.sectionId === section.id)
         .forEach((poi) => {
-        const markerLabel =
-          poi.kind === "hazard"
-            ? "!"
-            : poi.kind === "feature"
-              ? "*"
-              : poi.kind === "gauge"
-                ? "~"
-                : readPayloadString(poi.payload, "accessType") === "put-in"
-                  ? "I"
-                  : "O";
-        const markerSize = poi.kind === "hazard" ? 30 : poi.kind === "feature" ? 26 : 28;
+        const displayMeta = mapPoiDisplayMeta(poi);
+        const markerSize =
+          displayMeta.category === "rapid" || displayMeta.category === "whitewater"
+            ? 30
+            : displayMeta.category === "structure" || displayMeta.category === "hazard"
+              ? 30
+              : 28;
         const marker = L.marker(poi.location, {
           bubblingMouseEvents: false,
           icon: L.divIcon({
             className: "",
-            html: markerHtml(poi.kind, markerLabel),
+            html: markerHtml(displayMeta.markerKind, displayMeta.markerLabel),
             iconSize: [markerSize, markerSize],
             iconAnchor: [markerSize / 2, markerSize / 2],
           }),
         });
+        const openPoiDetails = () => {
+          map.closePopup();
+          poiDetailsRef.current(mapPoiToSelectedPoi(poi, section), {
+            focusMap: true,
+            focusPlacement: "mobile-top-half",
+          });
+        };
 
-        marker
-          .addTo(layers)
-          .bindPopup(
+        marker.addTo(layers);
+        if (markerClickMode === "info") {
+          marker.bindPopup(
             createMapPopupContent({
               title: poi.title,
-              subtitle: poi.subtitle,
+              subtitle: displayMeta.label,
               summary: poi.summary,
               navigationLocation: poi.location,
               navigationLabel: poi.kind === "access" ? "Directions" : "Maps",
               navigationMode: poi.kind === "access" ? "directions" : "map",
-              onDetails: () =>
-                poiDetailsRef.current(mapPoiToSelectedPoi(poi, section)),
+              onDetails: openPoiDetails,
             }),
-          )
-          .on("click", (event) => {
-            L.DomEvent.stop(event.originalEvent);
+          );
+        }
+        marker.on("click", (event) => {
+          L.DomEvent.stop(event.originalEvent);
+          if (markerClickMode === "info") {
             marker.openPopup();
-          });
+            return;
+          }
+          openPoiDetails();
+        });
       });
     });
 
@@ -10974,12 +11904,6 @@ function RiverMap({
               : contribution.type === "access"
                 ? "A"
                 : "N";
-      const popupPhoto =
-        contribution.type === "photo" ? contribution.photos?.[0] : undefined;
-      const popupPhotoUrl = popupPhoto?.thumbnailUrl || popupPhoto?.displayUrl;
-      const popupPhotoDisplayUrl = popupPhoto?.displayUrl || popupPhotoUrl;
-      const popupPhotoTitle = popupPhoto?.caption || contribution.title;
-
       const marker = L.marker(contribution.location, {
         bubblingMouseEvents: false,
         icon: L.divIcon({
@@ -10989,10 +11913,27 @@ function RiverMap({
           iconAnchor: [15, 15],
         }),
       });
+      const openContributionDetails = () => {
+        map.closePopup();
+        poiDetailsRef.current(
+          contributionToSelectedPoi(
+            contribution,
+            sections.find((section) => section.id === contribution.sectionId) ??
+              activeSection,
+            syncStatus,
+          ),
+          { focusMap: true, focusPlacement: "mobile-top-half" },
+        );
+      };
+      const popupPhoto =
+        contribution.type === "photo" ? contribution.photos?.[0] : undefined;
+      const popupPhotoUrl = popupPhoto?.thumbnailUrl || popupPhoto?.displayUrl;
+      const popupPhotoDisplayUrl = popupPhoto?.displayUrl || popupPhotoUrl;
+      const popupPhotoTitle = popupPhoto?.caption || contribution.title;
 
-      marker
-        .addTo(layers)
-        .bindPopup(
+      marker.addTo(layers);
+      if (markerClickMode === "info") {
+        marker.bindPopup(
           createMapPopupContent({
             title: contribution.title,
             subtitle: `${contribution.type} · ${contributionStatusLabel(contribution.status)}`,
@@ -11010,36 +11951,18 @@ function RiverMap({
                     })
                 : undefined,
             navigationLocation: contribution.location,
-            onDetails: () =>
-              poiDetailsRef.current({
-                id: contribution.id,
-                kind: "contribution",
-                title: contribution.title,
-                subtitle: `${contribution.type} · ${contribution.category}`,
-                summary: contribution.detail,
-                sectionLabel:
-                  sections.find((section) => section.id === contribution.sectionId)
-                    ?.sectionName ?? activeSection.sectionName,
-                location: contribution.location!,
-                status: contribution.status,
-                sourceLabel: contribution.author,
-                sourceConfidence: "community",
-                navigationLocation: contribution.location!,
-                what3words: contribution.what3words,
-                syncStatus,
-                photos: contribution.photos,
-                category: contribution.category,
-                author: contribution.author,
-                dateObserved: contribution.dateObserved,
-                createdAt: contribution.createdAt,
-                contributionType: contribution.type,
-              }),
+            onDetails: openContributionDetails,
           }),
-        )
-        .on("click", (event) => {
-          L.DomEvent.stop(event.originalEvent);
+        );
+      }
+      marker.on("click", (event) => {
+        L.DomEvent.stop(event.originalEvent);
+        if (markerClickMode === "info") {
           marker.openPopup();
-        });
+          return;
+        }
+        openContributionDetails();
+      });
     });
 
     if (searchFocusLocation && showSearchFocusMarker) {
@@ -11240,9 +12163,11 @@ function RiverMap({
     previousRouteAdjustmentFocusNonceRef.current = routeAdjustmentFocusNonce;
   }, [
     activeSection,
+    canonicalRivers,
     contributions,
     focusNonce,
     liveLocation,
+    markerClickMode,
     mapPois,
     knownWatercourses,
     outboxByContributionId,
@@ -11253,7 +12178,9 @@ function RiverMap({
     showSearchFocusMarker,
     searchFocusNonce,
     selectedLocation,
+    selectedCanonicalRiver,
     selectedWatercourse,
+    visibleSelectedRiverMapPois,
     isAddMode,
     routeCreateMode,
     routeDraftPoints,
@@ -11285,6 +12212,48 @@ function RiverMap({
     });
   }, [liveLocationFocusNonce, liveLocation]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (
+      !map ||
+      !detailFocusLocation ||
+      previousDetailFocusNonceRef.current === detailFocusNonce
+    ) {
+      return;
+    }
+
+    previousDetailFocusNonceRef.current = detailFocusNonce;
+    const centre = map.getCenter();
+    detailRestoreViewRef.current = {
+      centre: [centre.lat, centre.lng],
+      zoom: map.getZoom(),
+    };
+    focusMapOnDetailLocation(map, detailFocusLocation, detailFocusPlacement);
+  }, [detailFocusLocation, detailFocusPlacement, detailFocusNonce]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (
+      !map ||
+      previousDetailRestoreNonceRef.current === detailRestoreNonce
+    ) {
+      return;
+    }
+
+    previousDetailRestoreNonceRef.current = detailRestoreNonce;
+    const restoreView = detailRestoreViewRef.current;
+
+    if (!restoreView) {
+      return;
+    }
+
+    map.invalidateSize();
+    map.setView(restoreView.centre, restoreView.zoom, { animate: false });
+    detailRestoreViewRef.current = null;
+  }, [detailRestoreNonce]);
+
   function openWatercoursePoi(poi: WatercourseContextPoi) {
     if (poi.kind === "contribution") {
       const contribution = contributions.find((item) => item.id === poi.id);
@@ -11299,6 +12268,7 @@ function RiverMap({
           poi.section,
           outboxByContributionId.get(contribution.id)?.syncStatus,
         ),
+        { focusMap: true, focusPlacement: "mobile-top-half-or-center" },
       );
       return;
     }
@@ -11311,17 +12281,234 @@ function RiverMap({
       return;
     }
 
-    poiDetailsRef.current(mapPoiToSelectedPoi(mapPoi, poi.section));
+    poiDetailsRef.current(mapPoiToSelectedPoi(mapPoi, poi.section), {
+      focusMap: true,
+      focusPlacement: "mobile-top-half-or-center",
+    });
+  }
+
+  function togglePoiCategoryFilter(category: MapPoiDisplayCategory) {
+    setHiddenPoiCategories((current) => {
+      const next = new Set(current);
+
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+
+      return next;
+    });
+  }
+
+  function showAllPoiCategories() {
+    setHiddenPoiCategories(new Set());
   }
 
   const selectedWatercourseHintRows = selectedWatercourse
     ? watercourseHintRows(selectedWatercourse)
     : [];
+  const selectedCanonicalRiverSections = selectedCanonicalRiver
+    ? sections.filter((section) => {
+        if (isCanonicalOverviewSection(section)) {
+          return false;
+        }
+
+        const sectionRiverName = section.riverName.toLowerCase();
+        const displayName = selectedCanonicalRiver.displayName.toLowerCase();
+        const canonicalName = selectedCanonicalRiver.canonicalName.toLowerCase();
+
+        return (
+          sectionRiverName === displayName ||
+          sectionRiverName.includes(canonicalName) ||
+          displayName.includes(sectionRiverName)
+        );
+      })
+    : [];
 
   return (
     <section className="map-stage" aria-label="River map">
       <div className="map-canvas" ref={mapContainerRef} />
-      {selectedWatercourse ? (
+      {selectedCanonicalRiver && isSelectedRiverPanelOpen && !isPoiDetailsOpen ? (
+        <aside
+          className={`watercourse-panel ${
+            isSelectedRiverPanelExpanded ? "watercourse-panel--expanded" : ""
+          }`}
+          aria-label="Selected river"
+        >
+          <div className="watercourse-panel__header">
+            <div>
+              <p className="eyebrow">River</p>
+              <h2>{selectedCanonicalRiver.displayName}</h2>
+            </div>
+            <div className="panel-icon-actions">
+              <button
+                className="icon-button icon-button--compact"
+                type="button"
+                aria-label={
+                  isSelectedRiverPanelExpanded
+                    ? "Collapse river details"
+                    : "Expand river details"
+                }
+                title={isSelectedRiverPanelExpanded ? "Collapse" : "Expand"}
+                onClick={onToggleSelectedRiverPanelExpanded}
+              >
+                {isSelectedRiverPanelExpanded ? (
+                  <Minimize2 size={16} />
+                ) : (
+                  <Maximize2 size={16} />
+                )}
+              </button>
+              <button
+                className="icon-button icon-button--compact"
+                type="button"
+                aria-label="Close river details"
+                title="Close"
+                onClick={onCloseSelectedRiverPanel}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+
+          <div className="watercourse-panel__summary">
+            <span>{selectedCanonicalRiver.region}</span>
+            <span>
+              {selectedCanonicalRiver.sectionCount} linked section
+              {selectedCanonicalRiver.sectionCount === 1 ? "" : "s"}
+            </span>
+            <span>{selectedCanonicalRiver.sourceConfidence}</span>
+          </div>
+
+          <p className="source-note">
+            Pilot canonical river record. Source-derived candidate features stay
+            out of the public map until reviewed.
+          </p>
+
+          <div className="watercourse-context">
+            <h3>Review context</h3>
+            <dl className="watercourse-hints">
+              <div>
+                <dt>Candidate POIs</dt>
+                <dd>{selectedCanonicalRiver.candidatePoiCount}</dd>
+              </div>
+              <div>
+                <dt>Need review</dt>
+                <dd>{selectedCanonicalRiver.reviewNeededCandidatePoiCount}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{selectedCanonicalRiver.curationStatus}</dd>
+              </div>
+              <div>
+                <dt>Updated</dt>
+                <dd>{formatDateTime(selectedCanonicalRiver.updatedAt)}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="watercourse-context">
+            <h3>Reviewed points</h3>
+            {selectedRiverPoiCategoryCounts.length ? (
+              <div className="poi-filter-strip" aria-label="Filter reviewed points">
+                <button
+                  className={`poi-filter-chip ${
+                    hiddenPoiCategories.size === 0 ? "poi-filter-chip--active" : ""
+                  }`}
+                  type="button"
+                  onClick={showAllPoiCategories}
+                >
+                  All
+                </button>
+                {selectedRiverPoiCategoryCounts.map(({ category, count }) => (
+                  <button
+                    className={`poi-filter-chip ${
+                      hiddenPoiCategories.has(category)
+                        ? ""
+                        : "poi-filter-chip--active"
+                    }`}
+                    key={category}
+                    type="button"
+                    onClick={() => togglePoiCategoryFilter(category)}
+                  >
+                    {mapPoiCategoryLabels[category]} {count}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {visibleSelectedRiverMapPois.length ? (
+              <div className="watercourse-list">
+                {visibleSelectedRiverMapPois.slice(0, 8).map((poi) => {
+                  const displayMeta = mapPoiDisplayMeta(poi);
+                  return (
+                  <button
+                    className="watercourse-list-row"
+                    key={poi.id}
+                    type="button"
+                    onClick={() =>
+                      poiDetailsRef.current(
+                        riverMapPoiToSelectedPoi(poi, selectedCanonicalRiver),
+                        {
+                          focusMap: true,
+                          focusPlacement: "mobile-top-half-or-center",
+                        },
+                      )
+                    }
+                  >
+                    <span>
+                      <strong>{poi.title}</strong>
+                      <small>
+                        {displayMeta.label} · {poi.source?.label ?? "source confirmed"}
+                      </small>
+                    </span>
+                    <MapPin size={15} />
+                  </button>
+                  );
+                })}
+              </div>
+            ) : selectedRiverMapPois.length ? (
+              <p className="empty-state">
+                All reviewed points are hidden by the current filters.
+              </p>
+            ) : (
+              <p className="empty-state">
+                No reviewed source candidates have been promoted for this river yet.
+              </p>
+            )}
+          </div>
+
+          <div className="watercourse-context">
+            <h3>Sections on this river</h3>
+            {selectedCanonicalRiverSections.length ? (
+              <div className="watercourse-list">
+                {selectedCanonicalRiverSections.map((section) => (
+                  <button
+                    className="watercourse-list-row"
+                    key={section.id}
+                    type="button"
+                    onClick={() => callbackRef.current(section)}
+                  >
+                    <span>
+                      <strong>{section.sectionName}</strong>
+                      <small>
+                        {section.difficulty} · {section.distanceKm} km
+                      </small>
+                    </span>
+                    <Route size={15} />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-state">
+                {selectedCanonicalRiver.sectionCount} linked section
+                {selectedCanonicalRiver.sectionCount === 1 ? "" : "s"} in the
+                backend.
+              </p>
+            )}
+          </div>
+        </aside>
+      ) : null}
+      {selectedWatercourse && !selectedCanonicalRiver && !isPoiDetailsOpen ? (
         <aside
           className="watercourse-panel"
           aria-label="Selected waterway stretch"
@@ -11423,7 +12610,7 @@ function RiverMap({
       <div className="map-legend" aria-label="Map legend">
         {showKnownRivers ? (
           <span title={knownWatercourseStatus || undefined}>
-            <i className="legend-line legend-line--known-river" /> Known rivers
+            <i className="legend-line legend-line--known-river" /> Waterways
             {knownWatercourseStatus ? (
               <small className="map-legend__status">
                 {knownWatercourseStatus}
