@@ -13,6 +13,10 @@ import {
   type CanonicalRiverSummary,
 } from "../services/canonicalRiverApi";
 import { fetchRiverMapPois } from "../services/mapPoiApi";
+import {
+  fetchSectionObservations,
+  type SectionObservationMeasure,
+} from "../services/observationApi";
 import type { MapPoi } from "../types";
 
 interface DiscoveryContextValue {
@@ -21,6 +25,7 @@ interface DiscoveryContextValue {
   selectedRiverId: string | null;
   selectedRiver: CanonicalRiverDetail | null;
   riverPois: MapPoi[];
+  riverObservations: SectionObservationMeasure[];
   isRiverLoading: boolean;
   selectRiver: (riverId: string | null) => void;
 }
@@ -39,6 +44,9 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
   const [selectedRiver, setSelectedRiver] =
     useState<CanonicalRiverDetail | null>(null);
   const [riverPois, setRiverPois] = useState<MapPoi[]>([]);
+  const [riverObservations, setRiverObservations] = useState<
+    SectionObservationMeasure[]
+  >([]);
   const [isRiverLoading, setIsRiverLoading] = useState(false);
 
   useEffect(() => {
@@ -66,32 +74,45 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
     if (!selectedRiverId) {
       setSelectedRiver(null);
       setRiverPois([]);
+      setRiverObservations([]);
       return;
     }
 
     let active = true;
     setIsRiverLoading(true);
-    void Promise.all([
-      fetchCanonicalRiver(selectedRiverId),
-      fetchRiverMapPois(selectedRiverId).catch(() => [] as MapPoi[]),
-    ])
-      .then(([river, pois]) => {
-        if (active) {
-          setSelectedRiver(river);
-          setRiverPois(pois);
-        }
-      })
-      .catch(() => {
+
+    void (async () => {
+      try {
+        const river = await fetchCanonicalRiver(selectedRiverId);
+        if (!active) return;
+        setSelectedRiver(river);
+
+        const sectionIds = river.sectionLinks.map((link) => link.sectionId);
+        const [pois, observationGroups] = await Promise.all([
+          fetchRiverMapPois(selectedRiverId).catch(() => [] as MapPoi[]),
+          Promise.all(
+            sectionIds.map((sectionId) =>
+              fetchSectionObservations(sectionId).catch(
+                () => [] as SectionObservationMeasure[],
+              ),
+            ),
+          ),
+        ]);
+        if (!active) return;
+        setRiverPois(pois);
+        setRiverObservations(observationGroups.flat());
+      } catch {
         if (active) {
           setSelectedRiver(null);
           setRiverPois([]);
+          setRiverObservations([]);
         }
-      })
-      .finally(() => {
+      } finally {
         if (active) {
           setIsRiverLoading(false);
         }
-      });
+      }
+    })();
 
     return () => {
       active = false;
@@ -110,6 +131,7 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
         selectedRiverId,
         selectedRiver,
         riverPois,
+        riverObservations,
         isRiverLoading,
         selectRiver,
       }}

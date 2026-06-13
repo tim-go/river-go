@@ -1,5 +1,11 @@
 import { useDiscovery } from "../discovery/DiscoveryContext";
-import { formatDateTime } from "../lib/format";
+import {
+  formatDateTime,
+  formatObservationValue,
+  formatShortDateTime,
+  getObservationStats,
+  getPrimaryObservationMeasure,
+} from "../lib/format";
 import type { MapPoi, MapPoiKind } from "../types";
 
 // Paddler-priority order. Each group renders its facts, or an honest gap that
@@ -32,13 +38,15 @@ function riverFreshness(curationStatus: string): string {
  * verdict. See /docs/specs/principles/no-advice-and-liability-language.md.
  */
 export function RiverCard() {
-  const { selectedRiver: river, riverPois, isRiverLoading } = useDiscovery();
+  const { selectedRiver: river, riverPois, riverObservations, isRiverLoading } =
+    useDiscovery();
 
   if (!river) {
     return null;
   }
 
   const place = [river.region, river.country].filter(Boolean).join(" · ");
+  const primaryMeasure = getPrimaryObservationMeasure(riverObservations);
 
   return (
     <section className="river-card" aria-label={`${river.displayName} overview`}>
@@ -59,7 +67,30 @@ export function RiverCard() {
 
       <div className="river-card__block">
         <h3>Today</h3>
-        <p className="river-card__gap">No live gauge linked to this river yet.</p>
+        {primaryMeasure && primaryMeasure.latest ? (
+          <div className="river-card__level">
+            <strong>
+              {formatObservationValue(
+                primaryMeasure.latest.value,
+                primaryMeasure.unit,
+              )}
+            </strong>
+            <span className="river-card__trend">
+              {getObservationStats(primaryMeasure).trend}
+            </span>
+            <small>
+              {primaryMeasure.stationName} ·{" "}
+              {formatShortDateTime(primaryMeasure.latest.observedAt)}
+              {primaryMeasure.latest.state !== "live"
+                ? " · may be out of date"
+                : ""}
+            </small>
+          </div>
+        ) : (
+          <p className="river-card__gap">
+            No live gauge linked to this river yet.
+          </p>
+        )}
       </div>
 
       <div className="river-card__block">

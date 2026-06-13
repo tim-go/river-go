@@ -4881,3 +4881,7 @@ textarea {
 .river-card__poi small { font-size: 0.72rem; color: #7a8884; }
 .river-card__sourcing { margin-top: 0.25rem; font-size: 0.72rem; color: #7a8884; }
 .river-card__loading { margin: 0; font-size: 0.8rem; color: #0f766e; }
+.river-card__level { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 0.6rem; }
+.river-card__level strong { font-size: 1.4rem; }
+.river-card__trend { font-size: 0.85rem; color: #5b6b66; text-transform: capitalize; }
+.river-card__level small { flex-basis: 100%; font-size: 0.72rem; color: #7a8884; }
