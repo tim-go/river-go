@@ -4,6 +4,7 @@ import {
   getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithPopup,
   signInWithRedirect,
@@ -20,6 +21,7 @@ export interface AuthUser {
   uid: string;
   displayName: string;
   email: string | null;
+  emailVerified: boolean;
   photoURL: string | null;
 }
 
@@ -107,6 +109,12 @@ export async function createAccountWithEmail(input: {
       await updateProfile(credential.user, { displayName });
       await credential.user.getIdToken(true);
     }
+
+    try {
+      await sendEmailVerification(credential.user);
+    } catch {
+      // Non-fatal: the member can re-request verification from the contributor on-ramp.
+    }
   } catch (error) {
     throw new Error(getFriendlyAuthErrorMessage(error, "Could not create account."));
   }
@@ -143,6 +151,37 @@ export async function sendEmailPasswordReset(email: string): Promise<void> {
       getFriendlyAuthErrorMessage(error, "Could not send password reset email."),
     );
   }
+}
+
+export async function sendCurrentUserEmailVerification(): Promise<void> {
+  const auth = getClientAuth();
+
+  if (!auth?.currentUser) {
+    throw new Error("You need to be signed in to verify your email.");
+  }
+
+  try {
+    await sendEmailVerification(auth.currentUser);
+  } catch (error) {
+    throw new Error(
+      getFriendlyAuthErrorMessage(
+        error,
+        "Could not send the verification email.",
+      ),
+    );
+  }
+}
+
+export async function reloadCurrentUser(): Promise<AuthUser | null> {
+  const auth = getClientAuth();
+
+  if (!auth?.currentUser) {
+    return null;
+  }
+
+  await auth.currentUser.reload();
+  await auth.currentUser.getIdToken(true);
+  return auth.currentUser ? mapAuthUser(auth.currentUser) : null;
 }
 
 export async function signOutCurrentUser(): Promise<void> {
@@ -292,6 +331,7 @@ function mapAuthUser(user: User): AuthUser {
     uid: user.uid,
     displayName: user.displayName ?? user.email ?? "Signed-in member",
     email: user.email,
+    emailVerified: user.emailVerified,
     photoURL: user.photoURL,
   };
 }

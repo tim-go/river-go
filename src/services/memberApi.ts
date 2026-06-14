@@ -23,6 +23,8 @@ export interface MemberProfile {
   createdAt: string;
   updatedAt: string;
   lastSeenAt: string | null;
+  contributorTermsAcceptedAt: string | null;
+  contributorTermsVersion: string | null;
 }
 
 export interface MemberEmergencyProfile {
@@ -56,6 +58,18 @@ export async function updateMyProfile(input: {
     method: "PATCH",
     body: JSON.stringify(input),
   }).then((result) => result.member);
+}
+
+export async function acceptContributorTerms(
+  version: string,
+): Promise<MemberProfile> {
+  return fetchMemberEndpoint<{ member: MemberProfile }>(
+    "/api/me/contributor-terms",
+    {
+      method: "POST",
+      body: JSON.stringify({ version }),
+    },
+  ).then((result) => result.member);
 }
 
 export async function fetchMyEmergencyProfile(): Promise<MemberEmergencyProfile> {
