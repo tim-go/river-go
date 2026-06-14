@@ -4598,7 +4598,7 @@ function App() {
                           : "Loading"
                         : sectionObservations.length
                           ? `${sectionObservations.length} linked`
-                          : "No stored link"}
+                          : "No gauge linked yet"}
                     </span>
                   </div>
                   <div
@@ -4783,9 +4783,9 @@ function App() {
                   <p className="source-note">
                     {sectionObservationMessage ||
                       (sectionObservations.length
-                        ? "Stored provider observations are cached by RiverLaunch.app. Runnable interpretation still needs local validation."
+                        ? "Gauge readings shown for context — interpret conditions locally."
                         : liveGauge?.message ??
-                          "Seed gauge context only. Provider mapping is still being verified.")}
+                          "No confirmed gauge for this section yet.")}
                   </p>
                 </section>
 
@@ -4833,7 +4833,7 @@ function App() {
                 <section className="info-block info-block--first">
                   <div className="block-title">
                     <h3>Hazards</h3>
-                    <span>{visibleHazardPois.length} seeded</span>
+                    <span>{visibleHazardPois.length}</span>
                   </div>
                   {visibleHazardPois.map((hazard) => (
                     <div className="hazard-item" key={hazard.id}>
