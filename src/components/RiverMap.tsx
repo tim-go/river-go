@@ -18,7 +18,14 @@ import type { CanonicalRiverSummary } from "../services/canonicalRiverApi";
 import { fetchWatercoursesForBounds, type KnownWatercourse } from "../services/watercourseApi";
 import type { RouteAdjustment } from "../services/routeAdjustmentApi";
 import type { RouteSuggestion } from "../services/routeSuggestionApi";
-import { formatDateTime, readCssColourToken, routeEndpointBounds } from "../lib/format";
+import {
+  formatObservationValue,
+  formatShortDateTime,
+  getObservationStats,
+  getPrimaryObservationMeasure,
+  readCssColourToken,
+  routeEndpointBounds,
+} from "../lib/format";
 import {
   createLiveLocationPopup,
   createMapPopupContent,
@@ -167,7 +174,8 @@ export function RiverMap({
 }) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const { selectedRiver } = useDiscovery();
+  const { selectedRiver, riverObservations } = useDiscovery();
+  const primaryRiverMeasure = getPrimaryObservationMeasure(riverObservations);
 
   // Spatial connection: selecting a river flies the map to it.
   useEffect(() => {
@@ -1355,34 +1363,40 @@ export function RiverMap({
           </div>
 
           <p className="source-note">
-            Pilot canonical river record. Source-derived candidate features stay
-            out of the public map until reviewed.
+            Community-sourced and official information. Conditions change quickly
+            — check locally and paddle within your own judgement.
           </p>
 
           <div className="watercourse-context">
-            <h3>Review context</h3>
-            <dl className="watercourse-hints">
-              <div>
-                <dt>Candidate POIs</dt>
-                <dd>{selectedCanonicalRiver.candidatePoiCount}</dd>
+            <h3>Today</h3>
+            {primaryRiverMeasure && primaryRiverMeasure.latest ? (
+              <div className="river-card__level">
+                <strong>
+                  {formatObservationValue(
+                    primaryRiverMeasure.latest.value,
+                    primaryRiverMeasure.unit,
+                  )}
+                </strong>
+                <span className="river-card__trend">
+                  {getObservationStats(primaryRiverMeasure).trend}
+                </span>
+                <small>
+                  {primaryRiverMeasure.stationName} ·{" "}
+                  {formatShortDateTime(primaryRiverMeasure.latest.observedAt)}
+                  {primaryRiverMeasure.latest.state !== "live"
+                    ? " · may be out of date"
+                    : ""}
+                </small>
               </div>
-              <div>
-                <dt>Need review</dt>
-                <dd>{selectedCanonicalRiver.reviewNeededCandidatePoiCount}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{selectedCanonicalRiver.curationStatus}</dd>
-              </div>
-              <div>
-                <dt>Updated</dt>
-                <dd>{formatDateTime(selectedCanonicalRiver.updatedAt)}</dd>
-              </div>
-            </dl>
+            ) : (
+              <p className="empty-state">
+                No live gauge linked to this river yet.
+              </p>
+            )}
           </div>
 
           <div className="watercourse-context">
-            <h3>Reviewed points</h3>
+            <h3>On this river</h3>
             {selectedRiverPoiCategoryCounts.length ? (
               <div className="poi-filter-strip" aria-label="Filter reviewed points">
                 <button
@@ -1474,9 +1488,9 @@ export function RiverMap({
               </div>
             ) : (
               <p className="empty-state">
-                {selectedCanonicalRiver.sectionCount} linked section
-                {selectedCanonicalRiver.sectionCount === 1 ? "" : "s"} in the
-                backend.
+                {selectedCanonicalRiver.sectionCount} paddling section
+                {selectedCanonicalRiver.sectionCount === 1 ? "" : "s"} on this
+                river.
               </p>
             )}
           </div>
