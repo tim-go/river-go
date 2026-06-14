@@ -60,6 +60,8 @@ import { syncContributionOutbox } from "./services/contributionSync";
 import {
   getCurrentUserIdToken,
   createAccountWithEmail,
+  reloadCurrentUser,
+  sendCurrentUserEmailVerification,
   sendEmailPasswordReset,
   signInWithGoogle,
   signInWithEmail,
@@ -68,6 +70,7 @@ import {
   type AuthState,
 } from "./services/firebaseAuth";
 import {
+  acceptContributorTerms,
   fetchAdminMembers,
   fetchAdminMemberDetail,
   fetchCurrentMember,
@@ -81,6 +84,10 @@ import {
   type MemberRole,
   type MemberTrustLevel,
 } from "./services/memberApi";
+import {
+  CONTRIBUTOR_TERMS_VERSION,
+  hasAcceptedCurrentContributorTerms,
+} from "./lib/contributorTerms";
 import { fetchEnvironmentAgencyGaugeReading } from "./services/riverLevels";
 import {
   processContributionPhoto,
@@ -124,6 +131,10 @@ import { AppNotificationBanner } from "./components/AppNotificationBanner";
 import { PlaceholderPage } from "./components/PlaceholderPage";
 import { PhotoLightbox } from "./components/PhotoLightbox";
 import { AuthPromptSheet } from "./components/AuthPromptSheet";
+import {
+  ContributorOnramp,
+  type ContributorActionResult,
+} from "./components/ContributorOnramp";
 import { PoiDetailPanel } from "./components/PoiDetailPanel";
 import { RiverMap } from "./components/RiverMap";
 import { useDiscovery } from "./discovery/DiscoveryContext";
@@ -490,6 +501,9 @@ function App() {
   const [isPoiStatusSaving, setIsPoiStatusSaving] = useState(false);
   const [isSectionListOpen, setIsSectionListOpen] = useState(false);
   const [authSheetMode, setAuthSheetMode] = useState<AuthSheetMode | null>(null);
+  const [isContributorOnrampOpen, setIsContributorOnrampOpen] = useState(false);
+  const [pendingContributionType, setPendingContributionType] =
+    useState<ContributionType | null>(null);
   const [isWelcomeDismissedForSession, setIsWelcomeDismissedForSession] =
     useState(() => hasDismissedWelcomeForSession());
   const [syncBannerDismissal, setSyncBannerDismissal] =
@@ -637,6 +651,16 @@ function App() {
   ).length;
   const isAuthConfigured = authState.status !== "unconfigured";
   const isSignedIn = Boolean(authState.user);
+  const hasVerifiedEmail = Boolean(authState.user?.emailVerified);
+  const hasContributorPublicName = Boolean(memberProfile?.publicName?.trim());
+  const hasAcceptedContributorTerms = hasAcceptedCurrentContributorTerms(
+    memberProfile?.contributorTermsVersion,
+  );
+  const canContribute =
+    isSignedIn &&
+    hasVerifiedEmail &&
+    hasContributorPublicName &&
+    hasAcceptedContributorTerms;
   const isLiveLocationSupported =
     typeof navigator !== "undefined" && "geolocation" in navigator;
   const liveLocationAlert =
@@ -1653,6 +1677,125 @@ function App() {
     setAuthMessage("");
     setIsWelcomeDismissedForSession(true);
     setAuthSheetMode("save-required");
+  }
+
+  // Gated entry to the contribution flow: sign-in, then the contributor
+  // identity on-ramp (verified email + public name + accepted terms), then add.
+  function requestAddContribution(nextType?: ContributionType) {
+    if (!isSignedIn) {
+      requireSignInForSave();
+      return;
+    }
+    if (!canContribute) {
+      setPendingContributionType(nextType ?? null);
+      setIsContributorOnrampOpen(true);
+      return;
+    }
+    if (nextType) {
+      startAddMode(nextType);
+    } else {
+      startAddMode();
+    }
+  }
+
+  function closeContributorOnramp() {
+    setIsContributorOnrampOpen(false);
+    setPendingContributionType(null);
+  }
+
+  function handleContributorOnrampReady() {
+    const nextType = pendingContributionType;
+    setIsContributorOnrampOpen(false);
+    setPendingContributionType(null);
+    if (nextType) {
+      startAddMode(nextType);
+    } else {
+      startAddMode();
+    }
+  }
+
+  async function handleResendVerificationEmail(): Promise<ContributorActionResult> {
+    try {
+      await sendCurrentUserEmailVerification();
+      return {
+        ok: true,
+        message: `Verification email sent${
+          authState.user?.email ? ` to ${authState.user.email}` : ""
+        }.`,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Could not send the verification email.",
+      };
+    }
+  }
+
+  async function handleRefreshEmailVerification(): Promise<ContributorActionResult> {
+    try {
+      const refreshed = await reloadCurrentUser();
+      if (refreshed) {
+        setAuthState({ status: "ready", user: refreshed, error: null });
+      }
+      if (refreshed?.emailVerified) {
+        return { ok: true, message: "Email verified — thank you." };
+      }
+      return {
+        ok: false,
+        message: "Not verified yet. Open the link in the email, then refresh.",
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Could not refresh your verification status.",
+      };
+    }
+  }
+
+  async function handleSetContributorPublicName(
+    name: string,
+  ): Promise<ContributorActionResult> {
+    try {
+      const updated = await updateMyProfile({ publicName: name });
+      setMemberProfile(updated);
+      setPublicNameDraft(updated.publicName ?? "");
+      return {
+        ok: true,
+        message: updated.publicName
+          ? `You'll post as ${updated.publicName}.`
+          : undefined,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Could not save your public name.",
+      };
+    }
+  }
+
+  async function handleAcceptContributorTermsAction(): Promise<ContributorActionResult> {
+    try {
+      const updated = await acceptContributorTerms(CONTRIBUTOR_TERMS_VERSION);
+      setMemberProfile(updated);
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Could not record your acceptance.",
+      };
+    }
   }
 
   function enableLiveLocation(shouldFocus = false) {
@@ -3777,12 +3920,23 @@ function App() {
                   className="primary-action topbar-secondary-control"
                   type="button"
                   title="Add local knowledge"
-                  onClick={() => startAddMode()}
+                  onClick={() => requestAddContribution()}
                 >
                   <Plus size={18} />
                   Add info
                 </button>
               </>
+            ) : null}
+            {isCanonicalRiverOverviewActive ? (
+              <button
+                className="primary-action topbar-secondary-control"
+                type="button"
+                title="Add local knowledge"
+                onClick={() => requestAddContribution()}
+              >
+                <Plus size={18} />
+                Add info
+              </button>
             ) : null}
             {authMessage || authState.error || liveLocationAlert ? (
               <p className="topbar-message">
@@ -4429,7 +4583,7 @@ function App() {
               setIsPoiDetailExpanded((current) => !current)
             }
             onClose={closePoiDetails}
-            onAddPhoto={() => startAddMode("photo")}
+            onAddPhoto={() => requestAddContribution("photo")}
             onOpenPhoto={setLightboxPhoto}
             onReviewMapPoi={(poi, decision, action, note) =>
               void submitMapPoiReview(poi, decision, action, note)
@@ -4857,7 +5011,7 @@ function App() {
                           className="ghost-button"
                           key={option.type}
                           type="button"
-                          onClick={() => startAddMode(option.type)}
+                          onClick={() => requestAddContribution(option.type)}
                         >
                           <Icon size={16} />
                           {option.label}
@@ -7684,6 +7838,21 @@ function App() {
           onPasswordReset={handlePasswordReset}
           onContinueAsGuest={continueAsGuest}
           onClose={closeAuthSheet}
+        />
+      ) : null}
+
+      {isContributorOnrampOpen && isSignedIn ? (
+        <ContributorOnramp
+          email={authState.user?.email ?? memberProfile?.email ?? null}
+          emailVerified={hasVerifiedEmail}
+          publicName={memberProfile?.publicName ?? null}
+          hasAcceptedTerms={hasAcceptedContributorTerms}
+          onResendVerification={handleResendVerificationEmail}
+          onRefreshVerification={handleRefreshEmailVerification}
+          onSetPublicName={handleSetContributorPublicName}
+          onAcceptTerms={handleAcceptContributorTermsAction}
+          onReady={handleContributorOnrampReady}
+          onClose={closeContributorOnramp}
         />
       ) : null}
     </main>

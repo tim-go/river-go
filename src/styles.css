@@ -1314,6 +1314,120 @@ h1 {
   height: min(720px, calc(100dvh - 24px));
 }
 
+.auth-sheet--onramp {
+  grid-template-columns: minmax(0, 1fr);
+  width: min(520px, 100%);
+}
+
+.auth-sheet--onramp .auth-sheet__content {
+  align-content: start;
+}
+
+.contributor-steps {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contributor-step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(91, 169, 188, 0.32);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.contributor-step--done {
+  border-color: rgba(76, 159, 109, 0.45);
+  background: rgba(225, 244, 232, 0.7);
+}
+
+.contributor-step__icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(91, 169, 188, 0.18);
+  color: var(--river-dark);
+}
+
+.contributor-step--done .contributor-step__icon {
+  background: rgba(76, 159, 109, 0.22);
+  color: #2f7d52;
+}
+
+.contributor-step__body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.contributor-step__body h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--river-dark);
+}
+
+.contributor-step__body p {
+  margin: 0;
+}
+
+.contributor-step__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.contributor-step__hint {
+  font-size: 0.82rem;
+  color: #6b7780 !important;
+}
+
+.contributor-step__link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--river-dark);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.contributor-name-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.contributor-name-form input {
+  flex: 1 1 200px;
+  padding: 8px 10px;
+  border: 1px solid rgba(91, 169, 188, 0.4);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.contributor-terms-points {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 18px;
+  color: #43515d;
+  font-size: 0.9rem;
+}
+
+.contributor-onramp__footer {
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
 .auth-sheet__image {
   position: relative;
   min-height: 420px;
