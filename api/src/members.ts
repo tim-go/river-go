@@ -20,6 +20,8 @@ export interface Member {
   createdAt: string;
   updatedAt: string;
   lastSeenAt: string | null;
+  contributorTermsAcceptedAt: string | null;
+  contributorTermsVersion: string | null;
 }
 
 interface MemberRow {
@@ -35,6 +37,8 @@ interface MemberRow {
   created_at: Date;
   updated_at: Date;
   last_seen_at: Date | null;
+  contributor_terms_accepted_at: Date | null;
+  contributor_terms_version: string | null;
 }
 
 export interface MemberEmergencyProfile {
@@ -123,6 +127,27 @@ export async function updateMemberProfile(
     WHERE id = $1
     RETURNING *`,
     [memberId, normalisedPublicName],
+  );
+
+  if (!result.rowCount) {
+    throw new HttpError(404, "Member not found.");
+  }
+
+  return mapMember(result.rows[0]);
+}
+
+export async function acceptContributorTerms(
+  memberId: string,
+  version: string,
+): Promise<Member> {
+  const result = await pool.query<MemberRow>(
+    `UPDATE members
+    SET contributor_terms_accepted_at = now(),
+      contributor_terms_version = $2,
+      updated_at = now()
+    WHERE id = $1
+    RETURNING *`,
+    [memberId, version],
   );
 
   if (!result.rowCount) {
@@ -233,6 +258,34 @@ export function requireModerator(member: Member): void {
   }
 }
 
+/**
+ * Contributions require a known, attributable identity: a verified email, a
+ * public contributor name, and accepted contributor terms. Enforced server-side
+ * so the gate is never client-only.
+ */
+export function requireContributorIdentity(
+  authContext: AuthContext,
+  member: Member,
+): void {
+  if (!authContext.emailVerified) {
+    throw new HttpError(403, "Verify your email address before contributing.");
+  }
+
+  if (!member.publicName || !member.publicName.trim()) {
+    throw new HttpError(
+      403,
+      "Set a public contributor name before contributing.",
+    );
+  }
+
+  if (!member.contributorTermsAcceptedAt) {
+    throw new HttpError(
+      403,
+      "Accept the contributor terms before contributing.",
+    );
+  }
+}
+
 export function canModerate(member: Member): boolean {
   return member.role === "ADMIN" || member.role === "CONTRIB_MODERATOR";
 }
@@ -323,6 +376,9 @@ function mapMember(row: MemberRow): Member {
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     lastSeenAt: row.last_seen_at?.toISOString() ?? null,
+    contributorTermsAcceptedAt:
+      row.contributor_terms_accepted_at?.toISOString() ?? null,
+    contributorTermsVersion: row.contributor_terms_version,
   };
 }
 

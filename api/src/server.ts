@@ -37,9 +37,11 @@ import {
   getMemberEmergencyProfile,
   listMembersForAdmin,
   isMemberRole,
+  acceptContributorTerms,
   isMemberTrustLevel,
   updateMemberProfile,
   requireAdmin,
+  requireContributorIdentity,
   requireModerator,
   updateMemberAccessForAdmin,
   upsertMemberEmergencyProfile,
@@ -117,6 +119,25 @@ async function route(
     }
 
     const updatedMember = await updateMemberProfile(member.id, body.publicName);
+    return { status: 200, body: { member: updatedMember } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/me/contributor-terms") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+
+    if (
+      !isRecord(body) ||
+      typeof body.version !== "string" ||
+      !body.version.trim()
+    ) {
+      throw new HttpError(400, "version is required.");
+    }
+
+    const updatedMember = await acceptContributorTerms(
+      member.id,
+      body.version.trim(),
+    );
     return { status: 200, body: { member: updatedMember } };
   }
 
@@ -604,6 +625,7 @@ async function route(
   if (method === "POST" && url.pathname === "/api/sync/push") {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
+    requireContributorIdentity(authContext, member);
     const result = await pushSyncOperations(body, {
       firebaseUid: authContext.userId,
       memberId: member.id,
