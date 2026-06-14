@@ -5149,12 +5149,6 @@ function App() {
                         placeholder="Tryweryn, Wye, Dee"
                       />
                     </label>
-                    <div className="filter-row">
-                      <span className="status-chip">Grade I-II</span>
-                      <span className="status-chip">Grade III-IV</span>
-                      <span className="status-chip">Running now</span>
-                      <span className="status-chip">Open canoe</span>
-                    </div>
                     <div className="placeholder-list">
                       {filteredSearchSections.map((section) => (
                         <button
@@ -5171,9 +5165,6 @@ function App() {
                             <small>{section.sectionName}</small>
                           </span>
                           <span className="section-row__badges">
-                            {isCandidateSection(section) ? (
-                              <span className="candidate-pill">Candidate</span>
-                            ) : null}
                             <span className={`level-pill level-pill--${section.levelBand}`}>
                               {bandLabels[section.levelBand]}
                             </span>
