@@ -9,7 +9,7 @@ maturity: Sketch
 # River-First Discovery
 
 **Work state:** Queued
-**Last updated:** 2026-06-05
+**Last updated:** 2026-06-14
 **Scope:** River-led discovery, river overview pages, selected-river map behaviour, and nearby river browsing.
 
 ## Purpose
@@ -107,6 +107,8 @@ Later versions may add:
 
 Public-news and history-style content must be sourced and must not crowd out paddling-critical information.
 
+Historical level and rainfall charts (the old card's 48h / 7d / 28d observation-history view) are a planned addition to the river card/detail. The underlying observation history and chart rendering already exist from the earlier section view, so the remaining work is re-surfacing them on the river-first card. Tracked as RIVERDISC-F7.
+
 ### Nearby Rivers
 
 When the user opts into browser location, Search and Map should be able to show rivers nearby in distance order.
@@ -165,6 +167,7 @@ Avoid:
 | RIVERDISC-F4 | Nearby river list | Search/map | Queued | MVP | — | Opt-in location can rank nearby rivers by distance and filter by grade and current conditions. |
 | RIVERDISC-F5 | River-first copy migration | App shell/map/search | Queued | MVP | — | Public IA should favour `Rivers`; route/section language remains for detailed paddling interpretations. |
 | RIVERDISC-F6 | Feature layer density controls | Map | Queued | MVP | — | Let users hide/show feature categories on selected rivers to reduce marker clutter. |
+| RIVERDISC-F7 | Historical level & rainfall charts | River card/detail | Queued | Later | — | Re-surface the old 48h/7d/28d observation-history charts (level + rainfall) on the river card. Data + chart rendering already exist from the earlier section view; remaining work is the river-card display. |
 
 ### Backlog
 
@@ -181,3 +184,4 @@ Avoid:
 | Date | Change |
 | --- | --- |
 | 2026-06-05 | Created river-first discovery spec from Joe feedback and route/liability review. |
+| 2026-06-14 | Captured historical level & rainfall charts on the river card as tracked future work (RIVERDISC-F7). |
