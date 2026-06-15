@@ -1,8 +1,8 @@
 import { pool } from "./db.js";
-import { repromoteConfirmedPilotCandidates } from "./canonical-rivers.js";
+import { repromotePilotCandidates } from "./canonical-rivers.js";
 
 async function main() {
-  const result = await repromoteConfirmedPilotCandidates();
+  const result = await repromotePilotCandidates();
   console.log(JSON.stringify(result, null, 2));
 }
 

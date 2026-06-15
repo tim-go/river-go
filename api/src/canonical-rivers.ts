@@ -524,11 +524,12 @@ async function resolvePilotPromoter(
   return { id: result.rows[0].id };
 }
 
-// One-shot pilot curation: re-promote every confirmed source candidate with the
-// corrected kind + nearest-section logic, while rejecting the non-paddling types
-// (turning points, sanitary dump stations) and named flood-alleviation structures.
+// Bulk-approve + promote every source candidate (review_needed or already
+// confirmed) with the corrected kind + nearest-section logic, rejecting the
+// non-paddling types (turning points, sanitary dump stations) and named
+// flood-alleviation structures. Promoted POIs publish as needs-confirmation.
 // Re-runnable; pilot data is disposable.
-export async function repromoteConfirmedPilotCandidates(): Promise<{
+export async function repromotePilotCandidates(): Promise<{
   promoted: number;
   excluded: number;
 }> {
@@ -545,7 +546,7 @@ export async function repromoteConfirmedPilotCandidates(): Promise<{
     }>(
       `SELECT id, candidate_type, title, raw_properties
        FROM source_candidate_pois
-       WHERE status = 'confirmed'
+       WHERE status IN ('review_needed', 'confirmed')
        ORDER BY id ASC`,
     );
 
@@ -567,6 +568,12 @@ export async function repromoteConfirmedPilotCandidates(): Promise<{
         continue;
       }
 
+      await client.query(
+        `UPDATE source_candidate_pois
+         SET status = 'confirmed', updated_at = now(), revision = revision + 1
+         WHERE id = $1 AND status <> 'confirmed'`,
+        [candidate.id],
+      );
       await promoteSourceCandidateToMapPoi(candidate.id, promoter, client);
       promoted += 1;
     }
