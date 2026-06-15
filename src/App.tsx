@@ -89,6 +89,7 @@ import {
   REQUIRE_EMAIL_VERIFICATION,
   hasAcceptedCurrentContributorTerms,
 } from "./lib/contributorTerms";
+import { generateUuid } from "./lib/uuid";
 import { fetchEnvironmentAgencyGaugeReading } from "./services/riverLevels";
 import {
   processContributionPhoto,
@@ -1367,7 +1368,7 @@ function App() {
     const location = currentContributionOption.locationRequired
       ? selectedLocation!
       : (selectedLocation ?? undefined);
-    const contributionId = crypto.randomUUID();
+    const contributionId = generateUuid();
     setIsSubmittingContribution(true);
     setFormError("");
 
@@ -3129,7 +3130,7 @@ function App() {
     }
 
     const localSuggestion: RouteSuggestion = {
-      id: crypto.randomUUID(),
+      id: generateUuid(),
       ...suggestionInput,
       status: "local-draft",
       author:

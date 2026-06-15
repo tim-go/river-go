@@ -4,6 +4,7 @@ import type {
   ContributionSyncOperation,
   ContributionSyncStatus,
 } from "../types";
+import { generateUuid } from "../lib/uuid";
 
 const DB_NAME = "river-go-offline";
 const DB_VERSION = 1;
@@ -51,7 +52,7 @@ function createContributionOperation(
   contribution: Contribution,
   createdAt: string,
 ): ContributionSyncOperation {
-  const operationId = crypto.randomUUID();
+  const operationId = generateUuid();
 
   return {
     operationId,
@@ -264,7 +265,7 @@ function getOrCreateDeviceId() {
     return existingId;
   }
 
-  const nextId = crypto.randomUUID();
+  const nextId = generateUuid();
   localStorage.setItem(DEVICE_ID_STORAGE_KEY, nextId);
   return nextId;
 }

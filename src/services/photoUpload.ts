@@ -2,6 +2,7 @@ import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import type { ContributionPhoto } from "../types";
 import { getClientAuth } from "./firebaseAuth";
 import type { ProcessedContributionPhoto } from "./imageProcessing";
+import { generateUuid } from "../lib/uuid";
 
 export async function uploadContributionPhoto(
   contributionId: string,
@@ -19,7 +20,7 @@ export async function uploadContributionPhoto(
     throw new Error("Photo upload needs a network connection for this version.");
   }
 
-  const photoId = crypto.randomUUID();
+  const photoId = generateUuid();
   const basePath = `contribution-photos/${user.uid}/${contributionId}/${photoId}`;
   const displayPath = `${basePath}/display.jpg`;
   const thumbnailPath = `${basePath}/thumb.jpg`;
