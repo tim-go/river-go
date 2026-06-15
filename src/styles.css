@@ -3074,7 +3074,7 @@ h1 {
   padding-top: 10px;
 }
 
-.route-detail-tabs {
+.segmented-control.route-detail-tabs {
   position: sticky;
   top: -10px;
   z-index: 2;
