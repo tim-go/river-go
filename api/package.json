@@ -15,6 +15,7 @@
     "backfill:w3w": "tsx src/backfill-what3words.ts",
     "import:osm-waterways": "tsx src/import-osm-waterways.ts",
     "seed:canonical-river-pilots": "tsx src/seed-canonical-river-pilots.ts",
+    "repromote:pilot-candidates": "tsx src/repromote-pilot-candidates.ts",
     "spike:canonical-rivers": "tsx src/spike-canonical-rivers.ts",
     "sync:smoke": "tsx src/smoke-sync.ts"
   },
