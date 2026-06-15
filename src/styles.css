@@ -2603,7 +2603,7 @@ h1 {
 
 .moderation-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 160px;
+  grid-template-columns: minmax(0, 1fr) 220px;
   grid-template-areas:
     "content status"
     "content actions";
