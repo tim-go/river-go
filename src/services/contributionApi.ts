@@ -69,6 +69,29 @@ export async function fetchSectionContributions(
   return (result.contributions ?? []).map(mapApiContribution);
 }
 
+export async function fetchMapPoiContributions(
+  mapPoiId: string,
+): Promise<Contribution[]> {
+  const authToken = await getCurrentUserIdToken();
+  const headers: Record<string, string> = {};
+
+  if (authToken) {
+    headers.authorization = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/map-pois/${encodeURIComponent(mapPoiId)}/contributions`,
+    { headers },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Contribution API failed with HTTP ${response.status}`);
+  }
+
+  const result = (await response.json()) as { contributions?: ApiContribution[] };
+  return (result.contributions ?? []).map(mapApiContribution);
+}
+
 export async function fetchModerationContributions(): Promise<Contribution[]> {
   const result = await fetchContributionEndpoint<{ contributions?: ApiContribution[] }>(
     "/api/moderation/contributions",

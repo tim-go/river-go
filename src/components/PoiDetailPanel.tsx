@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Minimize2,
   Navigation,
+  Plus,
   RefreshCw,
   ShieldCheck,
   X,
@@ -61,6 +62,8 @@ export function PoiDetailPanel({
   onToggleExpanded,
   onClose,
   onAddPhoto,
+  onAddUpdate,
+  linkedContributions,
   onOpenPhoto,
   onReviewMapPoi,
   onUpdateMapPoiStatus,
@@ -75,6 +78,8 @@ export function PoiDetailPanel({
   onToggleExpanded: () => void;
   onClose: () => void;
   onAddPhoto: () => void;
+  onAddUpdate: () => void;
+  linkedContributions: Contribution[];
   onOpenPhoto: (photo: PhotoLightboxItem) => void;
   onReviewMapPoi: (
     poi: MapPoi,
@@ -306,6 +311,40 @@ export function PoiDetailPanel({
                 <span className={`status-chip status-chip--sync-${poi.syncStatus}`}>
                   {syncStatusLabel(poi.syncStatus)}
                 </span>
+              </section>
+            ) : null}
+            {poi.mapPoi ? (
+              <section className="info-block">
+                <div className="block-title">
+                  <h3>Updates</h3>
+                  <span>{linkedContributions.length} on this point</span>
+                </div>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={onAddUpdate}
+                >
+                  <Plus size={16} />
+                  Add update
+                </button>
+                {linkedContributions.length ? (
+                  <ul className="poi-updates">
+                    {linkedContributions.map((contribution) => (
+                      <li key={contribution.id}>
+                        <strong>{contribution.title}</strong>
+                        <span className="poi-update-meta">
+                          {contribution.author}
+                          {contribution.dateObserved
+                            ? ` · ${contribution.dateObserved}`
+                            : ""}
+                        </span>
+                        <p>{contribution.detail}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="source-note">No updates attached yet.</p>
+                )}
               </section>
             ) : null}
           </div>

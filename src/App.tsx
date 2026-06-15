@@ -48,6 +48,7 @@ import {
   applyContributionModerationDecision,
   deleteContribution,
   fetchModerationContributions,
+  fetchMapPoiContributions,
   fetchMyContributions,
   fetchSectionContributions,
   type ModerationDecision,
@@ -362,6 +363,7 @@ function App() {
   );
   const [areMapControlsExpanded, setAreMapControlsExpanded] = useState(false);
   const [selectedPoi, setSelectedPoi] = useState<SelectedPoi | null>(null);
+  const [poiContributions, setPoiContributions] = useState<Contribution[]>([]);
   const [isPoiDetailExpanded, setIsPoiDetailExpanded] = useState(false);
   const [detailFocusLocation, setDetailFocusLocation] =
     useState<LatLngTuple | null>(null);
@@ -738,6 +740,26 @@ function App() {
   }, [adminMembers, memberRoleFilter, memberSearch, memberTrustFilter]);
 
   useEffect(() => subscribeToAuthState(setAuthState), []);
+
+  useEffect(() => {
+    const mapPoiId = selectedPoi?.mapPoi?.id;
+    if (!mapPoiId) {
+      setPoiContributions([]);
+      return;
+    }
+
+    let active = true;
+    fetchMapPoiContributions(mapPoiId)
+      .then((list) => {
+        if (active) setPoiContributions(list);
+      })
+      .catch(() => {
+        if (active) setPoiContributions([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedPoi?.mapPoi?.id]);
 
   useEffect(() => {
     void loadCanonicalRivers();
@@ -1437,6 +1459,12 @@ function App() {
     const outboxRecord = createContributionOutboxRecord(nextContribution);
 
     setContributions((current) => [nextContribution, ...current]);
+    if (
+      nextContribution.mapPoiId &&
+      nextContribution.mapPoiId === selectedPoi?.mapPoi?.id
+    ) {
+      setPoiContributions((current) => [nextContribution, ...current]);
+    }
     setOutboxRecords((current) => [
       outboxRecord,
       ...current.filter((record) => record.id !== outboxRecord.id),
@@ -4642,6 +4670,10 @@ function App() {
             onAddPhoto={() =>
               selectedPoi && requestAddToPoi(selectedPoi, "photo")
             }
+            onAddUpdate={() =>
+              selectedPoi && requestAddToPoi(selectedPoi, "report")
+            }
+            linkedContributions={poiContributions}
             onOpenPhoto={setLightboxPhoto}
             onReviewMapPoi={(poi, decision, action, note) =>
               void submitMapPoiReview(poi, decision, action, note)
