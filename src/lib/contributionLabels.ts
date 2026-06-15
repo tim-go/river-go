@@ -1,5 +1,9 @@
 import type { ModerationDecision } from "../services/contributionApi";
-import type { Contribution, ContributionSyncStatus } from "../types";
+import type {
+  Contribution,
+  ContributionSyncStatus,
+  MapPoiVerificationStatus,
+} from "../types";
 
 export const moderationActions: Array<{
   decision: ModerationDecision;
@@ -44,4 +48,23 @@ export function contributionStatusLabel(status: Contribution["status"]) {
   };
 
   return labels[status] ?? status;
+}
+
+export function verificationStatusLabel(status: MapPoiVerificationStatus) {
+  const labels: Record<MapPoiVerificationStatus, string> = {
+    "needs-confirmation": "Needs confirmation",
+    confirmed: "Confirmed",
+    "needs-correction": "Correction suggested",
+    resolved: "Resolved",
+  };
+
+  return labels[status] ?? status;
+}
+
+export function confirmationSummary(confirmations: number) {
+  if (confirmations <= 0) {
+    return "Not yet confirmed by other paddlers";
+  }
+
+  return `Confirmed by ${confirmations} paddler${confirmations === 1 ? "" : "s"}`;
 }

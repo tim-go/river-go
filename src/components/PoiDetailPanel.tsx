@@ -31,7 +31,9 @@ import {
 } from "../services/locationReferences";
 import { formatLocation } from "../lib/format";
 import {
+  confirmationSummary,
   contributionStatusLabel,
+  verificationStatusLabel,
   moderationActions,
   syncStatusLabel,
 } from "../lib/contributionLabels";
@@ -404,21 +406,24 @@ export function PoiDetailPanel({
                     poi.mapPoi?.verificationStatus ?? poi.status ?? "reported"
                   }`}
                 >
-                  {poi.mapPoi?.verificationStatus ??
-                    contributionStatusLabel(poi.status as Contribution["status"])}
+                  {poi.mapPoi?.verificationStatus
+                    ? verificationStatusLabel(poi.mapPoi.verificationStatus)
+                    : contributionStatusLabel(poi.status as Contribution["status"])}
                 </span>
               </div>
               {poi.mapPoi ? (
                 <>
                   <div className="detail-list">
                     <span>
-                      <strong>Confirmations</strong>
-                      {poi.mapPoi.confirmations}
+                      <strong>Community</strong>
+                      {confirmationSummary(poi.mapPoi.confirmations)}
                     </span>
-                    <span>
-                      <strong>Correction suggestions</strong>
-                      {poi.mapPoi.corrections}
-                    </span>
+                    {poi.mapPoi.corrections > 0 ? (
+                      <span>
+                        <strong>Corrections</strong>
+                        {`${poi.mapPoi.corrections} suggested`}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="inline-actions">
                     <button
