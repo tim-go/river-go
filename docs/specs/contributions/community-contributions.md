@@ -154,7 +154,7 @@ Offline requirements:
 | CON-F16 | Seed POI verification | Map/POI panel | Active | MVP | — | Members who meet the contributor identity gate (CON-F9) can confirm or suggest corrections for backend-backed seed POIs — gated client-side (`canContribute` → on-ramp) and server-side (`requireContributorIdentity` on the review route). |
 | CON-F17 | Rich feature categories | Contribution form/POI | Queued | MVP | — | Rapids, waves, eddies, playspots, portages, bridges, landings, and navigation notes have structured categories. |
 | CON-F18 | Access and parking categories | Contribution form/POI | Queued | MVP | — | Put-in, take-out, parking, lay-by, shuttle, access path, portage, emergency exit, and facilities are distinct. |
-| CON-F19 | Add update/photo to existing POI | POI detail | Queued | MVP | — | Members can attach updates/photos to an existing feature/access/hazard rather than creating duplicate markers. |
+| CON-F19 | Add update/photo to existing POI | POI detail | Landed | MVP | — | Members can attach a report/photo to an existing map POI (`contributions.map_poi_id`); the POI panel lists linked updates with an Add update action, and linked contributions are excluded from standalone section markers. |
 | CON-F20 | Contributor on-ramp | Auth/contribute | Landed | MVP | — | "Become a contributor" flow walks a signed-in member through verify-email, public name, and accept-terms before the add flow opens; reached from the river-first Add-info entry point. |
 
 ### Backlog
@@ -184,3 +184,4 @@ Offline requirements:
 | 2026-05-21 | Migrated to spec schema v4. |
 | 2026-06-05 | Added richer river feature, access, parking, and existing-POI update requirements from Joe feedback. |
 | 2026-06-15 | Reconciled the contributor identity gate (email-verified + public name + accepted terms, enforced client + server) and the contributor on-ramp (CON-F9, CON-F20) as built; noted the relaxable email-verification flag. |
+| 2026-06-15 | Landed CON-F19: contributions link to an existing map POI (`map_poi_id`), the POI panel shows linked updates with Add update, and linked contributions no longer render as duplicate markers. |
