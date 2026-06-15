@@ -446,7 +446,7 @@ async function promoteSourceCandidateToMapPoi(
       $11,
       $12,
       $13,
-      'confirmed',
+      'needs-confirmation',
       $14::jsonb
     )
     ON CONFLICT (id) DO UPDATE SET
@@ -461,7 +461,7 @@ async function promoteSourceCandidateToMapPoi(
       source_confidence = EXCLUDED.source_confidence,
       source_updated_at = EXCLUDED.source_updated_at,
       source_url = EXCLUDED.source_url,
-      verification_status = 'confirmed',
+      verification_status = 'needs-confirmation',
       payload = EXCLUDED.payload,
       updated_at = now(),
       revision = map_pois.revision + 1`,

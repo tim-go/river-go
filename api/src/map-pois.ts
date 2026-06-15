@@ -156,7 +156,7 @@ export async function listMapPoisForRiver(
       AND crsl.route_source = 'section_fixture'
       AND crsl.status = 'active'
     WHERE crsl.river_id = $1
-      AND p.verification_status = 'confirmed'
+      AND p.verification_status IN ('confirmed', 'needs-confirmation')
     ORDER BY p.id, p.kind ASC, p.title ASC`,
     viewerMemberId ? [riverId, viewerMemberId] : [riverId],
   );
