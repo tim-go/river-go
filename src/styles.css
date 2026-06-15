@@ -1156,6 +1156,13 @@ h1 {
   color: var(--river-dark);
 }
 
+/* Icons inside filled buttons must match the white button text, not the
+   card's default green icon colour (which equals the button background). */
+.profile-card .primary-action svg,
+.profile-card .submit-button svg {
+  color: white;
+}
+
 .profile-card strong,
 .profile-card span:not(.status-chip) {
   display: block;
