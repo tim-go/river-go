@@ -105,42 +105,38 @@ Role grants permission. Trust level informs default visibility, confidence, and 
 
 ## Contribution Visibility
 
-Contributions should have separate moderation and visibility states.
+Moderation has **two independent dimensions**: a public **visibility gate** and a **review status** reason code. Keeping them separate is what makes moderation simple — the public only ever experiences visibility; the review status is the moderator's record of why.
 
-Moderation states:
+**Visibility** — the gate (the only thing the public experiences):
 
-- `draft` exists only on the client before save
-- `queued` exists locally while waiting to sync
-- `reported` means backend accepted and community-visible with low confidence
-- `pending` means accepted but waiting for review before public visibility
-- `needs-confirmation` means visible but explicitly unverified
-- `confirmed` means community or trusted users have confirmed the item
-- `challenged` means one or more users dispute accuracy, safety, legality, or relevance
-- `hidden` means not visible publicly but retained for audit/moderation
-- `rejected` means not accepted as public community data
-- `resolved` means no longer active, but retained historically
+- `published` — visible to everyone.
+- `removed` — hidden from the public. The author still sees their own, and the record is retained for audit.
 
-Visibility states:
+**Review status** — the moderator's reason/record (never shown publicly):
 
-- `private` for local drafts and failed saves
-- `contributor` for the contributor plus admins/moderators
-- `community` for signed-in users with labels
-- `public` for signed-out and signed-in users
+- `pending` — not yet reviewed.
+- `approved` — reviewed and kept.
+- `spam`, `inaccurate`, `duplicate`, `inappropriate` — removal reasons.
+- `withdrawn` — removed by the author.
 
-The default should be optimistic for useful low-risk knowledge and stricter for sensitive knowledge.
+### Default policy: review-first, with trusted direct-publish
 
-| Contribution type | New member default | Trusted member default | Notes |
-| --- | --- | --- | --- |
-| Recent condition report | `reported` / public | `reported` / public | Time-sensitive; show age and unverified label. |
-| Hazard | `reported` or `needs-confirmation` / public | `reported` / public | Safety-relevant, so hide only if spam/abuse; label clearly until confirmed. |
-| Feature / POI | `reported` / community or public | `reported` / public | Low risk unless misleading, duplicate, or sensitive. |
-| Photo | `pending` or `reported` depending on sensitivity | `reported` / public for low-risk images | Needs privacy controls and report/hide flow. |
-| Access note | `pending` | `pending` or `reported` for trusted scoped contributors | Access claims can create legal/community conflict. |
-| Deletion or major edit | `pending` | `pending` or moderator action | Avoid silent loss of useful public knowledge. |
+New contributions are **review-first** by default. A normal member's contribution starts `removed` + `pending` — not public until a moderator approves — and the author sees it labelled "Pending review".
 
-Hazards should normally be visible quickly as `reported` rather than blocked behind review, unless the item is clearly abusive, duplicated, or unsafe to display. The UI must avoid presenting reported hazards as verified facts.
+Members who may **publish directly** — role `TRUSTED_MEMBER`, `CONTRIB_MODERATOR`, `ADMIN`, or trust level `TRUSTED` — have their contributions start `published` + `pending`: live immediately, but still reviewable. Direct-publish is granted by promoting a member in the admin directory (TRUST-F8).
 
-Access notes and privacy-sensitive photos should be the strictest categories because they can affect landowner relations, legal interpretation, and personal privacy.
+### Moderator actions
+
+The moderator surface collapses to two actions:
+
+- **Approve** → `published` + `approved` (clears the queue).
+- **Remove ▾ <reason>** → `removed` + the chosen reason.
+
+The queue lists anything with review status `pending` — both held normal-member contributions and live trusted ones a moderator has not yet checked. Public and POI reads filter on `visibility = 'published'`; an author always sees their own regardless of visibility.
+
+Sensitivity (hazards, access notes, privacy-sensitive photos) informs **review priority and care**, not an extra per-type gate — the uniform review-first default already holds risky content until a human looks.
+
+The community confirmation/correction loop (confirmation counts, suggest-correction) is a **separate** dimension answering "is this accurate?", not "should this be public?".
 
 ## Community Validation
 
@@ -231,6 +227,8 @@ metadata.
 | TRUST-F8 | Member role/trust editing | Admin/backend | Landed | MVP | — | Admin member directory can update role and trust level. |
 | TRUST-F9 | POI status override | POI/admin | Active | MVP | — | Admins and contribution moderators can override map POI and contribution trust/status from detail surfaces without first unconfirming an item. |
 | TRUST-F10 | Source candidate review | Admin/backend | Active | MVP | — | Admins and contribution moderators can review source-derived candidate POIs and mark them confirmed, rejected, merged, or back to review. |
+| TRUST-F11 | Visibility gate + review status | Backend/admin | Queued | MVP | — | Two-dimension moderation: a public `published`/`removed` visibility gate plus a `pending`/`approved`/`spam`/`inaccurate`/`duplicate`/`inappropriate`/`withdrawn` review-status reason code. Moderator surface collapses to Approve / Remove ▾ reason. |
+| TRUST-F12 | Trusted direct-publish | Auth/backend | Queued | MVP | — | Review-first by default; role `TRUSTED_MEMBER`/`CONTRIB_MODERATOR`/`ADMIN` or trust `TRUSTED` publish directly (`published` + `pending`), others held (`removed` + `pending`) until approved. |
 
 ### Backlog
 
@@ -247,3 +245,4 @@ metadata.
 | Date | Change |
 | --- | --- |
 | 2026-05-21 | Migrated to spec schema v4. |
+| 2026-06-15 | Simplified moderation to a two-dimension model (visibility gate + review-status reason code) with a review-first default and trusted direct-publish (TRUST-F11, TRUST-F12). |
