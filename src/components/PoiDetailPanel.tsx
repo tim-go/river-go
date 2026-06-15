@@ -180,6 +180,10 @@ export function PoiDetailPanel({
     : "";
   const viewerCorrectionNote =
     poi.mapPoi?.viewerReview?.correctionNote?.trim() ?? "";
+  const linkedPhotos = linkedContributions.flatMap(
+    (contribution) => contribution.photos ?? [],
+  );
+  const poiPhotos = [...(poi.photos ?? []), ...linkedPhotos];
   const visiblePoiDetailsTabs = poiDetailsTabs.filter(
     (tab) => tab.id !== "verification" || poi.mapPoi || poi.kind === "contribution",
   );
@@ -673,15 +677,15 @@ export function PoiDetailPanel({
             <section className="info-block info-block--first">
               <div className="block-title">
                 <h3>Photos</h3>
-                <span>{poi.photos?.length ?? 0} attached</span>
+                <span>{poiPhotos.length} attached</span>
               </div>
               <button className="ghost-button" type="button" onClick={onAddPhoto}>
                 <Camera size={16} />
                 Add photo
               </button>
-              {poi.photos?.length ? (
+              {poiPhotos.length ? (
                 <div className="poi-photo-grid">
-                  {poi.photos.map((photo) => (
+                  {poiPhotos.map((photo) => (
                     <figure key={photo.id}>
                       <button
                         className="photo-open-button"
