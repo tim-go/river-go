@@ -373,6 +373,9 @@ function App() {
     "Selected map location",
   );
   const [isAddMode, setIsAddMode] = useState(false);
+  const [addModeTargetPoiId, setAddModeTargetPoiId] = useState<string | null>(
+    null,
+  );
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [isOnline, setIsOnline] = useState(() =>
@@ -1409,6 +1412,7 @@ function App() {
     const nextContribution: Contribution = {
       id: contributionId,
       sectionId: activeSection.id,
+      mapPoiId: addModeTargetPoiId ?? undefined,
       type: contributionType,
       title: safeTitle,
       detail: safeDetail,
@@ -1463,6 +1467,7 @@ function App() {
     clearSelectedPhoto();
     setFormError("");
     setSelectedLocation(null);
+    setAddModeTargetPoiId(null);
     setIsFormOpen(false);
     setIsSubmittingContribution(false);
     setSyncMessage("Saved locally. Sync now to publish this contribution.");
@@ -1705,12 +1710,49 @@ function App() {
 
   function requestAddContribution(nextType?: ContributionType) {
     ensureContributorIdentity(() => {
+      setAddModeTargetPoiId(null);
       if (nextType) {
         startAddMode(nextType);
       } else {
         startAddMode();
       }
     });
+  }
+
+  // CON-F19: add a report/photo attached to an existing POI rather than dropping
+  // a duplicate marker. Falls back to a standalone add for non-map POIs.
+  function requestAddToPoi(poi: SelectedPoi, nextType: ContributionType) {
+    const mapPoiId = poi.mapPoi?.id ?? null;
+    ensureContributorIdentity(() => {
+      if (mapPoiId) {
+        startAddModeForPoi(poi, mapPoiId, nextType);
+      } else {
+        setAddModeTargetPoiId(null);
+        startAddMode(nextType);
+      }
+    });
+  }
+
+  function startAddModeForPoi(
+    poi: SelectedPoi,
+    mapPoiId: string,
+    nextType: ContributionType,
+  ) {
+    setRouteCreateMode("idle");
+    setRouteDraftTarget({ type: "new" });
+    setRouteDraftPoints([]);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
+    setAddModeTargetPoiId(mapPoiId);
+    chooseContributionType(nextType);
+    setSelectedLocation(poi.location);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
+    setIsAddMode(false);
+    setIsFormOpen(true);
+    setSelectedTargetLabel(`On ${poi.title}`);
+    setFormError("");
   }
 
   function closeContributorOnramp() {
@@ -3220,6 +3262,7 @@ function App() {
     setSelectedTargetLabel("Selected map location");
     setFormError("");
     clearSelectedPhoto();
+    setAddModeTargetPoiId(null);
   }
 
   function chooseContributionType(nextType: ContributionType) {
@@ -4596,7 +4639,9 @@ function App() {
               setIsPoiDetailExpanded((current) => !current)
             }
             onClose={closePoiDetails}
-            onAddPhoto={() => requestAddContribution("photo")}
+            onAddPhoto={() =>
+              selectedPoi && requestAddToPoi(selectedPoi, "photo")
+            }
             onOpenPhoto={setLightboxPhoto}
             onReviewMapPoi={(poi, decision, action, note) =>
               void submitMapPoiReview(poi, decision, action, note)

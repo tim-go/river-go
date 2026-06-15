@@ -221,6 +221,7 @@ export interface RiverSection {
 export interface Contribution {
   id: string;
   sectionId: string;
+  mapPoiId?: string | null;
   type: ContributionType;
   title: string;
   detail: string;
@@ -275,6 +276,7 @@ export interface ContributionSyncOperation {
     id: string;
     type: ContributionType;
     sectionId: string;
+    mapPoiId?: string | null;
     geometry?: {
       type: "Point";
       coordinates: [number, number];
