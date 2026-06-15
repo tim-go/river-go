@@ -291,6 +291,18 @@ export function canModerate(member: Member): boolean {
   return member.role === "ADMIN" || member.role === "CONTRIB_MODERATOR";
 }
 
+/**
+ * Whether a member's contributions publish directly (review-first is the
+ * default for everyone else). Trusted members and moderators skip the hold.
+ */
+export function canPublishDirectly(member: Member): boolean {
+  return (
+    canModerate(member) ||
+    member.role === "TRUSTED_MEMBER" ||
+    member.trustLevel === "TRUSTED"
+  );
+}
+
 export function isMemberRole(value: unknown): value is MemberRole {
   return (
     value === "MEMBER" ||

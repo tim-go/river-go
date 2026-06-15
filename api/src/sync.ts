@@ -42,6 +42,7 @@ interface SyncOperationInput {
 interface SyncActor {
   firebaseUid: string | null;
   memberId: string | null;
+  canPublishDirectly?: boolean;
 }
 
 interface ContributionCreatePayload {
@@ -225,7 +226,8 @@ async function insertContribution(
       sync_status,
       sync_source,
       payload,
-      map_poi_id
+      map_poi_id,
+      visibility
     ) VALUES (
       $1,
       $2,
@@ -240,7 +242,8 @@ async function insertContribution(
       'accepted',
       $11,
       $12::jsonb,
-      $13
+      $13,
+      $14
     )
     ON CONFLICT (id) DO UPDATE SET
       updated_at = now()
@@ -274,10 +277,11 @@ async function insertContribution(
       operation.createdAt ?? null,
       actor.memberId,
       operation.actorId ?? null,
-      initialModerationStatus(contribution.type),
+      "pending",
       syncSource,
       JSON.stringify(payload),
       contribution.mapPoiId ?? null,
+      actor.canPublishDirectly ? "published" : "removed",
     ],
   );
 
@@ -473,12 +477,6 @@ function parseContributionPayload(
         : undefined,
     },
   };
-}
-
-function initialModerationStatus(type: string): string {
-  if (type === "hazard") return "needs-confirmation";
-  if (type === "photo" || type === "access") return "pending";
-  return "reported";
 }
 
 function parsePhotoPayloads(value: unknown): ContributionPhotoPayload[] {

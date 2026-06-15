@@ -15,6 +15,7 @@ import {
 import {
   applyModerationDecision,
   isModerationDecision,
+  isReviewReason,
   listContributionsForMember,
   listContributionsForPoi,
   listContributionsForSection,
@@ -39,6 +40,7 @@ import {
   listMembersForAdmin,
   isMemberRole,
   acceptContributorTerms,
+  canPublishDirectly,
   isMemberTrustLevel,
   updateMemberProfile,
   requireAdmin,
@@ -480,6 +482,7 @@ async function route(
     const contribution = await applyModerationDecision(
       decodeURIComponent(moderationDecisionMatch[1]),
       body.decision,
+      isReviewReason(body.reason) ? body.reason : null,
     );
     return { status: 200, body: { contribution } };
   }
@@ -644,6 +647,7 @@ async function route(
     const result = await pushSyncOperations(body, {
       firebaseUid: authContext.userId,
       memberId: member.id,
+      canPublishDirectly: canPublishDirectly(member),
     });
     return { status: result.failed.length ? 207 : 200, body: result };
   }
