@@ -505,8 +505,9 @@ function App() {
   const [isSectionListOpen, setIsSectionListOpen] = useState(false);
   const [authSheetMode, setAuthSheetMode] = useState<AuthSheetMode | null>(null);
   const [isContributorOnrampOpen, setIsContributorOnrampOpen] = useState(false);
-  const [pendingContributionType, setPendingContributionType] =
-    useState<ContributionType | null>(null);
+  const [pendingContributorAction, setPendingContributorAction] = useState<
+    (() => void) | null
+  >(null);
   const [isWelcomeDismissedForSession, setIsWelcomeDismissedForSession] =
     useState(() => hasDismissedWelcomeForSession());
   const [syncBannerDismissal, setSyncBannerDismissal] =
@@ -1686,37 +1687,42 @@ function App() {
 
   // Gated entry to the contribution flow: sign-in, then the contributor
   // identity on-ramp (verified email + public name + accepted terms), then add.
-  function requestAddContribution(nextType?: ContributionType) {
+  // Ensures the member meets the contributor identity gate before any
+  // contribution action (add, confirm, correct): routes to sign-in, then the
+  // on-ramp, then runs the action. On-ramp completion re-runs the stored action.
+  function ensureContributorIdentity(proceed: () => void) {
     if (!isSignedIn) {
       requireSignInForSave();
       return;
     }
     if (!canContribute) {
-      setPendingContributionType(nextType ?? null);
+      setPendingContributorAction(() => proceed);
       setIsContributorOnrampOpen(true);
       return;
     }
-    if (nextType) {
-      startAddMode(nextType);
-    } else {
-      startAddMode();
-    }
+    proceed();
+  }
+
+  function requestAddContribution(nextType?: ContributionType) {
+    ensureContributorIdentity(() => {
+      if (nextType) {
+        startAddMode(nextType);
+      } else {
+        startAddMode();
+      }
+    });
   }
 
   function closeContributorOnramp() {
     setIsContributorOnrampOpen(false);
-    setPendingContributionType(null);
+    setPendingContributorAction(null);
   }
 
   function handleContributorOnrampReady() {
-    const nextType = pendingContributionType;
+    const action = pendingContributorAction;
     setIsContributorOnrampOpen(false);
-    setPendingContributionType(null);
-    if (nextType) {
-      startAddMode(nextType);
-    } else {
-      startAddMode();
-    }
+    setPendingContributorAction(null);
+    action?.();
   }
 
   async function handleResendVerificationEmail(): Promise<ContributorActionResult> {
@@ -3430,8 +3436,10 @@ function App() {
     action: "add" | "remove" = "add",
     note?: string,
   ) {
-    if (!isSignedIn) {
-      requireSignInForSave();
+    if (!canContribute) {
+      ensureContributorIdentity(() => {
+        void submitMapPoiReview(poi, decision, action, note);
+      });
       return;
     }
 

@@ -151,7 +151,7 @@ Offline requirements:
 | CON-F13 | Member point management | Profile/backend | Active | MVP | — | Members can list synced contributions, return to the map section, and soft-delete their own points. |
 | CON-F14 | Prominent sync state | Map/Profile | Active | MVP | — | Shows a banner for queued, failed, or offline outbox changes with sync/retry action. |
 | CON-F15 | Location reference enrichment | Backend/sync | Active | MVP | — | Synced point contributions may store server-generated what3words metadata alongside coordinates. |
-| CON-F16 | Seed POI verification | Map/POI panel | Active | MVP | — | Signed-in members can confirm or suggest corrections for backend-backed seed POIs. |
+| CON-F16 | Seed POI verification | Map/POI panel | Active | MVP | — | Members who meet the contributor identity gate (CON-F9) can confirm or suggest corrections for backend-backed seed POIs — gated client-side (`canContribute` → on-ramp) and server-side (`requireContributorIdentity` on the review route). |
 | CON-F17 | Rich feature categories | Contribution form/POI | Queued | MVP | — | Rapids, waves, eddies, playspots, portages, bridges, landings, and navigation notes have structured categories. |
 | CON-F18 | Access and parking categories | Contribution form/POI | Queued | MVP | — | Put-in, take-out, parking, lay-by, shuttle, access path, portage, emergency exit, and facilities are distinct. |
 | CON-F19 | Add update/photo to existing POI | POI detail | Queued | MVP | — | Members can attach updates/photos to an existing feature/access/hazard rather than creating duplicate markers. |

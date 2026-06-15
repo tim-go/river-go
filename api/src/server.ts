@@ -606,6 +606,7 @@ async function route(
   if (method === "POST" && mapPoiReviewMatch) {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
+    requireContributorIdentity(authContext, member);
 
     if (!isRecord(body) || !isMapPoiReviewDecision(body.decision)) {
       throw new HttpError(400, "decision is required.");
