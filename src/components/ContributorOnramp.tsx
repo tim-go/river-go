@@ -14,6 +14,7 @@ type BusyAction = "verify-resend" | "verify-refresh" | "name" | "terms";
 export function ContributorOnramp({
   email,
   emailVerified,
+  requireEmailVerification,
   publicName,
   hasAcceptedTerms,
   onResendVerification,
@@ -25,6 +26,7 @@ export function ContributorOnramp({
 }: {
   email: string | null;
   emailVerified: boolean;
+  requireEmailVerification: boolean;
   publicName: string | null;
   hasAcceptedTerms: boolean;
   onResendVerification: () => Promise<ContributorActionResult>;
@@ -35,7 +37,10 @@ export function ContributorOnramp({
   onClose: () => void;
 }) {
   const hasPublicName = Boolean(publicName?.trim());
-  const allMet = emailVerified && hasPublicName && hasAcceptedTerms;
+  const allMet =
+    (!requireEmailVerification || emailVerified) &&
+    hasPublicName &&
+    hasAcceptedTerms;
   const [nameDraft, setNameDraft] = useState(publicName ?? "");
   const [isEditingName, setIsEditingName] = useState(!hasPublicName);
   const [busy, setBusy] = useState<BusyAction | null>(null);
@@ -119,6 +124,7 @@ export function ContributorOnramp({
           ) : null}
 
           <ol className="contributor-steps">
+            {requireEmailVerification ? (
             <li
               className={`contributor-step ${
                 emailVerified ? "contributor-step--done" : ""
@@ -165,6 +171,7 @@ export function ContributorOnramp({
                 )}
               </div>
             </li>
+            ) : null}
 
             <li
               className={`contributor-step ${

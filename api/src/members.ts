@@ -1,6 +1,6 @@
 import type { PoolClient } from "pg";
 import type { AuthContext } from "./auth.js";
-import { getAdminEmails } from "./config.js";
+import { getAdminEmails, isEmailVerificationRequired } from "./config.js";
 import { pool } from "./db.js";
 import { HttpError } from "./http.js";
 
@@ -267,7 +267,7 @@ export function requireContributorIdentity(
   authContext: AuthContext,
   member: Member,
 ): void {
-  if (!authContext.emailVerified) {
+  if (isEmailVerificationRequired() && !authContext.emailVerified) {
     throw new HttpError(403, "Verify your email address before contributing.");
   }
 

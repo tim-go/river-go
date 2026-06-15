@@ -86,6 +86,7 @@ import {
 } from "./services/memberApi";
 import {
   CONTRIBUTOR_TERMS_VERSION,
+  REQUIRE_EMAIL_VERIFICATION,
   hasAcceptedCurrentContributorTerms,
 } from "./lib/contributorTerms";
 import { fetchEnvironmentAgencyGaugeReading } from "./services/riverLevels";
@@ -658,7 +659,7 @@ function App() {
   );
   const canContribute =
     isSignedIn &&
-    hasVerifiedEmail &&
+    (!REQUIRE_EMAIL_VERIFICATION || hasVerifiedEmail) &&
     hasContributorPublicName &&
     hasAcceptedContributorTerms;
   const isLiveLocationSupported =
@@ -7845,6 +7846,7 @@ function App() {
         <ContributorOnramp
           email={authState.user?.email ?? memberProfile?.email ?? null}
           emailVerified={hasVerifiedEmail}
+          requireEmailVerification={REQUIRE_EMAIL_VERIFICATION}
           publicName={memberProfile?.publicName ?? null}
           hasAcceptedTerms={hasAcceptedContributorTerms}
           onResendVerification={handleResendVerificationEmail}

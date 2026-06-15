@@ -5,6 +5,17 @@
  */
 export const CONTRIBUTOR_TERMS_VERSION = "2026-06-14";
 
+/**
+ * Whether contributors must verify their email before contributing. Relaxed by
+ * default while transactional email (Resend) is being set up — Firebase's
+ * default verification emails aren't being delivered. Set
+ * VITE_REQUIRE_EMAIL_VERIFICATION=true to enforce once Resend is live; mirror it
+ * server-side with REQUIRE_EMAIL_VERIFICATION.
+ */
+export const REQUIRE_EMAIL_VERIFICATION =
+  (import.meta.env.VITE_REQUIRE_EMAIL_VERIFICATION as string | undefined) ===
+  "true";
+
 export const CONTRIBUTOR_TERMS_POINTS = [
   "Share accurate, first-hand local knowledge — facts and observations, not advice on whether anyone should paddle.",
   "Your public contributor name (not your email) is shown on what you add.",

@@ -16,6 +16,7 @@ import {
   type User,
 } from "firebase/auth";
 import { getClientFirebaseApp } from "./firebaseApp";
+import { REQUIRE_EMAIL_VERIFICATION } from "../lib/contributorTerms";
 
 export interface AuthUser {
   uid: string;
@@ -110,10 +111,12 @@ export async function createAccountWithEmail(input: {
       await credential.user.getIdToken(true);
     }
 
-    try {
-      await sendEmailVerification(credential.user);
-    } catch {
-      // Non-fatal: the member can re-request verification from the contributor on-ramp.
+    if (REQUIRE_EMAIL_VERIFICATION) {
+      try {
+        await sendEmailVerification(credential.user);
+      } catch {
+        // Non-fatal: the member can re-request verification from the contributor on-ramp.
+      }
     }
   } catch (error) {
     throw new Error(getFriendlyAuthErrorMessage(error, "Could not create account."));
