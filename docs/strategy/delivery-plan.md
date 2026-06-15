@@ -20,8 +20,8 @@ This document gives a clear view of the current delivery state. The full feature
 | Offline mode | `/docs/specs/foundations/offline-mode.md` | Active | Contribution saves now queue local outbox operations and can be manually synced; app-shell cache and automatic/background sync are not complete. |
 | River Wye pilot dataset | `/docs/specs/discovery/river-wye-seed-data.md` | Active | Seven Wye sections are seeded with OSM-derived route traces and source/confidence metadata; access/hazard data remains unverified. |
 | River Tryweryn active sample | `/docs/specs/discovery/river-tryweryn-seed-data.md` | Active | Active demo fixture now starts near the Llyn Celyn dam release/stilling-basin outflow and follows the Tryweryn to the centre and Bala. |
-| Community add mode | `/docs/specs/contributions/community-contributions.md` | Active | Add mode, map placement, saved markers, popups, and clearer contribution-type prompts exist in localStorage demo form. |
-| Hazard confirmation/resolution | `/docs/specs/contributions/trust-and-moderation.md` | Active | Demo supports confirm/resolve for seeded and user-added hazards; no real moderation backend yet. |
+| Community add mode | `/docs/specs/contributions/community-contributions.md` | Active | Add mode, map placement, and typed contributions are backend-persisted and identity-gated; contributors can attach updates/photos to an existing POI (CON-F19) without creating duplicate markers. |
+| Hazard confirmation/resolution | `/docs/specs/contributions/trust-and-moderation.md` | Active | Identity-gated confirm/suggest-correction on POIs (CON-F16) is backed by the API; POI verification status (confirmed/needs-correction/resolved) is tracked server-side. |
 | Environment Agency live levels | `/docs/specs/discovery/river-level-providers.md` | Active | Temporary frontend EA adapter exists for mapped lower Wye gauge candidates and falls back for unmapped sections. |
 | Observation ingestion | `/docs/specs/foundations/observation-ingestion.md` | Active | Generic backend observation schema and first guarded EA ingestion job are being implemented before Cloud Scheduler automation. |
 | Platform configuration | `/docs/specs/foundations/platform-configuration.md` | Active | In-repo `/platform` subproject created for Firebase/GCP config templates, planning scripts, and first-pass provisioning scripts. |
@@ -30,25 +30,21 @@ This document gives a clear view of the current delivery state. The full feature
 | Backend persistence | `/docs/specs/foundations/service-api.md` | Active | Authenticated contribution sync now persists to Postgres and reads back by section; broader section/rivers API and moderation actions remain queued. |
 | Backend data and sync model | `/docs/specs/foundations/data-and-sync-model.md` | Landed | Hybrid relational/JSONB contribution model and idempotent offline sync push are implemented locally against PostGIS. |
 | Staging end-to-end deployment | `/docs/specs/foundations/platform-configuration.md` | Active | Cloud Run API deploy, Cloud SQL migration, Firebase preview/live deploy, and E2E smoke scripts exist; deploy is blocked until local GCP auth and staging runtime DB URLs are refreshed. |
-| Auth and contributor identity | `/docs/specs/contributions/community-contributions.md` | Active | Contributor identity exists for MVP workflows; public contributor-name moderation and real-world operating policy still need hardening. |
+| Auth and contributor identity | `/docs/specs/contributions/community-contributions.md` | Active | Contribution identity gate is enforced client + server (signed-in · email-verified · public contributor name · accepted contributor terms), with a "Become a contributor" on-ramp. Email verification is relaxed by default pending Resend wiring. |
 | Photo uploads | `/docs/specs/contributions/photo-uploads.md` | Active | Signed-in contribution-scoped photo upload, storage, metadata, display, and moderation slices are landed; feature photo sets, upload-intent hardening, offline media queue, and level-linked metadata remain queued. |
-| Community trust and moderation | `/docs/specs/contributions/trust-and-moderation.md` | Active | Backend roles, admin role/trust editing, moderator queues, contribution decisions, and source-derived candidate POI status review exist; scoped moderator permissions and richer audit/edit/merge tools remain queued. |
+| Community trust and moderation | `/docs/specs/contributions/trust-and-moderation.md` | Active | Two-dimension moderation shipped: a visibility gate (published/removed) plus a review-status reason code, review-first by default with trusted direct-publish; authors see their own pending items. Backend roles and admin role/trust editing exist; richer audit/merge tools remain queued. |
 | Member profiles and paddle history | `/docs/specs/member-tools/member-profiles-and-history.md` | Queued | Later member value: paddled-river history, personal notes, photos, kit, skills, training grounds, profile privacy, and public links. |
 | Group paddle sessions | `/docs/specs/group-tools/group-paddle-sessions.md` | Queued | Later club/friend trip planning, check-in/out, session-scoped ICE sharing, advisory kit/skills checks, and session history. |
 | Future community, commerce, and learning | `/docs/specs/commerce/community-commerce-and-learning.md` | Parked | Captures marketplace, local recommendations, beginner learning, social discovery, lost-and-found, and monetisation as later-phase ideas. |
 
 ## Recommended Next Sprint
 
-1. Deploy migration 016 and seed the five pilot canonical rivers into staging, then smoke-test `/api/rivers` and the Admin Candidates tab against staging data.
-2. Harden source-candidate promotion: add moderator edit fields, explicit merge target selection, and an audit view for promoted/merged candidates.
-3. Rebuild reviewed section geometry and public POIs from the canonical backend model, replacing the temporary canonical-river overview compatibility rows.
-4. Prove the community knowledge loop on 3-5 real rivers/sections: seed, use, contribute, confirm, and refresh.
-5. Run a focused Tryweryn verification pass for the near-dam start, centre rules, release source, lower portage, and Bala finish.
-6. Run first Wye/Tryweryn feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
-7. Verify upstream Wye and Tryweryn gauge/provider mappings, likely including NRW for Wales.
-8. Keep offline draft/outbox support in the critical path because paddlers may contribute from poor-signal locations.
-9. Seed GB OSM waterway geometry so route suggestions can visually snap to waterways beyond the small loaded sample catalogue.
-10. Retry OS Open Rivers later as optional enrichment once credentials/download access are clear.
+1. Light up live levels on the remaining pilot rivers so every pilot opens to a level. The Dart (EA) and Dee/Llangollen (NRW) need only the paddler-relevant station + measure mapped — a `section_measure_links` seed alongside the existing Wye/Tryweryn entries in `api/src/observations.ts`. The Tay/Grandtully is in Scotland (SEPA), which is outside the current EA + NRW adapters and needs a new provider adapter — a code task, not just data.
+2. Discovery depth: river detail page (RIVERDISC-F3), nearby-river list ranked by distance (F4), and fact-based filters (grade/craft/level-state).
+3. Begin Tier 3a Member Tools: paddle history log and personal river history, building on the now-solid contribution identity.
+4. Re-enable email verification once Resend is wired (`VITE_REQUIRE_EMAIL_VERIFICATION` + `REQUIRE_EMAIL_VERIFICATION`).
+5. Run first Wye/Tryweryn feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
+6. Carry-over foundations: keep the offline outbox in the critical path; seed GB OSM waterway geometry for route snapping.
 
 ## Release Interpretation
 
