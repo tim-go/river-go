@@ -914,7 +914,7 @@ h1 {
 }
 
 .workspace--sections-open {
-  grid-template-columns: 292px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .app-page {
@@ -1156,6 +1156,13 @@ h1 {
   color: var(--river-dark);
 }
 
+/* Icons inside filled buttons must match the white button text, not the
+   card's default green icon colour (which equals the button background). */
+.profile-card .primary-action svg,
+.profile-card .submit-button svg {
+  color: white;
+}
+
 .profile-card strong,
 .profile-card span:not(.status-chip) {
   display: block;
@@ -1312,6 +1319,122 @@ h1 {
 
 .auth-sheet--welcome {
   height: min(720px, calc(100dvh - 24px));
+}
+
+.auth-sheet--onramp {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  width: min(520px, 100%);
+  max-height: min(880px, calc(100dvh - 24px));
+}
+
+.auth-sheet--onramp .auth-sheet__content {
+  align-content: start;
+}
+
+.contributor-steps {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contributor-step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(91, 169, 188, 0.32);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.contributor-step--done {
+  border-color: rgba(76, 159, 109, 0.45);
+  background: rgba(225, 244, 232, 0.7);
+}
+
+.contributor-step__icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(91, 169, 188, 0.18);
+  color: var(--river-dark);
+}
+
+.contributor-step--done .contributor-step__icon {
+  background: rgba(76, 159, 109, 0.22);
+  color: #2f7d52;
+}
+
+.contributor-step__body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.contributor-step__body h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--river-dark);
+}
+
+.contributor-step__body p {
+  margin: 0;
+}
+
+.contributor-step__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.contributor-step__hint {
+  font-size: 0.82rem;
+  color: #6b7780 !important;
+}
+
+.contributor-step__link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--river-dark);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.contributor-name-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.contributor-name-form input {
+  flex: 1 1 200px;
+  padding: 8px 10px;
+  border: 1px solid rgba(91, 169, 188, 0.4);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.contributor-terms-points {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 18px;
+  color: #43515d;
+  font-size: 0.9rem;
+}
+
+.contributor-onramp__footer {
+  justify-content: space-between;
+  margin-top: 4px;
 }
 
 .auth-sheet__image {
@@ -1584,10 +1707,17 @@ h1 {
 }
 
 .section-list {
-  z-index: 450;
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 460;
+  width: min(300px, calc(100vw - 44px));
+  max-height: calc(100% - 32px);
   overflow-y: auto;
-  border-right: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: 8px;
   background: #fbfcf8;
+  box-shadow: var(--shadow);
 }
 
 .section-list--closed {
@@ -2215,6 +2345,14 @@ h1 {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.97);
   box-shadow: var(--shadow);
+}
+
+/* In add/placement mode the map cursor signals "click to place a point"
+   rather than the default grab/pan cursor. Scoped to .map-stage (not the
+   Leaflet container div, whose className React must not clobber). */
+.map-stage--placing .leaflet-grab,
+.map-stage--placing .leaflet-interactive {
+  cursor: crosshair;
 }
 
 .add-mode-banner {
@@ -4160,6 +4298,12 @@ textarea {
     padding: 14px 16px calc(var(--safe-area-bottom) + 14px);
   }
 
+  /* The on-ramp has only a content element (no image), so it needs a single
+     full-height row instead of the welcome sheet's image + content rows. */
+  .auth-sheet.auth-sheet--onramp {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
   .auth-sheet--welcome {
     grid-template-rows: minmax(124px, 20dvh) minmax(0, 1fr);
   }
@@ -4837,4 +4981,56 @@ textarea {
     width: 15px;
     height: 15px;
   }
+}
+
+/* RiverCard — fact-first discovery card (CP3) */
+.river-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+.river-card__eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5b6b66;
+}
+.river-card__header h2 { margin: 0.15rem 0 0.35rem; }
+.river-card__confidence { margin: 0; font-size: 0.8rem; color: #5b6b66; }
+.river-card__note {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #4a5a55;
+  border-left: 3px solid #0f766e;
+  padding-left: 0.75rem;
+}
+.river-card__summary { margin: 0; line-height: 1.5; }
+.river-card__block { display: flex; flex-direction: column; gap: 0.4rem; }
+.river-card__block h3 { margin: 0; font-size: 0.95rem; }
+.river-card__gap { margin: 0; font-size: 0.85rem; color: #7a8884; font-style: italic; }
+.river-card__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.river-card__poi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem 0.65rem;
+  background: #f1f5f3;
+  border-radius: 0.5rem;
+}
+.river-card__poi span { font-size: 0.85rem; color: #5b6b66; }
+.river-card__poi small { font-size: 0.72rem; color: #7a8884; }
+.river-card__sourcing { margin-top: 0.25rem; font-size: 0.72rem; color: #7a8884; }
+.river-card__loading { margin: 0; font-size: 0.8rem; color: #0f766e; }
+.river-card__level { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 0.6rem; }
+.river-card__level strong { font-size: 1.4rem; }
+.river-card__trend { font-size: 0.85rem; color: #5b6b66; text-transform: capitalize; }
+.river-card__level small { flex-basis: 100%; font-size: 0.72rem; color: #7a8884; }
+
+/* Map-first: shift map's top-left controls clear of the floating river list */
+.workspace--sections-open .map-stage .leaflet-top.leaflet-left {
+  transform: translateX(312px);
 }

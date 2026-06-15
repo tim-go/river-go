@@ -24,7 +24,7 @@ Specs live in this repository under `/docs/specs`.
 2. If the work is not covered, update or create the local spec first unless the user explicitly asked for a spike.
 3. Implement against the local spec.
 4. Reconcile implementation findings back into the local spec.
-5. Run the relevant validation command, currently `npm run build` for app changes.
+5. Run the validation gate: `npm run build && npm test && npm --prefix api run test` for app changes, or `npm --prefix api run build && npm --prefix api run test` for API-only changes.
 6. Report the local spec path and any remaining divergence.
 
 ## Spec Change Logs

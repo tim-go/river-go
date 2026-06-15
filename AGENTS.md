@@ -10,6 +10,9 @@ Use this file as the neutral entrypoint for shared repo guidance.
 2. Read relevant focused rule files in `.agents/rules/`
    - spec-backed River Go work: `.agents/rules/river-go-spec-first-development.md`
    - frontend/UI work: `.agents/rules/river-go-frontend.md`
+   - backend/API work: `.agents/rules/river-go-backend.md`
+   - tests or test setup: `.agents/rules/river-go-testing.md`
+   - user-facing copy / condition indicators: `.agents/rules/river-go-no-advice.md`
 3. Read `/docs/specs/README.md`
 4. Read `/docs/specs/spec-consolidation-map.md` when choosing the owning spec
 5. Read relevant strategy documents in `/docs/strategy/` when product context matters

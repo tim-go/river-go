@@ -47,7 +47,7 @@ git add package-lock.json
 Run the current gate:
 
 ```bash
-npm run build
+npm run build && npm test && npm --prefix api run test
 ```
 
 Confirm final state:

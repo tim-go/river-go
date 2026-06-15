@@ -14,5 +14,5 @@ Use the canonical workflow in:
 Current required check for code changes:
 
 ```bash
-npm run build
+npm run build && npm test && npm --prefix api run test
 ```

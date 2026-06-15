@@ -59,3 +59,10 @@ export function getWhat3WordsApiKey(): string | undefined {
 export function getObservationJobToken(): string | undefined {
   return process.env.OBSERVATION_JOB_TOKEN?.trim() || undefined;
 }
+
+export function isEmailVerificationRequired(): boolean {
+  // Relaxed by default while transactional email (Resend) is being set up;
+  // Firebase's default verification emails aren't being delivered. Set
+  // REQUIRE_EMAIL_VERIFICATION=true to enforce once Resend is live.
+  return process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+}

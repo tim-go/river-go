@@ -68,6 +68,7 @@ try {
   const member = await upsertMemberFromAuth({
     userId: `smoke-${randomUUID()}`,
     email: "smoke@example.test",
+    emailVerified: true,
     name: "Smoke Test Member",
   });
   const actor = { firebaseUid: member.firebaseUid, memberId: member.id };

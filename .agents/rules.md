@@ -18,6 +18,9 @@ Read focused rules before editing the relevant area:
 
 - River Go implementation, content, design, review, refactor, release, data, or platform work: `.agents/rules/river-go-spec-first-development.md`
 - Frontend, UI, map layout, styling, copy, or component work: `.agents/rules/river-go-frontend.md`
+- Backend / API work (`api/`, PostGIS, migrations, auth, contribution sync): `.agents/rules/river-go-backend.md`
+- Tests or test setup: `.agents/rules/river-go-testing.md`
+- Any user-facing copy or condition indicator (the no-advice invariant): `.agents/rules/river-go-no-advice.md`
 
 Focused rules are mandatory when their trigger applies. Skills provide workflow help, but rules are the durable standards.
 
@@ -42,7 +45,7 @@ Current durable planning and delivery state live in:
 - `/docs/strategy/delivery-plan.md`
 - `/docs/specs/`
 
-The current app is a Vite/React/Leaflet prototype with River Wye seed data and localStorage-backed demo contributions.
+The app is a Vite/React 19/Leaflet frontend plus a standalone Cloud Run + PostGIS API (`api/`). Discovery is river-first (canonical rivers are the primary object); contributions are identity-gated and sync to the API. `App.tsx` has been decomposed across `src/components`, `src/lib`, `src/services`, and `src/discovery`.
 
 ## Key Commands
 
@@ -50,22 +53,37 @@ The current app is a Vite/React/Leaflet prototype with River Wye seed data and l
 # Install dependencies
 npm install
 
-# Local dev
-npm run dev
+# Local dev (frontend; dev:lan binds :6173 and is LAN-exposed)
+npm run dev:lan
+npm run api:dev        # local API on :8080 (needs the local DB on :5435)
 
-# Production build/type check
-npm run build
+# Validation gate for code changes
+npm run build && npm test && npm --prefix api run test
+
+# API-only checks
+npm --prefix api run build
+npm --prefix api run test
 ```
 
 ## Key Files
 
-- `/src/App.tsx`
-- `/src/styles.css`
-- `/src/types.ts`
-- `/src/data/demoData.ts`
-- `/src/data/riverWyeSeed.ts`
-- `/src/data/wyeRouteTraces.ts`
-- `/scripts/generateWyeRouteTraces.mjs`
+Frontend:
+
+- `/src/App.tsx` — app shell and orchestration
+- `/src/components/` — extracted UI (e.g. `RiverMap.tsx`, `ContributorOnramp.tsx`)
+- `/src/discovery/` — river-first discovery context
+- `/src/lib/` — pure helpers (`format.ts`, `uuid.ts`, `contributorGate.ts`, ...)
+- `/src/services/` — API and Firebase clients
+- `/src/styles.css`, `/src/types.ts`
+
+Backend:
+
+- `/api/src/server.ts` — HTTP routing
+- `/api/src/` — members, contributions, auth, sync, public-name
+- `/api/migrations/` — numbered SQL migrations
+
+Docs:
+
 - `/docs/strategy/delivery-plan.md`
 - `/docs/specs/spec-consolidation-map.md`
 
@@ -75,7 +93,7 @@ npm run build
 - For durable work, update the owning spec before or alongside implementation.
 - Keep the repo tidy. Prefer editing existing specs/files over creating unnecessary new files.
 - Use `rg` for searching.
-- Use `npm run build` as the current validation gate before handoff for code changes.
+- Validation gate for code changes before handoff: `npm run build && npm test && npm --prefix api run test` (API-only changes: `npm --prefix api run build && npm --prefix api run test`). See `.agents/rules/river-go-testing.md`.
 - Do not stamp `Delivered` fields unless the user explicitly asks for a release-cut/stamping task.
 
 ## Terminal Command Rules

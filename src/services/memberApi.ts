@@ -23,6 +23,8 @@ export interface MemberProfile {
   createdAt: string;
   updatedAt: string;
   lastSeenAt: string | null;
+  contributorTermsAcceptedAt: string | null;
+  contributorTermsVersion: string | null;
 }
 
 export interface MemberEmergencyProfile {
@@ -56,6 +58,18 @@ export async function updateMyProfile(input: {
     method: "PATCH",
     body: JSON.stringify(input),
   }).then((result) => result.member);
+}
+
+export async function acceptContributorTerms(
+  version: string,
+): Promise<MemberProfile> {
+  return fetchMemberEndpoint<{ member: MemberProfile }>(
+    "/api/me/contributor-terms",
+    {
+      method: "POST",
+      body: JSON.stringify({ version }),
+    },
+  ).then((result) => result.member);
 }
 
 export async function fetchMyEmergencyProfile(): Promise<MemberEmergencyProfile> {
@@ -139,7 +153,16 @@ async function fetchMemberEndpoint<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`Member API failed with HTTP ${response.status}`);
+    let message = `Member API failed with HTTP ${response.status}`;
+    try {
+      const errorBody = (await response.json()) as { error?: unknown };
+      if (typeof errorBody?.error === "string" && errorBody.error.trim()) {
+        message = errorBody.error;
+      }
+    } catch {
+      // Response body was not JSON; keep the generic message.
+    }
+    throw new Error(message);
   }
 
   return (await response.json()) as T;

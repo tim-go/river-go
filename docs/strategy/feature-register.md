@@ -66,6 +66,7 @@ Status legend: ✅ Landed · 🔨 Active · ⬜ Queued · 🅿️ Parked
 | Gauge display (live reading + fallback) | ✅ | river-level-providers |
 | Offline/stale level labelling | ⬜ | river-level-providers, offline-mode |
 | Rainfall / tide / dam-release context | 🔨 | observation-ingestion, river-level-providers |
+| Historical level & rainfall charts on the river card | ⬜ | river-first-discovery |
 
 ### 1D — Discovery data foundation
 | Feature | Status | Owning spec(s) |

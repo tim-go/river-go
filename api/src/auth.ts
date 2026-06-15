@@ -7,6 +7,7 @@ import { HttpError } from "./http.js";
 export interface AuthContext {
   userId: string;
   email?: string;
+  emailVerified: boolean;
   name?: string;
   picture?: string;
 }
@@ -48,6 +49,7 @@ async function getAuthContext(
     return {
       userId: decodedToken.uid,
       email: typeof decodedToken.email === "string" ? decodedToken.email : undefined,
+      emailVerified: decodedToken.email_verified === true,
       name: typeof decodedToken.name === "string" ? decodedToken.name : undefined,
       picture:
         typeof decodedToken.picture === "string" ? decodedToken.picture : undefined,

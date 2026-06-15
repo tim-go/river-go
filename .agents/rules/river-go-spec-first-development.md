@@ -46,13 +46,16 @@ Then search local specs:
 rg -n "<feature|domain|surface>" docs/specs docs/product docs/strategy
 ```
 
-Use these top-level spec buckets:
+Use these top-level spec buckets (the tier folders):
 
-- `/docs/specs/core/`
-- `/docs/specs/data/`
-- `/docs/specs/community/`
-- `/docs/specs/release/`
-- `/docs/specs/ops/`
+- `/docs/specs/foundations/`
+- `/docs/specs/discovery/`
+- `/docs/specs/identity/`
+- `/docs/specs/contributions/`
+- `/docs/specs/member-tools/`
+- `/docs/specs/group-tools/`
+- `/docs/specs/commerce/`
+- `/docs/specs/principles/`
 
 Use root-relative `/docs/...` Markdown links when referencing docs/spec files from prose. Avoid `../..` traversal links in new or edited spec content.
 

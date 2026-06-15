@@ -9,7 +9,7 @@ maturity: Sketch
 # River-First Discovery
 
 **Work state:** Queued
-**Last updated:** 2026-06-05
+**Last updated:** 2026-06-14
 **Scope:** River-led discovery, river overview pages, selected-river map behaviour, and nearby river browsing.
 
 ## Purpose
@@ -82,6 +82,12 @@ The first implementation may be deliberately sparse: selected-river context can 
 
 The UI should allow users to hide or filter dense feature layers so the map remains legible. Access and parking should remain easy to distinguish from generic features.
 
+#### Card vs detail layering
+
+The selected-river card is a **scannable overview, not a deep record**. It shows the priority facts (today's level, grade, notable features) plus counts that lead into depth (for example "Hazards · 3", "Photos · 12") — it must not bury the first glance behind tabs, which was the failure of the earlier section-shaped overview.
+
+Per-aspect depth — the earlier card's Levels (incl. historical charts, RIVERDISC-F7), Access, Hazards, Updates, and Photos tabs — lives one layer down, in the **river detail surface**: the river page (RIVERDISC-F3) or an **expanded card view** (the panel already has an expand affordance). Tabs/sections are acceptable there, where the user has chosen to go deep. Section-specific depth (a particular paddle's put-in/take-out, access, and hazards) lives in section detail. Lean on expand-in-place first, before building the full river page.
+
 ### River Page
 
 Each river should eventually have a dedicated river page or river detail surface.
@@ -106,6 +112,8 @@ Later versions may add:
 - local clubs, venues, instructors, cafes, shops, or accommodation where commercial policy allows
 
 Public-news and history-style content must be sourced and must not crowd out paddling-critical information.
+
+Historical level and rainfall charts (the old card's 48h / 7d / 28d observation-history view) are a planned addition to the river card/detail. The underlying observation history and chart rendering already exist from the earlier section view, so the remaining work is re-surfacing them on the river-first card. Tracked as RIVERDISC-F7.
 
 ### Nearby Rivers
 
@@ -165,6 +173,7 @@ Avoid:
 | RIVERDISC-F4 | Nearby river list | Search/map | Queued | MVP | — | Opt-in location can rank nearby rivers by distance and filter by grade and current conditions. |
 | RIVERDISC-F5 | River-first copy migration | App shell/map/search | Queued | MVP | — | Public IA should favour `Rivers`; route/section language remains for detailed paddling interpretations. |
 | RIVERDISC-F6 | Feature layer density controls | Map | Queued | MVP | — | Let users hide/show feature categories on selected rivers to reduce marker clutter. |
+| RIVERDISC-F7 | Historical level & rainfall charts | River card/detail | Queued | Later | — | Re-surface the old 48h/7d/28d observation-history charts (level + rainfall) on the river card. Data + chart rendering already exist from the earlier section view; remaining work is the river-card display. |
 
 ### Backlog
 
@@ -175,9 +184,12 @@ Avoid:
 | RIVERDISC-B3 | validation | Marker semantics | Open | MVP | Test whether initial/grade/runnability markers are understandable on mobile. |
 | RIVERDISC-B4 | dependency | River grouping data | Open | MVP | Requires watercourse grouping beyond local OSM stretch selection. |
 | RIVERDISC-B5 | enhancement | Public news/history references | Parked | Later | Useful for richness, but not part of paddling-critical MVP. |
+| RIVERDISC-B6 | decision | Card-vs-detail layering | Resolved | Later | Card = scannable overview with counts that lead into depth; per-aspect depth (old Levels/Access/Hazards/Updates/Photos tabs) lives in the river detail surface — expanded card first, then the river page (F3). |
 
 ## Change Log
 
 | Date | Change |
 | --- | --- |
 | 2026-06-05 | Created river-first discovery spec from Joe feedback and route/liability review. |
+| 2026-06-14 | Captured historical level & rainfall charts on the river card as tracked future work (RIVERDISC-F7). |
+| 2026-06-14 | Recorded card-vs-detail layering: card stays a scannable overview; per-aspect depth lives in the river detail surface (expanded card / river page). |

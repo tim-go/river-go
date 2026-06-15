@@ -15,6 +15,6 @@ Summary:
 
 1. Check branch and status.
 2. Sync with `origin/main`.
-3. Run `npm run build`.
+3. Run the gate: `npm run build && npm test && npm --prefix api run test`.
 4. Push the branch.
 5. Open or update the GitHub PR against `main`.
