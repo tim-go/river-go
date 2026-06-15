@@ -338,7 +338,35 @@ export function PoiDetailPanel({
                             ? ` · ${contribution.dateObserved}`
                             : ""}
                         </span>
-                        <p>{contribution.detail}</p>
+                        {contribution.detail ? (
+                          <p>{contribution.detail}</p>
+                        ) : null}
+                        {contribution.photos?.length ? (
+                          <div className="poi-photo-grid">
+                            {contribution.photos.map((photo) => (
+                              <figure key={photo.id}>
+                                <button
+                                  className="photo-open-button"
+                                  type="button"
+                                  onClick={() =>
+                                    onOpenPhoto({
+                                      src:
+                                        photo.displayUrl || photo.thumbnailUrl,
+                                      title: photo.caption || contribution.title,
+                                      caption: photo.originalName,
+                                      alt: photo.caption || contribution.title,
+                                    })
+                                  }
+                                >
+                                  <img
+                                    src={photo.displayUrl || photo.thumbnailUrl}
+                                    alt=""
+                                  />
+                                </button>
+                              </figure>
+                            ))}
+                          </div>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
