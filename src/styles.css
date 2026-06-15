@@ -4738,14 +4738,14 @@ textarea {
   .poi-detail-panel {
     position: fixed;
     top: auto;
-    right: 8px;
-    bottom: calc(var(--bottom-nav-height) + var(--bottom-overlay-gap));
-    left: 8px;
+    right: 0;
+    bottom: var(--bottom-nav-height);
+    left: 0;
     z-index: 1400;
     width: auto;
     height: min(50vh, calc(100% - var(--bottom-nav-height) - 24px));
     max-height: min(50vh, calc(100% - var(--bottom-nav-height) - 24px));
-    border-radius: 8px;
+    border-radius: 12px 12px 0 0;
   }
 
   .poi-detail-panel--expanded {
