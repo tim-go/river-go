@@ -327,3 +327,28 @@ export interface LiveGaugeReading {
   state: "live" | "fallback" | "unmapped" | "error";
   message: string;
 }
+
+export interface PaddleLog {
+  id: string;
+  riverId: string | null;
+  sectionId: string | null;
+  venue: string | null;
+  title: string;
+  paddledOn: string;
+  levelNote: string | null;
+  craftType: string | null;
+  companions: string | null;
+  notes: string | null;
+  visibility: "private" | "friends" | "public";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaddleStats {
+  totalPaddles: number;
+  distinctRivers: number;
+  thisYearPaddles: number;
+  thisYearNewRivers: number;
+  nations: number;
+  mostPaddled: { riverId: string | null; title: string; count: number } | null;
+}

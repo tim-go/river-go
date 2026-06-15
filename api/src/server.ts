@@ -52,6 +52,13 @@ import {
 } from "./members.js";
 import { listPhotosForMember, softDeletePhoto } from "./photos.js";
 import {
+  createPaddleLog,
+  deletePaddleLog,
+  getPaddleStats,
+  listPaddleLogs,
+  parsePaddleLogInput,
+} from "./paddle-logs.js";
+import {
   applyRouteSuggestionDecision,
   createRouteSuggestion,
   isRouteSuggestionDecision,
@@ -142,6 +149,46 @@ async function route(
       body.version.trim(),
     );
     return { status: 200, body: { member: updatedMember } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/paddle-logs") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const riverId = url.searchParams.get("riverId");
+    const paddleLogs = await listPaddleLogs(member.id, {
+      riverId: riverId ?? undefined,
+    });
+    return { status: 200, body: { paddleLogs } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/me/paddle-logs") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const paddleLog = await createPaddleLog(
+      member.id,
+      parsePaddleLogInput(body),
+    );
+    return { status: 201, body: { paddleLog } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/paddle-stats") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const stats = await getPaddleStats(member.id);
+    return { status: 200, body: { stats } };
+  }
+
+  const paddleLogDeleteMatch = url.pathname.match(
+    /^\/api\/me\/paddle-logs\/([^/]+)$/,
+  );
+  if (method === "DELETE" && paddleLogDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    await deletePaddleLog(
+      member.id,
+      decodeURIComponent(paddleLogDeleteMatch[1]),
+    );
+    return { status: 200, body: { ok: true } };
   }
 
   if (method === "GET" && url.pathname === "/api/me/emergency-profile") {

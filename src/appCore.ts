@@ -199,7 +199,8 @@ export type ProfileMode =
   | "emergency"
   | "sync"
   | "activity"
-  | "photos";
+  | "photos"
+  | "history";
 
 export const memberRoleOptions: MemberRole[] = [
   "MEMBER",
