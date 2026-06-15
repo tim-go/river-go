@@ -1776,6 +1776,8 @@ function App() {
     setSearchFocusLocation(null);
     setSearchFocusLabel("Searched location");
     setShowSearchFocusMarker(false);
+    setSelectedPoi(null);
+    setIsPoiDetailExpanded(false);
     setIsAddMode(false);
     setIsFormOpen(true);
     setSelectedTargetLabel(`On ${poi.title}`);
