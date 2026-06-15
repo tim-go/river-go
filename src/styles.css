@@ -1325,6 +1325,7 @@ h1 {
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   width: min(520px, 100%);
+  max-height: min(880px, calc(100dvh - 24px));
 }
 
 .auth-sheet--onramp .auth-sheet__content {
