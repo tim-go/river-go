@@ -9,7 +9,7 @@ maturity: Trial
 # Community Contributions
 
 **Work state:** Active
-**Last updated:** 2026-06-05
+**Last updated:** 2026-06-15
 **Scope:** The user workflow for adding first-party community river knowledge to a river, section, POI, or map location.
 
 ## Purpose
@@ -55,7 +55,7 @@ The prototype must support:
 - saved marker display
 - saved marker popup
 - localStorage persistence
-- member sign-in before saving community data
+- a known, attributable contributor identity before saving community data
 
 Contribution types:
 
@@ -80,6 +80,8 @@ Expected user flow:
 7. Saved contribution appears on the map and section update list.
 
 For the backend-persisted MVP, save should create a local outbox record first and then sync to the backend. Once the backend accepts the operation, the contribution should reload from `GET /api/sections/:sectionId/contributions` and remain visible across sessions/devices according to its moderation and visibility state.
+
+Contributing to shared community data requires a known, attributable identity, not merely a signed-in session: an email-verified account, a public contributor name (shown on contributions instead of the email), and accepted contributor terms. This is enforced both client-side (the `canContribute` gate) and server-side (`requireContributorIdentity` on the sync push), so it cannot be bypassed. A "Become a contributor" on-ramp walks a signed-in member through any missing requirement — verify email, set public name, accept terms — before the add flow opens. Email verification is currently relaxable by environment flag (`REQUIRE_EMAIL_VERIFICATION`, relaxed by default) while transactional email (Resend) is being set up; public name and accepted terms remain required.
 
 Existing seeded and saved information markers remain inspect-only, even while add mode is active. A future explicit `Add update here` or `Add photo here` action can be added inside marker popups/details if updating existing map objects becomes a priority.
 
@@ -142,7 +144,7 @@ Offline requirements:
 | CON-F6 | Saved marker popups | Map | Landed | prototype | — | Saved markers show saved detail on click. |
 | CON-F7 | Validation feedback | Form | Landed | prototype | — | Required fields and inline error avoid silent save failure. |
 | CON-F8 | Separate contribution flows | UX | Landed | v0.2 | — | Panel actions and form prompts now separate condition, hazard, access, photo, and feature contributions. |
-| CON-F9 | Authenticated contributors | Backend/auth | Active | MVP | — | Signed-out users can browse only; save/contribution actions prompt for sign-in before local draft creation or sync. |
+| CON-F9 | Contributor identity gate | Backend/auth | Landed | MVP | — | Contributions require a known identity — email-verified + public contributor name + accepted contributor terms — enforced client-side (`canContribute`) and server-side (`requireContributorIdentity` on sync push). Browsing stays anonymous. Email verification is relaxable by env flag (relaxed pending Resend). |
 | CON-F10 | Photo upload | Media | Landed | MVP | v0.4 | Photo contribution flow resizes/uploads a display image and thumbnail, then syncs photo metadata with the contribution. |
 | CON-F11 | Offline contribution outbox | PWA/mobile | Active | MVP | — | Form save writes queued sync operations locally and a manual sync action pushes them to the backend. |
 | CON-F12 | Backend-persisted contribution loop | API/frontend | Landed | MVP | — | Uses `/docs/specs/foundations/data-and-sync-model.md` Phase 1: signed-in save, sync, readback, merge, and status labels. |
@@ -153,6 +155,7 @@ Offline requirements:
 | CON-F17 | Rich feature categories | Contribution form/POI | Queued | MVP | — | Rapids, waves, eddies, playspots, portages, bridges, landings, and navigation notes have structured categories. |
 | CON-F18 | Access and parking categories | Contribution form/POI | Queued | MVP | — | Put-in, take-out, parking, lay-by, shuttle, access path, portage, emergency exit, and facilities are distinct. |
 | CON-F19 | Add update/photo to existing POI | POI detail | Queued | MVP | — | Members can attach updates/photos to an existing feature/access/hazard rather than creating duplicate markers. |
+| CON-F20 | Contributor on-ramp | Auth/contribute | Landed | MVP | — | "Become a contributor" flow walks a signed-in member through verify-email, public name, and accept-terms before the add flow opens; reached from the river-first Add-info entry point. |
 
 ### Backlog
 
@@ -180,3 +183,4 @@ Offline requirements:
 | 2026-05-23 | Required sign-in before saving community contributions. |
 | 2026-05-21 | Migrated to spec schema v4. |
 | 2026-06-05 | Added richer river feature, access, parking, and existing-POI update requirements from Joe feedback. |
+| 2026-06-15 | Reconciled the contributor identity gate (email-verified + public name + accepted terms, enforced client + server) and the contributor on-ramp (CON-F9, CON-F20) as built; noted the relaxable email-verification flag. |
