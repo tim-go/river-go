@@ -127,8 +127,56 @@ export async function listContributionsForSection(
         OR ($2::uuid IS NOT NULL AND c.member_id = $2::uuid)
       )
       AND c.moderation_status NOT IN ('hidden', 'rejected')
+      AND c.map_poi_id IS NULL
     ORDER BY c.created_at DESC`,
     [sectionId, viewerMemberId],
+  );
+
+  return result.rows.map(mapContributionRow);
+}
+
+export async function listContributionsForPoi(
+  mapPoiId: string,
+  viewerMemberId: string | null,
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiContribution[]> {
+  const result = await client.query<ContributionRow>(
+    `SELECT
+      c.id,
+      c.section_id,
+      c.type,
+      CASE
+        WHEN c.geometry IS NULL THEN NULL
+        ELSE ST_AsGeoJSON(c.geometry)::json
+      END AS geometry,
+      c.payload,
+      ${photoAggregateSql("c.id")} AS photos,
+      c.observed_at,
+      c.created_at,
+      c.updated_at,
+      c.moderation_status,
+      c.sync_status,
+      c.revision,
+      c.member_id,
+      COALESCE(m.public_name, m.display_name) AS display_name,
+      m.email,
+      m.trust_level
+    FROM contributions c
+    LEFT JOIN members m ON m.id = c.member_id
+    WHERE c.map_poi_id = $1
+      AND (
+        c.moderation_status IN (
+          'reported',
+          'needs-confirmation',
+          'confirmed',
+          'challenged',
+          'resolved'
+        )
+        OR ($2::uuid IS NOT NULL AND c.member_id = $2::uuid)
+      )
+      AND c.moderation_status NOT IN ('hidden', 'rejected')
+    ORDER BY c.created_at DESC`,
+    [mapPoiId, viewerMemberId],
   );
 
   return result.rows.map(mapContributionRow);

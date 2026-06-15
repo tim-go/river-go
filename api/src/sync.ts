@@ -48,6 +48,7 @@ interface ContributionCreatePayload {
   id: string;
   type: string;
   sectionId?: string | null;
+  mapPoiId?: string | null;
   geometry?: unknown;
   observedAt?: string | null;
   payload?: Record<string, unknown>;
@@ -223,7 +224,8 @@ async function insertContribution(
       moderation_status,
       sync_status,
       sync_source,
-      payload
+      payload,
+      map_poi_id
     ) VALUES (
       $1,
       $2,
@@ -237,7 +239,8 @@ async function insertContribution(
       $10,
       'accepted',
       $11,
-      $12::jsonb
+      $12::jsonb,
+      $13
     )
     ON CONFLICT (id) DO UPDATE SET
       updated_at = now()
@@ -274,6 +277,7 @@ async function insertContribution(
       initialModerationStatus(contribution.type),
       syncSource,
       JSON.stringify(payload),
+      contribution.mapPoiId ?? null,
     ],
   );
 
@@ -456,6 +460,7 @@ function parseContributionPayload(
       id,
       type,
       sectionId: readString(value.sectionId),
+      mapPoiId: readString(value.mapPoiId),
       geometry: value.geometry,
       observedAt: readString(value.observedAt),
       payload: isRecord(value.payload) ? value.payload : {},

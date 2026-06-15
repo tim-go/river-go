@@ -16,6 +16,7 @@ import {
   applyModerationDecision,
   isModerationDecision,
   listContributionsForMember,
+  listContributionsForPoi,
   listContributionsForSection,
   listModerationContributions,
   softDeleteContribution,
@@ -570,6 +571,19 @@ async function route(
     const member = authContext ? await upsertMemberFromAuth(authContext) : null;
     const contributions = await listContributionsForSection(
       decodeURIComponent(sectionContributionsMatch[1]),
+      member?.id ?? null,
+    );
+    return { status: 200, body: { contributions } };
+  }
+
+  const mapPoiContributionsMatch = url.pathname.match(
+    /^\/api\/map-pois\/([^/]+)\/contributions$/,
+  );
+  if (method === "GET" && mapPoiContributionsMatch) {
+    const authContext = await getOptionalAuthContext(headers);
+    const member = authContext ? await upsertMemberFromAuth(authContext) : null;
+    const contributions = await listContributionsForPoi(
+      decodeURIComponent(mapPoiContributionsMatch[1]),
       member?.id ?? null,
     );
     return { status: 200, body: { contributions } };
