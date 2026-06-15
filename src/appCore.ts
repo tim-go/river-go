@@ -200,7 +200,8 @@ export type ProfileMode =
   | "sync"
   | "activity"
   | "photos"
-  | "history";
+  | "history"
+  | "kit";
 
 export const memberRoleOptions: MemberRole[] = [
   "MEMBER",

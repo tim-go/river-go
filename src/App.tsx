@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  Backpack,
   Camera,
   CheckCircle2,
   ChevronDown,
@@ -132,6 +133,7 @@ import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
 import { AppBrandPanel } from "./components/AppBrandPanel";
 import { PaddleHistoryPanel } from "./components/PaddleHistoryPanel";
+import { KitInventoryPanel } from "./components/KitInventoryPanel";
 import { AppNotificationBanner } from "./components/AppNotificationBanner";
 import { PlaceholderPage } from "./components/PlaceholderPage";
 import { PhotoLightbox } from "./components/PhotoLightbox";
@@ -5828,6 +5830,16 @@ function App() {
                     <Waves size={16} />
                     History
                   </button>
+                  <button
+                    className={profileMode === "kit" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={profileMode === "kit"}
+                    onClick={() => setProfileMode("kit")}
+                  >
+                    <Backpack size={16} />
+                    Kit
+                  </button>
                 </div>
                 {profileMode === "account" ? (
                   <section className="profile-mode-panel" aria-label="My account">
@@ -5929,6 +5941,20 @@ function App() {
                     ) : (
                       <p className="profile-message">
                         Sign in to log and review your paddle history.
+                      </p>
+                    )}
+                  </section>
+                ) : null}
+                {profileMode === "kit" ? (
+                  <section
+                    className="profile-mode-panel"
+                    aria-label="Kit inventory"
+                  >
+                    {isSignedIn ? (
+                      <KitInventoryPanel />
+                    ) : (
+                      <p className="profile-message">
+                        Sign in to manage your kit.
                       </p>
                     )}
                   </section>

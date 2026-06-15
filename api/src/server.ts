@@ -59,6 +59,12 @@ import {
   parsePaddleLogInput,
 } from "./paddle-logs.js";
 import {
+  createKitItem,
+  deleteKitItem,
+  listKitItems,
+  parseKitItemInput,
+} from "./kit-items.js";
+import {
   applyRouteSuggestionDecision,
   createRouteSuggestion,
   isRouteSuggestionDecision,
@@ -188,6 +194,30 @@ async function route(
       member.id,
       decodeURIComponent(paddleLogDeleteMatch[1]),
     );
+    return { status: 200, body: { ok: true } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/kit-items") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const kitItems = await listKitItems(member.id);
+    return { status: 200, body: { kitItems } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/me/kit-items") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const kitItem = await createKitItem(member.id, parseKitItemInput(body));
+    return { status: 201, body: { kitItem } };
+  }
+
+  const kitItemDeleteMatch = url.pathname.match(
+    /^\/api\/me\/kit-items\/([^/]+)$/,
+  );
+  if (method === "DELETE" && kitItemDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    await deleteKitItem(member.id, decodeURIComponent(kitItemDeleteMatch[1]));
     return { status: 200, body: { ok: true } };
   }
 

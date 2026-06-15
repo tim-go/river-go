@@ -352,3 +352,15 @@ export interface PaddleStats {
   nations: number;
   mostPaddled: { riverId: string | null; title: string; count: number } | null;
 }
+
+export interface KitItem {
+  id: string;
+  category: string;
+  name: string;
+  notes: string | null;
+  purchasedOn: string | null;
+  replaceOn: string | null;
+  serial: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
