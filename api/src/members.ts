@@ -315,7 +315,7 @@ function defaultPublicName(displayName: string | undefined) {
   try {
     return normalisePublicName(displayName ?? "");
   } catch {
-    return `RiverLaunch member ${Math.floor(1000 + Math.random() * 9000)}`;
+    return `Paddler ${Math.floor(1000 + Math.random() * 9000)}`;
   }
 }
 
