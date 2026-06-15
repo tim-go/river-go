@@ -266,6 +266,7 @@ function App() {
   const [isAppNavCollapsed, setIsAppNavCollapsed] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState("");
   const [sectionFocusNonce, setSectionFocusNonce] = useState(0);
+  const hasCenteredOnFirstRiverRef = useRef(false);
   const [pendingUnfavouriteSection, setPendingUnfavouriteSection] =
     useState<RiverSection | null>(null);
   const [contributions, setContributions] = useState<Contribution[]>(() =>
@@ -764,6 +765,16 @@ function App() {
   useEffect(() => {
     void loadCanonicalRivers();
   }, []);
+
+  // On first load, centre the map on the first river once its record arrives;
+  // the initial empty overview otherwise parks the map on empty space.
+  useEffect(() => {
+    if (hasCenteredOnFirstRiverRef.current || !canonicalRivers.length) {
+      return;
+    }
+    hasCenteredOnFirstRiverRef.current = true;
+    setSectionFocusNonce((current) => current + 1);
+  }, [canonicalRivers]);
 
   useEffect(() => {
     setAnalyticsConsentPreference(analyticsConsent);
