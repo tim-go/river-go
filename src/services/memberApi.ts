@@ -153,7 +153,16 @@ async function fetchMemberEndpoint<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`Member API failed with HTTP ${response.status}`);
+    let message = `Member API failed with HTTP ${response.status}`;
+    try {
+      const errorBody = (await response.json()) as { error?: unknown };
+      if (typeof errorBody?.error === "string" && errorBody.error.trim()) {
+        message = errorBody.error;
+      }
+    } catch {
+      // Response body was not JSON; keep the generic message.
+    }
+    throw new Error(message);
   }
 
   return (await response.json()) as T;

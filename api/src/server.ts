@@ -652,6 +652,9 @@ export function createApiServer() {
     } catch (error) {
       const status = error instanceof HttpError ? error.status : 500;
       const message = error instanceof Error ? error.message : "Internal server error";
+      console.error(
+        `[api] ${request.method ?? "?"} ${request.url ?? "?"} -> ${status}: ${message}`,
+      );
       sendJson(response, { status, body: { error: message } });
     }
   });
