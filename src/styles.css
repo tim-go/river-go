@@ -2603,7 +2603,7 @@ h1 {
 
 .moderation-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 160px;
+  grid-template-columns: minmax(0, 1fr) 220px;
   grid-template-areas:
     "content status"
     "content actions";
@@ -3074,11 +3074,12 @@ h1 {
   padding-top: 10px;
 }
 
-.route-detail-tabs {
+.segmented-control.route-detail-tabs {
   position: sticky;
   top: -10px;
   z-index: 2;
   display: flex;
+  gap: 6px;
   overflow-x: auto;
   padding: 6px 0 8px;
   background: var(--surface);
@@ -3567,6 +3568,34 @@ h1 {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
+}
+
+.poi-updates {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poi-updates li {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid rgba(91, 169, 188, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.poi-updates li p {
+  margin: 2px 0 0;
+  font-size: 0.86rem;
+  color: #43515d;
+}
+
+.poi-update-meta {
+  font-size: 0.78rem;
+  color: #6b7780;
 }
 
 .hazard-item > div,
@@ -4710,14 +4739,14 @@ textarea {
   .poi-detail-panel {
     position: fixed;
     top: auto;
-    right: 8px;
-    bottom: calc(var(--bottom-nav-height) + var(--bottom-overlay-gap));
-    left: 8px;
+    right: 0;
+    bottom: var(--bottom-nav-height);
+    left: 0;
     z-index: 1400;
     width: auto;
     height: min(50vh, calc(100% - var(--bottom-nav-height) - 24px));
     max-height: min(50vh, calc(100% - var(--bottom-nav-height) - 24px));
-    border-radius: 8px;
+    border-radius: 12px 12px 0 0;
   }
 
   .poi-detail-panel--expanded {

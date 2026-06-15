@@ -5,14 +5,15 @@ import type { Member } from "./members.js";
 import { canModerate } from "./members.js";
 
 export type ContributionModerationStatus =
-  | "reported"
   | "pending"
-  | "needs-confirmation"
-  | "confirmed"
-  | "challenged"
-  | "hidden"
-  | "rejected"
-  | "resolved";
+  | "approved"
+  | "spam"
+  | "inaccurate"
+  | "duplicate"
+  | "inappropriate"
+  | "withdrawn";
+
+export type ContributionVisibility = "published" | "removed";
 
 export interface ApiContribution {
   id: string;
@@ -25,6 +26,7 @@ export interface ApiContribution {
   createdAt: string;
   updatedAt: string;
   moderationStatus: ContributionModerationStatus;
+  visibility: ContributionVisibility;
   syncStatus: string;
   revision: number;
   contributor: {
@@ -70,6 +72,7 @@ export interface ContributionRow {
   created_at: Date;
   updated_at: Date;
   moderation_status: ContributionModerationStatus;
+  visibility: ContributionVisibility;
   sync_status: string;
   revision: string;
   member_id: string | null;
@@ -98,6 +101,7 @@ export async function listContributionsForSection(
       c.created_at,
       c.updated_at,
       c.moderation_status,
+      c.visibility,
       c.sync_status,
       c.revision,
       c.member_id,
@@ -117,18 +121,61 @@ export async function listContributionsForSection(
     LEFT JOIN members m ON m.id = c.member_id
     WHERE (c.section_id = $1 OR prl.route_id IS NOT NULL)
       AND (
-        c.moderation_status IN (
-          'reported',
-          'needs-confirmation',
-          'confirmed',
-          'challenged',
-          'resolved'
+        c.visibility = 'published'
+        OR (
+          $2::uuid IS NOT NULL
+          AND c.member_id = $2::uuid
+          AND c.moderation_status = 'pending'
         )
-        OR ($2::uuid IS NOT NULL AND c.member_id = $2::uuid)
       )
-      AND c.moderation_status NOT IN ('hidden', 'rejected')
+      AND c.map_poi_id IS NULL
     ORDER BY c.created_at DESC`,
     [sectionId, viewerMemberId],
+  );
+
+  return result.rows.map(mapContributionRow);
+}
+
+export async function listContributionsForPoi(
+  mapPoiId: string,
+  viewerMemberId: string | null,
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiContribution[]> {
+  const result = await client.query<ContributionRow>(
+    `SELECT
+      c.id,
+      c.section_id,
+      c.type,
+      CASE
+        WHEN c.geometry IS NULL THEN NULL
+        ELSE ST_AsGeoJSON(c.geometry)::json
+      END AS geometry,
+      c.payload,
+      ${photoAggregateSql("c.id")} AS photos,
+      c.observed_at,
+      c.created_at,
+      c.updated_at,
+      c.moderation_status,
+      c.visibility,
+      c.sync_status,
+      c.revision,
+      c.member_id,
+      COALESCE(m.public_name, m.display_name) AS display_name,
+      m.email,
+      m.trust_level
+    FROM contributions c
+    LEFT JOIN members m ON m.id = c.member_id
+    WHERE c.map_poi_id = $1
+      AND (
+        c.visibility = 'published'
+        OR (
+          $2::uuid IS NOT NULL
+          AND c.member_id = $2::uuid
+          AND c.moderation_status = 'pending'
+        )
+      )
+    ORDER BY c.created_at DESC`,
+    [mapPoiId, viewerMemberId],
   );
 
   return result.rows.map(mapContributionRow);
@@ -152,6 +199,7 @@ export async function listModerationContributions(
       c.created_at,
       c.updated_at,
       c.moderation_status,
+      c.visibility,
       c.sync_status,
       c.revision,
       c.member_id,
@@ -160,20 +208,8 @@ export async function listModerationContributions(
       m.trust_level
     FROM contributions c
     LEFT JOIN members m ON m.id = c.member_id
-    WHERE c.moderation_status IN (
-      'pending',
-      'challenged',
-      'needs-confirmation',
-      'reported'
-    )
-    ORDER BY
-      CASE c.moderation_status
-        WHEN 'pending' THEN 1
-        WHEN 'challenged' THEN 2
-        WHEN 'needs-confirmation' THEN 3
-        ELSE 4
-      END,
-      c.created_at DESC
+    WHERE c.moderation_status = 'pending'
+    ORDER BY c.created_at DESC
     LIMIT 200`,
   );
 
@@ -199,6 +235,7 @@ export async function listContributionsForMember(
       c.created_at,
       c.updated_at,
       c.moderation_status,
+      c.visibility,
       c.sync_status,
       c.revision,
       c.member_id,
@@ -208,7 +245,6 @@ export async function listContributionsForMember(
     FROM contributions c
     LEFT JOIN members m ON m.id = c.member_id
     WHERE c.member_id = $1
-      AND c.moderation_status NOT IN ('hidden', 'rejected')
     ORDER BY c.created_at DESC
     LIMIT 200`,
     [memberId],
@@ -236,6 +272,7 @@ export async function getContributionById(
       c.created_at,
       c.updated_at,
       c.moderation_status,
+      c.visibility,
       c.sync_status,
       c.revision,
       c.member_id,
@@ -255,43 +292,41 @@ export async function getContributionById(
   return mapContributionRow(result.rows[0]);
 }
 
-export type ModerationDecision =
-  | "approve"
-  | "confirm"
-  | "request-confirmation"
-  | "challenge"
-  | "hide"
-  | "reject"
-  | "resolve";
+export type ModerationDecision = "approve" | "remove";
+
+export type ReviewReason = "spam" | "inaccurate" | "duplicate" | "inappropriate";
 
 export async function applyModerationDecision(
   contributionId: string,
   decision: ModerationDecision,
+  reason: ReviewReason | null = null,
   client: PoolClient | typeof pool = pool,
 ): Promise<ApiContribution> {
-  const nextStatus = moderationStatusForDecision(decision);
-  const nextPhotoStatus = photoModerationStatusForDecision(decision);
+  const visibility = decision === "approve" ? "published" : "removed";
+  const reviewStatus =
+    decision === "approve" ? "approved" : (reason ?? "inappropriate");
+  const photoStatus = decision === "approve" ? "visible" : "hidden";
+
   const result = await client.query(
     `UPDATE contributions
     SET moderation_status = $2,
+      visibility = $3,
       updated_at = now(),
       revision = revision + 1
     WHERE id = $1`,
-    [contributionId, nextStatus],
+    [contributionId, reviewStatus, visibility],
   );
 
   if (!result.rowCount) {
     throw new HttpError(404, "Contribution not found.");
   }
 
-  if (nextPhotoStatus) {
-    await client.query(
-      `UPDATE contribution_photos
-      SET moderation_status = $2
-      WHERE contribution_id = $1`,
-      [contributionId, nextPhotoStatus],
-    );
-  }
+  await client.query(
+    `UPDATE contribution_photos
+    SET moderation_status = $2
+    WHERE contribution_id = $1`,
+    [contributionId, photoStatus],
+  );
 
   return getContributionById(contributionId, client);
 }
@@ -312,7 +347,8 @@ export async function softDeleteContribution(
 
   const result = await client.query(
     `UPDATE contributions
-    SET moderation_status = 'hidden',
+    SET moderation_status = 'withdrawn',
+      visibility = 'removed',
       updated_at = now(),
       revision = revision + 1
     WHERE id = $1`,
@@ -333,7 +369,8 @@ export async function softDeleteContribution(
 
   return {
     ...existing,
-    moderationStatus: "hidden",
+    moderationStatus: "withdrawn",
+    visibility: "removed",
     photos: [],
     revision: existing.revision + 1,
     updatedAt: new Date().toISOString(),
@@ -352,6 +389,7 @@ export function mapContributionRow(row: ContributionRow): ApiContribution {
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     moderationStatus: row.moderation_status,
+    visibility: row.visibility,
     syncStatus: row.sync_status,
     revision: Number(row.revision),
     contributor: {
@@ -435,37 +473,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function isModerationDecision(
   value: unknown,
 ): value is ModerationDecision {
+  return value === "approve" || value === "remove";
+}
+
+export function isReviewReason(value: unknown): value is ReviewReason {
   return (
-    value === "approve" ||
-    value === "confirm" ||
-    value === "request-confirmation" ||
-    value === "challenge" ||
-    value === "hide" ||
-    value === "reject" ||
-    value === "resolve"
+    value === "spam" ||
+    value === "inaccurate" ||
+    value === "duplicate" ||
+    value === "inappropriate"
   );
-}
-
-function moderationStatusForDecision(
-  decision: ModerationDecision,
-): ContributionModerationStatus {
-  if (decision === "approve") return "reported";
-  if (decision === "confirm") return "confirmed";
-  if (decision === "request-confirmation") return "needs-confirmation";
-  if (decision === "challenge") return "challenged";
-  if (decision === "hide") return "hidden";
-  if (decision === "reject") return "rejected";
-  return "resolved";
-}
-
-function photoModerationStatusForDecision(decision: ModerationDecision): string | null {
-  if (decision === "approve" || decision === "confirm" || decision === "resolve") {
-    return "visible";
-  }
-
-  if (decision === "hide") return "hidden";
-  if (decision === "reject") return "rejected";
-  if (decision === "challenge") return "pending";
-
-  return null;
 }

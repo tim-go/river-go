@@ -540,8 +540,7 @@ export function collectRouteImpactPoints(
     if (
       contribution.sectionId !== section.id ||
       !contribution.location ||
-      contribution.status === "hidden" ||
-      contribution.status === "rejected"
+      contribution.visibility === "removed"
     ) {
       return;
     }
@@ -877,8 +876,7 @@ export function nearbyPoisForLocation(
   const contributionPois = contributions.flatMap((contribution): NearbyPoiResult[] => {
     if (
       !contribution.location ||
-      contribution.status === "hidden" ||
-      contribution.status === "rejected"
+      contribution.visibility === "removed"
     ) {
       return [];
     }
@@ -985,8 +983,7 @@ export function collectWatercourseContextPois(
   const contributionPois: WatercourseContextPoi[] = contributions.flatMap((contribution) => {
     if (
       !contribution.location ||
-      contribution.status === "hidden" ||
-      contribution.status === "rejected"
+      contribution.visibility === "removed"
     ) {
       return [];
     }

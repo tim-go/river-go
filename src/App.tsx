@@ -48,6 +48,7 @@ import {
   applyContributionModerationDecision,
   deleteContribution,
   fetchModerationContributions,
+  fetchMapPoiContributions,
   fetchMyContributions,
   fetchSectionContributions,
   type ModerationDecision,
@@ -362,6 +363,7 @@ function App() {
   );
   const [areMapControlsExpanded, setAreMapControlsExpanded] = useState(false);
   const [selectedPoi, setSelectedPoi] = useState<SelectedPoi | null>(null);
+  const [poiContributions, setPoiContributions] = useState<Contribution[]>([]);
   const [isPoiDetailExpanded, setIsPoiDetailExpanded] = useState(false);
   const [detailFocusLocation, setDetailFocusLocation] =
     useState<LatLngTuple | null>(null);
@@ -373,6 +375,9 @@ function App() {
     "Selected map location",
   );
   const [isAddMode, setIsAddMode] = useState(false);
+  const [addModeTargetPoiId, setAddModeTargetPoiId] = useState<string | null>(
+    null,
+  );
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [isOnline, setIsOnline] = useState(() =>
@@ -505,8 +510,9 @@ function App() {
   const [isSectionListOpen, setIsSectionListOpen] = useState(false);
   const [authSheetMode, setAuthSheetMode] = useState<AuthSheetMode | null>(null);
   const [isContributorOnrampOpen, setIsContributorOnrampOpen] = useState(false);
-  const [pendingContributionType, setPendingContributionType] =
-    useState<ContributionType | null>(null);
+  const [pendingContributorAction, setPendingContributorAction] = useState<
+    (() => void) | null
+  >(null);
   const [isWelcomeDismissedForSession, setIsWelcomeDismissedForSession] =
     useState(() => hasDismissedWelcomeForSession());
   const [syncBannerDismissal, setSyncBannerDismissal] =
@@ -734,6 +740,26 @@ function App() {
   }, [adminMembers, memberRoleFilter, memberSearch, memberTrustFilter]);
 
   useEffect(() => subscribeToAuthState(setAuthState), []);
+
+  useEffect(() => {
+    const mapPoiId = selectedPoi?.mapPoi?.id;
+    if (!mapPoiId) {
+      setPoiContributions([]);
+      return;
+    }
+
+    let active = true;
+    fetchMapPoiContributions(mapPoiId)
+      .then((list) => {
+        if (active) setPoiContributions(list);
+      })
+      .catch(() => {
+        if (active) setPoiContributions([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedPoi?.mapPoi?.id]);
 
   useEffect(() => {
     void loadCanonicalRivers();
@@ -1408,13 +1434,13 @@ function App() {
     const nextContribution: Contribution = {
       id: contributionId,
       sectionId: activeSection.id,
+      mapPoiId: addModeTargetPoiId ?? undefined,
       type: contributionType,
       title: safeTitle,
       detail: safeDetail,
       category,
       severity: contributionType === "hazard" ? severity : undefined,
-      status:
-        contributionType === "hazard" ? "needs-confirmation" : "confirmed",
+      status: "pending",
       author: authState.user?.displayName ?? "Local contributor",
       dateObserved,
       craftType:
@@ -1432,6 +1458,12 @@ function App() {
     const outboxRecord = createContributionOutboxRecord(nextContribution);
 
     setContributions((current) => [nextContribution, ...current]);
+    if (
+      nextContribution.mapPoiId &&
+      nextContribution.mapPoiId === selectedPoi?.mapPoi?.id
+    ) {
+      setPoiContributions((current) => [nextContribution, ...current]);
+    }
     setOutboxRecords((current) => [
       outboxRecord,
       ...current.filter((record) => record.id !== outboxRecord.id),
@@ -1462,6 +1494,7 @@ function App() {
     clearSelectedPhoto();
     setFormError("");
     setSelectedLocation(null);
+    setAddModeTargetPoiId(null);
     setIsFormOpen(false);
     setIsSubmittingContribution(false);
     setSyncMessage("Saved locally. Sync now to publish this contribution.");
@@ -1686,37 +1719,81 @@ function App() {
 
   // Gated entry to the contribution flow: sign-in, then the contributor
   // identity on-ramp (verified email + public name + accepted terms), then add.
-  function requestAddContribution(nextType?: ContributionType) {
+  // Ensures the member meets the contributor identity gate before any
+  // contribution action (add, confirm, correct): routes to sign-in, then the
+  // on-ramp, then runs the action. On-ramp completion re-runs the stored action.
+  function ensureContributorIdentity(proceed: () => void) {
     if (!isSignedIn) {
       requireSignInForSave();
       return;
     }
     if (!canContribute) {
-      setPendingContributionType(nextType ?? null);
+      setPendingContributorAction(() => proceed);
       setIsContributorOnrampOpen(true);
       return;
     }
-    if (nextType) {
-      startAddMode(nextType);
-    } else {
-      startAddMode();
-    }
+    proceed();
+  }
+
+  function requestAddContribution(nextType?: ContributionType) {
+    ensureContributorIdentity(() => {
+      setAddModeTargetPoiId(null);
+      if (nextType) {
+        startAddMode(nextType);
+      } else {
+        startAddMode();
+      }
+    });
+  }
+
+  // CON-F19: add a report/photo attached to an existing POI rather than dropping
+  // a duplicate marker. Falls back to a standalone add for non-map POIs.
+  function requestAddToPoi(poi: SelectedPoi, nextType: ContributionType) {
+    const mapPoiId = poi.mapPoi?.id ?? null;
+    ensureContributorIdentity(() => {
+      if (mapPoiId) {
+        startAddModeForPoi(poi, mapPoiId, nextType);
+      } else {
+        setAddModeTargetPoiId(null);
+        startAddMode(nextType);
+      }
+    });
+  }
+
+  function startAddModeForPoi(
+    poi: SelectedPoi,
+    mapPoiId: string,
+    nextType: ContributionType,
+  ) {
+    setRouteCreateMode("idle");
+    setRouteDraftTarget({ type: "new" });
+    setRouteDraftPoints([]);
+    setRouteDraftOriginalPoints(null);
+    setRouteDraftSnapMessage("");
+    setAddModeTargetPoiId(mapPoiId);
+    chooseContributionType(nextType);
+    setSelectedLocation(poi.location);
+    setSearchFocusLocation(null);
+    setSearchFocusLabel("Searched location");
+    setShowSearchFocusMarker(false);
+    setSelectedPoi(null);
+    setIsPoiDetailExpanded(false);
+    setIsAddMode(false);
+    setIsFormOpen(true);
+    setSelectedTargetLabel(`On ${poi.title}`);
+    setFormError("");
   }
 
   function closeContributorOnramp() {
     setIsContributorOnrampOpen(false);
-    setPendingContributionType(null);
+    setPendingContributorAction(null);
   }
 
   function handleContributorOnrampReady() {
-    const nextType = pendingContributionType;
+    const action = pendingContributorAction;
     setIsContributorOnrampOpen(false);
-    setPendingContributionType(null);
-    if (nextType) {
-      startAddMode(nextType);
-    } else {
-      startAddMode();
-    }
+    setPendingContributorAction(null);
+    action?.();
   }
 
   async function handleResendVerificationEmail(): Promise<ContributorActionResult> {
@@ -2769,7 +2846,6 @@ function App() {
         contribution.id === contributionId
           ? {
               ...contribution,
-              status,
               confirmations:
                 status === "confirmed"
                   ? contribution.confirmations + 1
@@ -3214,6 +3290,7 @@ function App() {
     setSelectedTargetLabel("Selected map location");
     setFormError("");
     clearSelectedPhoto();
+    setAddModeTargetPoiId(null);
   }
 
   function chooseContributionType(nextType: ContributionType) {
@@ -3430,8 +3507,10 @@ function App() {
     action: "add" | "remove" = "add",
     note?: string,
   ) {
-    if (!isSignedIn) {
-      requireSignInForSave();
+    if (!canContribute) {
+      ensureContributorIdentity(() => {
+        void submitMapPoiReview(poi, decision, action, note);
+      });
       return;
     }
 
@@ -4588,7 +4667,13 @@ function App() {
               setIsPoiDetailExpanded((current) => !current)
             }
             onClose={closePoiDetails}
-            onAddPhoto={() => requestAddContribution("photo")}
+            onAddPhoto={() =>
+              selectedPoi && requestAddToPoi(selectedPoi, "photo")
+            }
+            onAddUpdate={() =>
+              selectedPoi && requestAddToPoi(selectedPoi, "report")
+            }
+            linkedContributions={poiContributions}
             onOpenPhoto={setLightboxPhoto}
             onReviewMapPoi={(poi, decision, action, note) =>
               void submitMapPoiReview(poi, decision, action, note)

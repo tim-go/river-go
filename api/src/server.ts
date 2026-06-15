@@ -15,7 +15,9 @@ import {
 import {
   applyModerationDecision,
   isModerationDecision,
+  isReviewReason,
   listContributionsForMember,
+  listContributionsForPoi,
   listContributionsForSection,
   listModerationContributions,
   softDeleteContribution,
@@ -38,6 +40,7 @@ import {
   listMembersForAdmin,
   isMemberRole,
   acceptContributorTerms,
+  canPublishDirectly,
   isMemberTrustLevel,
   updateMemberProfile,
   requireAdmin,
@@ -479,6 +482,7 @@ async function route(
     const contribution = await applyModerationDecision(
       decodeURIComponent(moderationDecisionMatch[1]),
       body.decision,
+      isReviewReason(body.reason) ? body.reason : null,
     );
     return { status: 200, body: { contribution } };
   }
@@ -575,6 +579,19 @@ async function route(
     return { status: 200, body: { contributions } };
   }
 
+  const mapPoiContributionsMatch = url.pathname.match(
+    /^\/api\/map-pois\/([^/]+)\/contributions$/,
+  );
+  if (method === "GET" && mapPoiContributionsMatch) {
+    const authContext = await getOptionalAuthContext(headers);
+    const member = authContext ? await upsertMemberFromAuth(authContext) : null;
+    const contributions = await listContributionsForPoi(
+      decodeURIComponent(mapPoiContributionsMatch[1]),
+      member?.id ?? null,
+    );
+    return { status: 200, body: { contributions } };
+  }
+
   const sectionObservationsMatch = url.pathname.match(
     /^\/api\/sections\/([^/]+)\/observations$/,
   );
@@ -606,6 +623,7 @@ async function route(
   if (method === "POST" && mapPoiReviewMatch) {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
+    requireContributorIdentity(authContext, member);
 
     if (!isRecord(body) || !isMapPoiReviewDecision(body.decision)) {
       throw new HttpError(400, "decision is required.");
@@ -629,6 +647,7 @@ async function route(
     const result = await pushSyncOperations(body, {
       firebaseUid: authContext.userId,
       memberId: member.id,
+      canPublishDirectly: canPublishDirectly(member),
     });
     return { status: result.failed.length ? 207 : 200, body: result };
   }

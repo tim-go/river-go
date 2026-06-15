@@ -78,7 +78,7 @@ try {
   const moderationQueue = await listModerationContributions();
   const moderatedContribution = await applyModerationDecision(
     contributionId,
-    "confirm",
+    "approve",
   );
   const memberPhotos = await listPhotosForMember(member.id);
   const deletedPhoto = await softDeletePhoto(photoId, member);
@@ -136,7 +136,7 @@ try {
     throw new Error("Smoke sync did not prove moderation queue readback");
   }
 
-  if (moderatedContribution.moderationStatus !== "confirmed") {
+  if (moderatedContribution.moderationStatus !== "approved") {
     throw new Error("Smoke sync did not prove moderation decision update");
   }
 
@@ -160,7 +160,7 @@ try {
     throw new Error("Smoke sync did not prove member contribution listing");
   }
 
-  if (deletedContribution.moderationStatus !== "hidden") {
+  if (deletedContribution.moderationStatus !== "withdrawn") {
     throw new Error("Smoke sync did not prove owner contribution deletion");
   }
 

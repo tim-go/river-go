@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Minimize2,
   Navigation,
+  Plus,
   RefreshCw,
   ShieldCheck,
   X,
@@ -31,7 +32,9 @@ import {
 } from "../services/locationReferences";
 import { formatLocation } from "../lib/format";
 import {
+  confirmationSummary,
   contributionStatusLabel,
+  verificationStatusLabel,
   moderationActions,
   syncStatusLabel,
 } from "../lib/contributionLabels";
@@ -59,6 +62,8 @@ export function PoiDetailPanel({
   onToggleExpanded,
   onClose,
   onAddPhoto,
+  onAddUpdate,
+  linkedContributions,
   onOpenPhoto,
   onReviewMapPoi,
   onUpdateMapPoiStatus,
@@ -73,6 +78,8 @@ export function PoiDetailPanel({
   onToggleExpanded: () => void;
   onClose: () => void;
   onAddPhoto: () => void;
+  onAddUpdate: () => void;
+  linkedContributions: Contribution[];
   onOpenPhoto: (photo: PhotoLightboxItem) => void;
   onReviewMapPoi: (
     poi: MapPoi,
@@ -104,7 +111,7 @@ export function PoiDetailPanel({
   const [adminMapPoiStatus, setAdminMapPoiStatus] =
     useState<MapPoi["verificationStatus"]>("confirmed");
   const [adminContributionDecision, setAdminContributionDecision] =
-    useState<ModerationDecision>("confirm");
+    useState<ModerationDecision>("approve");
   const [activePoiDetailsTab, setActivePoiDetailsTab] =
     useState<PoiDetailsTab>("details");
 
@@ -120,21 +127,7 @@ export function PoiDetailPanel({
     setIsCorrectionFormOpen(false);
     setCorrectionNote(poi.mapPoi?.viewerReview?.correctionNote ?? "");
     setAdminMapPoiStatus(poi.mapPoi?.verificationStatus ?? "confirmed");
-    setAdminContributionDecision(
-      poi.status === "needs-confirmation"
-        ? "request-confirmation"
-        : poi.status === "challenged"
-          ? "challenge"
-          : poi.status === "hidden"
-            ? "hide"
-            : poi.status === "rejected"
-              ? "reject"
-              : poi.status === "resolved"
-                ? "resolve"
-                : poi.status === "reported"
-                  ? "approve"
-                  : "confirm",
-    );
+    setAdminContributionDecision("approve");
     setActivePoiDetailsTab("details");
   }, [poi.id, poi.location, poi.what3words]);
 
@@ -173,6 +166,10 @@ export function PoiDetailPanel({
     : "";
   const viewerCorrectionNote =
     poi.mapPoi?.viewerReview?.correctionNote?.trim() ?? "";
+  const linkedPhotos = linkedContributions.flatMap(
+    (contribution) => contribution.photos ?? [],
+  );
+  const poiPhotos = [...(poi.photos ?? []), ...linkedPhotos];
   const visiblePoiDetailsTabs = poiDetailsTabs.filter(
     (tab) => tab.id !== "verification" || poi.mapPoi || poi.kind === "contribution",
   );
@@ -306,6 +303,42 @@ export function PoiDetailPanel({
                 </span>
               </section>
             ) : null}
+            {poi.mapPoi ? (
+              <section className="info-block">
+                <div className="block-title">
+                  <h3>Updates</h3>
+                  <span>{linkedContributions.length} on this point</span>
+                </div>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={onAddUpdate}
+                >
+                  <Plus size={16} />
+                  Add update
+                </button>
+                {linkedContributions.length ? (
+                  <ul className="poi-updates">
+                    {linkedContributions.map((contribution) => (
+                      <li key={contribution.id}>
+                        <strong>{contribution.title}</strong>
+                        <span className="poi-update-meta">
+                          {contribution.author}
+                          {contribution.dateObserved
+                            ? ` · ${contribution.dateObserved}`
+                            : ""}
+                        </span>
+                        {contribution.detail ? (
+                          <p>{contribution.detail}</p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="source-note">No updates attached yet.</p>
+                )}
+              </section>
+            ) : null}
           </div>
         ) : null}
 
@@ -404,21 +437,24 @@ export function PoiDetailPanel({
                     poi.mapPoi?.verificationStatus ?? poi.status ?? "reported"
                   }`}
                 >
-                  {poi.mapPoi?.verificationStatus ??
-                    contributionStatusLabel(poi.status as Contribution["status"])}
+                  {poi.mapPoi?.verificationStatus
+                    ? verificationStatusLabel(poi.mapPoi.verificationStatus)
+                    : contributionStatusLabel(poi.status as Contribution["status"])}
                 </span>
               </div>
               {poi.mapPoi ? (
                 <>
                   <div className="detail-list">
                     <span>
-                      <strong>Confirmations</strong>
-                      {poi.mapPoi.confirmations}
+                      <strong>Community</strong>
+                      {confirmationSummary(poi.mapPoi.confirmations)}
                     </span>
-                    <span>
-                      <strong>Correction suggestions</strong>
-                      {poi.mapPoi.corrections}
-                    </span>
+                    {poi.mapPoi.corrections > 0 ? (
+                      <span>
+                        <strong>Corrections</strong>
+                        {`${poi.mapPoi.corrections} suggested`}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="inline-actions">
                     <button
@@ -527,7 +563,7 @@ export function PoiDetailPanel({
                   being made unconfirmed first.
                 </p>
               )}
-              {canManagePoiStatus ? (
+              {canManagePoiStatus && poi.mapPoi ? (
                 <div className="inline-admin-control">
                   <div>
                     <strong>Moderator status override</strong>
@@ -601,15 +637,15 @@ export function PoiDetailPanel({
             <section className="info-block info-block--first">
               <div className="block-title">
                 <h3>Photos</h3>
-                <span>{poi.photos?.length ?? 0} attached</span>
+                <span>{poiPhotos.length} attached</span>
               </div>
               <button className="ghost-button" type="button" onClick={onAddPhoto}>
                 <Camera size={16} />
                 Add photo
               </button>
-              {poi.photos?.length ? (
+              {poiPhotos.length ? (
                 <div className="poi-photo-grid">
-                  {poi.photos.map((photo) => (
+                  {poiPhotos.map((photo) => (
                     <figure key={photo.id}>
                       <button
                         className="photo-open-button"

@@ -42,12 +42,14 @@ interface SyncOperationInput {
 interface SyncActor {
   firebaseUid: string | null;
   memberId: string | null;
+  canPublishDirectly?: boolean;
 }
 
 interface ContributionCreatePayload {
   id: string;
   type: string;
   sectionId?: string | null;
+  mapPoiId?: string | null;
   geometry?: unknown;
   observedAt?: string | null;
   payload?: Record<string, unknown>;
@@ -223,7 +225,9 @@ async function insertContribution(
       moderation_status,
       sync_status,
       sync_source,
-      payload
+      payload,
+      map_poi_id,
+      visibility
     ) VALUES (
       $1,
       $2,
@@ -237,7 +241,9 @@ async function insertContribution(
       $10,
       'accepted',
       $11,
-      $12::jsonb
+      $12::jsonb,
+      $13,
+      $14
     )
     ON CONFLICT (id) DO UPDATE SET
       updated_at = now()
@@ -271,9 +277,11 @@ async function insertContribution(
       operation.createdAt ?? null,
       actor.memberId,
       operation.actorId ?? null,
-      initialModerationStatus(contribution.type),
+      "pending",
       syncSource,
       JSON.stringify(payload),
+      contribution.mapPoiId ?? null,
+      actor.canPublishDirectly ? "published" : "removed",
     ],
   );
 
@@ -456,6 +464,7 @@ function parseContributionPayload(
       id,
       type,
       sectionId: readString(value.sectionId),
+      mapPoiId: readString(value.mapPoiId),
       geometry: value.geometry,
       observedAt: readString(value.observedAt),
       payload: isRecord(value.payload) ? value.payload : {},
@@ -468,12 +477,6 @@ function parseContributionPayload(
         : undefined,
     },
   };
-}
-
-function initialModerationStatus(type: string): string {
-  if (type === "hazard") return "needs-confirmation";
-  if (type === "photo" || type === "access") return "pending";
-  return "reported";
 }
 
 function parsePhotoPayloads(value: unknown): ContributionPhotoPayload[] {

@@ -78,15 +78,13 @@ export type ContributionType =
   | "access";
 
 export type ContributionStatus =
-  | "active"
-  | "reported"
   | "pending"
-  | "needs-confirmation"
-  | "confirmed"
-  | "challenged"
-  | "hidden"
-  | "rejected"
-  | "resolved";
+  | "approved"
+  | "spam"
+  | "inaccurate"
+  | "duplicate"
+  | "inappropriate"
+  | "withdrawn";
 
 export type SourceConfidence = "seed" | "low" | "medium" | "high";
 
@@ -221,12 +219,14 @@ export interface RiverSection {
 export interface Contribution {
   id: string;
   sectionId: string;
+  mapPoiId?: string | null;
   type: ContributionType;
   title: string;
   detail: string;
   category: string;
   severity?: HazardSeverity;
   status: ContributionStatus;
+  visibility?: "published" | "removed";
   author: string;
   dateObserved: string;
   craftType?: string;
@@ -275,6 +275,7 @@ export interface ContributionSyncOperation {
     id: string;
     type: ContributionType;
     sectionId: string;
+    mapPoiId?: string | null;
     geometry?: {
       type: "Point";
       coordinates: [number, number];

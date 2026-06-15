@@ -9,7 +9,7 @@ maturity: Sketch
 # River-First Discovery
 
 **Work state:** Queued
-**Last updated:** 2026-06-14
+**Last updated:** 2026-06-15
 **Scope:** River-led discovery, river overview pages, selected-river map behaviour, and nearby river browsing.
 
 ## Purpose
@@ -185,6 +185,7 @@ Avoid:
 | RIVERDISC-B4 | dependency | River grouping data | Open | MVP | Requires watercourse grouping beyond local OSM stretch selection. |
 | RIVERDISC-B5 | enhancement | Public news/history references | Parked | Later | Useful for richness, but not part of paddling-critical MVP. |
 | RIVERDISC-B6 | decision | Card-vs-detail layering | Resolved | Later | Card = scannable overview with counts that lead into depth; per-aspect depth (old Levels/Access/Hazards/Updates/Photos tabs) lives in the river detail surface — expanded card first, then the river page (F3). |
+| RIVERDISC-B7 | enhancement | River-wide photo gallery | Parked | Later | Aggregate POI and contribution photos into a river-level gallery on the river detail surface (RIVERDISC-F3). Photos currently live on their POI (CON-F19); this rolls them up to the river. Confirmed wanted, deferred. |
 
 ## Change Log
 
@@ -193,3 +194,4 @@ Avoid:
 | 2026-06-05 | Created river-first discovery spec from Joe feedback and route/liability review. |
 | 2026-06-14 | Captured historical level & rainfall charts on the river card as tracked future work (RIVERDISC-F7). |
 | 2026-06-14 | Recorded card-vs-detail layering: card stays a scannable overview; per-aspect depth lives in the river detail surface (expanded card / river page). |
+| 2026-06-15 | Captured river-wide photo gallery as deferred future work (RIVERDISC-B7). |
