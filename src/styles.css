@@ -2347,6 +2347,14 @@ h1 {
   box-shadow: var(--shadow);
 }
 
+/* In add/placement mode the map cursor signals "click to place a point"
+   rather than the default grab/pan cursor. Scoped to .map-stage (not the
+   Leaflet container div, whose className React must not clobber). */
+.map-stage--placing .leaflet-grab,
+.map-stage--placing .leaflet-interactive {
+  cursor: crosshair;
+}
+
 .add-mode-banner {
   position: absolute;
   top: 88px;

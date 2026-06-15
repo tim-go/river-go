@@ -1309,7 +1309,10 @@ export function RiverMap({
     : [];
 
   return (
-    <section className="map-stage" aria-label="River map">
+    <section
+      className={`map-stage ${isAddMode ? "map-stage--placing" : ""}`}
+      aria-label="River map"
+    >
       <div className="map-canvas" ref={mapContainerRef} />
       {selectedCanonicalRiver && isSelectedRiverPanelOpen && !isPoiDetailsOpen ? (
         <aside
