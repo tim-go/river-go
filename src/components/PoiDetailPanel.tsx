@@ -331,32 +331,6 @@ export function PoiDetailPanel({
                         {contribution.detail ? (
                           <p>{contribution.detail}</p>
                         ) : null}
-                        {contribution.photos?.length ? (
-                          <div className="poi-photo-grid">
-                            {contribution.photos.map((photo) => (
-                              <figure key={photo.id}>
-                                <button
-                                  className="photo-open-button"
-                                  type="button"
-                                  onClick={() =>
-                                    onOpenPhoto({
-                                      src:
-                                        photo.displayUrl || photo.thumbnailUrl,
-                                      title: photo.caption || contribution.title,
-                                      caption: photo.originalName,
-                                      alt: photo.caption || contribution.title,
-                                    })
-                                  }
-                                >
-                                  <img
-                                    src={photo.displayUrl || photo.thumbnailUrl}
-                                    alt=""
-                                  />
-                                </button>
-                              </figure>
-                            ))}
-                          </div>
-                        ) : null}
                       </li>
                     ))}
                   </ul>
@@ -589,7 +563,7 @@ export function PoiDetailPanel({
                   being made unconfirmed first.
                 </p>
               )}
-              {canManagePoiStatus ? (
+              {canManagePoiStatus && poi.mapPoi ? (
                 <div className="inline-admin-control">
                   <div>
                     <strong>Moderator status override</strong>
