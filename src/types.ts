@@ -364,3 +364,15 @@ export interface KitItem {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface MemberSkill {
+  id: string;
+  category: string;
+  name: string;
+  detail: string | null;
+  attainedOn: string | null;
+  expiresOn: string | null;
+  selfDeclared: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

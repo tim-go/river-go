@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  Award,
   Backpack,
   Camera,
   CheckCircle2,
@@ -134,6 +135,7 @@ import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
 import { AppBrandPanel } from "./components/AppBrandPanel";
 import { PaddleHistoryPanel } from "./components/PaddleHistoryPanel";
 import { KitInventoryPanel } from "./components/KitInventoryPanel";
+import { SkillsPanel } from "./components/SkillsPanel";
 import { AppNotificationBanner } from "./components/AppNotificationBanner";
 import { PlaceholderPage } from "./components/PlaceholderPage";
 import { PhotoLightbox } from "./components/PhotoLightbox";
@@ -5840,6 +5842,16 @@ function App() {
                     <Backpack size={16} />
                     Kit
                   </button>
+                  <button
+                    className={profileMode === "skills" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={profileMode === "skills"}
+                    onClick={() => setProfileMode("skills")}
+                  >
+                    <Award size={16} />
+                    Skills
+                  </button>
                 </div>
                 {profileMode === "account" ? (
                   <section className="profile-mode-panel" aria-label="My account">
@@ -5955,6 +5967,20 @@ function App() {
                     ) : (
                       <p className="profile-message">
                         Sign in to manage your kit.
+                      </p>
+                    )}
+                  </section>
+                ) : null}
+                {profileMode === "skills" ? (
+                  <section
+                    className="profile-mode-panel"
+                    aria-label="Skills and qualifications"
+                  >
+                    {isSignedIn ? (
+                      <SkillsPanel />
+                    ) : (
+                      <p className="profile-message">
+                        Sign in to record your skills and qualifications.
                       </p>
                     )}
                   </section>

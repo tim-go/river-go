@@ -65,6 +65,12 @@ import {
   parseKitItemInput,
 } from "./kit-items.js";
 import {
+  createMemberSkill,
+  deleteMemberSkill,
+  listMemberSkills,
+  parseMemberSkillInput,
+} from "./member-skills.js";
+import {
   applyRouteSuggestionDecision,
   createRouteSuggestion,
   isRouteSuggestionDecision,
@@ -218,6 +224,31 @@ async function route(
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
     await deleteKitItem(member.id, decodeURIComponent(kitItemDeleteMatch[1]));
+    return { status: 200, body: { ok: true } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/skills") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const skills = await listMemberSkills(member.id);
+    return { status: 200, body: { skills } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/me/skills") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const skill = await createMemberSkill(
+      member.id,
+      parseMemberSkillInput(body),
+    );
+    return { status: 201, body: { skill } };
+  }
+
+  const skillDeleteMatch = url.pathname.match(/^\/api\/me\/skills\/([^/]+)$/);
+  if (method === "DELETE" && skillDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    await deleteMemberSkill(member.id, decodeURIComponent(skillDeleteMatch[1]));
     return { status: 200, body: { ok: true } };
   }
 
