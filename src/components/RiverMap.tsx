@@ -1,5 +1,6 @@
 import L from "leaflet";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { RiverPaddleHistory } from "./RiverPaddleHistory";
 import { useDiscovery } from "../discovery/DiscoveryContext";
 import { MapPin, Maximize2, Minimize2, Route, X } from "lucide-react";
 import type {
@@ -1369,6 +1370,8 @@ export function RiverMap({
             Community-sourced and official information. Conditions change quickly
             — check locally and paddle within your own judgement.
           </p>
+
+          <RiverPaddleHistory riverId={selectedCanonicalRiver.id} />
 
           <div className="watercourse-context">
             <h3>Today</h3>

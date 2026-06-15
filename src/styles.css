@@ -5099,3 +5099,10 @@ textarea {
 .paddle-log__notes { margin: 6px 0 0; font-size: 0.82rem; color: #3a4b46; }
 .paddle-log__delete { display: block; margin: 8px 0 0 auto; border: none; background: none; color: #9aa6a1; font-size: 0.74rem; cursor: pointer; padding: 0; }
 .paddle-log__delete:hover { color: #b4321f; }
+
+/* Personal river history on the river panel (PROFILE-F2) */
+.river-paddle-history { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 0 0 12px; background: #eef5f1; border: 1px solid #d6e4dd; border-radius: 12px; color: #1f3b33; }
+.river-paddle-history svg { flex-shrink: 0; color: #1f7a5a; }
+.river-paddle-history > div { display: flex; flex-direction: column; }
+.river-paddle-history strong { font-size: 0.88rem; }
+.river-paddle-history span { font-size: 0.76rem; color: #5b6b66; }
