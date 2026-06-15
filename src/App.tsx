@@ -90,6 +90,7 @@ import {
   hasAcceptedCurrentContributorTerms,
 } from "./lib/contributorTerms";
 import { generateUuid } from "./lib/uuid";
+import { evaluateContributorGate } from "./lib/contributorGate";
 import { fetchEnvironmentAgencyGaugeReading } from "./services/riverLevels";
 import {
   processContributionPhoto,
@@ -658,11 +659,13 @@ function App() {
   const hasAcceptedContributorTerms = hasAcceptedCurrentContributorTerms(
     memberProfile?.contributorTermsVersion,
   );
-  const canContribute =
-    isSignedIn &&
-    (!REQUIRE_EMAIL_VERIFICATION || hasVerifiedEmail) &&
-    hasContributorPublicName &&
-    hasAcceptedContributorTerms;
+  const canContribute = evaluateContributorGate({
+    isSignedIn,
+    emailVerified: hasVerifiedEmail,
+    hasPublicName: hasContributorPublicName,
+    hasAcceptedTerms: hasAcceptedContributorTerms,
+    requireEmailVerification: REQUIRE_EMAIL_VERIFICATION,
+  });
   const isLiveLocationSupported =
     typeof navigator !== "undefined" && "geolocation" in navigator;
   const liveLocationAlert =

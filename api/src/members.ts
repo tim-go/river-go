@@ -3,6 +3,7 @@ import type { AuthContext } from "./auth.js";
 import { getAdminEmails, isEmailVerificationRequired } from "./config.js";
 import { pool } from "./db.js";
 import { HttpError } from "./http.js";
+import { defaultPublicName, normalisePublicName } from "./public-name.js";
 
 export type MemberRole = "MEMBER" | "TRUSTED_MEMBER" | "CONTRIB_MODERATOR" | "ADMIN";
 export type MemberTrustLevel = "NEW" | "KNOWN" | "TRUSTED";
@@ -309,52 +310,6 @@ function isAdminEmail(email: string | undefined): boolean {
   }
 
   return getAdminEmails().includes(email.trim().toLowerCase());
-}
-
-function defaultPublicName(displayName: string | undefined) {
-  try {
-    return normalisePublicName(displayName ?? "");
-  } catch {
-    return `Paddler ${Math.floor(1000 + Math.random() * 9000)}`;
-  }
-}
-
-function normalisePublicName(value: string) {
-  const cleaned = value.replace(/\s+/g, " ").trim();
-
-  if (cleaned.length < 2 || cleaned.length > 40) {
-    throw new HttpError(400, "Public name must be 2-40 characters.");
-  }
-
-  if (/[<>{}[\]\\/@]|https?:|www\.|\.com\b/i.test(cleaned)) {
-    throw new HttpError(400, "Public name cannot include contact details or links.");
-  }
-
-  if (!/^[\p{L}\p{N} .'-]+$/u.test(cleaned)) {
-    throw new HttpError(
-      400,
-      "Public name can use letters, numbers, spaces, apostrophes, hyphens, and full stops.",
-    );
-  }
-
-  const lower = cleaned.toLowerCase();
-  const blockedTerms = [
-    "admin",
-    "moderator",
-    "riverlaunch",
-    "paddle uk",
-    "paddleuk",
-    "fuck",
-    "shit",
-    "cunt",
-    "nazi",
-  ];
-
-  if (blockedTerms.some((term) => lower.includes(term))) {
-    throw new HttpError(400, "Choose a public name that does not imply staff or organisation status.");
-  }
-
-  return cleaned;
 }
 
 function cleanOptionalText(value: string, maxLength: number) {
