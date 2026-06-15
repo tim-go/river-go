@@ -78,15 +78,13 @@ export type ContributionType =
   | "access";
 
 export type ContributionStatus =
-  | "active"
-  | "reported"
   | "pending"
-  | "needs-confirmation"
-  | "confirmed"
-  | "challenged"
-  | "hidden"
-  | "rejected"
-  | "resolved";
+  | "approved"
+  | "spam"
+  | "inaccurate"
+  | "duplicate"
+  | "inappropriate"
+  | "withdrawn";
 
 export type SourceConfidence = "seed" | "low" | "medium" | "high";
 
@@ -228,6 +226,7 @@ export interface Contribution {
   category: string;
   severity?: HazardSeverity;
   status: ContributionStatus;
+  visibility?: "published" | "removed";
   author: string;
   dateObserved: string;
   craftType?: string;

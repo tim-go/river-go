@@ -227,8 +227,8 @@ metadata.
 | TRUST-F8 | Member role/trust editing | Admin/backend | Landed | MVP | — | Admin member directory can update role and trust level. |
 | TRUST-F9 | POI status override | POI/admin | Active | MVP | — | Admins and contribution moderators can override map POI and contribution trust/status from detail surfaces without first unconfirming an item. |
 | TRUST-F10 | Source candidate review | Admin/backend | Active | MVP | — | Admins and contribution moderators can review source-derived candidate POIs and mark them confirmed, rejected, merged, or back to review. |
-| TRUST-F11 | Visibility gate + review status | Backend/admin | Queued | MVP | — | Two-dimension moderation: a public `published`/`removed` visibility gate plus a `pending`/`approved`/`spam`/`inaccurate`/`duplicate`/`inappropriate`/`withdrawn` review-status reason code. Moderator surface collapses to Approve / Remove ▾ reason. |
-| TRUST-F12 | Trusted direct-publish | Auth/backend | Queued | MVP | — | Review-first by default; role `TRUSTED_MEMBER`/`CONTRIB_MODERATOR`/`ADMIN` or trust `TRUSTED` publish directly (`published` + `pending`), others held (`removed` + `pending`) until approved. |
+| TRUST-F11 | Visibility gate + review status | Backend/admin | Landed | MVP | — | Two-dimension moderation: a public `published`/`removed` visibility gate plus a `pending`/`approved`/`spam`/`inaccurate`/`duplicate`/`inappropriate`/`withdrawn` review-status reason code. Moderator surface collapses to Approve / Remove ▾ reason. |
+| TRUST-F12 | Trusted direct-publish | Auth/backend | Landed | MVP | — | Review-first by default; role `TRUSTED_MEMBER`/`CONTRIB_MODERATOR`/`ADMIN` or trust `TRUSTED` publish directly (`published` + `pending`), others held (`removed` + `pending`) until approved. |
 
 ### Backlog
 

@@ -1440,8 +1440,7 @@ function App() {
       detail: safeDetail,
       category,
       severity: contributionType === "hazard" ? severity : undefined,
-      status:
-        contributionType === "hazard" ? "needs-confirmation" : "confirmed",
+      status: "pending",
       author: authState.user?.displayName ?? "Local contributor",
       dateObserved,
       craftType:
@@ -2845,7 +2844,6 @@ function App() {
         contribution.id === contributionId
           ? {
               ...contribution,
-              status,
               confirmations:
                 status === "confirmed"
                   ? contribution.confirmations + 1

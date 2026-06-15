@@ -19,6 +19,7 @@ export interface ApiContribution {
   observedAt: string | null;
   createdAt: string;
   moderationStatus: ContributionStatus;
+  visibility: "published" | "removed";
   revision: number;
   contributor: {
     id: string | null;
@@ -116,24 +117,26 @@ export async function deleteContribution(
   return mapApiContribution(result.contribution);
 }
 
+// The moderator UI picks one value; the service maps it to the backend's
+// two-dimension decision (approve -> publish; a reason -> remove with that reason).
 export type ModerationDecision =
   | "approve"
-  | "confirm"
-  | "request-confirmation"
-  | "challenge"
-  | "hide"
-  | "reject"
-  | "resolve";
+  | "spam"
+  | "inaccurate"
+  | "duplicate"
+  | "inappropriate";
 
 export async function applyContributionModerationDecision(
   contributionId: string,
-  decision: ModerationDecision,
+  action: ModerationDecision,
 ): Promise<Contribution> {
+  const decision = action === "approve" ? "approve" : "remove";
+  const reason = action === "approve" ? undefined : action;
   const result = await fetchContributionEndpoint<{ contribution: ApiContribution }>(
     `/api/moderation/contributions/${encodeURIComponent(contributionId)}/decision`,
     {
       method: "POST",
-      body: JSON.stringify({ decision }),
+      body: JSON.stringify({ decision, reason }),
     },
   );
   return mapApiContribution(result.contribution);
@@ -158,12 +161,12 @@ export function mapApiContribution(contribution: ApiContribution): Contribution 
     category: readString(payload.category) ?? contribution.type,
     severity: readSeverity(payload.severity),
     status: contribution.moderationStatus,
+    visibility: contribution.visibility,
     author,
     dateObserved,
     craftType: readString(payload.craftType) ?? undefined,
     confirmations: readNumber(payload.confirmations) ?? 0,
-    lastConfirmed:
-      contribution.moderationStatus === "confirmed" ? "Backend verified" : undefined,
+    lastConfirmed: undefined,
     createdAt: formatRelativeDate(contribution.createdAt),
     location: mapPointGeometry(contribution.geometry),
     what3words: readString(payload.what3wordsAddress) ?? undefined,

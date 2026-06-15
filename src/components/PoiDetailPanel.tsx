@@ -111,7 +111,7 @@ export function PoiDetailPanel({
   const [adminMapPoiStatus, setAdminMapPoiStatus] =
     useState<MapPoi["verificationStatus"]>("confirmed");
   const [adminContributionDecision, setAdminContributionDecision] =
-    useState<ModerationDecision>("confirm");
+    useState<ModerationDecision>("approve");
   const [activePoiDetailsTab, setActivePoiDetailsTab] =
     useState<PoiDetailsTab>("details");
 
@@ -127,21 +127,7 @@ export function PoiDetailPanel({
     setIsCorrectionFormOpen(false);
     setCorrectionNote(poi.mapPoi?.viewerReview?.correctionNote ?? "");
     setAdminMapPoiStatus(poi.mapPoi?.verificationStatus ?? "confirmed");
-    setAdminContributionDecision(
-      poi.status === "needs-confirmation"
-        ? "request-confirmation"
-        : poi.status === "challenged"
-          ? "challenge"
-          : poi.status === "hidden"
-            ? "hide"
-            : poi.status === "rejected"
-              ? "reject"
-              : poi.status === "resolved"
-                ? "resolve"
-                : poi.status === "reported"
-                  ? "approve"
-                  : "confirm",
-    );
+    setAdminContributionDecision("approve");
     setActivePoiDetailsTab("details");
   }, [poi.id, poi.location, poi.what3words]);
 
