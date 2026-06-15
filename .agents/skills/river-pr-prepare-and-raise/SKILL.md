@@ -49,7 +49,7 @@ git add package-lock.json
 Run the required gate:
 
 ```bash
-npm run build
+npm run build && npm test && npm --prefix api run test
 ```
 
 Confirm the branch is clean or only has intentionally uncommitted files that must not be included:

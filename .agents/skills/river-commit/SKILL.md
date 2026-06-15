@@ -73,10 +73,10 @@ River Go currently uses `main` as the integration branch unless the user explici
    git diff --check
    ```
 
-   For code changes, run the current full gate:
+   For code changes, run the full gate:
 
    ```bash
-   npm run build
+   npm run build && npm test && npm --prefix api run test
    ```
 
 5. Stage only intended files:
