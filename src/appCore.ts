@@ -322,6 +322,10 @@ export type MapFocusPlacement =
 export type MapPoiDisplayCategory =
   | "rapid"
   | "whitewater"
+  | "weir"
+  | "dam"
+  | "waterfall"
+  | "lock"
   | "structure"
   | "access"
   | "navigation"
@@ -684,6 +688,15 @@ export const emptyCanonicalOverviewSection: RiverSection = {
       "Temporary frontend overview row derived from the backend canonical river API.",
   },
 };
+
+export function disciplineLabel(
+  discipline: string | null | undefined,
+): string {
+  if (discipline === "whitewater") return "Whitewater";
+  if (discipline === "touring") return "Canoe touring";
+  if (discipline === "both") return "WW & touring";
+  return "";
+}
 
 export function canonicalRiverToOverviewSection(river: CanonicalRiverSummary): RiverSection {
   return {
@@ -1298,11 +1311,27 @@ export function mapPoiDisplayMeta(poi: MapPoi): MapPoiDisplayMeta {
     waterway === "lock_gate" ||
     waterway === "lock"
   ) {
+    const category: MapPoiDisplayCategory =
+      waterway === "dam"
+        ? "dam"
+        : waterway === "waterfall"
+          ? "waterfall"
+          : waterway === "lock_gate" || waterway === "lock"
+            ? "lock"
+            : "weir";
+    const markerLabel =
+      waterway === "dam"
+        ? "D"
+        : waterway === "waterfall"
+          ? "F"
+          : waterway === "lock_gate" || waterway === "lock"
+            ? "L"
+            : "S";
     return {
-      category: "structure",
+      category,
       label: waterway.replace(/_/g, " "),
       markerKind: "structure",
-      markerLabel: "S",
+      markerLabel,
     };
   }
 
@@ -1364,6 +1393,10 @@ export function mapPoiDisplayMeta(poi: MapPoi): MapPoiDisplayMeta {
 export const mapPoiCategoryLabels: Record<MapPoiDisplayCategory, string> = {
   rapid: "Rapids",
   whitewater: "Whitewater",
+  weir: "Weirs",
+  dam: "Dams",
+  waterfall: "Waterfalls",
+  lock: "Locks",
   structure: "Structures",
   access: "Access",
   navigation: "Navigation",

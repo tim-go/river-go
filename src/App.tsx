@@ -204,6 +204,7 @@ import {
   candidateRouteSuggestionId,
   canonicalRiverOverviewSectionId,
   canonicalRiverToOverviewSection,
+  disciplineLabel,
   categoryOptions,
   COMPACT_MAP_CONTROLS_QUERY,
   contributionOptions,
@@ -319,6 +320,32 @@ function App() {
     loadMarkerClickMode,
   );
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
+  const [riverDisciplineFilter, setRiverDisciplineFilter] = useState<
+    "all" | "whitewater" | "touring"
+  >("all");
+  const [riverNationFilter, setRiverNationFilter] = useState("all");
+  const riverNations = useMemo(() => {
+    const nations = new Set<string>();
+    for (const river of canonicalRivers) {
+      if (river.nation) {
+        nations.add(river.nation);
+      }
+    }
+    return [...nations].sort();
+  }, [canonicalRivers]);
+  const filteredCanonicalRivers = useMemo(
+    () =>
+      canonicalRivers.filter((river) => {
+        const disciplineOk =
+          riverDisciplineFilter === "all" ||
+          river.discipline === "both" ||
+          river.discipline === riverDisciplineFilter;
+        const nationOk =
+          riverNationFilter === "all" || river.nation === riverNationFilter;
+        return disciplineOk && nationOk;
+      }),
+    [canonicalRivers, riverDisciplineFilter, riverNationFilter],
+  );
   const [showSelectedRoutePath, setShowSelectedRoutePath] = useState(false);
   const [routeFormError, setRouteFormError] = useState("");
   const [routeRiverName, setRouteRiverName] = useState("");
@@ -4102,37 +4129,96 @@ function App() {
             </button>
           </div>
           {canonicalRivers.length ? (
-            <div className="canonical-river-list">
-              {canonicalRivers.map((river) => (
-                <button
-                  className={`canonical-river-row ${
-                    river.id === selectedCanonicalRiverId
-                      ? "canonical-river-row--active"
-                      : ""
-                  }`}
-                  key={river.id}
-                  type="button"
-                  onClick={() =>
-                    selectedCanonicalRiverId === river.id
-                      ? reopenSelectedRiverPanel(river)
-                      : selectCanonicalRiver(river.id)
-                  }
+            <>
+              <div className="river-filters">
+                <div
+                  className="segmented-control river-discipline-filter"
+                  role="tablist"
                 >
-                  <span>
-                    <strong>{river.displayName}</strong>
-                    <small>
-                      {river.region} · {river.sectionCount} section
-                      {river.sectionCount === 1 ? "" : "s"}
-                    </small>
-                  </span>
-                  {river.reviewNeededCandidatePoiCount ? (
-                    <span className="candidate-pill">
-                      {river.reviewNeededCandidatePoiCount} candidates
-                    </span>
-                  ) : null}
-                </button>
-              ))}
-            </div>
+                  <button
+                    type="button"
+                    className={riverDisciplineFilter === "all" ? "active" : ""}
+                    onClick={() => setRiverDisciplineFilter("all")}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    className={
+                      riverDisciplineFilter === "whitewater" ? "active" : ""
+                    }
+                    onClick={() => setRiverDisciplineFilter("whitewater")}
+                  >
+                    Whitewater
+                  </button>
+                  <button
+                    type="button"
+                    className={
+                      riverDisciplineFilter === "touring" ? "active" : ""
+                    }
+                    onClick={() => setRiverDisciplineFilter("touring")}
+                  >
+                    Canoe
+                  </button>
+                </div>
+                <select
+                  className="river-nation-filter"
+                  value={riverNationFilter}
+                  onChange={(event) => setRiverNationFilter(event.target.value)}
+                  aria-label="Filter rivers by nation"
+                >
+                  <option value="all">All nations</option>
+                  {riverNations.map((nation) => (
+                    <option key={nation} value={nation}>
+                      {nation}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {filteredCanonicalRivers.length ? (
+                <div className="canonical-river-list">
+                  {filteredCanonicalRivers.map((river) => (
+                    <button
+                      className={`canonical-river-row ${
+                        river.id === selectedCanonicalRiverId
+                          ? "canonical-river-row--active"
+                          : ""
+                      }`}
+                      key={river.id}
+                      type="button"
+                      onClick={() =>
+                        selectedCanonicalRiverId === river.id
+                          ? reopenSelectedRiverPanel(river)
+                          : selectCanonicalRiver(river.id)
+                      }
+                    >
+                      <span>
+                        <strong>{river.displayName}</strong>
+                        <small>
+                          {[
+                            river.nation ?? river.region,
+                            disciplineLabel(river.discipline),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </small>
+                      </span>
+                      {river.grade ? (
+                        <span className="grade-pill">Gr {river.grade}</span>
+                      ) : river.reviewNeededCandidatePoiCount ? (
+                        <span className="candidate-pill">
+                          {river.reviewNeededCandidatePoiCount} candidates
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="source-note source-note--section-list">
+                  No rivers match these filters.
+                </p>
+              )}
+            </>
           ) : (
             <p className="source-note source-note--section-list">
               River records unavailable.

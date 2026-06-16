@@ -15,6 +15,9 @@ export interface CanonicalRiverSummary {
   country: string;
   region: string;
   riverType: string;
+  nation: string | null;
+  discipline: string | null;
+  grade: string | null;
   summary: string;
   centre: LatLngTuple;
   bbox: [number, number, number, number];
