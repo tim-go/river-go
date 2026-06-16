@@ -51,6 +51,7 @@ import {
   mapPoiToSelectedPoi,
   riverMapPoiToSelectedPoi,
   routeImpactPoiLabel,
+  disciplineLabel,
   watercourseHintRows,
   watercourseRouteDistanceKm,
   watercourseTypeLabel,
@@ -1359,12 +1360,17 @@ export function RiverMap({
           </div>
 
           <div className="watercourse-panel__summary">
+            {selectedCanonicalRiver.grade ? (
+              <span>Grade {selectedCanonicalRiver.grade}</span>
+            ) : null}
+            {selectedCanonicalRiver.discipline ? (
+              <span>{disciplineLabel(selectedCanonicalRiver.discipline)}</span>
+            ) : null}
             <span>{selectedCanonicalRiver.region}</span>
             <span>
               {selectedCanonicalRiver.sectionCount} linked section
               {selectedCanonicalRiver.sectionCount === 1 ? "" : "s"}
             </span>
-            <span>{selectedCanonicalRiver.sourceConfidence}</span>
           </div>
 
           <p className="source-note">
