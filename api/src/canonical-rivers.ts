@@ -16,6 +16,9 @@ export interface ApiCanonicalRiverSummary {
   country: string;
   region: string;
   riverType: string;
+  nation: string | null;
+  discipline: string | null;
+  grade: string | null;
   summary: string;
   centre: [number, number];
   bbox: [number, number, number, number];
@@ -66,6 +69,7 @@ interface CanonicalRiverRow {
   region: string;
   river_type: string;
   summary: string;
+  payload: Record<string, unknown> | null;
   centre_geojson: {
     type: "Point";
     coordinates: [number, number];
@@ -698,6 +702,7 @@ function canonicalRiverSelectSql() {
     cr.region,
     cr.river_type,
     cr.summary,
+    cr.payload,
     ST_AsGeoJSON(cr.overview_location)::json AS centre_geojson,
     ST_XMin(cr.bbox::box3d) AS bbox_min_lng,
     ST_YMin(cr.bbox::box3d) AS bbox_min_lat,
@@ -731,6 +736,9 @@ function canonicalRiverSelectSql() {
 
 function mapCanonicalRiverRow(row: CanonicalRiverRow): ApiCanonicalRiverSummary {
   const coordinates = row.centre_geojson?.coordinates;
+  const payload = (row.payload ?? {}) as Record<string, unknown>;
+  const payloadString = (key: string) =>
+    typeof payload[key] === "string" ? (payload[key] as string) : null;
 
   return {
     id: row.id,
@@ -739,6 +747,9 @@ function mapCanonicalRiverRow(row: CanonicalRiverRow): ApiCanonicalRiverSummary 
     country: row.country,
     region: row.region,
     riverType: row.river_type,
+    nation: payloadString("nation"),
+    discipline: payloadString("discipline"),
+    grade: payloadString("grade"),
     summary: row.summary,
     centre: coordinates ? [coordinates[1], coordinates[0]] : [0, 0],
     bbox: [

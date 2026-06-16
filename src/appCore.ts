@@ -685,6 +685,15 @@ export const emptyCanonicalOverviewSection: RiverSection = {
   },
 };
 
+export function disciplineLabel(
+  discipline: string | null | undefined,
+): string {
+  if (discipline === "whitewater") return "Whitewater";
+  if (discipline === "touring") return "Canoe touring";
+  if (discipline === "both") return "WW & touring";
+  return "";
+}
+
 export function canonicalRiverToOverviewSection(river: CanonicalRiverSummary): RiverSection {
   return {
     ...emptyCanonicalOverviewSection,

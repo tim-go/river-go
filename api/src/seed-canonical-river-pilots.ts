@@ -78,6 +78,9 @@ interface RiverCandidateBatch {
 const PILOT_RIVERS: PilotRiver[] = [
   {
     id: "river-wye",
+    nation: "Wales",
+    discipline: "both",
+    grade: "II",
     canonicalName: "River Wye",
     displayName: "River Wye",
     country: "GB",
@@ -99,6 +102,9 @@ const PILOT_RIVERS: PilotRiver[] = [
   },
   {
     id: "afon-tryweryn",
+    nation: "Wales",
+    discipline: "whitewater",
+    grade: "III-IV",
     canonicalName: "Afon Tryweryn",
     displayName: "Afon Tryweryn",
     country: "GB",
@@ -112,6 +118,9 @@ const PILOT_RIVERS: PilotRiver[] = [
   },
   {
     id: "river-dee-llangollen",
+    nation: "Wales",
+    discipline: "whitewater",
+    grade: "III-IV",
     canonicalName: "River Dee",
     displayName: "River Dee / Llangollen",
     country: "GB",
@@ -125,6 +134,9 @@ const PILOT_RIVERS: PilotRiver[] = [
   },
   {
     id: "river-dart-loop",
+    nation: "England",
+    discipline: "whitewater",
+    grade: "III-IV",
     canonicalName: "River Dart",
     displayName: "River Dart",
     country: "GB",
@@ -138,6 +150,9 @@ const PILOT_RIVERS: PilotRiver[] = [
   },
   {
     id: "river-tay-grandtully",
+    nation: "Scotland",
+    discipline: "whitewater",
+    grade: "II-III",
     canonicalName: "River Tay",
     displayName: "River Tay / Grandtully",
     country: "GB",
