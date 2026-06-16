@@ -74,6 +74,18 @@ import {
   searchInvitableMembers,
 } from "./groups.js";
 import {
+  checkInParticipant,
+  createSession,
+  getSessionForMember,
+  listSessionsForMember,
+  parseSessionInput,
+  type Rsvp,
+  type SessionStatus,
+  setSessionIceConsent,
+  setSessionRsvp,
+  updateSessionStatus,
+} from "./group-sessions.js";
+import {
   createKitItem,
   deleteKitItem,
   listKitItems,
@@ -295,6 +307,117 @@ async function route(
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
     await leaveGroup(member.id, decodeURIComponent(groupLeaveMatch[1]));
+    return { status: 200, body: { ok: true } };
+  }
+
+  // --- Group Paddle Sessions: planned sessions & participants (F3/F4/F5/F9) ---
+  if (method === "GET" && url.pathname === "/api/me/sessions") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const sessions = await listSessionsForMember(member.id);
+    return { status: 200, body: { sessions } };
+  }
+  if (method === "POST" && url.pathname === "/api/me/sessions") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const session = await createSession(member.id, parseSessionInput(body));
+    return { status: 201, body: { session } };
+  }
+
+  const sessionDetailMatch = url.pathname.match(/^\/api\/sessions\/([^/]+)$/);
+  if (method === "GET" && sessionDetailMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const session = await getSessionForMember(
+      member.id,
+      decodeURIComponent(sessionDetailMatch[1]),
+    );
+    return { status: 200, body: { session } };
+  }
+
+  const sessionRsvpMatch = url.pathname.match(
+    /^\/api\/sessions\/([^/]+)\/rsvp$/,
+  );
+  if (method === "POST" && sessionRsvpMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const record = (body ?? {}) as Record<string, unknown>;
+    const rsvp =
+      typeof record.rsvp === "string" ? (record.rsvp as Rsvp) : "yes";
+    const availabilityNote =
+      typeof record.availabilityNote === "string"
+        ? record.availabilityNote.trim() || null
+        : null;
+    await setSessionRsvp(
+      member.id,
+      decodeURIComponent(sessionRsvpMatch[1]),
+      rsvp,
+      availabilityNote,
+    );
+    return { status: 200, body: { ok: true } };
+  }
+
+  const sessionCheckInMatch = url.pathname.match(
+    /^\/api\/sessions\/([^/]+)\/check-in$/,
+  );
+  if (method === "POST" && sessionCheckInMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const record = (body ?? {}) as Record<string, unknown>;
+    const targetMemberId =
+      typeof record.memberId === "string" && record.memberId
+        ? record.memberId
+        : member.id;
+    await checkInParticipant(
+      member.id,
+      decodeURIComponent(sessionCheckInMatch[1]),
+      targetMemberId,
+      record.checkedIn !== false,
+    );
+    return { status: 200, body: { ok: true } };
+  }
+
+  const sessionStatusMatch = url.pathname.match(
+    /^\/api\/sessions\/([^/]+)\/status$/,
+  );
+  if (method === "POST" && sessionStatusMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const record = (body ?? {}) as Record<string, unknown>;
+    const status =
+      typeof record.status === "string"
+        ? (record.status as SessionStatus)
+        : "planned";
+    const session = await updateSessionStatus(
+      member.id,
+      decodeURIComponent(sessionStatusMatch[1]),
+      status,
+      {
+        outcomeNotes:
+          typeof record.outcomeNotes === "string"
+            ? record.outcomeNotes.trim() || null
+            : null,
+        outcomeLevelNote:
+          typeof record.outcomeLevelNote === "string"
+            ? record.outcomeLevelNote.trim() || null
+            : null,
+      },
+    );
+    return { status: 200, body: { session } };
+  }
+
+  const sessionIceMatch = url.pathname.match(
+    /^\/api\/sessions\/([^/]+)\/ice-consent$/,
+  );
+  if (method === "POST" && sessionIceMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const record = (body ?? {}) as Record<string, unknown>;
+    await setSessionIceConsent(
+      member.id,
+      decodeURIComponent(sessionIceMatch[1]),
+      record.consent === true,
+    );
     return { status: 200, body: { ok: true } };
   }
 
