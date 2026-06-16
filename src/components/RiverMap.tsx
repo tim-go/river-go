@@ -1,6 +1,7 @@
 import L from "leaflet";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RiverPaddleHistory } from "./RiverPaddleHistory";
+import { ObservationCard } from "./ObservationCard";
 import { useDiscovery } from "../discovery/DiscoveryContext";
 import { MapPin, Maximize2, Minimize2, Route, X } from "lucide-react";
 import type {
@@ -1376,24 +1377,36 @@ export function RiverMap({
           <div className="watercourse-context">
             <h3>Today</h3>
             {primaryRiverMeasure && primaryRiverMeasure.latest ? (
-              <div className="river-card__level">
-                <strong>
-                  {formatObservationValue(
-                    primaryRiverMeasure.latest.value,
-                    primaryRiverMeasure.unit,
-                  )}
-                </strong>
-                <span className="river-card__trend">
-                  {getObservationStats(primaryRiverMeasure).trend}
-                </span>
-                <small>
-                  {primaryRiverMeasure.stationName} ·{" "}
-                  {formatShortDateTime(primaryRiverMeasure.latest.observedAt)}
-                  {primaryRiverMeasure.latest.state !== "live"
-                    ? " · may be out of date"
-                    : ""}
-                </small>
-              </div>
+              isSelectedRiverPanelExpanded ? (
+                <div className="observation-list">
+                  {riverObservations.map((measure) => (
+                    <ObservationCard
+                      key={measure.id}
+                      measure={measure}
+                      rangeHours={48}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="river-card__level">
+                  <strong>
+                    {formatObservationValue(
+                      primaryRiverMeasure.latest.value,
+                      primaryRiverMeasure.unit,
+                    )}
+                  </strong>
+                  <span className="river-card__trend">
+                    {getObservationStats(primaryRiverMeasure).trend}
+                  </span>
+                  <small>
+                    {primaryRiverMeasure.stationName} ·{" "}
+                    {formatShortDateTime(primaryRiverMeasure.latest.observedAt)}
+                    {primaryRiverMeasure.latest.state !== "live"
+                      ? " · may be out of date"
+                      : ""}
+                  </small>
+                </div>
+              )
             ) : (
               <p className="empty-state">
                 No live gauge linked to this river yet.
