@@ -3103,26 +3103,14 @@ h1 {
 }
 
 .segmented-control.river-detail-tabs {
-  position: sticky;
-  top: -12px;
-  z-index: 2;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
-  overflow-x: auto;
-  padding: 6px 0 8px;
-  background: var(--surface);
-  scrollbar-width: none;
-}
-
-.river-detail-tabs::-webkit-scrollbar {
-  display: none;
 }
 
 .river-detail-tabs button {
-  flex: 1 0 auto;
-  min-width: 48px;
-  min-height: 32px;
-  padding: 0 6px;
+  min-height: 34px;
+  padding: 0 4px;
   font-size: 0.72rem;
 }
 
