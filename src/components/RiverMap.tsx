@@ -73,6 +73,10 @@ import type {
   RouteCreateMode,
   WatercourseContextPoi,
 } from "../appCore";
+import {
+  RIVER_TAB_POI_CATEGORIES,
+  type RiverPoiTab,
+} from "../lib/riverPoiTabs";
 
 type RiverDetailTab =
   | "levels"
@@ -91,21 +95,7 @@ const RIVER_DETAIL_TABS: { id: RiverDetailTab; label: string }[] = [
   { id: "about", label: "About" },
 ];
 
-// Which POI display categories surface under each points-style tab. Together
-// these cover every category, so each reviewed point lands in exactly one tab.
-const RIVER_TAB_POI_CATEGORIES: Record<
-  "rapids" | "hazards" | "access",
-  MapPoiDisplayCategory[]
-> = {
-  rapids: ["rapid", "whitewater", "feature"],
-  hazards: ["weir", "dam", "waterfall", "lock", "structure", "hazard"],
-  access: ["access", "navigation", "utility", "gauge"],
-};
-
-const RIVER_TAB_EMPTY_MESSAGE: Record<
-  "rapids" | "hazards" | "access",
-  string
-> = {
+const RIVER_TAB_EMPTY_MESSAGE: Record<RiverPoiTab, string> = {
   rapids:
     "No rapids or whitewater features have been reviewed for this river yet.",
   hazards:
@@ -379,7 +369,7 @@ export function RiverMap({
   // Total reviewed points per points-style tab, so the tab labels can advertise
   // what's inside before the user clicks (avoids hunting through empty tabs).
   const riverTabPoiTotals = useMemo(() => {
-    const totals: Record<"rapids" | "hazards" | "access", number> = {
+    const totals: Record<RiverPoiTab, number> = {
       rapids: 0,
       hazards: 0,
       access: 0,
