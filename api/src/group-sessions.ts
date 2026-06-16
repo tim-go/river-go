@@ -48,6 +48,7 @@ export interface ApiGroupSession {
   participantCount: number;
   myRsvp: Rsvp | null;
   myCheckedIn: boolean;
+  myIceConsent: boolean;
 }
 
 export interface ApiSessionParticipant {
@@ -109,6 +110,7 @@ interface SessionRow {
   participant_count?: string | number;
   my_rsvp?: Rsvp | null;
   my_checked_in_at?: Date | null;
+  my_ice_consent?: boolean;
 }
 
 interface ParticipantRow {
@@ -173,6 +175,7 @@ function mapSessionRow(row: SessionRow): ApiGroupSession {
       row.participant_count != null ? Number(row.participant_count) : 0,
     myRsvp: row.my_rsvp ?? null,
     myCheckedIn: Boolean(row.my_checked_in_at),
+    myIceConsent: Boolean(row.my_ice_consent),
   };
 }
 
@@ -325,7 +328,8 @@ export async function listSessionsForMember(
             (SELECT count(*) FROM session_participants sp2
                WHERE sp2.session_id = s.id) AS participant_count,
             sp.rsvp AS my_rsvp,
-            sp.checked_in_at AS my_checked_in_at
+            sp.checked_in_at AS my_checked_in_at,
+            sp.ice_consent AS my_ice_consent
      FROM group_sessions s
      JOIN groups g ON g.id = s.group_id
      JOIN group_members gm
@@ -353,7 +357,8 @@ export async function getSessionForMember(
             (SELECT count(*) FROM session_participants sp2
                WHERE sp2.session_id = s.id) AS participant_count,
             sp.rsvp AS my_rsvp,
-            sp.checked_in_at AS my_checked_in_at
+            sp.checked_in_at AS my_checked_in_at,
+            sp.ice_consent AS my_ice_consent
      FROM group_sessions s
      JOIN groups g ON g.id = s.group_id
      LEFT JOIN session_participants sp

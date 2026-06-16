@@ -25,11 +25,11 @@ import {
   respondToGroupInvite,
   searchMembers,
 } from "../services/groupsApi";
+import { SessionDetailPanel } from "./SessionDetailPanel";
 
 interface GroupsPanelProps {
   isSignedIn: boolean;
   rivers: { id: string; displayName: string }[];
-  onOpenSession?: (sessionId: string) => void;
 }
 
 const GROUP_KIND_LABELS: Record<GroupKind, string> = {
@@ -56,14 +56,13 @@ function formatWhen(iso: string | null): string {
   });
 }
 
-export function GroupsPanel({
-  isSignedIn,
-  rivers,
-  onOpenSession,
-}: GroupsPanelProps) {
+export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [sessions, setSessions] = useState<GroupSession[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null,
+  );
   const [groupDetail, setGroupDetail] = useState<GroupDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -229,7 +228,7 @@ export function GroupsPanel({
       setSessionNotes("");
       setIsCreatingSession(false);
       setSessions(await fetchSessions());
-      onOpenSession?.(created.id);
+      setSelectedSessionId(created.id);
     } catch (sessionError) {
       setError(errorMessage(sessionError, "Could not plan the session."));
     }
@@ -248,6 +247,20 @@ export function GroupsPanel({
             </p>
           </div>
         </div>
+      </section>
+    );
+  }
+
+  if (selectedSessionId) {
+    return (
+      <section className="groups-panel">
+        <SessionDetailPanel
+          sessionId={selectedSessionId}
+          onBack={() => {
+            setSelectedSessionId(null);
+            void loadGroups();
+          }}
+        />
       </section>
     );
   }
@@ -443,7 +456,7 @@ export function GroupsPanel({
                     <button
                       type="button"
                       className="session-row"
-                      onClick={() => onOpenSession?.(session.id)}
+                      onClick={() => setSelectedSessionId(session.id)}
                     >
                       <span>
                         <strong>{session.title}</strong>

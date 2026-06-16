@@ -444,6 +444,7 @@ export interface GroupSession {
   participantCount: number;
   myRsvp: Rsvp | null;
   myCheckedIn: boolean;
+  myIceConsent: boolean;
 }
 
 export interface SessionParticipant {
