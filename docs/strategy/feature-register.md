@@ -1,6 +1,6 @@
 # Feature Register
 
-**Last updated:** 2026-06-13
+**Last updated:** 2026-06-15
 **Scope:** Product-level inventory of RiverLaunch.app features, grouped by the tiered product model. Complements `feature-taxonomy.md` (object/contribution *types*), `spec-consolidation-map.md` (owning *specs*), `roadmap.md` (phasing), and `delivery-plan.md` (current state). This register groups by *product tier and user value*, not by engineering layer.
 
 ## The Tiered Model
@@ -88,8 +88,9 @@ Sits between Discovery and Contributions. Establishing a **known, attributable m
 |---|---|---|
 | Create account / sign-in (Google + email/password, reset) | 🔨 | app-shell-navigation |
 | Guest browse + account-gated actions (shared auth sheet) | 🔨 | app-shell-navigation, community-contributions |
-| **Contribution identity gate** (email-verified · public name · contributor terms) | ⬜ | app-shell-navigation, community-contributions (CON-B2) |
-| Public contributor name | 🔨 | app-shell-navigation |
+| **Contribution identity gate** (email-verified · public name · contributor terms) | ✅ | app-shell-navigation, community-contributions (CON-F9) |
+| Contributor on-ramp ("Become a contributor" flow) | ✅ | community-contributions (CON-F20) |
+| Public contributor name | ✅ | app-shell-navigation |
 | Member identity schema + API (`/api/me`, upsert) | 🔨 | data-and-sync-model, service-api |
 | ICE store (private emergency-contact profile) — *storage only* | 🔨 | app-shell-navigation, data-and-sync-model |
 | Account/Sync surface (your synced state) | 🔨 | app-shell-navigation |
@@ -104,8 +105,8 @@ Sits between Discovery and Contributions. Establishing a **known, attributable m
 | Add mode + map placement + floating form | ✅ | community-contributions |
 | Typed contributions (hazard/report/access/feature/photo) | ✅ | community-contributions |
 | Rich feature + access/parking categories | ⬜ | community-contributions |
-| Add update/photo to existing POI (no duplicate markers) | ⬜ | community-contributions |
-| Seed-POI confirm / suggest correction | 🔨 | community-contributions |
+| Add update/photo to existing POI (no duplicate markers) | ✅ | community-contributions (CON-F19) |
+| Seed-POI confirm / suggest correction (identity-gated) | ✅ | community-contributions (CON-F16) |
 | Backend-persisted loop (save/sync/readback/merge) | ✅ | community-contributions, data-and-sync-model |
 | Offline outbox + prominent sync state | 🔨 | community-contributions, offline-mode |
 | Member point management (list/delete your own) | 🔨 | community-contributions |
@@ -124,7 +125,7 @@ Sits between Discovery and Contributions. Establishing a **known, attributable m
 |---|---|---|
 | Hazard confirm/resolve + status display | ✅ | trust-and-moderation |
 | Contributor roles (member/trusted/moderator/admin) | ✅ | trust-and-moderation, data-and-sync-model |
-| Moderation queue + decisions · member role/trust editing | ✅ | trust-and-moderation, service-api |
+| Two-dimension moderation (visibility gate + review-status reason) · review-first + trusted direct-publish · role/trust editing | ✅ | trust-and-moderation (TRUST-F11/F12), service-api |
 | POI status override · source-candidate review/promotion | 🔨 | trust-and-moderation, canonical-river-database |
 | Staleness rules (7/30/90-day) | ⬜ | trust-and-moderation |
 
@@ -212,3 +213,4 @@ Reclassifications applied: route-submissions → contributions (demoted); identi
 |---|---|
 | 2026-06-13 | Created from feature extraction across all specs; grouped into the tiered model (Discovery / Identity / Contributions / Member / Group / Foundations) with identity gate and monetization line. |
 | 2026-06-13 | Restructured spec folders to match tiers; removed `future/` (amenities → discovery, commerce-learning → commerce); reindexed the consolidation map. |
+| 2026-06-15 | Reconciled to shipped Phase-2 state: contribution identity gate + on-ramp, attach-to-POI (CON-F19), identity-gated seed-POI confirm (CON-F16), and the two-dimension moderation model (review-first + trusted direct-publish) now Landed. |

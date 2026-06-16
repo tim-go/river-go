@@ -337,12 +337,11 @@ export async function updateSourceCandidatePoiStatus(
 
 async function promoteSourceCandidateToMapPoi(
   candidateId: string,
-  actor: Member,
+  actor: Pick<Member, "id">,
   client: PoolClient,
 ): Promise<string> {
   const candidateResult = await client.query<
     SourceCandidatePoiRow & {
-      section_id: string | null;
       longitude: string | number;
       latitude: string | number;
     }
@@ -364,15 +363,7 @@ async function promoteSourceCandidateToMapPoi(
       scp.source_metadata,
       scp.updated_at,
       ST_X(ST_PointOnSurface(scp.geometry)) AS longitude,
-      ST_Y(ST_PointOnSurface(scp.geometry)) AS latitude,
-      (
-        SELECT crsl.section_id
-        FROM canonical_river_section_links crsl
-        WHERE crsl.river_id = scp.river_id
-          AND crsl.status = 'active'
-        ORDER BY crsl.relationship_type ASC, crsl.section_id ASC
-        LIMIT 1
-      ) AS section_id
+      ST_Y(ST_PointOnSurface(scp.geometry)) AS latitude
     FROM source_candidate_pois scp
     LEFT JOIN canonical_rivers cr ON cr.id = scp.river_id
     WHERE scp.id = $1
@@ -386,12 +377,29 @@ async function promoteSourceCandidateToMapPoi(
 
   const candidate = candidateResult.rows[0];
 
-  if (!candidate.section_id) {
+  const sectionsResult = await client.query<{ section_id: string }>(
+    `SELECT section_id
+     FROM canonical_river_section_links
+     WHERE river_id = $1 AND status = 'active'
+     ORDER BY section_id ASC`,
+    [candidate.river_id],
+  );
+  const sectionIds = sectionsResult.rows.map((row) => row.section_id);
+
+  if (!sectionIds.length) {
     throw new HttpError(
       409,
       "Cannot promote source candidate without a linked river section.",
     );
   }
+
+  const sectionId =
+    sectionIds.length === 1
+      ? sectionIds[0]
+      : nearestSectionId(sectionIds, {
+          latitude: Number(candidate.latitude),
+          longitude: Number(candidate.longitude),
+        });
 
   const mapPoiId = `source-candidate:${candidate.id}`;
   const mapPoiKind = sourceCandidateMapPoiKind(candidate.candidate_type);
@@ -438,7 +446,7 @@ async function promoteSourceCandidateToMapPoi(
       $11,
       $12,
       $13,
-      'confirmed',
+      'needs-confirmation',
       $14::jsonb
     )
     ON CONFLICT (id) DO UPDATE SET
@@ -453,13 +461,13 @@ async function promoteSourceCandidateToMapPoi(
       source_confidence = EXCLUDED.source_confidence,
       source_updated_at = EXCLUDED.source_updated_at,
       source_url = EXCLUDED.source_url,
-      verification_status = 'confirmed',
+      verification_status = 'needs-confirmation',
       payload = EXCLUDED.payload,
       updated_at = now(),
       revision = map_pois.revision + 1`,
     [
       mapPoiId,
-      candidate.section_id,
+      sectionId,
       mapPoiKind,
       Number(candidate.longitude),
       Number(candidate.latitude),
@@ -478,22 +486,175 @@ async function promoteSourceCandidateToMapPoi(
   return mapPoiId;
 }
 
+function isExcludedPilotCandidate(row: {
+  candidate_type: string;
+  title: string | null;
+  raw_properties: Record<string, unknown> | null;
+}): boolean {
+  if (
+    row.candidate_type === "waterway=turning_point" ||
+    row.candidate_type === "waterway=sanitary_dump_station"
+  ) {
+    return true;
+  }
+
+  const name = (
+    readRawPropertyString(row.raw_properties, "name") ||
+    row.title ||
+    ""
+  ).toLowerCase();
+
+  return name.includes("flood alleviation");
+}
+
+async function resolvePilotPromoter(
+  client: PoolClient,
+): Promise<Pick<Member, "id">> {
+  const result = await client.query<{ id: string }>(
+    `SELECT id
+     FROM members
+     ORDER BY (role = 'ADMIN') DESC, (role = 'CONTRIB_MODERATOR') DESC, created_at ASC
+     LIMIT 1`,
+  );
+
+  if (!result.rowCount) {
+    throw new Error("No member available to attribute pilot promotions to.");
+  }
+
+  return { id: result.rows[0].id };
+}
+
+// Bulk-approve + promote every source candidate (review_needed or already
+// confirmed) with the corrected kind + nearest-section logic, rejecting the
+// non-paddling types (turning points, sanitary dump stations) and named
+// flood-alleviation structures. Promoted POIs publish as needs-confirmation.
+// Re-runnable; pilot data is disposable.
+export async function repromotePilotCandidates(): Promise<{
+  promoted: number;
+  excluded: number;
+}> {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+    const promoter = await resolvePilotPromoter(client);
+    const candidates = await client.query<{
+      id: string;
+      candidate_type: string;
+      title: string | null;
+      raw_properties: Record<string, unknown> | null;
+    }>(
+      `SELECT id, candidate_type, title, raw_properties
+       FROM source_candidate_pois
+       WHERE status IN ('review_needed', 'confirmed')
+       ORDER BY id ASC`,
+    );
+
+    let promoted = 0;
+    let excluded = 0;
+
+    for (const candidate of candidates.rows) {
+      if (isExcludedPilotCandidate(candidate)) {
+        await client.query(
+          `UPDATE source_candidate_pois
+           SET status = 'rejected', updated_at = now(), revision = revision + 1
+           WHERE id = $1`,
+          [candidate.id],
+        );
+        await client.query(`DELETE FROM map_pois WHERE id = $1`, [
+          `source-candidate:${candidate.id}`,
+        ]);
+        excluded += 1;
+        continue;
+      }
+
+      await client.query(
+        `UPDATE source_candidate_pois
+         SET status = 'confirmed', updated_at = now(), revision = revision + 1
+         WHERE id = $1 AND status <> 'confirmed'`,
+        [candidate.id],
+      );
+      await promoteSourceCandidateToMapPoi(candidate.id, promoter, client);
+      promoted += 1;
+    }
+
+    await client.query("COMMIT");
+    return { promoted, excluded };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// OSM candidate types are stored as "waterway=<value>" (e.g. "waterway=dam") or
+// bare tokens ("rapids", "whitewater-section"). Normalise to the value so the
+// hazard match actually fires — previously the exact-string checks never matched
+// the "waterway=" form, so every structure (weirs, dams, waterfalls) was filed as
+// a generic feature.
+const HAZARD_WATERWAY_VALUES = new Set([
+  "weir",
+  "dam",
+  "waterfall",
+  "sluice_gate",
+  "sluice",
+  "lock_gate",
+  "lock",
+]);
+
 function sourceCandidateMapPoiKind(candidateType: string) {
   if (candidateType === "access_hint") {
     return "access";
   }
 
-  if (
-    candidateType === "weir" ||
-    candidateType === "dam" ||
-    candidateType === "waterfall" ||
-    candidateType === "sluice" ||
-    candidateType === "lock"
-  ) {
+  const value = candidateType.startsWith("waterway=")
+    ? candidateType.slice("waterway=".length)
+    : candidateType;
+
+  if (HAZARD_WATERWAY_VALUES.has(value)) {
     return "hazard";
   }
 
   return "feature";
+}
+
+// There is no per-section geometry in the data model yet, so multi-section pilot
+// rivers anchor each section to a representative midpoint of the named stretch and
+// a candidate is assigned to the nearest one. Single-section rivers bypass this.
+// Approximate — POIs still render at their own true geometry on the map.
+const SECTION_ANCHORS: Record<string, { lat: number; lng: number }> = {
+  "wye-glasbury-hay": { lat: 52.07, lng: -3.153 },
+  "wye-hay-whitney": { lat: 52.095, lng: -3.072 },
+  "wye-whitney-bredwardine": { lat: 52.112, lng: -2.992 },
+  "wye-hoarwithy-ross": { lat: 51.942, lng: -2.602 },
+  "wye-ross-kerne": { lat: 51.893, lng: -2.6 },
+  "wye-kerne-symonds-yat": { lat: 51.856, lng: -2.628 },
+  "wye-symonds-yat-monmouth": { lat: 51.826, lng: -2.677 },
+  "tryweryn-dam-centre": { lat: 52.935, lng: -3.624 },
+  "tryweryn-centre-bala": { lat: 52.914, lng: -3.6 },
+};
+
+function nearestSectionId(
+  sectionIds: string[],
+  candidate: { latitude: number; longitude: number },
+): string {
+  let best = sectionIds[0];
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const sectionId of sectionIds) {
+    const anchor = SECTION_ANCHORS[sectionId];
+    if (!anchor) {
+      continue;
+    }
+    const distance =
+      (anchor.lat - candidate.latitude) ** 2 +
+      (anchor.lng - candidate.longitude) ** 2;
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = sectionId;
+    }
+  }
+  return best;
 }
 
 function sourceCandidateSubtitle(candidateType: string) {

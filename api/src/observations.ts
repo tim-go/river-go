@@ -26,7 +26,10 @@ type SectionMeasureConfidence =
   | "community-confirmed"
   | "moderator-verified";
 
-type ObservationProvider = "environment-agency" | "natural-resources-wales";
+type ObservationProvider =
+  | "environment-agency"
+  | "natural-resources-wales"
+  | "sepa";
 
 interface SeedObservationMeasure {
   provider: ObservationProvider;
@@ -95,6 +98,11 @@ interface NrwGraphDataResponse {
     x?: string;
     y?: number;
   }>;
+}
+
+interface SepaTimeseriesValuesResponse {
+  columns?: string;
+  data?: Array<Array<string | number | null>>;
 }
 
 export interface ObservationJobRun {
@@ -334,6 +342,69 @@ const initialObservationMeasures: SeedObservationMeasure[] = [
         confidence: "section-candidate",
         notes:
           "Lower Wye candidate EA level measure. Needs local validation before interpreting runnable ranges.",
+      },
+    ],
+  },
+  {
+    provider: "environment-agency",
+    providerStationId: "46122",
+    providerMeasureId: "46122-level-stage-i-15_min-m",
+    stationName: "River Dart at Austins Bridge",
+    parameter: "river_level",
+    unit: "m",
+    samplingInterval: "15_min",
+    datum: "m",
+    sourceUrl:
+      "https://environment.data.gov.uk/flood-monitoring/id/measures/46122-level-stage-i-15_min-m",
+    sectionLinks: [
+      {
+        sectionId: "dart-loop",
+        relevance: "primary",
+        confidence: "section-candidate",
+        notes:
+          "EA Austins Bridge is the standard paddler gauge for the Dart Loop (Newbridge to Buckfastleigh). Runnable ranges need local validation.",
+      },
+    ],
+  },
+  {
+    provider: "natural-resources-wales",
+    providerStationId: "4163",
+    providerMeasureId: "4163:38",
+    stationName: "Dee at Corwen",
+    parameter: "river_level",
+    unit: "m",
+    samplingInterval: "15_min",
+    datum: "stage",
+    sourceUrl:
+      "https://rivers-and-seas.naturalresources.wales/Station/4163?lang=en&parameterType=1",
+    sectionLinks: [
+      {
+        sectionId: "dee-llangollen",
+        relevance: "primary",
+        confidence: "nearby-candidate",
+        notes:
+          "NRW Dee at Corwen is the nearest online gauge upstream of Llangollen (Town Falls/Serpent's Tail); there is no telemetered gauge in Llangollen itself. Runnable ranges need local validation.",
+      },
+    ],
+  },
+  {
+    provider: "sepa",
+    providerStationId: "14935",
+    providerMeasureId: "55173010",
+    stationName: "Tay at Pitnacree",
+    parameter: "river_level",
+    unit: "m",
+    samplingInterval: "15_min",
+    datum: "stage",
+    sourceUrl:
+      "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55173010&format=html",
+    sectionLinks: [
+      {
+        sectionId: "tay-grandtully",
+        relevance: "primary",
+        confidence: "nearby-candidate",
+        notes:
+          "SEPA Pitnacree is the closest gauge (about 2 km downstream) to Grandtully; the de-facto Tay-at-Grandtully level. Runnable ranges need local validation.",
       },
     ],
   },
@@ -711,6 +782,10 @@ async function fetchObservationReadings(
     return fetchNaturalResourcesWalesReadings(measure, windowHours);
   }
 
+  if (measure.provider === "sepa") {
+    return fetchSepaReadings(measure, windowHours);
+  }
+
   throw new Error(`Unsupported observation provider: ${measure.provider}`);
 }
 
@@ -795,6 +870,60 @@ function readNaturalResourcesWalesParameterId(measure: ObservationMeasure) {
   }
 
   return parameterId;
+}
+
+async function fetchSepaReadings(
+  measure: ObservationMeasure,
+  windowHours: number,
+) {
+  const since = new Date(Date.now() - windowHours * 60 * 60 * 1000).toISOString();
+  const query = new URLSearchParams({
+    service: "kisters",
+    type: "queryServices",
+    datasource: "0",
+    request: "getTimeseriesValues",
+    ts_id: measure.providerMeasureId,
+    from: since,
+    format: "json",
+  });
+  const url = `https://timeseries.sepa.org.uk/KiWIS/KiWIS?${query.toString()}`;
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `SEPA returned HTTP ${response.status} for ${measure.providerMeasureId}.`,
+    );
+  }
+
+  // KiWIS getTimeseriesValues returns an array with one series object that
+  // carries a `columns` header ("Timestamp,Value") and a `data` array of rows.
+  const payload = (await response.json()) as SepaTimeseriesValuesResponse[];
+  const series = Array.isArray(payload) ? payload.at(0) : undefined;
+  const columns = (series?.columns ?? "Timestamp,Value")
+    .split(",")
+    .map((column) => column.trim().toLowerCase());
+  const timestampIndex = Math.max(columns.indexOf("timestamp"), 0);
+  const valueColumn = columns.indexOf("value");
+  const valueIndex = valueColumn === -1 ? 1 : valueColumn;
+
+  return (series?.data ?? [])
+    .map((row) => {
+      const observedAt = row[timestampIndex];
+      const rawValue = row[valueIndex];
+      const value = typeof rawValue === "number" ? rawValue : Number(rawValue);
+      return { observedAt, value };
+    })
+    .filter(
+      (reading): reading is { observedAt: string; value: number } =>
+        typeof reading.observedAt === "string" && Number.isFinite(reading.value),
+    )
+    .map((reading) => ({
+      observedAt: reading.observedAt,
+      value: reading.value,
+      raw: { observedAt: reading.observedAt, value: reading.value },
+    }));
 }
 
 async function upsertObservationReading(

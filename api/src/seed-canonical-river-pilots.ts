@@ -17,6 +17,10 @@ interface PilotRiver {
     east: number;
   };
   sectionIds: string[];
+  nation?: string;
+  discipline?: "whitewater" | "touring" | "both";
+  grade?: string;
+  run?: string;
 }
 
 interface Options {
@@ -24,6 +28,13 @@ interface Options {
   allowPartialCandidates: boolean;
   sourceVersion: string;
   riverIds: string[] | null;
+  catalogue: "pilots" | "paddling" | "all";
+}
+
+const SEED_THROTTLE_MS = 800;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 interface OverpassElement {
@@ -140,6 +151,113 @@ const PILOT_RIVERS: PilotRiver[] = [
   },
 ];
 
+function paddlingRiver(
+  id: string,
+  canonicalName: string,
+  nation: string,
+  region: string,
+  centre: [number, number],
+  discipline: "whitewater" | "touring" | "both",
+  grade: string,
+  run: string,
+): PilotRiver {
+  const [lat, lng] = centre;
+  const disciplineLabel =
+    discipline === "whitewater"
+      ? "whitewater"
+      : discipline === "touring"
+        ? "canoe touring"
+        : "whitewater & touring";
+  return {
+    id,
+    canonicalName,
+    displayName: canonicalName,
+    country: "GB",
+    region,
+    riverType: "river",
+    summary: `${run} — grade ${grade} (${disciplineLabel}). Source-derived paddling-river record; review sections, levels, and POIs before treating it as paddling guidance.`,
+    centre,
+    bbox: {
+      south: lat - 0.05,
+      west: lng - 0.07,
+      north: lat + 0.05,
+      east: lng + 0.07,
+    },
+    sectionIds: [`${id}-main`],
+    nation,
+    discipline,
+    grade,
+    run,
+  };
+}
+
+// Curated UK whitewater & canoe rivers (the paddling class). Seeded via
+// `--catalogue=paddling`; bbox is derived from the run-centre and each river
+// gets a single whole-river section. Run-centres are approximate; OSM POIs and
+// any level are source-derived and stay needs-confirmation.
+const PADDLING_RIVERS: PilotRiver[] = [
+  // --- Scotland ---
+  paddlingRiver("river-etive", "River Etive", "Scotland", "Glen Etive / West Highlands", [56.628, -4.93], "whitewater", "IV-V", "Triple Falls to Dalness"),
+  paddlingRiver("river-orchy", "River Orchy", "Scotland", "Glen Orchy / West Highlands", [56.505, -4.84], "whitewater", "III-IV", "Bridge of Orchy to Falls of Orchy"),
+  paddlingRiver("river-coe", "River Coe", "Scotland", "Glen Coe / West Highlands", [56.662, -5.05], "whitewater", "IV-V", "Meeting of Three Waters to Glencoe"),
+  paddlingRiver("river-roy", "River Roy", "Scotland", "Glen Roy / Lochaber", [56.915, -4.83], "whitewater", "IV", "The Roy Gorge"),
+  paddlingRiver("river-spean", "River Spean", "Scotland", "Lochaber", [56.89, -4.92], "whitewater", "III-IV", "Spean Gorge, Roybridge to Spean Bridge"),
+  paddlingRiver("river-nevis", "River Nevis", "Scotland", "Glen Nevis / Lochaber", [56.772, -5.0], "whitewater", "IV-V", "Steall Gorge to Polldubh"),
+  paddlingRiver("river-garry-invergarry", "River Garry (Invergarry)", "Scotland", "Great Glen", [57.065, -4.8], "whitewater", "III-IV", "Garry Dam to White Bridge"),
+  paddlingRiver("river-moriston", "River Moriston", "Scotland", "Glenmoriston / Great Glen", [57.21, -4.73], "whitewater", "IV", "Dundreggan Dam to Invermoriston"),
+  paddlingRiver("river-affric", "River Affric", "Scotland", "Glen Affric", [57.275, -4.92], "whitewater", "V", "Dog Falls to Fasnakyle"),
+  paddlingRiver("river-conon", "River Conon", "Scotland", "Easter Ross", [57.58, -4.7], "whitewater", "IV-V", "Luichart Dam falls section"),
+  paddlingRiver("river-carron-wester-ross", "River Carron (Wester Ross)", "Scotland", "Strathcarron", [57.435, -5.42], "whitewater", "IV-V", "Achnashellach to New Kelso"),
+  paddlingRiver("river-findhorn", "River Findhorn", "Scotland", "Morayshire", [57.505, -3.67], "whitewater", "IV", "Randolph's Leap gorge"),
+  paddlingRiver("river-spey", "River Spey", "Scotland", "Cairngorms to Moray", [57.2, -3.75], "touring", "I-II", "Aviemore to Spey Bay"),
+  paddlingRiver("river-feshie", "River Feshie", "Scotland", "Glen Feshie / Cairngorms", [57.06, -3.88], "whitewater", "III", "Achlean to Feshiebridge"),
+  paddlingRiver("river-dee-aberdeenshire", "River Dee (Aberdeenshire)", "Scotland", "Royal Deeside", [57.02, -3.23], "both", "II-III", "Braemar to Ballater"),
+  paddlingRiver("river-tummel", "River Tummel", "Scotland", "Perthshire", [56.705, -3.8], "whitewater", "III-IV", "Below Cluny Dam to Linn of Tummel"),
+  paddlingRiver("river-lyon", "River Lyon", "Scotland", "Glen Lyon", [56.605, -4.2], "whitewater", "IV-V", "Bridge of Balgie down"),
+  paddlingRiver("river-ericht", "River Ericht", "Scotland", "Blairgowrie", [56.605, -3.33], "whitewater", "III-IV", "Craighall Gorge to Blairgowrie"),
+  paddlingRiver("river-awe", "River Awe", "Scotland", "Argyll", [56.415, -5.15], "whitewater", "III-IV", "Barrage to Bridge of Awe"),
+  paddlingRiver("river-tweed", "River Tweed", "Scotland", "Scottish Borders", [55.6, -2.9], "touring", "I-II", "Peebles to Melrose"),
+  paddlingRiver("river-garry-perthshire", "River Garry (Perthshire)", "Scotland", "Killiecrankie", [56.74, -3.77], "whitewater", "III-IV", "Pass of Killiecrankie"),
+  // --- Wales ---
+  paddlingRiver("river-conwy", "Afon Conwy", "Wales", "Snowdonia / Eryri", [53.084, -3.8], "whitewater", "IV-V", "Conwy Falls to Fairy Glen"),
+  paddlingRiver("river-llugwy", "Afon Llugwy", "Wales", "Snowdonia / Eryri", [53.093, -3.83], "whitewater", "III-IV", "Pont Cyfyng to Betws-y-Coed"),
+  paddlingRiver("river-lledr", "Afon Lledr", "Wales", "Snowdonia / Eryri", [53.07, -3.81], "whitewater", "III-IV", "Pont-y-Pant to Beaver Pool"),
+  paddlingRiver("river-glaslyn", "Afon Glaslyn", "Wales", "Snowdonia / Eryri", [53.001, -4.098], "whitewater", "IV", "Aberglaslyn Gorge"),
+  paddlingRiver("river-colwyn", "Afon Colwyn", "Wales", "Snowdonia / Eryri", [53.015, -4.11], "whitewater", "IV+", "Above Beddgelert to the Glaslyn"),
+  paddlingRiver("river-ogwen", "Afon Ogwen", "Wales", "Snowdonia / Eryri", [53.185, -4.06], "whitewater", "IV", "Bethesda / Fisherman's Gorge"),
+  paddlingRiver("river-dwyfor", "Afon Dwyfor", "Wales", "Snowdonia / Llyn fringe", [52.93, -4.27], "whitewater", "III+", "B4411 to Llanystumdwy"),
+  paddlingRiver("river-seiont", "Afon Seiont", "Wales", "Snowdonia / Eryri", [53.13, -4.22], "whitewater", "III", "Llyn Padarn to the sea"),
+  paddlingRiver("river-eden-coed-y-brenin", "Afon Eden", "Wales", "Coed-y-Brenin", [52.835, -3.89], "whitewater", "III-IV", "Through Coed-y-Brenin to the Mawddach"),
+  paddlingRiver("river-mawddach", "Afon Mawddach", "Wales", "Coed-y-Brenin", [52.85, -3.87], "whitewater", "III-IV", "Pont Aber-Geirw to the Eden confluence"),
+  paddlingRiver("river-dyfi", "Afon Dyfi", "Wales", "Mid-Wales", [52.69, -3.66], "both", "II-III", "Dinas Mawddwy to the A470 bridge"),
+  paddlingRiver("river-teifi", "Afon Teifi", "Wales", "West Wales", [52.03, -4.33], "both", "II-III", "Llandysul to Cenarth Falls"),
+  paddlingRiver("river-usk", "River Usk / Afon Wysg", "Wales", "Brecon Beacons / Bannau", [51.945, -3.39], "both", "II-III", "Sennybridge to Talybont"),
+  paddlingRiver("river-irfon", "Afon Irfon", "Wales", "Mid-Wales", [52.11, -3.63], "whitewater", "III-IV", "Cammarch gorge to Llanwrtyd Wells"),
+  paddlingRiver("river-tywi", "Afon Tywi / Towy", "Wales", "Mid / West Wales", [52.05, -3.78], "both", "III", "Below Llyn Brianne to Dolauhirion"),
+  paddlingRiver("river-tawe", "Afon Tawe", "Wales", "South Wales", [51.835, -3.71], "whitewater", "IV", "Glyntawe to Abercrave"),
+  paddlingRiver("river-mellte", "Afon Mellte", "Wales", "Bannau / Waterfall Country", [51.78, -3.57], "whitewater", "IV", "Porth-yr-Ogof to Pontneddfechan"),
+  // --- England ---
+  paddlingRiver("river-greta-cumbria", "River Greta", "England", "Lake District / Cumbria", [54.6168, -3.086], "whitewater", "III", "Threlkeld to Keswick"),
+  paddlingRiver("river-kent", "River Kent", "England", "Lake District / Cumbria", [54.287, -2.76], "whitewater", "III-IV", "Kendal to Force Falls"),
+  paddlingRiver("river-leven", "River Leven", "England", "Lake District / Cumbria", [54.27, -3.015], "whitewater", "IV-V", "Newby Bridge to Backbarrow"),
+  paddlingRiver("river-crake", "River Crake", "England", "Lake District / Cumbria", [54.284, -3.079], "both", "II-III", "Coniston to Spark Bridge"),
+  paddlingRiver("river-duddon", "River Duddon", "England", "Lake District / Cumbria", [54.33, -3.225], "whitewater", "III-IV", "Seathwaite to Ulpha"),
+  paddlingRiver("river-esk-eskdale", "River Esk (Eskdale)", "England", "Lake District / Cumbria", [54.396, -3.27], "whitewater", "II-III", "Boot, Eskdale down"),
+  paddlingRiver("river-brathay", "River Brathay", "England", "Lake District / Cumbria", [54.418, -2.992], "both", "II-III", "Elterwater to Clappersgate"),
+  paddlingRiver("river-eden-cumbria", "River Eden (Cumbria)", "England", "Eden Valley / Cumbria", [54.8, -2.76], "both", "II-III", "Lazonby to Armathwaite"),
+  paddlingRiver("river-lune", "River Lune", "England", "Cumbria / Pennines", [54.35, -2.59], "whitewater", "III-IV", "Tebay to the Rawthey confluence"),
+  paddlingRiver("river-rawthey", "River Rawthey", "England", "Cumbria / Dales", [54.345, -2.52], "whitewater", "III-IV", "Rawthey Bridge to the Lune"),
+  paddlingRiver("river-tees-upper", "River Tees (Upper)", "England", "North Pennines", [54.652, -2.173], "whitewater", "IV", "High Force to Low Force"),
+  paddlingRiver("river-swale", "River Swale", "England", "Yorkshire Dales", [54.385, -1.69], "both", "II-III", "Richmond to Catterick Bridge"),
+  paddlingRiver("river-ure", "River Ure", "England", "Wensleydale", [54.288, -1.97], "whitewater", "III-IV", "Aysgarth Falls to Wensley"),
+  paddlingRiver("river-wharfe", "River Wharfe", "England", "Yorkshire Dales", [54.15, -2.03], "whitewater", "II-IV", "Kettlewell to Linton Falls"),
+  paddlingRiver("river-washburn", "River Washburn", "England", "Washburn Valley / Yorkshire", [53.987, -1.705], "whitewater", "II-III", "Thruscross dam-release course"),
+  paddlingRiver("river-north-tyne", "North Tyne", "England", "Northumberland", [55.17, -2.37], "both", "II-III", "Falstone to Bellingham"),
+  paddlingRiver("river-tavy", "River Tavy", "England", "Dartmoor", [50.565, -4.13], "whitewater", "III-IV", "Hill Bridge to Tavistock"),
+  paddlingRiver("river-barle", "River Barle", "England", "Exmoor", [51.07, -3.63], "touring", "II-III", "Tarr Steps to Dulverton"),
+  paddlingRiver("river-east-lyn", "East Lyn", "England", "Exmoor", [51.22, -3.82], "whitewater", "IV-V", "Watersmeet to Lynmouth"),
+];
+
 const OSM_CANDIDATE_WATERWAY_VALUES = new Set([
   "rapids",
   "weir",
@@ -159,7 +277,13 @@ const OVERPASS_ENDPOINTS = [
 
 async function main() {
   const options = readOptions(process.argv.slice(2));
-  const pilots = PILOT_RIVERS.filter(
+  const catalogue =
+    options.catalogue === "paddling"
+      ? PADDLING_RIVERS
+      : options.catalogue === "all"
+        ? [...PILOT_RIVERS, ...PADDLING_RIVERS]
+        : PILOT_RIVERS;
+  const pilots = catalogue.filter(
     (river) => !options.riverIds || options.riverIds.includes(river.id),
   );
 
@@ -205,6 +329,8 @@ async function main() {
         error: errorMessage(error),
       });
     }
+
+    await sleep(SEED_THROTTLE_MS);
   }
 
   if (!options.dryRun) {
@@ -382,9 +508,14 @@ async function upsertCanonicalRiver(client: PoolClient, river: PilotRiver) {
       river.bbox.north,
       JSON.stringify({
         seedKind: "pilot-canonical-river",
+        paddlingClass: "whitewater-canoe",
+        nation: river.nation ?? null,
+        discipline: river.discipline ?? null,
+        grade: river.grade ?? null,
+        run: river.run ?? null,
         osOpenRivers: "not-used",
         sourcePolicy:
-          "Curated pilot river identity. OSM candidates remain review-needed.",
+          "Curated paddling-river identity. OSM candidates remain review-needed until approved.",
       }),
     ],
   );
@@ -555,14 +686,18 @@ async function upsertSourceCandidatePoi(
       $11::jsonb,
       $12::jsonb
     )
-    ON CONFLICT (source, source_id, source_version) DO UPDATE SET
-      river_id = EXCLUDED.river_id,
+    -- Conflict on the derived primary key (id = osm:<sourceId>) so an OSM feature
+    -- already owned by another river (e.g. a boundary feature shared with an
+    -- existing pilot) upserts instead of colliding on the PK. river_id and status
+    -- are intentionally NOT overwritten, so an already-claimed/approved feature
+    -- keeps its owner and moderation state.
+    ON CONFLICT (id) DO UPDATE SET
       source_feature_id = EXCLUDED.source_feature_id,
       source_url = EXCLUDED.source_url,
       licence = EXCLUDED.licence,
       candidate_type = EXCLUDED.candidate_type,
       title = EXCLUDED.title,
-      status = EXCLUDED.status,
+      source_version = EXCLUDED.source_version,
       geometry = EXCLUDED.geometry,
       raw_properties = EXCLUDED.raw_properties,
       source_metadata = EXCLUDED.source_metadata,
@@ -666,6 +801,7 @@ function readOptions(args: string[]): Options {
     return index >= 0 ? args[index + 1] : undefined;
   };
   const riverIds = valueFor("--river");
+  const catalogue = valueFor("--catalogue");
 
   return {
     dryRun: args.includes("--dry-run"),
@@ -673,6 +809,8 @@ function readOptions(args: string[]): Options {
     sourceVersion:
       valueFor("--source-version") ?? `overpass-candidates-${new Date().toISOString().slice(0, 10)}`,
     riverIds: riverIds ? riverIds.split(",").map((id) => id.trim()).filter(Boolean) : null,
+    catalogue:
+      catalogue === "paddling" || catalogue === "all" ? catalogue : "pilots",
   };
 }
 
