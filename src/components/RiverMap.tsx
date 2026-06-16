@@ -137,6 +137,7 @@ export function RiverMap({
   routeCreateMode,
   markerClickMode,
   showRoutesLayer,
+  showRiverLayer,
   showSelectedRoutePath,
   showKnownRivers,
   watercourseFocusId,
@@ -186,6 +187,7 @@ export function RiverMap({
   routeCreateMode: RouteCreateMode;
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
+  showRiverLayer: boolean;
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   watercourseFocusId: string | null;
@@ -577,14 +579,24 @@ export function RiverMap({
 
     layers.clearLayers();
 
-    canonicalRivers.forEach((river) => {
+    (showRiverLayer ? canonicalRivers : []).forEach((river) => {
       const isSelected = selectedCanonicalRiver?.id === river.id;
       const label = river.displayName.trim().charAt(0).toUpperCase() || "R";
+      // Colour pins by discipline using the same --discipline-* tokens as the
+      // search chips, so the map and Search read with one colour language.
+      const disciplineKind =
+        river.discipline === "whitewater"
+          ? "river-whitewater"
+          : river.discipline === "touring"
+            ? "river-touring"
+            : river.discipline === "both"
+              ? "river-both"
+              : "river";
       const marker = L.marker(river.centre, {
         bubblingMouseEvents: false,
         icon: L.divIcon({
           className: "",
-          html: markerHtml(isSelected ? "river-active" : "river", label),
+          html: markerHtml(isSelected ? "river-active" : disciplineKind, label),
           iconSize: [36, 36],
           iconAnchor: [18, 18],
         }),
@@ -1279,6 +1291,7 @@ export function RiverMap({
     routeSuggestions,
     sections,
     showRoutesLayer,
+    showRiverLayer,
     showSelectedRoutePath,
     showKnownRivers,
     onOpenPhoto,
