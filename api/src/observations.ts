@@ -127,6 +127,50 @@ interface ObservationProviderJobOptions {
   windowHours: number;
 }
 
+function gaugeSourceUrl(
+  provider: ObservationProvider,
+  stationId: string,
+  measureId: string,
+): string {
+  if (provider === "environment-agency") {
+    return `https://environment.data.gov.uk/flood-monitoring/id/measures/${measureId}`;
+  }
+  if (provider === "natural-resources-wales") {
+    return `https://rivers-and-seas.naturalresources.wales/Station/${stationId}?lang=en&parameterType=1`;
+  }
+  return `https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=${measureId}&format=html`;
+}
+
+// Research-discovered, live-verified paddler gauges for the catalogue rivers.
+// Attached as primary at nearby-candidate confidence (needs-confirmation). One
+// station may serve several rivers (proxy gauges for ungauged neighbours).
+function paddlingGauge(
+  provider: ObservationProvider,
+  providerStationId: string,
+  providerMeasureId: string,
+  stationName: string,
+  sectionIds: string[],
+): SeedObservationMeasure {
+  return {
+    provider,
+    providerStationId,
+    providerMeasureId,
+    stationName,
+    parameter: "river_level",
+    unit: "m",
+    samplingInterval: "15_min",
+    datum: "stage",
+    sourceUrl: gaugeSourceUrl(provider, providerStationId, providerMeasureId),
+    sectionLinks: sectionIds.map((sectionId) => ({
+      sectionId,
+      relevance: "primary" as const,
+      confidence: "nearby-candidate" as const,
+      notes:
+        "Research-discovered paddler gauge; auto-attached and needs local confirmation.",
+    })),
+  };
+}
+
 const initialObservationMeasures: SeedObservationMeasure[] = [
   {
     provider: "natural-resources-wales",
@@ -408,6 +452,54 @@ const initialObservationMeasures: SeedObservationMeasure[] = [
       },
     ],
   },
+  // --- Research-discovered paddler gauges for the 57 catalogue rivers (#2) ---
+  // England (EA)
+  paddlingGauge("environment-agency", "750801", "750801-level-stage-i-15_min-m", "Greta at Riddings Wood", ["river-greta-cumbria-main"]),
+  paddlingGauge("environment-agency", "730511", "730511-level-stage-i-15_min-m", "Kent at Sedgwick", ["river-kent-main"]),
+  paddlingGauge("environment-agency", "735430", "735430-level-stage-i-15_min-m", "Leven at Newby Bridge", ["river-leven-main"]),
+  paddlingGauge("environment-agency", "737537", "737537-level-stage-i-15_min-m", "Crake at Low Nibthwaite", ["river-crake-main"]),
+  paddlingGauge("environment-agency", "740101", "740101-level-stage-i-15_min-m", "Duddon at Ulpha", ["river-duddon-main"]),
+  paddlingGauge("environment-agency", "742006", "742006-level-stage-i-15_min-m", "Esk at Cropple How", ["river-esk-eskdale-main"]),
+  paddlingGauge("environment-agency", "735123", "735123-level-stage-i-15_min-m", "Brathay at Jeffy Knotts", ["river-brathay-main"]),
+  paddlingGauge("environment-agency", "760502", "760502-level-stage-i-15_min-m", "Eden at Temple Sowerby", ["river-eden-cumbria-main"]),
+  paddlingGauge("environment-agency", "722242", "722242-level-stage-i-15_min-m", "Lune at Lunes Bridge", ["river-lune-main"]),
+  paddlingGauge("environment-agency", "723423", "723423-level-stage-i-15_min-m", "Rawthey at Brigflats", ["river-rawthey-main"]),
+  paddlingGauge("environment-agency", "F3505", "F3505-level-stage-i-15_min-m", "Tees at Middleton", ["river-tees-upper-main"]),
+  paddlingGauge("environment-agency", "F2306", "F2306-level-stage-i-15_min-m", "Swale at Catterick Bridge", ["river-swale-main"]),
+  paddlingGauge("environment-agency", "L2208", "L2208-level-stage-i-15_min-m", "Ure at Bainbridge", ["river-ure-main"]),
+  paddlingGauge("environment-agency", "L1907", "L1907-level-stage-i-15_min-m", "Wharfe at Kettlewell", ["river-wharfe-main"]),
+  paddlingGauge("environment-agency", "023003", "023003-level-stage-i-15_min-m", "North Tyne at Reaverhill", ["river-north-tyne-main"]),
+  paddlingGauge("environment-agency", "47135", "47135-level-stage-i-15_min-m", "Tavy at Mary Tavy", ["river-tavy-main"]),
+  paddlingGauge("environment-agency", "45121", "45121-level-stage-i-15_min-m", "Barle at Brushford", ["river-barle-main"]),
+  paddlingGauge("environment-agency", "50150", "50150-level-stage-i-15_min-m", "East Lyn at Brendon", ["river-east-lyn-main"]),
+  // Wales (NRW) — Conwy/Glaslyn serve proxy neighbours
+  paddlingGauge("natural-resources-wales", "4145", "4145:28", "Conwy at Cwmlanerch", ["river-conwy-main", "river-llugwy-main", "river-lledr-main"]),
+  paddlingGauge("natural-resources-wales", "4155", "4155:71", "Glaslyn at Beddgelert", ["river-glaslyn-main", "river-colwyn-main"]),
+  paddlingGauge("natural-resources-wales", "4171", "4171:50", "Dwyfor at Garndolbenmaen", ["river-dwyfor-main"]),
+  paddlingGauge("natural-resources-wales", "4179", "4179:130", "Seiont at Peblic Mill", ["river-seiont-main"]),
+  paddlingGauge("natural-resources-wales", "4150", "4150:102", "Mawddach at Tyddyn Gwladys", ["river-mawddach-main"]),
+  paddlingGauge("natural-resources-wales", "4146", "4146:51", "Dyfi at Dyfi Bridge", ["river-dyfi-main"]),
+  paddlingGauge("natural-resources-wales", "4210", "4210:156", "Teifi at Glan Teifi", ["river-teifi-main"]),
+  paddlingGauge("natural-resources-wales", "4286", "4286:10093", "Usk at Brecon Promenade", ["river-usk-main"]),
+  paddlingGauge("natural-resources-wales", "4010", "4010:84", "Irfon at Cilmery", ["river-irfon-main"]),
+  paddlingGauge("natural-resources-wales", "4196", "4196:169", "Tywi at Dolau Hirion", ["river-tywi-main"]),
+  paddlingGauge("natural-resources-wales", "4091", "4091:152", "Tawe at Craig y Nos", ["river-tawe-main"]),
+  paddlingGauge("natural-resources-wales", "4121", "4121:103", "Mellte at Pontneddfechan", ["river-mellte-main"]),
+  // Scotland (SEPA) — Tummel serves the Perthshire Garry proxy
+  paddlingGauge("sepa", "133087", "52986010", "Orchy at Glen Orchy", ["river-orchy-main"]),
+  paddlingGauge("sepa", "116011", "52539010", "Nevis at Claggan", ["river-nevis-main"]),
+  paddlingGauge("sepa", "234189", "57174010", "Garry at Craigard", ["river-garry-invergarry-main"]),
+  paddlingGauge("sepa", "234262", "57823010", "Moriston at Levishie", ["river-moriston-main"]),
+  paddlingGauge("sepa", "234215", "57395010", "Affric at Fasnakyle", ["river-affric-main"]),
+  paddlingGauge("sepa", "234289", "58017010", "Carron at New Kelso", ["river-carron-wester-ross-main"]),
+  paddlingGauge("sepa", "234306", "58236010", "Findhorn at Shenachie", ["river-findhorn-main"]),
+  paddlingGauge("sepa", "234168", "56932010", "Spey at Boat of Garten", ["river-spey-main"]),
+  paddlingGauge("sepa", "234217", "57411010", "Feshie at Feshie Bridge", ["river-feshie-main"]),
+  paddlingGauge("sepa", "234274", "57912010", "Dee at Mar Lodge", ["river-dee-aberdeenshire-main"]),
+  paddlingGauge("sepa", "14963", "55554010", "Tummel at Pitlochry", ["river-tummel-main", "river-garry-perthshire-main"]),
+  paddlingGauge("sepa", "14951", "55383010", "Lyon at Comrie Bridge", ["river-lyon-main"]),
+  paddlingGauge("sepa", "14956", "55481010", "Ericht at Craighall", ["river-ericht-main"]),
+  paddlingGauge("sepa", "14979", "55822010", "Tweed at Peebles", ["river-tweed-main"]),
 ];
 
 export async function runObservationIngestionJob(): Promise<ObservationJobRun> {
