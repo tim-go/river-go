@@ -1961,6 +1961,7 @@ h1 {
   right: 14px;
   z-index: 650;
   display: grid;
+  align-content: start;
   gap: 10px;
   width: min(360px, calc(100% - 28px));
   max-height: calc(100% - 112px);
