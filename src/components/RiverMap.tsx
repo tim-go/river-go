@@ -185,6 +185,19 @@ export function RiverMap({
     setRiverObservationRange,
   } = useDiscovery();
   const primaryRiverMeasure = getPrimaryObservationMeasure(riverObservations);
+  // riverObservations is flattened across all of the river's sections, so a gauge
+  // linked to several sections (multi-section rivers like the Wye/Tryweryn) appears
+  // more than once. Dedupe by measure id for the per-gauge cards.
+  const uniqueRiverObservations = useMemo(() => {
+    const seen = new Set<string>();
+    return riverObservations.filter((measure) => {
+      if (seen.has(measure.id)) {
+        return false;
+      }
+      seen.add(measure.id);
+      return true;
+    });
+  }, [riverObservations]);
 
   // Spatial connection: selecting a river flies the map to it.
   useEffect(() => {
@@ -1411,7 +1424,7 @@ export function RiverMap({
                     ))}
                   </div>
                   <div className="observation-list">
-                    {riverObservations.map((measure) => (
+                    {uniqueRiverObservations.map((measure) => (
                       <ObservationCard
                         key={measure.id}
                         measure={measure}
