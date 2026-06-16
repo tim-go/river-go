@@ -2,6 +2,7 @@ import L from "leaflet";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RiverPaddleHistory } from "./RiverPaddleHistory";
 import { ObservationCard } from "./ObservationCard";
+import { RiverPhotoGallery } from "./RiverPhotoGallery";
 import { useDiscovery } from "../discovery/DiscoveryContext";
 import { MapPin, Maximize2, Minimize2, Route, X } from "lucide-react";
 import type {
@@ -1466,6 +1467,13 @@ export function RiverMap({
                 <li>Access &amp; hazards: not yet reviewed by paddlers</li>
               </ul>
             </div>
+          ) : null}
+
+          {isSelectedRiverPanelExpanded ? (
+            <RiverPhotoGallery
+              riverId={selectedCanonicalRiver.id}
+              onOpenPhoto={onOpenPhoto}
+            />
           ) : null}
 
           <div className="watercourse-context">
