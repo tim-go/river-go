@@ -199,7 +199,10 @@ export type ProfileMode =
   | "emergency"
   | "sync"
   | "activity"
-  | "photos";
+  | "photos"
+  | "history"
+  | "kit"
+  | "skills";
 
 export const memberRoleOptions: MemberRole[] = [
   "MEMBER",

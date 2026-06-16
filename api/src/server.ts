@@ -52,6 +52,25 @@ import {
 } from "./members.js";
 import { listPhotosForMember, softDeletePhoto } from "./photos.js";
 import {
+  createPaddleLog,
+  deletePaddleLog,
+  getPaddleStats,
+  listPaddleLogs,
+  parsePaddleLogInput,
+} from "./paddle-logs.js";
+import {
+  createKitItem,
+  deleteKitItem,
+  listKitItems,
+  parseKitItemInput,
+} from "./kit-items.js";
+import {
+  createMemberSkill,
+  deleteMemberSkill,
+  listMemberSkills,
+  parseMemberSkillInput,
+} from "./member-skills.js";
+import {
   applyRouteSuggestionDecision,
   createRouteSuggestion,
   isRouteSuggestionDecision,
@@ -142,6 +161,95 @@ async function route(
       body.version.trim(),
     );
     return { status: 200, body: { member: updatedMember } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/paddle-logs") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const riverId = url.searchParams.get("riverId");
+    const paddleLogs = await listPaddleLogs(member.id, {
+      riverId: riverId ?? undefined,
+    });
+    return { status: 200, body: { paddleLogs } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/me/paddle-logs") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const paddleLog = await createPaddleLog(
+      member.id,
+      parsePaddleLogInput(body),
+    );
+    return { status: 201, body: { paddleLog } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/paddle-stats") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const stats = await getPaddleStats(member.id);
+    return { status: 200, body: { stats } };
+  }
+
+  const paddleLogDeleteMatch = url.pathname.match(
+    /^\/api\/me\/paddle-logs\/([^/]+)$/,
+  );
+  if (method === "DELETE" && paddleLogDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    await deletePaddleLog(
+      member.id,
+      decodeURIComponent(paddleLogDeleteMatch[1]),
+    );
+    return { status: 200, body: { ok: true } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/kit-items") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const kitItems = await listKitItems(member.id);
+    return { status: 200, body: { kitItems } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/me/kit-items") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const kitItem = await createKitItem(member.id, parseKitItemInput(body));
+    return { status: 201, body: { kitItem } };
+  }
+
+  const kitItemDeleteMatch = url.pathname.match(
+    /^\/api\/me\/kit-items\/([^/]+)$/,
+  );
+  if (method === "DELETE" && kitItemDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    await deleteKitItem(member.id, decodeURIComponent(kitItemDeleteMatch[1]));
+    return { status: 200, body: { ok: true } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/skills") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const skills = await listMemberSkills(member.id);
+    return { status: 200, body: { skills } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/me/skills") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const skill = await createMemberSkill(
+      member.id,
+      parseMemberSkillInput(body),
+    );
+    return { status: 201, body: { skill } };
+  }
+
+  const skillDeleteMatch = url.pathname.match(/^\/api\/me\/skills\/([^/]+)$/);
+  if (method === "DELETE" && skillDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    await deleteMemberSkill(member.id, decodeURIComponent(skillDeleteMatch[1]));
+    return { status: 200, body: { ok: true } };
   }
 
   if (method === "GET" && url.pathname === "/api/me/emergency-profile") {

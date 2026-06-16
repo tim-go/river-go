@@ -327,3 +327,52 @@ export interface LiveGaugeReading {
   state: "live" | "fallback" | "unmapped" | "error";
   message: string;
 }
+
+export interface PaddleLog {
+  id: string;
+  riverId: string | null;
+  sectionId: string | null;
+  venue: string | null;
+  title: string;
+  paddledOn: string;
+  levelNote: string | null;
+  craftType: string | null;
+  companions: string | null;
+  notes: string | null;
+  visibility: "private" | "friends" | "public";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaddleStats {
+  totalPaddles: number;
+  distinctRivers: number;
+  thisYearPaddles: number;
+  thisYearNewRivers: number;
+  nations: number;
+  mostPaddled: { riverId: string | null; title: string; count: number } | null;
+}
+
+export interface KitItem {
+  id: string;
+  category: string;
+  name: string;
+  notes: string | null;
+  purchasedOn: string | null;
+  replaceOn: string | null;
+  serial: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemberSkill {
+  id: string;
+  category: string;
+  name: string;
+  detail: string | null;
+  attainedOn: string | null;
+  expiresOn: string | null;
+  selfDeclared: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
