@@ -4,7 +4,14 @@ import { RiverPaddleHistory } from "./RiverPaddleHistory";
 import { ObservationCard } from "./ObservationCard";
 import { RiverPhotoGallery } from "./RiverPhotoGallery";
 import { useDiscovery } from "../discovery/DiscoveryContext";
-import { MapPin, Maximize2, Minimize2, Route, X } from "lucide-react";
+import {
+  AlertTriangle,
+  MapPin,
+  Maximize2,
+  Minimize2,
+  Route,
+  X,
+} from "lucide-react";
 import type {
   Contribution,
   ContributionOutboxRecord,
@@ -278,6 +285,7 @@ export function RiverMap({
     Set<MapPoiDisplayCategory>
   >(() => new Set());
   const [riverTab, setRiverTab] = useState<RiverDetailTab>("levels");
+  const [showSafetyNote, setShowSafetyNote] = useState(false);
   const [selectedWatercourseId, setSelectedWatercourseId] = useState<string | null>(
     null,
   );
@@ -388,6 +396,7 @@ export function RiverMap({
 
   useEffect(() => {
     setRiverTab("levels");
+    setShowSafetyNote(false);
   }, [selectedCanonicalRiver?.id]);
 
   useEffect(() => {
@@ -1440,6 +1449,16 @@ export function RiverMap({
             </div>
             <div className="panel-icon-actions">
               <button
+                className="icon-button icon-button--compact river-safety-toggle"
+                type="button"
+                aria-label="Conditions and safety note"
+                aria-expanded={showSafetyNote}
+                title="Conditions & safety"
+                onClick={() => setShowSafetyNote((value) => !value)}
+              >
+                <AlertTriangle size={16} />
+              </button>
+              <button
                 className="icon-button icon-button--compact"
                 type="button"
                 aria-label={
@@ -1482,10 +1501,12 @@ export function RiverMap({
             </span>
           </div>
 
-          <p className="source-note">
-            Community-sourced and official information. Conditions change quickly
-            — check locally and paddle within your own judgement.
-          </p>
+          {showSafetyNote ? (
+            <p className="source-note river-safety-note">
+              Community-sourced and official information. Conditions change
+              quickly — check locally and paddle within your own judgement.
+            </p>
+          ) : null}
 
           <div
             className="segmented-control river-detail-tabs"

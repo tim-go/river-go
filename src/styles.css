@@ -3135,6 +3135,24 @@ h1 {
   color: var(--river-dark);
 }
 
+.river-safety-toggle {
+  color: #b7791f;
+}
+
+.river-safety-toggle[aria-expanded="true"] {
+  border-color: #e7b561;
+  background: #fbecd2;
+  color: #8a5a10;
+}
+
+.source-note.river-safety-note {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #f0dcb8;
+  border-radius: 8px;
+  background: #fbf4e7;
+}
+
 .route-tab-panel {
   display: grid;
   gap: 14px;
