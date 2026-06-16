@@ -63,6 +63,17 @@ import {
   parsePaddleLogInput,
 } from "./paddle-logs.js";
 import {
+  addGroupMember,
+  createGroup,
+  getGroupForMember,
+  type GroupRole,
+  leaveGroup,
+  listGroupsForMember,
+  parseGroupInput,
+  respondToGroupInvite,
+  searchInvitableMembers,
+} from "./groups.js";
+import {
   createKitItem,
   deleteKitItem,
   listKitItems,
@@ -204,6 +215,86 @@ async function route(
       member.id,
       decodeURIComponent(paddleLogDeleteMatch[1]),
     );
+    return { status: 200, body: { ok: true } };
+  }
+
+  // --- Group Paddle Sessions: groups & membership (GROUP-F1/F2) ---
+  if (method === "GET" && url.pathname === "/api/me/groups") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const groups = await listGroupsForMember(member.id);
+    return { status: 200, body: { groups } };
+  }
+  if (method === "POST" && url.pathname === "/api/me/groups") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const group = await createGroup(member.id, parseGroupInput(body));
+    return { status: 201, body: { group } };
+  }
+  if (method === "GET" && url.pathname === "/api/members/search") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const members = await searchInvitableMembers(
+      url.searchParams.get("q") ?? "",
+      member.id,
+    );
+    return { status: 200, body: { members } };
+  }
+
+  const groupDetailMatch = url.pathname.match(/^\/api\/groups\/([^/]+)$/);
+  if (method === "GET" && groupDetailMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const group = await getGroupForMember(
+      member.id,
+      decodeURIComponent(groupDetailMatch[1]),
+    );
+    return { status: 200, body: { group } };
+  }
+
+  const groupInviteMatch = url.pathname.match(
+    /^\/api\/groups\/([^/]+)\/members$/,
+  );
+  if (method === "POST" && groupInviteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const record = (body ?? {}) as Record<string, unknown>;
+    const targetMemberId =
+      typeof record.memberId === "string" ? record.memberId : "";
+    if (!targetMemberId) {
+      throw new HttpError(400, "A member to invite is required.");
+    }
+    const role =
+      typeof record.role === "string" ? (record.role as GroupRole) : "member";
+    const groupMember = await addGroupMember(
+      member.id,
+      decodeURIComponent(groupInviteMatch[1]),
+      targetMemberId,
+      role,
+    );
+    return { status: 201, body: { member: groupMember } };
+  }
+
+  const groupRespondMatch = url.pathname.match(
+    /^\/api\/groups\/([^/]+)\/invite-response$/,
+  );
+  if (method === "POST" && groupRespondMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const record = (body ?? {}) as Record<string, unknown>;
+    await respondToGroupInvite(
+      member.id,
+      decodeURIComponent(groupRespondMatch[1]),
+      record.accept === true,
+    );
+    return { status: 200, body: { ok: true } };
+  }
+
+  const groupLeaveMatch = url.pathname.match(/^\/api\/groups\/([^/]+)\/leave$/);
+  if (method === "POST" && groupLeaveMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    await leaveGroup(member.id, decodeURIComponent(groupLeaveMatch[1]));
     return { status: 200, body: { ok: true } };
   }
 
