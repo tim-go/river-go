@@ -6,6 +6,11 @@ import {
   getGroupMembership,
   requireGroupRole,
 } from "./groups.js";
+import {
+  type CoverageCheck,
+  type ParticipantCapabilities,
+  computeSessionCoverage,
+} from "./session-coverage.js";
 
 export type SessionStatus = "planned" | "active" | "completed" | "cancelled";
 export type Rsvp = "invited" | "yes" | "no" | "maybe";
@@ -55,11 +60,18 @@ export interface ApiSessionParticipant {
   checkedOutAt: string | null;
   checkedInBy: string | null;
   iceConsent: boolean;
+  ice: {
+    name: string | null;
+    phone: string | null;
+    relationship: string | null;
+  } | null;
 }
 
 export interface ApiSessionDetail extends ApiGroupSession {
   myGroupRole: GroupRole | null;
   participants: ApiSessionParticipant[];
+  advisory: CoverageCheck[];
+  iceVisible: boolean;
 }
 
 export interface SessionInput {
@@ -175,6 +187,7 @@ function mapParticipantRow(row: ParticipantRow): ApiSessionParticipant {
     checkedOutAt: isoOrNull(row.checked_out_at),
     checkedInBy: row.checked_in_by,
     iceConsent: row.ice_consent,
+    ice: null,
   };
 }
 
@@ -349,21 +362,101 @@ export async function getSessionForMember(
     [sessionId, memberId],
   );
 
-  const participants = await pool.query<ParticipantRow>(
+  // Session-scoped ICE reveal (GROUP-F6): an organiser/leader sees the
+  // emergency contact of participants who consented, only while the session is
+  // live (planned/active). When it completes or cancels, visibility closes.
+  const iceVisible =
+    SESSION_MANAGER_ROLES.includes(membership.role) &&
+    (session.status === "planned" || session.status === "active");
+
+  const participantRows = await pool.query<
+    ParticipantRow & {
+      emergency_contact_name: string | null;
+      emergency_contact_phone: string | null;
+      emergency_contact_relationship: string | null;
+    }
+  >(
     `SELECT sp.id, sp.member_id, m.public_name, sp.rsvp, sp.availability_note,
-            sp.checked_in_at, sp.checked_out_at, sp.checked_in_by, sp.ice_consent
+            sp.checked_in_at, sp.checked_out_at, sp.checked_in_by, sp.ice_consent,
+            ${
+              iceVisible
+                ? "ep.emergency_contact_name, ep.emergency_contact_phone, ep.emergency_contact_relationship"
+                : "NULL AS emergency_contact_name, NULL AS emergency_contact_phone, NULL AS emergency_contact_relationship"
+            }
      FROM session_participants sp
      JOIN members m ON m.id = sp.member_id
+     ${
+       iceVisible
+         ? "LEFT JOIN member_emergency_profiles ep ON ep.member_id = sp.member_id"
+         : ""
+     }
      WHERE sp.session_id = $1
      ORDER BY m.public_name ASC`,
     [sessionId],
   );
 
+  const participants = participantRows.rows.map((row) => {
+    const mapped = mapParticipantRow(row);
+    if (iceVisible && row.ice_consent) {
+      mapped.ice = {
+        name: row.emergency_contact_name,
+        phone: row.emergency_contact_phone,
+        relationship: row.emergency_contact_relationship,
+      };
+    }
+    return mapped;
+  });
+
+  const advisory = await computeAdvisoryForSession(sessionId);
+
   return {
     ...mapSessionRow(enriched.rows[0] ?? session),
     myGroupRole: membership.role,
-    participants: participants.rows.map(mapParticipantRow),
+    participants,
+    advisory,
+    iceVisible,
   };
+}
+
+/** Aggregate kit/skills advisory coverage across a session's prospective
+ *  participants (those who have not declined). Counts only — no individual
+ *  detail is exposed. */
+async function computeAdvisoryForSession(
+  sessionId: string,
+): Promise<CoverageCheck[]> {
+  const result = await pool.query<{
+    member_id: string;
+    text: string;
+    kind: "kit" | "skill";
+  }>(
+    `SELECT sp.member_id, lower(k.category || ' ' || k.name) AS text,
+            'kit' AS kind
+       FROM session_participants sp
+       JOIN kit_items k ON k.member_id = sp.member_id
+       WHERE sp.session_id = $1 AND sp.rsvp <> 'no'
+     UNION ALL
+     SELECT sp.member_id, lower(s.category || ' ' || s.name) AS text,
+            'skill' AS kind
+       FROM session_participants sp
+       JOIN member_skills s ON s.member_id = sp.member_id
+       WHERE sp.session_id = $1 AND sp.rsvp <> 'no'`,
+    [sessionId],
+  );
+
+  const byMember = new Map<string, ParticipantCapabilities>();
+  for (const row of result.rows) {
+    let entry = byMember.get(row.member_id);
+    if (!entry) {
+      entry = { memberId: row.member_id, kit: [], skills: [] };
+      byMember.set(row.member_id, entry);
+    }
+    if (row.kind === "kit") {
+      entry.kit.push(row.text);
+    } else {
+      entry.skills.push(row.text);
+    }
+  }
+  return computeSessionCoverage([...byMember.values()]);
 }
 
 /** A group member RSVPs to a session (joining as a participant). */
