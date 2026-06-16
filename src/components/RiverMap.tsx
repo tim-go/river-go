@@ -368,6 +368,23 @@ export function RiverMap({
         : [],
     [selectedRiverPoiCategoryCounts, tabPoiCategories],
   );
+  // Total reviewed points per points-style tab, so the tab labels can advertise
+  // what's inside before the user clicks (avoids hunting through empty tabs).
+  const riverTabPoiTotals = useMemo(() => {
+    const totals: Record<"rapids" | "hazards" | "access", number> = {
+      rapids: 0,
+      hazards: 0,
+      access: 0,
+    };
+    selectedRiverPoiCategoryCounts.forEach(({ category, count }) => {
+      (Object.keys(totals) as Array<keyof typeof totals>).forEach((tab) => {
+        if (RIVER_TAB_POI_CATEGORIES[tab].includes(category)) {
+          totals[tab] += count;
+        }
+      });
+    });
+    return totals;
+  }, [selectedRiverPoiCategoryCounts]);
 
   useEffect(() => {
     setRiverTab("levels");
@@ -1475,18 +1492,29 @@ export function RiverMap({
             role="tablist"
             aria-label="River detail sections"
           >
-            {RIVER_DETAIL_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={riverTab === tab.id}
-                className={riverTab === tab.id ? "active" : ""}
-                onClick={() => setRiverTab(tab.id)}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {RIVER_DETAIL_TABS.map((tab) => {
+              const poiTotal =
+                tab.id === "rapids" ||
+                tab.id === "hazards" ||
+                tab.id === "access"
+                  ? riverTabPoiTotals[tab.id]
+                  : null;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={riverTab === tab.id}
+                  className={riverTab === tab.id ? "active" : ""}
+                  onClick={() => setRiverTab(tab.id)}
+                >
+                  {tab.label}
+                  {poiTotal !== null ? (
+                    <span className="river-detail-tab-count">{poiTotal}</span>
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
 
           {riverTab === "about" ? (

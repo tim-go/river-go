@@ -3126,6 +3126,26 @@ h1 {
   font-size: 0.72rem;
 }
 
+.river-detail-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(31, 59, 51, 0.1);
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.river-detail-tabs button.active .river-detail-tab-count {
+  background: rgba(31, 59, 51, 0.18);
+  color: var(--river-dark);
+}
+
 .route-tab-panel {
   display: grid;
   gap: 14px;
