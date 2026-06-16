@@ -177,7 +177,12 @@ export function RiverMap({
 }) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const { selectedRiver, riverObservations } = useDiscovery();
+  const {
+    selectedRiver,
+    riverObservations,
+    riverObservationRange,
+    setRiverObservationRange,
+  } = useDiscovery();
   const primaryRiverMeasure = getPrimaryObservationMeasure(riverObservations);
 
   // Spatial connection: selecting a river flies the map to it.
@@ -1384,15 +1389,33 @@ export function RiverMap({
             <h3>Today</h3>
             {primaryRiverMeasure && primaryRiverMeasure.latest ? (
               isSelectedRiverPanelExpanded ? (
-                <div className="observation-list">
-                  {riverObservations.map((measure) => (
-                    <ObservationCard
-                      key={measure.id}
-                      measure={measure}
-                      rangeHours={48}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="observation-range-toggle" role="tablist">
+                    {([48, 168, 672] as const).map((hours) => (
+                      <button
+                        key={hours}
+                        type="button"
+                        role="tab"
+                        aria-selected={riverObservationRange === hours}
+                        className={
+                          riverObservationRange === hours ? "active" : ""
+                        }
+                        onClick={() => setRiverObservationRange(hours)}
+                      >
+                        {hours === 48 ? "48h" : hours === 168 ? "7d" : "28d"}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="observation-list">
+                    {riverObservations.map((measure) => (
+                      <ObservationCard
+                        key={measure.id}
+                        measure={measure}
+                        rangeHours={riverObservationRange}
+                      />
+                    ))}
+                  </div>
+                </>
               ) : (
                 <div className="river-card__level">
                   <strong>

@@ -5172,3 +5172,8 @@ textarea {
 .segmented-control.river-discipline-filter button.active { background: #fff; color: #1f3b33; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
 .river-nation-filter { font: inherit; font-size: 0.72rem; padding: 6px 8px; border: 1px solid #cdd8d3; border-radius: 8px; background: #fff; color: #1f3b33; }
 .grade-pill { font-size: 0.7rem; font-weight: 700; color: #1f3b33; background: #e3efe9; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+
+/* River level history range toggle (RIVERDISC-F7) */
+.observation-range-toggle { display: flex; gap: 4px; margin-bottom: 8px; }
+.observation-range-toggle button { flex: 1; border: 1px solid #cdd8d3; background: #f4f8f6; color: #5b6b66; border-radius: 8px; padding: 5px 8px; font-size: 0.74rem; font-weight: 600; cursor: pointer; }
+.observation-range-toggle button.active { background: #1f7a5a; color: #fff; border-color: #1f7a5a; }
