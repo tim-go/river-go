@@ -1333,6 +1333,9 @@ export function RiverMap({
             <div>
               <p className="eyebrow">River</p>
               <h2>{selectedCanonicalRiver.displayName}</h2>
+              {selectedCanonicalRiver.run ? (
+                <p className="river-run">{selectedCanonicalRiver.run}</p>
+              ) : null}
             </div>
             <div className="panel-icon-actions">
               <button
@@ -1442,6 +1445,28 @@ export function RiverMap({
               </p>
             )}
           </div>
+
+          {isSelectedRiverPanelExpanded ? (
+            <div className="watercourse-context">
+              <h3>Sources &amp; gaps</h3>
+              <ul className="river-sources">
+                <li>
+                  Level:{" "}
+                  {primaryRiverMeasure
+                    ? `${primaryRiverMeasure.stationName} — ${primaryRiverMeasure.confidence.replaceAll(
+                        "-",
+                        " ",
+                      )}`
+                    : "no online gauge — read locally or check a release schedule"}
+                </li>
+                <li>
+                  Points: {selectedCanonicalRiver.candidatePoiCount}{" "}
+                  source-derived (OpenStreetMap), needs confirmation
+                </li>
+                <li>Access &amp; hazards: not yet reviewed by paddlers</li>
+              </ul>
+            </div>
+          ) : null}
 
           <div className="watercourse-context">
             <h3>On this river</h3>
