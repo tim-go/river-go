@@ -3102,6 +3102,30 @@ h1 {
   min-width: 74px;
 }
 
+.segmented-control.river-detail-tabs {
+  position: sticky;
+  top: -12px;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 6px 0 8px;
+  background: var(--surface);
+  scrollbar-width: none;
+}
+
+.river-detail-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.river-detail-tabs button {
+  flex: 1 0 auto;
+  min-width: 48px;
+  min-height: 32px;
+  padding: 0 6px;
+  font-size: 0.72rem;
+}
+
 .route-tab-panel {
   display: grid;
   gap: 14px;
