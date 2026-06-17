@@ -6257,10 +6257,3 @@ textarea {
   background: rgba(24, 34, 70, 0.95);
   color: #ffffff;
 }
-
-/* light, blue-tinted basemap — Positron tiles colourised to a soft blue.
-   Tune sepia / saturate for more or less blue, brightness for lighter/darker. */
-[data-theme="surge"] .leaflet-tile-pane {
-  filter: grayscale(1) brightness(1.04) sepia(0.3) hue-rotate(178deg)
-    saturate(1.25);
-}

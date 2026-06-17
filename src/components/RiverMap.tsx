@@ -105,33 +105,6 @@ const RIVER_TAB_EMPTY_MESSAGE: Record<RiverPoiTab, string> = {
 
 type MapTheme = "tide" | "daybreak" | "surge";
 
-// Base map tiles per theme: a light, blue-tinted Carto basemap under Surge
-// (Positron tiles, colourised via a CSS filter on the tile pane), light OSM
-// for the other themes.
-function baseTileConfig(theme: MapTheme): {
-  url: string;
-  options: L.TileLayerOptions;
-} {
-  if (theme === "surge") {
-    return {
-      url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-      options: {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-        subdomains: "abcd",
-        maxZoom: 20,
-      },
-    };
-  }
-  return {
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    options: {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/">OSM</a>',
-      maxZoom: 18,
-    },
-  };
-}
-
 export function RiverMap({
   sections,
   activeSection,
@@ -281,7 +254,7 @@ export function RiverMap({
     );
   }, [selectedRiver]);
   const layerRef = useRef<L.LayerGroup | null>(null);
-  const baseTileLayerRef = useRef<L.TileLayer | null>(null);
+  const surgeTintRef = useRef<L.Rectangle | null>(null);
   const callbackRef = useRef(onSelectSection);
   const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
   const canonicalRiverContextSelectRef = useRef(onSelectCanonicalRiverContext);
@@ -462,6 +435,20 @@ export function RiverMap({
       zoomControl: false,
     });
 
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/">OSM</a>',
+      maxZoom: 18,
+    }).addTo(map);
+
+    // A pane just above the tiles (below overlays/markers) carries the Surge
+    // blue tint, so the basemap keeps its feature colours and only gets a wash.
+    map.createPane("surgeTint");
+    const surgeTintPane = map.getPane("surgeTint");
+    if (surgeTintPane) {
+      surgeTintPane.style.zIndex = "350";
+      surgeTintPane.style.pointerEvents = "none";
+    }
+
     L.control.zoom({ position: "bottomleft" }).addTo(map);
     map.on("click", (event) => {
       mapClickRef.current(
@@ -492,27 +479,33 @@ export function RiverMap({
     };
   }, []);
 
-  // Swap the base map tiles to match the theme: a dark Carto basemap under
-  // Surge, the light OSM basemap otherwise. Runs on mount and on theme change;
-  // the new layer is added before the old is removed to avoid a flash.
+  // Tint the basemap a soft blue under Surge via an overlay pane that sits
+  // above the tiles but below routes/markers — so the map keeps all its feature
+  // colours and contrast, just washed blue. Other themes show plain tiles.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) {
       return;
     }
-    const previous = baseTileLayerRef.current;
-    const config = baseTileConfig(theme);
-    const layer = L.tileLayer(config.url, config.options);
-    layer.setZIndex(0).addTo(map);
-    baseTileLayerRef.current = layer;
-    if (previous) {
-      const removePrevious = () => {
-        if (map.hasLayer(previous)) {
-          map.removeLayer(previous);
-        }
-      };
-      layer.once("load", removePrevious);
-      window.setTimeout(removePrevious, 900);
+    if (theme === "surge") {
+      if (!surgeTintRef.current) {
+        surgeTintRef.current = L.rectangle(
+          [
+            [-85, -180],
+            [85, 180],
+          ],
+          {
+            pane: "surgeTint",
+            stroke: false,
+            fillColor: "#4f86ff",
+            fillOpacity: 0.2,
+            interactive: false,
+          },
+        ).addTo(map);
+      }
+    } else if (surgeTintRef.current) {
+      map.removeLayer(surgeTintRef.current);
+      surgeTintRef.current = null;
     }
   }, [theme]);
 
