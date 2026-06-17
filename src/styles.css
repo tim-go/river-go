@@ -6284,13 +6284,14 @@ textarea {
   color: #ffffff;
 }
 
-/* soft blue basemap: a light blue shows through slightly-translucent tiles, so
-   the map keeps all its feature colours and contrast while reading cooler.
-   Markers, routes and popups aren't tiles, so they stay fully crisp.
-   Tune --tile-opacity / the container blue for a stronger or subtler wash. */
+/* soft blue basemap: a light blue shows through the slightly-translucent tile
+   pane, so the map keeps its feature colours and contrast while reading cooler.
+   Opacity is on the whole tile pane (not per tile) so the wash stays constant
+   even while tiles fade in or overlap during a zoom. Markers, routes and popups
+   aren't in the tile pane, so they stay crisp. Tune opacity / container blue. */
 [data-theme="surge"] .leaflet-container {
   background: #79acff;
 }
-[data-theme="surge"] .leaflet-tile {
-  opacity: 0.68 !important;
+[data-theme="surge"] .leaflet-tile-pane {
+  opacity: 0.68;
 }
