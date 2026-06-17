@@ -6136,3 +6136,96 @@ textarea {
   border-color: rgba(30, 87, 255, 0.4);
   color: #1e57ff;
 }
+
+/* ============================================================
+   SURGE — floating map controls (topbar, legend, popups, zoom)
+   These float over the light Leaflet map (not inside
+   .app-shell--content-only), so they carry the :root light tokens
+   by default. Under Surge they get the same dark-glass HUD as the
+   river panel. Daybreak/Tide keep the light controls, which already
+   read correctly over the light map.
+   ============================================================ */
+
+/* topbar */
+[data-theme="surge"] .topbar {
+  --ink: #eaf0ff;
+  --muted: #9bb0e6;
+  --line: rgba(120, 150, 230, 0.22);
+  --river-dark: #6aa0ff;
+  background: rgba(8, 12, 30, 0.92);
+  border-bottom-color: rgba(120, 150, 230, 0.22);
+  color: var(--ink);
+}
+[data-theme="surge"] .topbar .ghost-button,
+[data-theme="surge"] .topbar .icon-button,
+[data-theme="surge"] .topbar .sync-pill {
+  background: rgba(24, 34, 70, 0.66);
+  border-color: rgba(120, 150, 230, 0.24);
+  color: var(--ink);
+}
+[data-theme="surge"] .topbar .ghost-button:hover,
+[data-theme="surge"] .topbar .icon-button:hover {
+  border-color: rgba(255, 214, 10, 0.45);
+}
+[data-theme="surge"] .topbar .map-panel-toggle--active {
+  border-color: rgba(106, 160, 255, 0.65);
+  background: rgba(47, 107, 255, 0.26);
+  color: #d8e6ff;
+}
+[data-theme="surge"] .topbar .sync-pill--queued,
+[data-theme="surge"] .topbar .sync-icon-button--queued {
+  border-color: rgba(106, 160, 255, 0.5);
+  background: rgba(47, 107, 255, 0.2);
+  color: #d8e6ff;
+}
+[data-theme="surge"] .topbar-message {
+  color: #ff9d8a;
+}
+
+/* legend */
+[data-theme="surge"] .map-legend {
+  border-color: rgba(120, 150, 230, 0.26);
+  background: rgba(8, 12, 30, 0.9);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.42),
+    0 0 22px rgba(47, 107, 255, 0.16);
+}
+[data-theme="surge"] .map-legend span {
+  color: #c2cef0;
+}
+[data-theme="surge"] .map-legend__status {
+  color: #8d9bc4;
+}
+
+/* leaflet popups */
+[data-theme="surge"] .leaflet-popup-content-wrapper {
+  border: 1px solid rgba(120, 150, 230, 0.28);
+  background: rgba(10, 16, 38, 0.96);
+  color: #eaf0ff;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+[data-theme="surge"] .leaflet-popup-tip {
+  background: rgba(10, 16, 38, 0.96);
+  border: 1px solid rgba(120, 150, 230, 0.28);
+}
+[data-theme="surge"] .leaflet-popup-close-button {
+  color: #8d9bc4 !important;
+}
+[data-theme="surge"] .map-popup-card strong {
+  color: #eaf0ff;
+}
+[data-theme="surge"] .map-popup-card span,
+[data-theme="surge"] .map-popup-card p {
+  color: #b8c4e6;
+}
+
+/* leaflet zoom controls */
+[data-theme="surge"] .leaflet-bar a {
+  background: rgba(10, 16, 38, 0.92);
+  border-bottom-color: rgba(120, 150, 230, 0.2);
+  color: #c2cef0;
+}
+[data-theme="surge"] .leaflet-bar a:hover {
+  background: rgba(24, 34, 70, 0.95);
+  color: #ffffff;
+}
