@@ -3226,6 +3226,20 @@ h1 {
   background: #fbf4e7;
 }
 
+[data-theme="surge"] .watercourse-panel .river-safety-toggle {
+  color: #ffce4d;
+}
+[data-theme="surge"] .watercourse-panel .river-safety-toggle[aria-expanded="true"] {
+  border-color: rgba(255, 206, 77, 0.6);
+  background: rgba(255, 196, 60, 0.18);
+  color: #ffdd80;
+}
+[data-theme="surge"] .watercourse-panel .source-note.river-safety-note {
+  border-color: rgba(255, 196, 60, 0.42);
+  background: rgba(255, 196, 60, 0.12);
+  color: #f6e7c2;
+}
+
 .route-tab-panel {
   display: grid;
   gap: 14px;
@@ -5677,31 +5691,97 @@ textarea {
    surface not yet themed are never affected.
    ============================================================ */
 
-.theme-toggle {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 3000;
-  padding: 10px 16px;
-  border-radius: 999px;
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
   border: 1px solid var(--line);
-  background: var(--surface-strong);
-  color: var(--ink);
-  font-weight: 700;
-  font-size: 0.85rem;
-  cursor: pointer;
-  box-shadow: 0 12px 30px rgba(20, 30, 50, 0.22);
-  backdrop-filter: blur(10px);
-  transition: transform 0.15s ease;
+  border-radius: 16px;
+  background: var(--surface);
 }
-.theme-toggle:hover {
+.settings-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.settings-card__head svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--river-dark);
+}
+.settings-card__head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.settings-card__head p {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.theme-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+.theme-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-strong);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.theme-option:hover {
   transform: translateY(-1px);
 }
-[data-theme="surge"] .theme-toggle {
-  border-color: rgba(255, 214, 10, 0.55);
-  background: rgba(16, 24, 52, 0.9);
-  color: #eaf0ff;
-  box-shadow: 0 0 26px rgba(255, 214, 10, 0.28);
+.theme-option__swatch {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+.theme-option__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.theme-option__text strong {
+  font-size: 0.95rem;
+}
+.theme-option__text small {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.theme-option--active {
+  border-color: var(--river-dark);
+  box-shadow: 0 0 0 1px var(--river-dark);
+}
+.theme-option--active::after {
+  content: "✓";
+  position: absolute;
+  top: 7px;
+  right: 11px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--river-dark);
+}
+.theme-option--tide .theme-option__swatch {
+  background: linear-gradient(135deg, #1f7a5a, #34d399);
+}
+.theme-option--daybreak .theme-option__swatch {
+  background: linear-gradient(135deg, #1e57ff, #ffd60a);
+}
+.theme-option--surge .theme-option__swatch {
+  background: linear-gradient(135deg, #060a1a, #2f6bff 55%, #ffd60a);
+  box-shadow: 0 0 12px rgba(47, 107, 255, 0.55);
 }
 
 /* the themed canvas: tokens + glow background + display fonts */
