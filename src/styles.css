@@ -6263,8 +6263,8 @@ textarea {
    Markers, routes and popups aren't tiles, so they stay fully crisp.
    Tune --tile-opacity / the container blue for a stronger or subtler wash. */
 [data-theme="surge"] .leaflet-container {
-  background: #aecbff;
+  background: #79acff;
 }
 [data-theme="surge"] .leaflet-tile {
-  opacity: 0.78 !important;
+  opacity: 0.58 !important;
 }
