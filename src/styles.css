@@ -5313,8 +5313,6 @@ textarea {
 .groups-panel {
   display: grid;
   gap: 14px;
-  max-width: 720px;
-  margin: 0 auto;
   padding: 8px 0 24px;
 }
 
@@ -5514,8 +5512,6 @@ textarea {
 .session-detail {
   display: grid;
   gap: 14px;
-  max-width: 720px;
-  margin: 0 auto;
 }
 
 .session-detail__head {
