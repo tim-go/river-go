@@ -5868,6 +5868,37 @@ textarea {
   color: #cfe0ff;
 }
 
+/* Groups panel — row/button hover, invite banner and session status chips were
+   hardcoded light; give them Surge-dark equivalents (base stays for the light
+   themes). */
+[data-theme="surge"] .group-row:hover,
+[data-theme="surge"] .session-row:hover,
+[data-theme="surge"] .group-invite__results li button:hover {
+  border-color: rgba(255, 214, 10, 0.4);
+  background: rgba(30, 42, 84, 0.72);
+}
+[data-theme="surge"] .group-invite-banner {
+  border-color: rgba(255, 196, 60, 0.42);
+  background: rgba(255, 196, 60, 0.12);
+  color: var(--ink);
+}
+[data-theme="surge"] .status-chip--planned {
+  background: rgba(47, 107, 255, 0.2);
+  color: #cfe0ff;
+}
+[data-theme="surge"] .status-chip--active {
+  background: rgba(40, 194, 160, 0.2);
+  color: #8ff0d4;
+}
+[data-theme="surge"] .status-chip--completed {
+  background: rgba(120, 150, 230, 0.16);
+  color: #c2cef0;
+}
+[data-theme="surge"] .status-chip--cancelled {
+  background: rgba(255, 90, 70, 0.18);
+  color: #ffb3a8;
+}
+
 /* content page transparent so the glow shows through */
 [data-theme="surge"] .app-shell--content-only .app-page,
 [data-theme="surge"] .app-shell--content-only .app-page__content {
