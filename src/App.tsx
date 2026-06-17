@@ -270,10 +270,10 @@ function App() {
     useState<AppSection>("map");
   const [activeAdminPage, setActiveAdminPage] = useState<AdminPage>("index");
   const [isAppNavCollapsed, setIsAppNavCollapsed] = useState(false);
-  const [theme, setTheme] = useState<"tide" | "surge">(() => {
+  const [theme, setTheme] = useState<"tide" | "daybreak" | "surge">(() => {
     if (typeof localStorage !== "undefined") {
       const saved = localStorage.getItem("rl-theme");
-      if (saved === "surge" || saved === "tide") {
+      if (saved === "surge" || saved === "daybreak" || saved === "tide") {
         return saved;
       }
     }
@@ -3796,12 +3796,22 @@ function App() {
         className="theme-toggle"
         type="button"
         onClick={() =>
-          setTheme((current) => (current === "surge" ? "tide" : "surge"))
+          setTheme((current) =>
+            current === "tide"
+              ? "daybreak"
+              : current === "daybreak"
+                ? "surge"
+                : "tide",
+          )
         }
-        title="Switch theme"
+        title="Switch theme (Tide · Daybreak · Surge)"
         aria-label="Switch theme"
       >
-        {theme === "surge" ? "🌊 Tide" : "⚡ Surge"}
+        {theme === "surge"
+          ? "⚡ Surge"
+          : theme === "daybreak"
+            ? "☀️ Daybreak"
+            : "🌿 Tide"}
       </button>
 
       {appNotification ? (

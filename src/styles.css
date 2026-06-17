@@ -2,8 +2,8 @@
   color: #17212b;
   background: #f3f5f1;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+    "Space Grotesk", Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -500,6 +500,13 @@ p {
   margin-top: 0;
 }
 
+h1,
+h2,
+h3 {
+  font-family: "Sora", "Space Grotesk", system-ui, sans-serif;
+  letter-spacing: -0.015em;
+}
+
 h1 {
   margin: 1px 0 0;
   font-size: clamp(1.3rem, 2vw, 1.8rem);
@@ -853,8 +860,8 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 8px;
-  font-weight: 680;
+  border-radius: 11px;
+  font-weight: 700;
 }
 
 .primary-action,
@@ -1801,10 +1808,10 @@ h1 {
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  padding: 12px;
-  border: 1px solid #d8e4dc;
-  border-radius: 8px;
-  background: #ffffff;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
   color: var(--ink);
   text-align: left;
 }
@@ -5823,6 +5830,88 @@ textarea {
 
 /* cards / notes read on dark */
 [data-theme="surge"] .app-shell--content-only .sign-in-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+/* ---- DAYBREAK: a light version of Surge (blue/yellow on white) ---- */
+[data-theme="daybreak"] .app-shell--content-only {
+  --ink: #0d1b3e;
+  --muted: #5c6a92;
+  --line: #dbe4ff;
+  --surface: #ffffff;
+  --surface-strong: #eef3ff;
+  --river: #1e57ff;
+  --river-dark: #1e57ff;
+  --sky: #1e57ff;
+  --selected-watercourse: #1e57ff;
+  --discipline-whitewater: #1e57ff;
+  --discipline-touring: #1a9e74;
+  --surge-yellow: #b07c00;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(55% 45% at 90% -8%, rgba(30, 87, 255, 0.1), transparent 60%),
+    radial-gradient(48% 48% at -6% 108%, rgba(255, 198, 43, 0.16), transparent 60%),
+    #f5f8ff;
+}
+[data-theme="daybreak"] .app-shell--content-only h1,
+[data-theme="daybreak"] .app-shell--content-only h2,
+[data-theme="daybreak"] .app-shell--content-only h3 {
+  font-family: "Sora", sans-serif;
+  letter-spacing: -0.02em;
+}
+[data-theme="daybreak"] .app-shell--content-only .app-nav {
+  background: rgba(255, 255, 255, 0.92);
+}
+[data-theme="daybreak"] .app-shell--content-only .app-nav__item--active {
+  background: rgba(30, 87, 255, 0.1);
+}
+[data-theme="daybreak"] .app-shell--content-only .app-nav__item--active svg {
+  color: var(--river);
+}
+[data-theme="daybreak"] .app-shell--content-only .app-page,
+[data-theme="daybreak"] .app-shell--content-only .app-page__content {
+  background: transparent;
+}
+[data-theme="daybreak"] .app-shell--content-only input,
+[data-theme="daybreak"] .app-shell--content-only select,
+[data-theme="daybreak"] .app-shell--content-only textarea {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+[data-theme="daybreak"] .app-shell--content-only .segmented-control button {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--muted);
+}
+[data-theme="daybreak"]
+  .app-shell--content-only
+  .segmented-control
+  button.active {
+  background: rgba(30, 87, 255, 0.12);
+  border-color: rgba(30, 87, 255, 0.4);
+  color: var(--river);
+}
+[data-theme="daybreak"] .app-shell--content-only .canonical-river-row:hover,
+[data-theme="daybreak"]
+  .app-shell--content-only
+  .canonical-river-row--active {
+  background: #f3f7ff;
+  border-color: rgba(30, 87, 255, 0.4);
+  box-shadow: 0 18px 40px rgba(30, 87, 255, 0.16);
+  transform: translateY(-3px);
+}
+[data-theme="daybreak"] .app-shell--content-only .grade-pill {
+  background: rgba(255, 198, 43, 0.22);
+  color: #8a6200;
+}
+[data-theme="daybreak"] .app-shell--content-only .candidate-pill {
+  background: rgba(30, 87, 255, 0.12);
+  color: #1e57ff;
+}
+[data-theme="daybreak"] .app-shell--content-only .sign-in-card {
   background: var(--surface);
   border: 1px solid var(--line);
 }
