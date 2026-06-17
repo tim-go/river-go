@@ -46,24 +46,22 @@ export function ObservationCard({ measure, rangeHours }: ObservationCardProps) {
           {measure.latest?.state ?? "unavailable"}
         </span>
       </div>
-      <div className="observation-metrics">
-        <span>
-          <strong>
-            {formatObservationValue(measure.latest?.value, measure.unit)}
-          </strong>
-          Latest
+      <div className="observation-hero">
+        <span className="observation-hero__value">
+          {formatObservationValue(measure.latest?.value, measure.unit)}
         </span>
-        <span>
-          <strong>{formatObservationRange(measure)}</strong>
-          {rangeOption.rangeLabel}
-        </span>
-        <span>
-          <strong className={`trend-label trend-label--${stats.trend}`}>
-            {stats.trend}
-          </strong>
-          Trend
+        <span className={`observation-hero__trend trend-label--${stats.trend}`}>
+          {stats.trend === "rising"
+            ? "▲"
+            : stats.trend === "falling"
+              ? "▼"
+              : "→"}{" "}
+          {stats.trend}
         </span>
       </div>
+      <p className="observation-hero__range">
+        {rangeOption.rangeLabel}: {formatObservationRange(measure)}
+      </p>
       {chartPoints ? (
         <div
           className="observation-chart"

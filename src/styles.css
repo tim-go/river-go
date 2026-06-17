@@ -5915,3 +5915,144 @@ textarea {
   background: var(--surface);
   border: 1px solid var(--line);
 }
+
+/* ============================================================
+   RIVER DETAIL PANEL — demo polish. The panel floats over the map, so it
+   is themed directly (a dark glowing HUD under Surge) without touching the
+   light map tiles. The level reading is the glowing hero.
+   ============================================================ */
+
+.watercourse-panel {
+  border-radius: 16px;
+}
+
+.observation-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 4px 0 0;
+}
+.observation-hero__value {
+  font-family: "Sora", system-ui, sans-serif;
+  font-size: 2.7rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--level-color, var(--river-dark));
+  text-shadow: var(--level-glow, none);
+}
+.observation-hero__trend {
+  margin-left: auto;
+  align-self: center;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+.observation-hero__range {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+[data-theme="surge"] .watercourse-panel h2,
+[data-theme="daybreak"] .watercourse-panel h2 {
+  font-family: "Sora", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* SURGE — dark glass HUD */
+[data-theme="surge"] .watercourse-panel {
+  --ink: #eaf0ff;
+  --muted: #8d9bc4;
+  --line: rgba(120, 150, 230, 0.2);
+  --surface: rgba(22, 32, 66, 0.7);
+  --surface-strong: rgba(16, 24, 52, 0.8);
+  --river: #2f6bff;
+  --river-dark: #4d8bff;
+  --sky: #4d8bff;
+  --level-color: #ffd60a;
+  --level-glow: 0 0 36px rgba(255, 214, 10, 0.45);
+  color: var(--ink);
+  background: rgba(11, 17, 38, 0.9);
+  border-color: rgba(120, 150, 230, 0.28);
+  box-shadow: 0 28px 72px rgba(3, 7, 20, 0.7),
+    0 0 0 1px rgba(47, 107, 255, 0.18);
+  backdrop-filter: blur(18px);
+}
+[data-theme="surge"] .watercourse-panel .watercourse-panel__summary span {
+  background: rgba(47, 107, 255, 0.18);
+  border-color: rgba(77, 139, 255, 0.4);
+  color: #9cc0ff;
+}
+[data-theme="surge"] .watercourse-panel .observation-card {
+  background: rgba(16, 24, 52, 0.6);
+  border-color: var(--line);
+}
+[data-theme="surge"] .watercourse-panel .observation-chart {
+  background: rgba(8, 14, 34, 0.5);
+}
+[data-theme="surge"] .watercourse-panel .watercourse-list-row {
+  background: rgba(16, 24, 52, 0.55);
+  border-color: var(--line);
+  color: var(--ink);
+}
+[data-theme="surge"] .watercourse-panel .watercourse-list-row:hover {
+  background: rgba(30, 42, 84, 0.72);
+  border-color: rgba(255, 214, 10, 0.35);
+}
+[data-theme="surge"] .watercourse-panel .observation-range-toggle button {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--muted);
+}
+[data-theme="surge"] .watercourse-panel .observation-range-toggle button.active {
+  background: rgba(47, 107, 255, 0.3);
+  border-color: rgba(77, 139, 255, 0.5);
+  color: #fff;
+}
+[data-theme="surge"] .watercourse-panel .river-run,
+[data-theme="surge"] .watercourse-panel .source-note,
+[data-theme="surge"] .watercourse-panel .empty-state {
+  color: var(--muted);
+}
+
+/* DAYBREAK — light panel, blue accents */
+[data-theme="daybreak"] .watercourse-panel {
+  --river: #1e57ff;
+  --river-dark: #1e57ff;
+  --sky: #1e57ff;
+  --level-color: #1e57ff;
+  --level-glow: none;
+  border-color: #dbe4ff;
+}
+[data-theme="daybreak"] .watercourse-panel .watercourse-panel__summary span {
+  background: rgba(30, 87, 255, 0.1);
+  border-color: rgba(30, 87, 255, 0.25);
+  color: #0b3bd6;
+}
+
+/* panel tabs (Levels/Rapids/…) need a themed active state */
+[data-theme="surge"] .watercourse-panel .segmented-control button {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--muted);
+}
+[data-theme="surge"] .watercourse-panel .segmented-control button.active {
+  background: rgba(47, 107, 255, 0.24);
+  border-color: rgba(77, 139, 255, 0.5);
+  color: #ffffff;
+}
+[data-theme="surge"] .watercourse-panel .poi-filter-chip {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--muted);
+}
+[data-theme="surge"] .watercourse-panel .poi-filter-chip--active {
+  background: rgba(47, 107, 255, 0.24);
+  border-color: rgba(77, 139, 255, 0.5);
+  color: #ffffff;
+}
+[data-theme="daybreak"] .watercourse-panel .segmented-control button.active {
+  background: rgba(30, 87, 255, 0.12);
+  border-color: rgba(30, 87, 255, 0.4);
+  color: #1e57ff;
+}
