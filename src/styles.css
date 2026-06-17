@@ -5831,15 +5831,41 @@ textarea {
   color: var(--ink);
 }
 
-/* nav rail */
-[data-theme="surge"] .app-shell--content-only .app-nav {
-  background: rgba(8, 12, 30, 0.94);
+/* nav rail + beta banner — chrome that sits outside .app-shell--content-only,
+   so theme it broadly (both show on the map view too, not just content pages) */
+[data-theme="surge"] .beta-banner {
+  border-bottom-color: rgba(255, 214, 10, 0.28);
+  background: rgba(10, 14, 32, 0.96);
+  color: #ffd874;
 }
-[data-theme="surge"] .app-shell--content-only .app-nav__item--active {
+[data-theme="surge"] .app-nav {
+  --ink: #eaf0ff;
+  --muted: #9bb0e6;
+  --line: rgba(120, 150, 230, 0.2);
+  --surface: rgba(22, 32, 66, 0.62);
+  --river-dark: #6aa0ff;
+  background: rgba(8, 12, 30, 0.96);
+  border-right-color: rgba(120, 150, 230, 0.2);
+}
+[data-theme="surge"] .app-nav__item {
+  color: #b8c4e6;
+}
+[data-theme="surge"] .app-nav__item:hover,
+[data-theme="surge"] .app-nav__item--active {
+  border-color: rgba(77, 139, 255, 0.5);
   background: rgba(47, 107, 255, 0.18);
+  color: #ffffff;
 }
-[data-theme="surge"] .app-shell--content-only .app-nav__item--active svg {
-  color: var(--surge-yellow);
+[data-theme="surge"] .app-nav__item--active svg {
+  color: #ffd60a;
+}
+[data-theme="surge"] .app-nav__account-main:hover {
+  border-color: rgba(255, 214, 10, 0.4);
+  background: rgba(24, 34, 70, 0.7);
+}
+[data-theme="surge"] .app-nav__avatar {
+  background: rgba(47, 107, 255, 0.22);
+  color: #cfe0ff;
 }
 
 /* content page transparent so the glow shows through */
