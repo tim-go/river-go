@@ -105,15 +105,16 @@ const RIVER_TAB_EMPTY_MESSAGE: Record<RiverPoiTab, string> = {
 
 type MapTheme = "tide" | "daybreak" | "surge";
 
-// Base map tiles per theme: a dark Carto basemap under Surge so the map view
-// matches the dark UI, the light OSM basemap for the light themes.
+// Base map tiles per theme: a light, blue-tinted Carto basemap under Surge
+// (Positron tiles, colourised via a CSS filter on the tile pane), light OSM
+// for the other themes.
 function baseTileConfig(theme: MapTheme): {
   url: string;
   options: L.TileLayerOptions;
 } {
   if (theme === "surge") {
     return {
-      url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
       options: {
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
@@ -774,6 +775,9 @@ export function RiverMap({
               return;
             }
 
+            // Clear any selected curated river so the waterway info panel
+            // (which is hidden while a river is selected) can show.
+            canonicalRiverSelectRef.current(null);
             setSelectedWatercourseId(watercourse.id);
           });
         });
