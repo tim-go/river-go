@@ -270,6 +270,23 @@ function App() {
     useState<AppSection>("map");
   const [activeAdminPage, setActiveAdminPage] = useState<AdminPage>("index");
   const [isAppNavCollapsed, setIsAppNavCollapsed] = useState(false);
+  const [theme, setTheme] = useState<"tide" | "surge">(() => {
+    if (typeof localStorage !== "undefined") {
+      const saved = localStorage.getItem("rl-theme");
+      if (saved === "surge" || saved === "tide") {
+        return saved;
+      }
+    }
+    return "tide";
+  });
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem("rl-theme", theme);
+    } catch {
+      // ignore persistence errors
+    }
+  }, [theme]);
   const [activeSectionId, setActiveSectionId] = useState("");
   const [sectionFocusNonce, setSectionFocusNonce] = useState(0);
   const hasCenteredOnFirstRiverRef = useRef(false);
@@ -3775,6 +3792,17 @@ function App() {
         <strong>Beta</strong>
         <span>App is in testing. Check local conditions before paddling.</span>
       </div>
+      <button
+        className="theme-toggle"
+        type="button"
+        onClick={() =>
+          setTheme((current) => (current === "surge" ? "tide" : "surge"))
+        }
+        title="Switch theme"
+        aria-label="Switch theme"
+      >
+        {theme === "surge" ? "🌊 Tide" : "⚡ Surge"}
+      </button>
 
       {appNotification ? (
         <AppNotificationBanner

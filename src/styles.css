@@ -5663,3 +5663,166 @@ textarea {
   color: #8a5a10 !important;
   text-transform: none !important;
 }
+
+/* ============================================================
+   SURGE THEME — switchable dark / electric look (data-theme="surge").
+   Scoped to .app-shell--content-only so the light Leaflet map and any
+   surface not yet themed are never affected.
+   ============================================================ */
+
+.theme-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 3000;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(20, 30, 50, 0.22);
+  backdrop-filter: blur(10px);
+  transition: transform 0.15s ease;
+}
+.theme-toggle:hover {
+  transform: translateY(-1px);
+}
+[data-theme="surge"] .theme-toggle {
+  border-color: rgba(255, 214, 10, 0.55);
+  background: rgba(16, 24, 52, 0.9);
+  color: #eaf0ff;
+  box-shadow: 0 0 26px rgba(255, 214, 10, 0.28);
+}
+
+/* the themed canvas: tokens + glow background + display fonts */
+[data-theme="surge"] .app-shell--content-only {
+  --ink: #eaf0ff;
+  --muted: #8d9bc4;
+  --line: rgba(120, 150, 230, 0.18);
+  --surface: rgba(22, 32, 66, 0.62);
+  --surface-strong: rgba(16, 24, 52, 0.82);
+  --river: #2f6bff;
+  --river-dark: #4d8bff;
+  --sky: #4d8bff;
+  --selected-watercourse: #4d8bff;
+  --discipline-whitewater: #4d8bff;
+  --discipline-touring: #28c2a0;
+  --surge-yellow: #ffd60a;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(55% 45% at 88% -8%, rgba(47, 107, 255, 0.42), transparent 60%),
+    radial-gradient(48% 48% at -5% 108%, rgba(255, 214, 10, 0.1), transparent 60%),
+    #060a1a;
+}
+
+[data-theme="surge"] .app-shell--content-only h1,
+[data-theme="surge"] .app-shell--content-only h2,
+[data-theme="surge"] .app-shell--content-only h3,
+[data-theme="surge"] .app-shell--content-only .app-page__header h2 {
+  font-family: "Sora", sans-serif;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+/* nav rail */
+[data-theme="surge"] .app-shell--content-only .app-nav {
+  background: rgba(8, 12, 30, 0.94);
+}
+[data-theme="surge"] .app-shell--content-only .app-nav__item--active {
+  background: rgba(47, 107, 255, 0.18);
+}
+[data-theme="surge"] .app-shell--content-only .app-nav__item--active svg {
+  color: var(--surge-yellow);
+}
+
+/* content page transparent so the glow shows through */
+[data-theme="surge"] .app-shell--content-only .app-page,
+[data-theme="surge"] .app-shell--content-only .app-page__content {
+  background: transparent;
+}
+
+/* inputs / selects / textareas */
+[data-theme="surge"] .app-shell--content-only input,
+[data-theme="surge"] .app-shell--content-only select,
+[data-theme="surge"] .app-shell--content-only textarea {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+[data-theme="surge"] .app-shell--content-only input::placeholder {
+  color: var(--muted);
+}
+
+/* segmented tabs (search modes, etc.) */
+[data-theme="surge"] .app-shell--content-only .segmented-control button {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--muted);
+}
+[data-theme="surge"] .app-shell--content-only .segmented-control button.active {
+  background: rgba(47, 107, 255, 0.22);
+  border-color: rgba(77, 139, 255, 0.5);
+  color: #fff;
+}
+
+/* river rows become glowing Surge cards */
+[data-theme="surge"] .app-shell--content-only .canonical-river-row {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+  transition: transform 0.22s ease, box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+[data-theme="surge"] .app-shell--content-only .canonical-river-row:hover,
+[data-theme="surge"] .app-shell--content-only .canonical-river-row--active {
+  background: rgba(30, 42, 84, 0.72);
+  border-color: rgba(255, 214, 10, 0.4);
+  box-shadow: 0 24px 56px rgba(47, 107, 255, 0.32);
+  transform: translateY(-3px);
+}
+
+/* pills + chips glow */
+[data-theme="surge"] .app-shell--content-only .grade-pill {
+  background: rgba(255, 214, 10, 0.16);
+  color: var(--surge-yellow);
+  box-shadow: 0 0 18px rgba(255, 214, 10, 0.16);
+}
+[data-theme="surge"] .app-shell--content-only .candidate-pill {
+  background: rgba(47, 107, 255, 0.22);
+  color: #9cc0ff;
+}
+[data-theme="surge"] .app-shell--content-only .placeholder-row {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+}
+[data-theme="surge"] .app-shell--content-only .placeholder-row:hover {
+  background: rgba(30, 42, 84, 0.72);
+  border-color: rgba(255, 214, 10, 0.35);
+}
+
+/* discipline filter active glow */
+[data-theme="surge"] .app-shell--content-only .river-discipline-filter {
+  background: rgba(16, 24, 52, 0.6);
+}
+[data-theme="surge"] .app-shell--content-only .river-discipline-filter button {
+  color: var(--muted);
+}
+[data-theme="surge"]
+  .app-shell--content-only
+  .river-discipline-filter
+  button.active {
+  background: rgba(47, 107, 255, 0.3);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(47, 107, 255, 0.3);
+}
+
+/* cards / notes read on dark */
+[data-theme="surge"] .app-shell--content-only .sign-in-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
