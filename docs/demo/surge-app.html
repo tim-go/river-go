@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RiverLaunch — Surge · Discover</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --blue: #2f6bff;
+        --blue-bright: #4d8bff;
+        --yellow: #ffd60a;
+        --ink: #eaf0ff;
+        --muted: #8d9bc4;
+        --bg: #060a1a;
+        --panel: rgba(20, 30, 64, 0.6);
+        --line: rgba(120, 150, 230, 0.16);
+        --up: #6ff0a8;
+        --down: #5fb6ff;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        color: var(--ink); background: var(--bg); line-height: 1.5;
+        overflow-x: hidden; -webkit-font-smoothing: antialiased;
+      }
+      body::before {
+        content: ""; position: fixed; inset: 0; z-index: -2;
+        background:
+          radial-gradient(55% 45% at 85% 0%, rgba(47, 107, 255, 0.5), transparent 60%),
+          radial-gradient(45% 45% at 5% 100%, rgba(255, 214, 10, 0.14), transparent 60%),
+          radial-gradient(40% 40% at 45% 60%, rgba(47, 107, 255, 0.1), transparent 70%),
+          var(--bg);
+        animation: drift 24s ease-in-out infinite;
+      }
+      body::after {
+        content: ""; position: fixed; inset: 0; z-index: -1;
+        background-image:
+          linear-gradient(rgba(120, 150, 230, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(120, 150, 230, 0.05) 1px, transparent 1px);
+        background-size: 46px 46px;
+        mask: radial-gradient(circle at 60% 0%, #000 30%, transparent 80%);
+      }
+      @keyframes drift {
+        0%, 100% { transform: translate(0, 0) scale(1.04); }
+        50% { transform: translate(-2%, 2%) scale(1.1); }
+      }
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: none; }
+      }
+      .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 24px 80px; }
+
+      .bar {
+        display: flex; align-items: center; gap: 18px;
+        padding: 12px 0 30px;
+      }
+      .brand {
+        display: flex; align-items: center; gap: 10px; text-decoration: none;
+        color: var(--ink); font-family: "Sora", sans-serif; font-weight: 800;
+        letter-spacing: -0.02em; font-size: 1.1rem;
+      }
+      .brand .dot {
+        width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
+        background: linear-gradient(135deg, var(--blue), var(--blue-bright));
+        box-shadow: 0 8px 26px rgba(47, 107, 255, 0.55);
+      }
+      .brand b { color: var(--yellow); }
+      .search {
+        flex: 1; max-width: 420px; display: flex; align-items: center; gap: 10px;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+        padding: 11px 15px; color: var(--muted);
+      }
+      .search input {
+        background: none; border: none; outline: none; color: var(--ink);
+        font: inherit; width: 100%;
+      }
+      .search input::placeholder { color: var(--muted); }
+      .bar nav { display: flex; gap: 22px; color: var(--muted); font-size: 0.9rem; margin-left: auto; }
+      .bar nav a { color: var(--muted); text-decoration: none; }
+      .bar nav a.active { color: var(--yellow); }
+
+      .head {
+        display: flex; align-items: flex-end; justify-content: space-between;
+        margin-bottom: 20px; gap: 16px; flex-wrap: wrap;
+      }
+      .head h1 {
+        font-family: "Sora", sans-serif; font-size: 2rem; letter-spacing: -0.02em;
+      }
+      .head h1 .live {
+        display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+        background: var(--yellow); box-shadow: 0 0 12px var(--yellow); margin-right: 8px;
+        animation: pulse 1.6s infinite;
+      }
+      @keyframes pulse { 50% { opacity: 0.35; } }
+      .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+      .chip {
+        padding: 8px 15px; border-radius: 999px; border: 1px solid var(--line);
+        background: var(--panel); color: var(--muted); font-weight: 600; font-size: 0.85rem;
+        cursor: pointer;
+      }
+      .chip.active { background: var(--yellow); color: #1a1500; border-color: var(--yellow); }
+
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .rc {
+        position: relative; padding: 22px; border-radius: 20px;
+        background: var(--panel); border: 1px solid var(--line);
+        backdrop-filter: blur(14px); overflow: hidden;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      .rc:hover {
+        transform: translateY(-5px); border-color: rgba(255, 214, 10, 0.4);
+        box-shadow: 0 30px 70px rgba(47, 107, 255, 0.32);
+      }
+      .rc .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+      .rc .name { font-family: "Sora", sans-serif; font-size: 1.2rem; font-weight: 800; letter-spacing: -0.01em; }
+      .rc .where { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+      .rc .grade {
+        padding: 5px 10px; border-radius: 9px; font-weight: 700; font-size: 0.74rem; white-space: nowrap;
+        background: rgba(47, 107, 255, 0.2); border: 1px solid rgba(77, 139, 255, 0.4); color: var(--blue-bright);
+      }
+      .rc .lvl { margin: 18px 0 4px; display: flex; align-items: baseline; gap: 8px; }
+      .rc .num {
+        font-family: "Sora", sans-serif; font-size: 2.7rem; font-weight: 800; line-height: 1;
+        color: var(--yellow); text-shadow: 0 0 28px rgba(255, 214, 10, 0.4); letter-spacing: -0.03em;
+      }
+      .rc .unit { color: var(--muted); font-weight: 600; }
+      .rc .trend { margin-left: auto; font-weight: 700; font-size: 0.85rem; }
+      .trend.up { color: var(--up); }
+      .trend.down { color: var(--down); }
+      .trend.steady { color: var(--muted); }
+      .rc .spark { width: 100%; height: 34px; display: block; margin-top: 8px; }
+      .rc .gauge {
+        margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+        color: var(--muted); font-size: 0.76rem; display: flex; justify-content: space-between;
+      }
+      /* release / no-gauge variants stay honest, no number */
+      .badge {
+        margin: 18px 0 4px; display: inline-flex; align-items: center; gap: 8px;
+        font-family: "Sora", sans-serif; font-size: 1.35rem; font-weight: 800;
+      }
+      .badge.release { color: var(--blue-bright); }
+      .badge.none { color: var(--muted); font-size: 1.1rem; }
+      .rc .note { color: var(--muted); font-size: 0.82rem; margin-top: 6px; }
+
+      @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 600px) {
+        .grid { grid-template-columns: 1fr; }
+        .bar nav { display: none; }
+      }
+      @media (prefers-reduced-motion: reduce) { *, body::before { animation: none !important; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="bar">
+        <a class="brand" href="surge.html">
+          <span class="dot">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+              <path d="M2 8c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0" />
+              <path d="M2 14c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0" />
+            </svg>
+          </span>
+          River<b>Launch</b>
+        </a>
+        <label class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Search rivers, gauges, places…" />
+        </label>
+        <nav>
+          <a href="#" class="active">Discover</a><a href="#">Groups</a><a href="#">Map</a>
+        </nav>
+      </div>
+
+      <div class="head">
+        <h1><span class="live"></span>Running now</h1>
+        <div class="chips">
+          <span class="chip active">All</span>
+          <span class="chip">Whitewater</span>
+          <span class="chip">Canoe touring</span>
+          <span class="chip">Wales</span>
+          <span class="chip">Scotland</span>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- card template repeated with varied, honest data -->
+        <article class="rc" style="animation-delay: 0.02s">
+          <div class="top">
+            <div><div class="name">Afon Tryweryn</div><div class="where">Bala · North Wales</div></div>
+            <span class="grade">III–IV</span>
+          </div>
+          <div class="lvl"><span class="num">1.42</span><span class="unit">m</span><span class="trend up">▲ rising</span></div>
+          <svg class="spark" viewBox="0 0 300 34" preserveAspectRatio="none"><path d="M0 28 L50 26 L100 27 L150 20 L200 22 L250 12 L300 8" fill="none" stroke="#ffd60a" stroke-width="2.4"/></svg>
+          <div class="gauge"><span>Ty Nant</span><span>8 min ago</span></div>
+        </article>
+
+        <article class="rc" style="animation-delay: 0.08s">
+          <div class="top">
+            <div><div class="name">River Dee</div><div class="where">Llangollen · Wales</div></div>
+            <span class="grade">II–III</span>
+          </div>
+          <div class="lvl"><span class="num">0.78</span><span class="unit">m</span><span class="trend down">▼ falling</span></div>
+          <svg class="spark" viewBox="0 0 300 34" preserveAspectRatio="none"><path d="M0 8 L50 12 L100 11 L150 18 L200 20 L250 26 L300 28" fill="none" stroke="#5fb6ff" stroke-width="2.4"/></svg>
+          <div class="gauge"><span>Manley Hall</span><span>4 min ago</span></div>
+        </article>
+
+        <article class="rc" style="animation-delay: 0.14s">
+          <div class="top">
+            <div><div class="name">River Tees</div><div class="where">Low Force · Durham</div></div>
+            <span class="grade">III–IV</span>
+          </div>
+          <div class="lvl"><span class="num">1.05</span><span class="unit">m</span><span class="trend steady">→ steady</span></div>
+          <svg class="spark" viewBox="0 0 300 34" preserveAspectRatio="none"><path d="M0 18 L50 17 L100 19 L150 18 L200 17 L250 18 L300 18" fill="none" stroke="#8d9bc4" stroke-width="2.4"/></svg>
+          <div class="gauge"><span>Barnard Castle</span><span>11 min ago</span></div>
+        </article>
+
+        <article class="rc" style="animation-delay: 0.2s">
+          <div class="top">
+            <div><div class="name">Washburn</div><div class="where">Yorkshire</div></div>
+            <span class="grade">III</span>
+          </div>
+          <div class="badge release">⚡ Release</div>
+          <div class="note">Scheduled Sat 10:00–14:00 — dam-controlled, no live gauge.</div>
+          <div class="gauge"><span>Thruscross</span><span>release calendar</span></div>
+        </article>
+
+        <article class="rc" style="animation-delay: 0.26s">
+          <div class="top">
+            <div><div class="name">River Tay</div><div class="where">Grandtully · Scotland</div></div>
+            <span class="grade">II–III</span>
+          </div>
+          <div class="lvl"><span class="num">2.10</span><span class="unit">m</span><span class="trend up">▲ rising</span></div>
+          <svg class="spark" viewBox="0 0 300 34" preserveAspectRatio="none"><path d="M0 26 L50 24 L100 22 L150 20 L200 16 L250 12 L300 9" fill="none" stroke="#ffd60a" stroke-width="2.4"/></svg>
+          <div class="gauge"><span>Ballathie</span><span>6 min ago</span></div>
+        </article>
+
+        <article class="rc" style="animation-delay: 0.32s">
+          <div class="top">
+            <div><div class="name">River Etive</div><div class="where">Glen Etive · Scotland</div></div>
+            <span class="grade">IV–V</span>
+          </div>
+          <div class="badge none">No online gauge</div>
+          <div class="note">Read it locally or judge from recent rainfall — we won't fake a number.</div>
+          <div class="gauge"><span>—</span><span>rainfall-fed</span></div>
+        </article>
+      </div>
+    </div>
+  </body>
+</html>

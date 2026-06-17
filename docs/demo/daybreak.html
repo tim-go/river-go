@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RiverLaunch — Daybreak theme demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --blue: #1e57ff;
+        --blue-deep: #0b3bd6;
+        --yellow: #ffc62b;
+        --ink: #0d1b3e;
+        --muted: #5c6a92;
+        --bg: #eef3ff;
+        --card: #ffffff;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: "Outfit", system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: 1120px; margin: 0 auto; padding: 20px 24px 80px; }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 0 40px;
+      }
+      .brand {
+        display: flex; align-items: center; gap: 11px;
+        font-weight: 900; font-size: 1.3rem; letter-spacing: -0.03em;
+      }
+      .brand .dot {
+        width: 40px; height: 40px; border-radius: 14px;
+        background: var(--blue); display: grid; place-items: center;
+        box-shadow: 0 8px 20px rgba(30, 87, 255, 0.4);
+        transform: rotate(-6deg);
+      }
+      nav { display: flex; gap: 28px; font-weight: 600; color: var(--muted); }
+      .btn {
+        font-family: inherit; font-weight: 700; cursor: pointer; border: none;
+        border-radius: 999px; padding: 13px 24px; font-size: 1rem;
+      }
+      .btn-yellow { background: var(--yellow); color: #3d2c00; box-shadow: 0 8px 22px rgba(255, 198, 43, 0.5); }
+      .btn-blue { background: var(--blue); color: #fff; box-shadow: 0 10px 26px rgba(30, 87, 255, 0.4); }
+      .btn-line { background: #fff; color: var(--ink); box-shadow: inset 0 0 0 2px #d7e0ff; }
+
+      /* HERO — big blue rounded block with overlapping cards */
+      .hero {
+        position: relative;
+        border-radius: 36px;
+        background:
+          radial-gradient(120% 120% at 90% 0%, #3d72ff 0%, var(--blue) 38%, var(--blue-deep) 100%);
+        color: #fff;
+        padding: 56px 52px 150px;
+        overflow: hidden;
+      }
+      .hero .blob {
+        position: absolute; border-radius: 50%;
+        background: var(--yellow); filter: blur(2px); opacity: 0.95;
+      }
+      .hero .b1 { width: 120px; height: 120px; top: -30px; right: 120px; opacity: 0.25; }
+      .hero .b2 { width: 320px; height: 320px; right: -120px; bottom: -160px; background: #4f7dff; opacity: 0.6; }
+      .tag {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: rgba(255, 255, 255, 0.16); padding: 7px 15px;
+        border-radius: 999px; font-weight: 600; font-size: 0.82rem; margin-bottom: 22px;
+        backdrop-filter: blur(6px);
+      }
+      .tag b { color: var(--yellow); }
+      h1 {
+        font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 900;
+        letter-spacing: -0.04em; line-height: 0.96; max-width: 14ch;
+        position: relative; z-index: 2;
+      }
+      .hero h1 mark {
+        background: var(--yellow); color: var(--ink);
+        padding: 0 12px; border-radius: 12px; box-decoration-break: clone;
+      }
+      .hero p {
+        margin: 22px 0 30px; font-size: 1.12rem; max-width: 38ch;
+        color: rgba(255, 255, 255, 0.85); position: relative; z-index: 2;
+      }
+      .hero .btns { display: flex; gap: 14px; flex-wrap: wrap; position: relative; z-index: 2; }
+
+      /* overlapping cards */
+      .float-row {
+        margin-top: -110px; padding: 0 18px;
+        display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px;
+        position: relative; z-index: 5;
+      }
+      .card {
+        background: var(--card); border-radius: 26px; padding: 26px;
+        box-shadow: 0 26px 60px rgba(13, 27, 62, 0.16);
+      }
+      .card .row { display: flex; justify-content: space-between; align-items: flex-start; }
+      .river-name { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+      .river-meta { color: var(--muted); font-weight: 500; }
+      .chip {
+        background: #eaf0ff; color: var(--blue-deep); font-weight: 700;
+        padding: 7px 13px; border-radius: 999px; font-size: 0.82rem; white-space: nowrap;
+      }
+      .level-wrap {
+        margin-top: 22px; display: flex; align-items: center; gap: 22px;
+        background: linear-gradient(120deg, #fff7e0, #fffdf6);
+        border: 2px solid #ffe9a8; border-radius: 20px; padding: 20px 24px;
+      }
+      .level-num { font-size: 3.8rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; }
+      .level-num span { font-size: 1.3rem; color: var(--muted); }
+      .level-side .t { font-weight: 800; color: #1a8f4e; font-size: 1.05rem; }
+      .level-side .g { color: var(--muted); font-size: 0.85rem; }
+      .pois { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+      .poi { background: #f3f6ff; border-radius: 12px; padding: 9px 13px; font-weight: 600; font-size: 0.85rem; }
+      .poi b { color: var(--blue); }
+
+      .side-card { display: flex; flex-direction: column; gap: 16px; }
+      .mini {
+        background: var(--card); border-radius: 22px; padding: 22px;
+        box-shadow: 0 20px 44px rgba(13, 27, 62, 0.12);
+      }
+      .mini.sun { background: var(--yellow); }
+      .mini h3 { font-size: 1.05rem; font-weight: 800; }
+      .mini p { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+      .mini.sun p { color: #5a4500; }
+      .avatars { display: flex; margin: 14px 0; }
+      .avatars span {
+        width: 38px; height: 38px; border-radius: 50%; margin-left: -10px;
+        border: 3px solid #fff; background: var(--blue); color: #fff;
+        display: grid; place-items: center; font-weight: 700; font-size: 0.78rem;
+      }
+      .avatars span:nth-child(2) { background: var(--yellow); color: var(--ink); }
+      .avatars span:nth-child(3) { background: var(--blue-deep); }
+      .avatars span:nth-child(4) { background: #1a8f4e; }
+
+      .strip { margin-top: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+      .stat { background: var(--card); border-radius: 22px; padding: 24px; box-shadow: 0 16px 36px rgba(13, 27, 62, 0.08); }
+      .stat .n { font-size: 2.4rem; font-weight: 900; letter-spacing: -0.03em; }
+      .stat .n.blue { color: var(--blue); }
+      .stat .n.yel { color: #e0a800; }
+      .stat .l { color: var(--muted); font-weight: 500; }
+
+      @media (max-width: 860px) {
+        nav { display: none; }
+        .hero { padding: 40px 28px 140px; }
+        .float-row { grid-template-columns: 1fr; }
+        .strip { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="brand">
+          <span class="dot">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round">
+              <path d="M2 8c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0" />
+              <path d="M2 14c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0" />
+            </svg>
+          </span>
+          RiverLaunch
+        </div>
+        <nav><span>Rivers</span><span>Levels</span><span>Groups</span><span>Map</span></nav>
+        <button class="btn btn-line">Sign in</button>
+      </header>
+
+      <section class="hero">
+        <div class="blob b1"></div>
+        <div class="blob b2"></div>
+        <span class="tag">🌤️ <b>312</b>&nbsp;gauges live right now</span>
+        <h1>Find your <mark>perfect</mark> day on the water.</h1>
+        <p>
+          Live river levels, real paddler knowledge, and every run in the UK —
+          bright, friendly, and ready when you are.
+        </p>
+        <div class="btns">
+          <button class="btn btn-yellow">Find your river</button>
+          <button class="btn btn-line">Explore the map</button>
+        </div>
+      </section>
+
+      <section class="float-row">
+        <div class="card">
+          <div class="row">
+            <div>
+              <div class="river-name">Afon Tryweryn</div>
+              <div class="river-meta">Bala, North Wales · Whitewater</div>
+            </div>
+            <span class="chip">Grade III–IV</span>
+          </div>
+          <div class="level-wrap">
+            <div class="level-num">1.42<span> m</span></div>
+            <div class="level-side">
+              <div class="t">▲ Rising</div>
+              <div class="g">Tryweryn @ Ty Nant · 8 min ago</div>
+            </div>
+          </div>
+          <div class="pois">
+            <span class="poi">🌊 Chapel Falls <b>IV</b></span>
+            <span class="poi">🌊 Graveyard <b>III</b></span>
+            <span class="poi">⚠️ Town weir</span>
+            <span class="poi">📍 Get-in</span>
+          </div>
+        </div>
+
+        <div class="side-card">
+          <div class="mini sun">
+            <h3>Saturday session 🛶</h3>
+            <p>North Wales WW · meet 9:30, top car park</p>
+            <div class="avatars"><span>JM</span><span>SK</span><span>RO</span><span>+3</span></div>
+            <button class="btn btn-blue" style="width:100%">I'm in</button>
+          </div>
+          <div class="mini">
+            <h3>📈 28 days of history</h3>
+            <p>See how it's been running before you commit to the drive.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="strip">
+        <div class="stat"><div class="n blue">62</div><div class="l">rivers mapped &amp; growing</div></div>
+        <div class="stat"><div class="n yel">9</div><div class="l">named rapids on this run</div></div>
+        <div class="stat"><div class="n blue">3</div><div class="l">live data sources blended</div></div>
+      </section>
+    </div>
+  </body>
+</html>
