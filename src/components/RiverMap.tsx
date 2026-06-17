@@ -103,8 +103,6 @@ const RIVER_TAB_EMPTY_MESSAGE: Record<RiverPoiTab, string> = {
   access: "No access points have been reviewed for this river yet.",
 };
 
-type MapTheme = "tide" | "daybreak" | "surge";
-
 export function RiverMap({
   sections,
   activeSection,
@@ -140,7 +138,6 @@ export function RiverMap({
   markerClickMode,
   showRoutesLayer,
   showRiverLayer,
-  theme,
   showSelectedRoutePath,
   showKnownRivers,
   watercourseFocusId,
@@ -191,7 +188,6 @@ export function RiverMap({
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
   showRiverLayer: boolean;
-  theme: MapTheme;
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   watercourseFocusId: string | null;
@@ -254,7 +250,6 @@ export function RiverMap({
     );
   }, [selectedRiver]);
   const layerRef = useRef<L.LayerGroup | null>(null);
-  const surgeTintRef = useRef<L.Rectangle | null>(null);
   const callbackRef = useRef(onSelectSection);
   const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
   const canonicalRiverContextSelectRef = useRef(onSelectCanonicalRiverContext);
@@ -440,15 +435,6 @@ export function RiverMap({
       maxZoom: 18,
     }).addTo(map);
 
-    // A pane just above the tiles (below overlays/markers) carries the Surge
-    // blue tint, so the basemap keeps its feature colours and only gets a wash.
-    map.createPane("surgeTint");
-    const surgeTintPane = map.getPane("surgeTint");
-    if (surgeTintPane) {
-      surgeTintPane.style.zIndex = "350";
-      surgeTintPane.style.pointerEvents = "none";
-    }
-
     L.control.zoom({ position: "bottomleft" }).addTo(map);
     map.on("click", (event) => {
       mapClickRef.current(
@@ -478,36 +464,6 @@ export function RiverMap({
       layerRef.current = null;
     };
   }, []);
-
-  // Tint the basemap a soft blue under Surge via an overlay pane that sits
-  // above the tiles but below routes/markers — so the map keeps all its feature
-  // colours and contrast, just washed blue. Other themes show plain tiles.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) {
-      return;
-    }
-    if (theme === "surge") {
-      if (!surgeTintRef.current) {
-        surgeTintRef.current = L.rectangle(
-          [
-            [-85, -180],
-            [85, 180],
-          ],
-          {
-            pane: "surgeTint",
-            stroke: false,
-            fillColor: "#4f86ff",
-            fillOpacity: 0.2,
-            interactive: false,
-          },
-        ).addTo(map);
-      }
-    } else if (surgeTintRef.current) {
-      map.removeLayer(surgeTintRef.current);
-      surgeTintRef.current = null;
-    }
-  }, [theme]);
 
   useEffect(() => {
     const map = mapRef.current;

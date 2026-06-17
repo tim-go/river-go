@@ -6257,3 +6257,14 @@ textarea {
   background: rgba(24, 34, 70, 0.95);
   color: #ffffff;
 }
+
+/* soft blue basemap: a light blue shows through slightly-translucent tiles, so
+   the map keeps all its feature colours and contrast while reading cooler.
+   Markers, routes and popups aren't tiles, so they stay fully crisp.
+   Tune --tile-opacity / the container blue for a stronger or subtler wash. */
+[data-theme="surge"] .leaflet-container {
+  background: #aecbff;
+}
+[data-theme="surge"] .leaflet-tile {
+  opacity: 0.78 !important;
+}

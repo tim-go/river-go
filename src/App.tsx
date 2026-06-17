@@ -4147,7 +4147,6 @@ function App() {
           markerClickMode={markerClickMode}
           showRoutesLayer={showRoutesLayer}
           showRiverLayer={showRiverLayer}
-          theme={theme}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
           watercourseFocusId={watercourseFocusId}
