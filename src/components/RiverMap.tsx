@@ -103,6 +103,34 @@ const RIVER_TAB_EMPTY_MESSAGE: Record<RiverPoiTab, string> = {
   access: "No access points have been reviewed for this river yet.",
 };
 
+type MapTheme = "tide" | "daybreak" | "surge";
+
+// Base map tiles per theme: a dark Carto basemap under Surge so the map view
+// matches the dark UI, the light OSM basemap for the light themes.
+function baseTileConfig(theme: MapTheme): {
+  url: string;
+  options: L.TileLayerOptions;
+} {
+  if (theme === "surge") {
+    return {
+      url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      options: {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 20,
+      },
+    };
+  }
+  return {
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    options: {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/">OSM</a>',
+      maxZoom: 18,
+    },
+  };
+}
+
 export function RiverMap({
   sections,
   activeSection,
@@ -138,6 +166,7 @@ export function RiverMap({
   markerClickMode,
   showRoutesLayer,
   showRiverLayer,
+  theme,
   showSelectedRoutePath,
   showKnownRivers,
   watercourseFocusId,
@@ -188,6 +217,7 @@ export function RiverMap({
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
   showRiverLayer: boolean;
+  theme: MapTheme;
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   watercourseFocusId: string | null;
@@ -250,6 +280,7 @@ export function RiverMap({
     );
   }, [selectedRiver]);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const baseTileLayerRef = useRef<L.TileLayer | null>(null);
   const callbackRef = useRef(onSelectSection);
   const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
   const canonicalRiverContextSelectRef = useRef(onSelectCanonicalRiverContext);
@@ -430,11 +461,6 @@ export function RiverMap({
       zoomControl: false,
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/">OSM</a>',
-      maxZoom: 18,
-    }).addTo(map);
-
     L.control.zoom({ position: "bottomleft" }).addTo(map);
     map.on("click", (event) => {
       mapClickRef.current(
@@ -464,6 +490,30 @@ export function RiverMap({
       layerRef.current = null;
     };
   }, []);
+
+  // Swap the base map tiles to match the theme: a dark Carto basemap under
+  // Surge, the light OSM basemap otherwise. Runs on mount and on theme change;
+  // the new layer is added before the old is removed to avoid a flash.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+    const previous = baseTileLayerRef.current;
+    const config = baseTileConfig(theme);
+    const layer = L.tileLayer(config.url, config.options);
+    layer.setZIndex(0).addTo(map);
+    baseTileLayerRef.current = layer;
+    if (previous) {
+      const removePrevious = () => {
+        if (map.hasLayer(previous)) {
+          map.removeLayer(previous);
+        }
+      };
+      layer.once("load", removePrevious);
+      window.setTimeout(removePrevious, 900);
+    }
+  }, [theme]);
 
   useEffect(() => {
     const map = mapRef.current;
