@@ -202,8 +202,7 @@ export type ProfileMode =
   | "photos"
   | "history"
   | "kit"
-  | "skills"
-  | "settings";
+  | "skills";
 
 export const memberRoleOptions: MemberRole[] = [
   "MEMBER",

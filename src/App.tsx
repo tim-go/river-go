@@ -5862,74 +5862,7 @@ function App() {
                     <Award size={16} />
                     Skills
                   </button>
-                  <button
-                    className={profileMode === "settings" ? "active" : ""}
-                    type="button"
-                    role="tab"
-                    aria-selected={profileMode === "settings"}
-                    onClick={() => setProfileMode("settings")}
-                  >
-                    <Palette size={16} />
-                    Settings
-                  </button>
                 </div>
-                {profileMode === "settings" ? (
-                  <section
-                    className="profile-mode-panel"
-                    aria-label="Settings"
-                  >
-                    <div className="settings-card">
-                      <div className="settings-card__head">
-                        <Palette size={20} />
-                        <div>
-                          <h3>Appearance</h3>
-                          <p>Pick a look for RiverLaunch. Saved on this device.</p>
-                        </div>
-                      </div>
-                      <div
-                        className="theme-options"
-                        role="radiogroup"
-                        aria-label="Theme"
-                      >
-                        {(
-                          [
-                            { id: "tide", label: "Tide", hint: "Calm green" },
-                            {
-                              id: "daybreak",
-                              label: "Daybreak",
-                              hint: "Light & bright",
-                            },
-                            {
-                              id: "surge",
-                              label: "Surge",
-                              hint: "Dark & electric",
-                            },
-                          ] as const
-                        ).map((option) => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            role="radio"
-                            aria-checked={theme === option.id}
-                            className={`theme-option theme-option--${option.id}${
-                              theme === option.id ? " theme-option--active" : ""
-                            }`}
-                            onClick={() => setTheme(option.id)}
-                          >
-                            <span
-                              className="theme-option__swatch"
-                              aria-hidden="true"
-                            />
-                            <span className="theme-option__text">
-                              <strong>{option.label}</strong>
-                              <small>{option.hint}</small>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </section>
-                ) : null}
                 {profileMode === "account" ? (
                   <section className="profile-mode-panel" aria-label="My account">
                     <AppBrandPanel />
@@ -6611,7 +6544,7 @@ function App() {
                   <div className="settings-panel__header">
                     <span>
                       <strong>Settings</strong>
-                      <small>Map, units, alerts, and account preferences</small>
+                      <small>Appearance, map, alerts, and account preferences</small>
                     </span>
                     <MoreHorizontal size={18} />
                   </div>
@@ -6646,6 +6579,56 @@ function App() {
                       Centre on map
                     </button>
                   ) : null}
+                  <div className="setting-appearance">
+                    <span className="setting-appearance__head">
+                      <Palette size={18} />
+                      <span>
+                        <strong>Appearance</strong>
+                        <small>Theme is saved on this device</small>
+                      </span>
+                    </span>
+                    <div
+                      className="theme-options"
+                      role="radiogroup"
+                      aria-label="Theme"
+                    >
+                      {(
+                        [
+                          { id: "tide", label: "Tide", hint: "Calm green" },
+                          {
+                            id: "daybreak",
+                            label: "Daybreak",
+                            hint: "Light & bright",
+                          },
+                          {
+                            id: "surge",
+                            label: "Surge",
+                            hint: "Dark & electric",
+                          },
+                        ] as const
+                      ).map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={theme === option.id}
+                          className={`theme-option theme-option--${option.id}${
+                            theme === option.id ? " theme-option--active" : ""
+                          }`}
+                          onClick={() => setTheme(option.id)}
+                        >
+                          <span
+                            className="theme-option__swatch"
+                            aria-hidden="true"
+                          />
+                          <span className="theme-option__text">
+                            <strong>{option.label}</strong>
+                            <small>{option.hint}</small>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </section>
               </div>
             </PlaceholderPage>

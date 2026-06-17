@@ -5691,32 +5691,29 @@ textarea {
    surface not yet themed are never affected.
    ============================================================ */
 
-.settings-card {
+.setting-appearance {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--surface);
+  gap: 10px;
 }
-.settings-card__head {
+.setting-appearance__head {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
 }
-.settings-card__head svg {
+.setting-appearance__head > svg {
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: 1px;
   color: var(--river-dark);
 }
-.settings-card__head h3 {
-  margin: 0;
-  font-size: 1.05rem;
+.setting-appearance__head strong {
+  display: block;
+  font-size: 0.95rem;
 }
-.settings-card__head p {
-  margin: 2px 0 0;
-  font-size: 0.85rem;
+.setting-appearance__head small {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 .theme-options {
@@ -6217,6 +6214,18 @@ textarea {
 [data-theme="surge"] .map-popup-card span,
 [data-theme="surge"] .map-popup-card p {
   color: #b8c4e6;
+}
+[data-theme="surge"] .map-popup-actions button,
+[data-theme="surge"] .map-popup-actions a {
+  border-color: rgba(120, 150, 230, 0.32);
+  background: rgba(47, 107, 255, 0.18);
+  color: #d8e6ff;
+}
+[data-theme="surge"] .map-popup-actions button:hover,
+[data-theme="surge"] .map-popup-actions a:hover {
+  border-color: rgba(255, 214, 10, 0.5);
+  background: rgba(47, 107, 255, 0.28);
+  color: #ffffff;
 }
 
 /* leaflet zoom controls */
