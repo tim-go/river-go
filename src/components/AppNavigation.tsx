@@ -1,5 +1,6 @@
 import {
-  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Map as MapIcon,
   MoreHorizontal,
   Search,
@@ -70,7 +71,7 @@ export function AppNavigation({
           title={collapsed ? "Expand navigation" : "Collapse navigation"}
           aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
         >
-          <ChevronDown size={16} />
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
       <nav aria-label="App sections">

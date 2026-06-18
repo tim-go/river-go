@@ -3800,22 +3800,11 @@ function App() {
 
       {activeAppSection === "map" ? (
         <section className="topbar" aria-label="Map controls">
-          <div className="brand-lockup">
-            <span className="brand-mark">
-              <Waves size={22} strokeWidth={2.3} />
-            </span>
-            <div>
-              <p className="eyebrow">{activeSection.riverName}</p>
-              <h1>{activeSection.sectionName}</h1>
-              <p className="topbar-level-summary">
-                <Droplets size={12} />
-                <span>
-                  {routeStatusSummary.value} · {routeStatusSummary.trend} ·{" "}
-                  {routeStatusSummary.observedAt}
-                </span>
-              </p>
-            </div>
-          </div>
+          {/* River banner hidden for now: it tracked activeSection, but
+              sections are temporarily parked while the river-vs-section model
+              is decided, so it pinned to the default first section. Empty
+              lockup kept as a spacer so the controls stay right-aligned. */}
+          <div className="brand-lockup" />
           <div
             className={`topbar-actions ${
               isCompactMapControls && areMapControlsExpanded

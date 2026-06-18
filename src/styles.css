@@ -214,7 +214,7 @@ button:disabled {
 
 .app-body {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 244px minmax(0, 1fr);
   min-height: 0;
 }
 
@@ -309,10 +309,6 @@ button:disabled {
 
 .app-nav--collapsed .app-nav__brand span:last-child {
   display: none;
-}
-
-.app-nav--collapsed .app-nav__toggle svg {
-  transform: rotate(-90deg);
 }
 
 .app-nav nav {
@@ -480,8 +476,8 @@ button:disabled {
 }
 
 .brand-mark--nav {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
 }
 
 .eyebrow {
@@ -6597,6 +6593,11 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .participant-ice,
 [data-theme="surge"] .river-safety-toggle {
   color: #ffd27a;
+}
+/* Confirm modal must be opaque — the amber notice tint lets the page bleed through. */
+[data-theme="surge"] .confirm-panel--modal {
+  background: rgba(16, 24, 52, 0.98);
+  border-color: rgba(255, 196, 60, 0.42);
 }
 
 /* success / green */
