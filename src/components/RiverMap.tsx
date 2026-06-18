@@ -268,6 +268,9 @@ export function RiverMap({
   const detailRestoreViewRef = useRef<MapCameraSnapshot | null>(null);
   const previousWatercourseFocusNonceRef = useRef(watercourseFocusNonce);
   const shouldFitActiveSectionRef = useRef(true);
+  // True while a view restored from storage should win over the load-time
+  // auto-fit; cleared on the first user gesture or focus action.
+  const restoredViewActiveRef = useRef(false);
   const knownWatercoursesRequestRef = useRef(0);
   const [knownWatercourses, setKnownWatercourses] = useState<KnownWatercourse[]>(
     [],
@@ -424,9 +427,26 @@ export function RiverMap({
       return;
     }
 
+    let savedView: { lat: number; lng: number; zoom: number } | null = null;
+    try {
+      const parsed = JSON.parse(
+        window.localStorage.getItem("rl-map-view") ?? "null",
+      );
+      if (
+        parsed &&
+        Number.isFinite(parsed.lat) &&
+        Number.isFinite(parsed.lng) &&
+        Number.isFinite(parsed.zoom)
+      ) {
+        savedView = { lat: parsed.lat, lng: parsed.lng, zoom: parsed.zoom };
+      }
+    } catch {
+      // ignore unavailable / corrupt storage
+    }
+
     const map = L.map(mapContainerRef.current, {
-      center: [52.6, -2.9],
-      zoom: 6,
+      center: savedView ? [savedView.lat, savedView.lng] : [52.6, -2.9],
+      zoom: savedView ? savedView.zoom : 6,
       zoomControl: false,
     });
 
@@ -448,6 +468,47 @@ export function RiverMap({
     mapRef.current = map;
     layerRef.current = layers;
 
+    if (savedView) {
+      // Honor the restored view over the load-time auto-fit-to-active-section,
+      // until the user's first interaction. The page always loads before any
+      // input, so this reliably blocks only the on-load fit.
+      shouldFitActiveSectionRef.current = false;
+      restoredViewActiveRef.current = true;
+      const releaseRestoredView = () => {
+        restoredViewActiveRef.current = false;
+        document.removeEventListener("pointerdown", releaseRestoredView, true);
+        document.removeEventListener("keydown", releaseRestoredView, true);
+      };
+      document.addEventListener("pointerdown", releaseRestoredView, true);
+      document.addEventListener("keydown", releaseRestoredView, true);
+    }
+
+    // Only persist after a genuine user gesture, so programmatic auto-fits on
+    // load can't overwrite the stored view; the first gesture also releases the
+    // restored-view lock so normal fits resume.
+    let userHasGesturedMap = false;
+    const enablePersist = () => {
+      userHasGesturedMap = true;
+      restoredViewActiveRef.current = false;
+    };
+    const mapEl = map.getContainer();
+    mapEl.addEventListener("pointerdown", enablePersist);
+    mapEl.addEventListener("wheel", enablePersist, { passive: true });
+
+    const persistMapView = () => {
+      if (!userHasGesturedMap) {
+        return;
+      }
+      try {
+        const centre = map.getCenter();
+        const view = { lat: centre.lat, lng: centre.lng, zoom: map.getZoom() };
+        window.localStorage.setItem("rl-map-view", JSON.stringify(view));
+      } catch {
+        // ignore unavailable storage (private mode, quota, etc.)
+      }
+    };
+    map.on("moveend zoomend", persistMapView);
+
     const resizeObserver = new ResizeObserver(() => {
       window.requestAnimationFrame(() => {
         if (mapRef.current === map && map.getContainer().isConnected) {
@@ -458,6 +519,8 @@ export function RiverMap({
     resizeObserver.observe(mapContainerRef.current);
 
     return () => {
+      mapEl.removeEventListener("pointerdown", enablePersist);
+      mapEl.removeEventListener("wheel", enablePersist);
       resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
@@ -1183,7 +1246,14 @@ export function RiverMap({
       shouldFitActiveSectionRef.current = true;
     }
 
-    if (shouldFitActiveSectionRef.current) {
+    if (restoredViewActiveRef.current) {
+      // While honoring a restored view, consume any pending auto-fit so a stale
+      // shouldFit can't fire to the wrong section when the lock releases on the
+      // first click (e.g. opening a river's Details).
+      shouldFitActiveSectionRef.current = false;
+    }
+
+    if (shouldFitActiveSectionRef.current && !restoredViewActiveRef.current) {
       const bounds = routeEndpointBounds(activeSection.route);
       let rafId = 0;
       let didFit = false;
