@@ -1600,16 +1600,6 @@ function App() {
     });
   }
 
-  function resetDemoContributions() {
-    setContributions([]);
-    outboxRecords.forEach((record) => {
-      void outboxStore.remove(record.id);
-    });
-    setOutboxRecords([]);
-    setSyncMessage("");
-    clearSyncBannerDismissal();
-  }
-
   async function syncOutboxNow() {
     if (queuedOutboxCount === 0 || isSyncingOutbox) {
       return;
@@ -7957,22 +7947,6 @@ function App() {
                               </p>
                             )}
                           </section>
-                          {canManageMembers ? (
-                            <button
-                              className="placeholder-row"
-                              type="button"
-                              onClick={resetDemoContributions}
-                            >
-                              <span>
-                                <strong>Reset demo data</strong>
-                                <small>
-                                  Clear this browser's local demo contributions,
-                                  offline queue, and hazard confirmations.
-                                </small>
-                              </span>
-                              <RotateCcw size={18} />
-                            </button>
-                          ) : null}
                         </div>
                       )}
                     </section>
