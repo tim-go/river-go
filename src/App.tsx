@@ -4937,6 +4937,21 @@ function App() {
                                     r="3"
                                   />
                                 </svg>
+                                <div
+                                  className="observation-chart__xaxis"
+                                  aria-hidden="true"
+                                >
+                                  <span>
+                                    {formatShortDateTime(
+                                      measure.history[0]?.observedAt,
+                                    )}
+                                  </span>
+                                  <span>
+                                    {formatShortDateTime(
+                                      measure.history.at(-1)?.observedAt,
+                                    )}
+                                  </span>
+                                </div>
                               </div>
                             ) : null}
                             <div className="observation-meta">
