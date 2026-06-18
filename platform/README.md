@@ -122,9 +122,9 @@ npm run db:local:psql
 
 Local connection defaults:
 
-- admin URL: `postgresql://river_go_admin:river_go@localhost:5435/river_go`
-- app URL: `postgresql://river_go_app:river_go@localhost:5435/river_go`
-- migrations URL: `postgresql://github_ci:river_go@localhost:5435/river_go`
+- admin URL: `postgresql://river_go_admin:river_go@localhost:5440/river_go`
+- app URL: `postgresql://river_go_app:river_go@localhost:5440/river_go`
+- migrations URL: `postgresql://github_ci:river_go@localhost:5440/river_go`
 
 PostGIS is PostgreSQL's geospatial extension. RiverLaunch.app needs it to store and query river routes, sections, hazards, access points, and nearby map contributions as real geometry rather than plain latitude/longitude text.
 

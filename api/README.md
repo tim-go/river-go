@@ -105,7 +105,7 @@ Use it for staging-first imports, refresh cadence, validation, and rollback.
 ## Local Database Defaults
 
 ```text
-DATABASE_URL=postgresql://river_go_admin:river_go@127.0.0.1:5435/river_go
+DATABASE_URL=postgresql://river_go_admin:river_go@127.0.0.1:5440/river_go
 ```
 
 The runtime app user and migration user are created by the local PostGIS container init script, but this first API slice uses the local admin URL so migrations and smoke tests work without extra credential switching.

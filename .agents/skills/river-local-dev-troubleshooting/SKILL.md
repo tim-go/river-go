@@ -13,9 +13,9 @@ Local dev runs three processes:
 
 - Frontend (Vite): `npm run dev:lan` binds `:6173` and is LAN-exposed (`--host 0.0.0.0`); `npm run dev` uses `:5173`. Vite proxies `/api` to `127.0.0.1:8080`.
 - API: `npm run api:dev` on `:8080`.
-- Postgres/PostGIS: local DB on `127.0.0.1:5435` (`npm run db:local:up`, `npm run db:local:check`).
+- Postgres/PostGIS: local DB on `127.0.0.1:5440` (`npm run db:local:up`, `npm run db:local:check`).
 
-The maintainer often runs `dev:lan` and `api:dev` continuously. Do not kill or restart them to run checks — build/typecheck/test do not need a running server. If you must run a server yourself, use spare ports and leave `:6173`/`:8080`/`:5435` alone.
+The maintainer often runs `dev:lan` and `api:dev` continuously. Do not kill or restart them to run checks — build/typecheck/test do not need a running server. If you must run a server yourself, use spare ports and leave `:6173`/`:8080`/`:5440` alone.
 
 ## Secure-Context Gotcha (LAN access)
 
@@ -54,7 +54,7 @@ To use these on a LAN device: open via `localhost`, add the origin under `chrome
    ```bash
    lsof -iTCP:6173 -sTCP:LISTEN -n -P
    lsof -iTCP:8080 -sTCP:LISTEN -n -P
-   lsof -iTCP:5435 -sTCP:LISTEN -n -P
+   lsof -iTCP:5440 -sTCP:LISTEN -n -P
    ```
 
 5. If the API is failing, check it is reachable and the DB is up:

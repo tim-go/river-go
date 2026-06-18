@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: river_go
       POSTGRES_DB: river_go
     ports:
-      - "127.0.0.1:5435:5432"
+      - "127.0.0.1:5440:5432"
     volumes:
       - river-go-db-data:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d:ro
