@@ -30,7 +30,7 @@ frontend and has its own `package.json`, `tsconfig.json`, and `node_modules`.
 - Schema changes are numbered SQL files: `api/migrations/NNN_name.sql`, applied in
   order.
 - Make migrations idempotent (`ADD COLUMN IF NOT EXISTS`, guarded `DO $$` blocks).
-- Apply locally with `npm run api:migrate`. The local DB runs on `127.0.0.1:5435`.
+- Apply locally with `npm run api:migrate`. The local DB runs on `127.0.0.1:5440`.
 - Do not edit an already-applied migration; add a new numbered one.
 
 ## Config & Secrets

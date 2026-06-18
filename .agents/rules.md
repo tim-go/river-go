@@ -55,7 +55,7 @@ npm install
 
 # Local dev (frontend; dev:lan binds :6173 and is LAN-exposed)
 npm run dev:lan
-npm run api:dev        # local API on :8080 (needs the local DB on :5435)
+npm run api:dev        # local API on :8080 (needs the local DB on :5440)
 
 # Validation gate for code changes
 npm run build && npm test && npm --prefix api run test
