@@ -203,6 +203,13 @@ export function PoiDetailPanel({
         <p className="eyebrow">{poi.kind}</p>
         <h2>{poi.title}</h2>
         <span>{poi.subtitle}</span>
+        {poi.status ? (
+          <div className="poi-detail-panel__badges">
+            <span className={`status-chip status-chip--${poi.status}`}>
+              {poi.status}
+            </span>
+          </div>
+        ) : null}
       </div>
       <div className="panel-content panel-content--tabbed">
         <div

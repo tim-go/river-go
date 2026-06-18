@@ -214,7 +214,7 @@ button:disabled {
 
 .app-body {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 244px minmax(0, 1fr);
   min-height: 0;
 }
 
@@ -309,10 +309,6 @@ button:disabled {
 
 .app-nav--collapsed .app-nav__brand span:last-child {
   display: none;
-}
-
-.app-nav--collapsed .app-nav__toggle svg {
-  transform: rotate(-90deg);
 }
 
 .app-nav nav {
@@ -480,8 +476,8 @@ button:disabled {
 }
 
 .brand-mark--nav {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
 }
 
 .eyebrow {
@@ -693,6 +689,39 @@ h1 {
   z-index: 455;
   width: min(560px, calc(100% - 32px));
   transform: translateX(-50%);
+}
+
+/* Surge: the light-green banner washes out over the map — use dark glass. */
+[data-theme="surge"] .sync-banner {
+  background: rgba(12, 18, 40, 0.94);
+  border-color: rgba(40, 194, 160, 0.45);
+  color: #eaf0ff;
+}
+[data-theme="surge"] .sync-banner__content span {
+  color: #b8c4e6;
+}
+[data-theme="surge"] .sync-banner--failed {
+  background: rgba(46, 14, 20, 0.94);
+  border-color: rgba(255, 120, 110, 0.45);
+  color: #ffd0cb;
+}
+[data-theme="surge"] .sync-banner--offline {
+  background: rgba(48, 34, 12, 0.94);
+  border-color: rgba(255, 196, 80, 0.45);
+  color: #ffe2ad;
+}
+
+/* Surge: the add-mode banner floats over the map too — opaque dark glass. */
+[data-theme="surge"] .add-mode-banner {
+  background: rgba(12, 18, 40, 0.94);
+  border-color: rgba(40, 194, 160, 0.45);
+  color: #eaf0ff;
+}
+[data-theme="surge"] .add-mode-banner .eyebrow {
+  color: #5fe0bf;
+}
+[data-theme="surge"] .add-mode-banner span {
+  color: #b8c4e6;
 }
 
 .route-status-card {
@@ -1329,7 +1358,9 @@ h1 {
 }
 
 .auth-sheet--welcome {
-  height: min(720px, calc(100dvh - 24px));
+  width: min(1040px, 100%);
+  height: min(860px, calc(100dvh - 24px));
+  max-height: min(860px, calc(100dvh - 24px));
 }
 
 .auth-sheet--onramp {
@@ -1573,16 +1604,22 @@ h1 {
 }
 
 .auth-guest-button {
-  border-color: rgba(15, 95, 85, 0.34);
-  background: #edf7f2;
-  color: var(--river-dark);
+  border-color: #0f5f55;
+  background: #0f5f55;
+  color: #fff;
 }
 
 .auth-mode-tabs .auth-guest-button {
-  border-color: rgba(15, 95, 85, 0.42);
-  background: #e2f3eb;
-  color: var(--river-dark);
+  border-color: #0f5f55;
+  background: #0f5f55;
+  color: #fff;
   font-weight: 720;
+}
+
+.auth-guest-button:hover,
+.auth-mode-tabs .auth-guest-button:hover {
+  border-color: #0b4a42;
+  background: #0b4a42;
 }
 
 .auth-password-tip {
@@ -3064,6 +3101,13 @@ h1 {
   font-weight: 650;
 }
 
+.poi-detail-panel__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
 .detail-panel--open {
   pointer-events: auto;
   transform: translateX(0);
@@ -3564,8 +3608,8 @@ h1 {
 .observation-chart {
   display: grid;
   grid-template-columns: minmax(52px, max-content) minmax(0, 1fr);
-  gap: 8px;
-  height: 96px;
+  grid-template-rows: 78px auto;
+  gap: 4px 8px;
   padding: 7px;
   border-radius: 7px;
   background: var(--surface);
@@ -3586,6 +3630,17 @@ h1 {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.observation-chart__xaxis {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .observation-chart__grid {
@@ -4159,6 +4214,26 @@ textarea {
   padding: 10px;
 }
 
+input[type="file"] {
+  display: flex;
+  align-items: center;
+}
+input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+input[type="file"]::file-selector-button:hover {
+  border-color: var(--river-dark);
+  color: var(--river-dark);
+}
+
 .location-card {
   display: flex;
   align-items: flex-start;
@@ -4538,8 +4613,9 @@ textarea {
   }
 
   .auth-sheet--welcome .auth-guest-button {
-    border-color: rgba(15, 95, 85, 0.52);
-    background: #e2f3eb;
+    border-color: #0f5f55;
+    background: #0f5f55;
+    color: #fff;
     font-weight: 760;
   }
 
@@ -5730,6 +5806,7 @@ textarea {
   border: 1.5px solid var(--line);
   border-radius: 14px;
   background: var(--surface-strong);
+  color: var(--ink);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s ease, transform 0.15s ease,
@@ -5913,6 +5990,19 @@ textarea {
   border: 1px solid var(--line);
   color: var(--ink);
 }
+/* Native selects render light by default outside the content scope, and the
+   native option list ignores the token background — theme them dark app-wide
+   in Surge (color-scheme darkens the native popup/arrow). */
+[data-theme="surge"] select {
+  background: rgba(22, 32, 66, 0.62);
+  border-color: rgba(120, 150, 230, 0.18);
+  color: #eaf0ff;
+  color-scheme: dark;
+}
+[data-theme="surge"] option {
+  background: #0c1430;
+  color: #eaf0ff;
+}
 [data-theme="surge"] .app-shell--content-only input::placeholder {
   color: var(--muted);
 }
@@ -5927,6 +6017,19 @@ textarea {
   background: rgba(47, 107, 255, 0.22);
   border-color: rgba(77, 139, 255, 0.5);
   color: #fff;
+}
+
+/* Continue-as-guest stays a teal-green CTA, not a Surge/Daybreak segmented tab. */
+[data-theme="surge"] .app-shell--content-only .segmented-control .auth-guest-button,
+[data-theme="daybreak"] .app-shell--content-only .segmented-control .auth-guest-button {
+  border-color: #0f5f55;
+  background: #0f5f55;
+  color: #fff;
+}
+[data-theme="surge"] .app-shell--content-only .segmented-control .auth-guest-button:hover,
+[data-theme="daybreak"] .app-shell--content-only .segmented-control .auth-guest-button:hover {
+  border-color: #0b4a42;
+  background: #0b4a42;
 }
 
 /* river rows become glowing Surge cards */
@@ -6342,6 +6445,31 @@ textarea {
   background: rgba(12, 18, 40, 0.94);
   border-color: rgba(120, 150, 230, 0.25);
 }
+/* Add-info (contribution) panel: dark tokens so its tabs, inputs, select, date
+   + file pickers, textarea and Cancel button theme dark like the rest. */
+[data-theme="surge"] .quick-add-panel {
+  --ink: #eaf0ff;
+  --muted: #8d9bc4;
+  --line: rgba(120, 150, 230, 0.18);
+  --surface: rgba(22, 32, 66, 0.62);
+  --surface-strong: rgba(16, 24, 52, 0.82);
+  --river: #2f6bff;
+  --river-dark: #4d8bff;
+  --sky: #4d8bff;
+  --surge-yellow: #ffd60a;
+}
+[data-theme="surge"] .quick-add-panel .segmented-control button.active,
+[data-theme="surge"] .quick-add-panel .ghost-button.is-selected,
+[data-theme="surge"] .quick-add-panel .ghost-button[aria-pressed="true"] {
+  border-color: rgba(77, 139, 255, 0.5);
+  background: rgba(47, 107, 255, 0.22);
+  color: #fff;
+}
+[data-theme="surge"] .quick-add-panel input,
+[data-theme="surge"] .quick-add-panel select,
+[data-theme="surge"] .quick-add-panel textarea {
+  color-scheme: dark;
+}
 [data-theme="surge"] .poi-detail-panel__header,
 [data-theme="surge"] .section-hero {
   background: rgba(22, 32, 66, 0.5);
@@ -6349,6 +6477,35 @@ textarea {
 [data-theme="surge"] .panel-close,
 [data-theme="surge"] .panel-expand {
   background: rgba(22, 32, 66, 0.88);
+}
+/* Give the POI detail panel Surge's dark tokens so its tab bar and info card
+   (which use var(--surface)/var(--line)/var(--surface-strong)) theme dark like
+   the river panel, instead of falling back to the light base values. */
+[data-theme="surge"] .poi-detail-panel {
+  --ink: #eaf0ff;
+  --muted: #8d9bc4;
+  --line: rgba(120, 150, 230, 0.18);
+  --surface: rgba(22, 32, 66, 0.62);
+  --surface-strong: rgba(16, 24, 52, 0.82);
+  --river: #2f6bff;
+  --river-dark: #4d8bff;
+  --sky: #4d8bff;
+  --surge-yellow: #ffd60a;
+}
+[data-theme="surge"] .poi-detail-panel .segmented-control button.active {
+  border-color: rgba(77, 139, 255, 0.5);
+  background: rgba(47, 107, 255, 0.22);
+  color: #fff;
+}
+[data-theme="surge"] .poi-detail-panel h3 {
+  color: #6aa0ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-theme="surge"] .poi-detail-panel .info-block p {
+  color: #b8c4e6;
 }
 [data-theme="surge"] .map-canvas {
   background: #0b1020;
@@ -6395,7 +6552,6 @@ textarea {
 
 /* danger / error (red) */
 [data-theme="surge"] .app-notification--error,
-[data-theme="surge"] .sync-banner--failed,
 [data-theme="surge"] .profile-message,
 [data-theme="surge"] .form-error,
 [data-theme="surge"] .groups-panel__error,
@@ -6424,7 +6580,6 @@ textarea {
 [data-theme="surge"] .notice,
 [data-theme="surge"] .confirm-panel,
 [data-theme="surge"] .inline-admin-control,
-[data-theme="surge"] .sync-banner--offline,
 [data-theme="surge"] .session-block--ice,
 [data-theme="surge"] .kit-item__flag,
 [data-theme="surge"] .coverage-item--gap,
@@ -6439,15 +6594,18 @@ textarea {
 [data-theme="surge"] .river-safety-toggle {
   color: #ffd27a;
 }
+/* Confirm modal must be opaque — the amber notice tint lets the page bleed through. */
+[data-theme="surge"] .confirm-panel--modal {
+  background: rgba(16, 24, 52, 0.98);
+  border-color: rgba(255, 196, 60, 0.42);
+}
 
 /* success / green */
-[data-theme="surge"] .sync-banner,
 [data-theme="surge"] .sync-pill--queued,
 [data-theme="surge"] .sync-icon-button--queued,
 [data-theme="surge"] .contributor-step--done,
 [data-theme="surge"] .coverage-item--ok,
 [data-theme="surge"] .location-card,
-[data-theme="surge"] .add-mode-banner,
 [data-theme="surge"] .status-chip--confirmed,
 [data-theme="surge"] .status-chip--sync-synced,
 [data-theme="surge"] .status-chip--sync-queued,
