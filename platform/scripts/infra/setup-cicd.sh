@@ -63,19 +63,24 @@ json_value() { jq -r "$1 // empty" "$CONFIG_FILE"; }
 # Roles the deploy scripts (migrate / deploy-api / deploy-web) need:
 # - run.admin + iam.serviceAccountUser: deploy Cloud Run as the server SA
 # - artifactregistry.writer + cloudbuild.builds.editor: `gcloud builds submit`
+# - serviceusage.serviceUsageConsumer: required to drive Cloud Build at all
 # - secretmanager.admin: deploy-api creates/updates Secret Manager secrets
 # - cloudsql.client: migrations + Cloud Run reach Cloud SQL via the proxy
 # - firebasehosting.admin: `firebase deploy` (web)
-# - storage.objectAdmin: Cloud Build source staging bucket
+# - storage.admin: Cloud Build source/logs bucket access
+# - viewer: lets `gcloud builds submit` stream build logs (it errors out otherwise)
+#   (alternatively, add `--suppress-logs` to deploy-api.sh and drop viewer)
 CI_DEPLOY_ROLES=(
   roles/run.admin
   roles/iam.serviceAccountUser
   roles/artifactregistry.writer
   roles/cloudbuild.builds.editor
+  roles/serviceusage.serviceUsageConsumer
   roles/secretmanager.admin
   roles/cloudsql.client
   roles/firebasehosting.admin
-  roles/storage.objectAdmin
+  roles/storage.admin
+  roles/viewer
 )
 
 preflight() {
