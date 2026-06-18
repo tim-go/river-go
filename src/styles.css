@@ -3064,6 +3064,13 @@ h1 {
   font-weight: 650;
 }
 
+.poi-detail-panel__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
 .detail-panel--open {
   pointer-events: auto;
   transform: translateX(0);
@@ -4168,6 +4175,26 @@ select {
 textarea {
   resize: vertical;
   padding: 10px;
+}
+
+input[type="file"] {
+  display: flex;
+  align-items: center;
+}
+input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+input[type="file"]::file-selector-button:hover {
+  border-color: var(--river-dark);
+  color: var(--river-dark);
 }
 
 .location-card {
@@ -5924,6 +5951,19 @@ textarea {
   border: 1px solid var(--line);
   color: var(--ink);
 }
+/* Native selects render light by default outside the content scope, and the
+   native option list ignores the token background — theme them dark app-wide
+   in Surge (color-scheme darkens the native popup/arrow). */
+[data-theme="surge"] select {
+  background: rgba(22, 32, 66, 0.62);
+  border-color: rgba(120, 150, 230, 0.18);
+  color: #eaf0ff;
+  color-scheme: dark;
+}
+[data-theme="surge"] option {
+  background: #0c1430;
+  color: #eaf0ff;
+}
 [data-theme="surge"] .app-shell--content-only input::placeholder {
   color: var(--muted);
 }
@@ -6353,6 +6393,31 @@ textarea {
   background: rgba(12, 18, 40, 0.94);
   border-color: rgba(120, 150, 230, 0.25);
 }
+/* Add-info (contribution) panel: dark tokens so its tabs, inputs, select, date
+   + file pickers, textarea and Cancel button theme dark like the rest. */
+[data-theme="surge"] .quick-add-panel {
+  --ink: #eaf0ff;
+  --muted: #8d9bc4;
+  --line: rgba(120, 150, 230, 0.18);
+  --surface: rgba(22, 32, 66, 0.62);
+  --surface-strong: rgba(16, 24, 52, 0.82);
+  --river: #2f6bff;
+  --river-dark: #4d8bff;
+  --sky: #4d8bff;
+  --surge-yellow: #ffd60a;
+}
+[data-theme="surge"] .quick-add-panel .segmented-control button.active,
+[data-theme="surge"] .quick-add-panel .ghost-button.is-selected,
+[data-theme="surge"] .quick-add-panel .ghost-button[aria-pressed="true"] {
+  border-color: rgba(77, 139, 255, 0.5);
+  background: rgba(47, 107, 255, 0.22);
+  color: #fff;
+}
+[data-theme="surge"] .quick-add-panel input,
+[data-theme="surge"] .quick-add-panel select,
+[data-theme="surge"] .quick-add-panel textarea {
+  color-scheme: dark;
+}
 [data-theme="surge"] .poi-detail-panel__header,
 [data-theme="surge"] .section-hero {
   background: rgba(22, 32, 66, 0.5);
@@ -6381,7 +6446,14 @@ textarea {
   color: #fff;
 }
 [data-theme="surge"] .poi-detail-panel h3 {
-  color: var(--ink);
+  color: #6aa0ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-theme="surge"] .poi-detail-panel .info-block p {
+  color: #b8c4e6;
 }
 [data-theme="surge"] .map-canvas {
   background: #0b1020;
