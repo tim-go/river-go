@@ -156,11 +156,20 @@ export function buildObservationChartPoints(measure: SectionObservationMeasure) 
   const height = 72;
   const padding = 6;
 
+  // Position each point by its actual timestamp, fitted to the available data
+  // range — so the line reflects real time spacing and any gaps, and a short
+  // span (e.g. only 48h of readings within a 7d window) isn't stretched to look
+  // like a full one. Readings are ordered oldest→newest by the API.
+  const startTime = new Date(readings[0].observedAt).getTime();
+  const endTime = new Date(readings[readings.length - 1].observedAt).getTime();
+  const timeSpan = endTime - startTime || 1;
+
   return readings
-    .map((reading, index) => {
+    .map((reading) => {
       const x =
         padding +
-        (index / Math.max(1, readings.length - 1)) * (width - padding * 2);
+        ((new Date(reading.observedAt).getTime() - startTime) / timeSpan) *
+          (width - padding * 2);
       const y =
         height -
         padding -
