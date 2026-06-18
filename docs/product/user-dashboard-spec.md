@@ -1,6 +1,8 @@
 # User Dashboard & River Discovery — Spec
 
-Status: in progress (branch `user-dashboard`)
+Status: v1 implemented on branch `user-dashboard` (all five items shipped, plus
+dashboard live levels). Builds clean, 28 unit tests pass. Not yet visually
+QA'd — see "Verify on wake" below.
 Date: 2026-06-18
 
 ## Goal
@@ -83,3 +85,36 @@ reviewed.
 - Should Dashboard become the default landing for signed-in users?
 - Server-synced favourites (currently localStorage / per-device).
 - Reconcile section favourites vs river favourites once the section model lands.
+
+## Shipped (v1)
+
+Commits on `user-dashboard` (after the spec commit `58ebee8`):
+- `21f4a7c` Map marker token from the first meaningful river word (tested `lib/riverName`).
+- `035c7cf` Photos tab focuses the map on points with photos.
+- `6f2a5d4` River favourites: star in the selected-river panel (localStorage, sign-in gated).
+- `2d026ff` Discover + Dashboard pages with the shared `RiverCard`.
+- `234f28a` Dashboard live levels per favourite (honest "No live gauge" fallback).
+
+Nav gained two items: **Discover** and **Dashboard**.
+
+## Verify on wake (not visually QA'd)
+- **Discover**: the chips (All / Whitewater / Canoe + nations) and search filter the
+  grid; a card opens the river on the map.
+- **Favourites**: the star in the river panel toggles (prompts sign-in when signed
+  out); favourited rivers then appear on **Dashboard**.
+- **Dashboard levels**: a river with a gauge should show a number + trend; a
+  gauge-less one shows "No live gauge". This assumes the per-section observations
+  endpoint resolves the overview section to the river's primary gauge — verify
+  against a known river (e.g. Tryweryn).
+- **Map tokens**: markers show meaningful initials (Afon Colwyn → "C").
+- **Photos tab**: the map shows only points with photos.
+- **Surge theming** of the new pages and cards.
+
+## Follow-ups
+- **Mobile bottom nav** now has 7 items — likely too many; trim to a primary set on
+  small screens.
+- The Search **"name"** tab now overlaps Discover (and shares its filter state) —
+  consider removing it now that Discover supersedes it.
+- **Bulk `/api/rivers/levels`** endpoint to light up live levels across the whole
+  Discover grid (Discovery currently omits levels; Dashboard fetches per-favourite).
+- **Server-synced favourites** (currently localStorage / per-device).
