@@ -1,26 +1,38 @@
 import { Star } from "lucide-react";
 import type { CanonicalRiverSummary } from "../services/canonicalRiverApi";
+import type { SectionObservationMeasure } from "../services/observationApi";
 import { disciplineLabel } from "../appCore";
+import { getObservationStats } from "../lib/format";
 
 interface RiverCardProps {
   river: CanonicalRiverSummary;
   onOpen: (riverId: string) => void;
   isFavourite?: boolean;
   onToggleFavourite?: (riverId: string) => void;
+  // Live level for this river's primary gauge. `undefined` = not shown (e.g.
+  // Discovery); `null` = loaded but no gauge; a measure = show the reading.
+  level?: SectionObservationMeasure | null;
 }
 
+const TREND_ARROW: Record<string, string> = {
+  rising: "▲",
+  falling: "▼",
+  steady: "→",
+};
+
 // Shared card for the Discovery and Dashboard pages — the Surge demo "river
-// card" (name, where, grade) over the rich static data we already hold. Live
-// levels are intentionally not fetched here (per-section EA/NRW/SEPA feeds are
-// too heavy for a full grid); a card opens the river on the map where the level
-// loads. Favourite control is optional so Discovery and Dashboard can share it.
+// card" (name, where, grade, optional live level) over the rich static data we
+// already hold. Live levels are only passed on the Dashboard (a small favourite
+// set); Discovery omits them. A card opens the river on the map.
 export function RiverCard({
   river,
   onOpen,
   isFavourite,
   onToggleFavourite,
+  level,
 }: RiverCardProps) {
   const where = [river.region, river.nation].filter(Boolean).join(" · ");
+  const stats = level ? getObservationStats(level) : null;
 
   return (
     <article className="river-card">
@@ -55,6 +67,28 @@ export function RiverCard({
           ) : null}
         </div>
       </div>
+
+      {level !== undefined ? (
+        level &&
+        level.latest &&
+        typeof level.latest.value === "number" &&
+        stats ? (
+          <div className="river-card__level">
+            <span className="river-card__level-num">
+              {level.latest.value.toFixed(2)}
+            </span>
+            <span className="river-card__level-unit">{level.unit}</span>
+            <span
+              className={`river-card__trend river-card__trend--${stats.trend}`}
+            >
+              {TREND_ARROW[stats.trend]} {stats.trend}
+            </span>
+          </div>
+        ) : (
+          <p className="river-card__no-gauge">No live gauge</p>
+        )
+      ) : null}
+
       <div className="river-card__tags">
         {river.discipline ? (
           <span
