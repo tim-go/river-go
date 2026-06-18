@@ -6361,6 +6361,28 @@ textarea {
 [data-theme="surge"] .panel-expand {
   background: rgba(22, 32, 66, 0.88);
 }
+/* Give the POI detail panel Surge's dark tokens so its tab bar and info card
+   (which use var(--surface)/var(--line)/var(--surface-strong)) theme dark like
+   the river panel, instead of falling back to the light base values. */
+[data-theme="surge"] .poi-detail-panel {
+  --ink: #eaf0ff;
+  --muted: #8d9bc4;
+  --line: rgba(120, 150, 230, 0.18);
+  --surface: rgba(22, 32, 66, 0.62);
+  --surface-strong: rgba(16, 24, 52, 0.82);
+  --river: #2f6bff;
+  --river-dark: #4d8bff;
+  --sky: #4d8bff;
+  --surge-yellow: #ffd60a;
+}
+[data-theme="surge"] .poi-detail-panel .segmented-control button.active {
+  border-color: rgba(77, 139, 255, 0.5);
+  background: rgba(47, 107, 255, 0.22);
+  color: #fff;
+}
+[data-theme="surge"] .poi-detail-panel h3 {
+  color: var(--ink);
+}
 [data-theme="surge"] .map-canvas {
   background: #0b1020;
 }
