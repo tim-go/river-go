@@ -19,6 +19,10 @@
   --known-river: #b42318;
   --selected-watercourse: #0f766e;
   --sky: #277da1;
+  /* Discipline colours — shared reference for the river chips and the map
+     markers, so search and map read with one colour language. */
+  --discipline-whitewater: var(--sky);
+  --discipline-touring: var(--river);
   --shadow: 0 18px 46px rgba(22, 34, 46, 0.18);
   --text-xs: 0.72rem;
   --text-sm: 0.84rem;
@@ -1845,6 +1849,52 @@ h1 {
   font-weight: 750;
 }
 
+.river-row-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.discipline-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--discipline-touring);
+}
+
+.discipline-chip--whitewater {
+  background: var(--discipline-whitewater);
+}
+
+.discipline-chip--touring {
+  background: var(--discipline-touring);
+}
+
+.discipline-chip--both {
+  background: linear-gradient(
+    90deg,
+    var(--discipline-whitewater),
+    var(--discipline-touring)
+  );
+}
+
+.country-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 650;
+  color: var(--ink);
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+}
+
 .level-pill {
   flex: 0 0 auto;
   padding: 5px 8px;
@@ -1961,6 +2011,7 @@ h1 {
   right: 14px;
   z-index: 650;
   display: grid;
+  align-content: start;
   gap: 10px;
   width: min(360px, calc(100% - 28px));
   max-height: calc(100% - 112px);
@@ -2175,6 +2226,22 @@ h1 {
 
 .map-marker--river-active {
   outline: 5px solid rgba(31, 111, 139, 0.24);
+}
+
+.map-marker--river-whitewater {
+  background: var(--discipline-whitewater);
+}
+
+.map-marker--river-touring {
+  background: var(--discipline-touring);
+}
+
+.map-marker--river-both {
+  background: linear-gradient(
+    135deg,
+    var(--discipline-whitewater),
+    var(--discipline-touring)
+  );
 }
 
 .map-marker--access {
@@ -3100,6 +3167,56 @@ h1 {
 
 .poi-detail-tabs button {
   min-width: 74px;
+}
+
+.segmented-control.river-detail-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.river-detail-tabs button {
+  min-height: 34px;
+  padding: 0 4px;
+  font-size: 0.72rem;
+}
+
+.river-detail-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(31, 59, 51, 0.1);
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.river-detail-tabs button.active .river-detail-tab-count {
+  background: rgba(31, 59, 51, 0.18);
+  color: var(--river-dark);
+}
+
+.river-safety-toggle {
+  color: #b7791f;
+}
+
+.river-safety-toggle[aria-expanded="true"] {
+  border-color: #e7b561;
+  background: #fbecd2;
+  color: #8a5a10;
+}
+
+.source-note.river-safety-note {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #f0dcb8;
+  border-radius: 8px;
+  background: #fbf4e7;
 }
 
 .route-tab-panel {
@@ -4928,12 +5045,14 @@ textarea {
 
   .topbar-actions {
     display: grid;
-    grid-template-columns: repeat(4, 30px);
+    grid-auto-flow: column;
+    grid-auto-columns: 30px;
     align-items: stretch;
     justify-content: end;
   }
 
   .topbar-actions--expanded {
+    grid-auto-flow: row;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
     justify-content: stretch;
@@ -5172,3 +5291,20 @@ textarea {
 .segmented-control.river-discipline-filter button.active { background: #fff; color: #1f3b33; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
 .river-nation-filter { font: inherit; font-size: 0.72rem; padding: 6px 8px; border: 1px solid #cdd8d3; border-radius: 8px; background: #fff; color: #1f3b33; }
 .grade-pill { font-size: 0.7rem; font-weight: 700; color: #1f3b33; background: #e3efe9; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+
+/* River level history range toggle (RIVERDISC-F7) */
+.observation-range-toggle { display: flex; gap: 4px; margin-bottom: 8px; }
+.observation-range-toggle button { flex: 1; border: 1px solid #cdd8d3; background: #f4f8f6; color: #5b6b66; border-radius: 8px; padding: 5px 8px; font-size: 0.74rem; font-weight: 600; cursor: pointer; }
+.observation-range-toggle button.active { background: #1f7a5a; color: #fff; border-color: #1f7a5a; }
+
+/* River detail: run description + sources/gaps (RIVERDISC-F3) */
+.river-run { margin: 3px 0 0; font-size: 0.82rem; color: #3a4b46; font-weight: 600; }
+.river-sources { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; color: #3a4b46; }
+.river-sources li { padding-left: 14px; position: relative; }
+.river-sources li::before { content: "·"; position: absolute; left: 4px; color: #7a8884; }
+
+/* River photo gallery (RIVERDISC-B7) */
+.river-photo-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.river-photo-thumb { border: none; padding: 0; background: none; cursor: pointer; border-radius: 8px; overflow: hidden; aspect-ratio: 1; }
+.river-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.river-photo-thumb:hover img { opacity: 0.9; }

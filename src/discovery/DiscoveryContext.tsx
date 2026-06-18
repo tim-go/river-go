@@ -17,6 +17,7 @@ import {
   fetchSectionObservations,
   type SectionObservationMeasure,
 } from "../services/observationApi";
+import type { ObservationRangeHours } from "../appCore";
 import type { MapPoi } from "../types";
 
 interface DiscoveryContextValue {
@@ -26,6 +27,8 @@ interface DiscoveryContextValue {
   selectedRiver: CanonicalRiverDetail | null;
   riverPois: MapPoi[];
   riverObservations: SectionObservationMeasure[];
+  riverObservationRange: ObservationRangeHours;
+  setRiverObservationRange: (hours: ObservationRangeHours) => void;
   isRiverLoading: boolean;
   selectRiver: (riverId: string | null) => void;
 }
@@ -47,6 +50,8 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
   const [riverObservations, setRiverObservations] = useState<
     SectionObservationMeasure[]
   >([]);
+  const [riverObservationRange, setRiverObservationRange] =
+    useState<ObservationRangeHours>(48);
   const [isRiverLoading, setIsRiverLoading] = useState(false);
 
   useEffect(() => {
@@ -87,20 +92,11 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         setSelectedRiver(river);
 
-        const sectionIds = river.sectionLinks.map((link) => link.sectionId);
-        const [pois, observationGroups] = await Promise.all([
-          fetchRiverMapPois(selectedRiverId).catch(() => [] as MapPoi[]),
-          Promise.all(
-            sectionIds.map((sectionId) =>
-              fetchSectionObservations(sectionId).catch(
-                () => [] as SectionObservationMeasure[],
-              ),
-            ),
-          ),
-        ]);
+        const pois = await fetchRiverMapPois(selectedRiverId).catch(
+          () => [] as MapPoi[],
+        );
         if (!active) return;
         setRiverPois(pois);
-        setRiverObservations(observationGroups.flat());
       } catch {
         if (active) {
           setSelectedRiver(null);
@@ -119,6 +115,33 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
     };
   }, [selectedRiverId]);
 
+  // Re-fetch the selected river's gauge history when the river or the chosen
+  // range (48h / 7d / 28d) changes.
+  useEffect(() => {
+    if (!selectedRiver) {
+      setRiverObservations([]);
+      return;
+    }
+
+    let active = true;
+    const sectionIds = selectedRiver.sectionLinks.map((link) => link.sectionId);
+    void Promise.all(
+      sectionIds.map((sectionId) =>
+        fetchSectionObservations(sectionId, riverObservationRange).catch(
+          () => [] as SectionObservationMeasure[],
+        ),
+      ),
+    ).then((groups) => {
+      if (active) {
+        setRiverObservations(groups.flat());
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedRiver, riverObservationRange]);
+
   const selectRiver = useCallback((riverId: string | null) => {
     setSelectedRiverId(riverId);
   }, []);
@@ -132,6 +155,8 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
         selectedRiver,
         riverPois,
         riverObservations,
+        riverObservationRange,
+        setRiverObservationRange,
         isRiverLoading,
         selectRiver,
       }}

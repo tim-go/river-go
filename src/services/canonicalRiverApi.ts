@@ -18,6 +18,7 @@ export interface CanonicalRiverSummary {
   nation: string | null;
   discipline: string | null;
   grade: string | null;
+  run: string | null;
   summary: string;
   centre: LatLngTuple;
   bbox: [number, number, number, number];

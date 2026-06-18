@@ -50,7 +50,11 @@ import {
   upsertMemberEmergencyProfile,
   upsertMemberFromAuth,
 } from "./members.js";
-import { listPhotosForMember, softDeletePhoto } from "./photos.js";
+import {
+  listPhotosForMember,
+  listRiverPhotos,
+  softDeletePhoto,
+} from "./photos.js";
 import {
   createPaddleLog,
   deletePaddleLog,
@@ -424,6 +428,16 @@ async function route(
       member?.id,
     );
     return { status: 200, body: { pois } };
+  }
+
+  const riverPhotosMatch = url.pathname.match(
+    /^\/api\/rivers\/([^/]+)\/photos$/,
+  );
+  if (method === "GET" && riverPhotosMatch) {
+    const photos = await listRiverPhotos(
+      decodeURIComponent(riverPhotosMatch[1]),
+    );
+    return { status: 200, body: { photos } };
   }
 
   const riverDetailMatch = url.pathname.match(/^\/api\/rivers\/([^/]+)$/);

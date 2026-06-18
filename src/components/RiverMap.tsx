@@ -1,8 +1,17 @@
 import L from "leaflet";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RiverPaddleHistory } from "./RiverPaddleHistory";
+import { ObservationCard } from "./ObservationCard";
+import { RiverPhotoGallery } from "./RiverPhotoGallery";
 import { useDiscovery } from "../discovery/DiscoveryContext";
-import { MapPin, Maximize2, Minimize2, Route, X } from "lucide-react";
+import {
+  AlertTriangle,
+  MapPin,
+  Maximize2,
+  Minimize2,
+  Route,
+  X,
+} from "lucide-react";
 import type {
   Contribution,
   ContributionOutboxRecord,
@@ -20,9 +29,6 @@ import { fetchWatercoursesForBounds, type KnownWatercourse } from "../services/w
 import type { RouteAdjustment } from "../services/routeAdjustmentApi";
 import type { RouteSuggestion } from "../services/routeSuggestionApi";
 import {
-  formatObservationValue,
-  formatShortDateTime,
-  getObservationStats,
   getPrimaryObservationMeasure,
   readCssColourToken,
   routeEndpointBounds,
@@ -50,6 +56,7 @@ import {
   mapPoiToSelectedPoi,
   riverMapPoiToSelectedPoi,
   routeImpactPoiLabel,
+  disciplineLabel,
   watercourseHintRows,
   watercourseRouteDistanceKm,
   watercourseTypeLabel,
@@ -66,6 +73,35 @@ import type {
   RouteCreateMode,
   WatercourseContextPoi,
 } from "../appCore";
+import {
+  RIVER_TAB_POI_CATEGORIES,
+  type RiverPoiTab,
+} from "../lib/riverPoiTabs";
+
+type RiverDetailTab =
+  | "levels"
+  | "rapids"
+  | "hazards"
+  | "access"
+  | "photos"
+  | "about";
+
+const RIVER_DETAIL_TABS: { id: RiverDetailTab; label: string }[] = [
+  { id: "levels", label: "Levels" },
+  { id: "rapids", label: "Rapids" },
+  { id: "hazards", label: "Hazards" },
+  { id: "access", label: "Access" },
+  { id: "photos", label: "Photos" },
+  { id: "about", label: "About" },
+];
+
+const RIVER_TAB_EMPTY_MESSAGE: Record<RiverPoiTab, string> = {
+  rapids:
+    "No rapids or whitewater features have been reviewed for this river yet.",
+  hazards:
+    "No weirs, dams or other structures have been reviewed for this river yet.",
+  access: "No access points have been reviewed for this river yet.",
+};
 
 export function RiverMap({
   sections,
@@ -101,6 +137,7 @@ export function RiverMap({
   routeCreateMode,
   markerClickMode,
   showRoutesLayer,
+  showRiverLayer,
   showSelectedRoutePath,
   showKnownRivers,
   watercourseFocusId,
@@ -150,6 +187,7 @@ export function RiverMap({
   routeCreateMode: RouteCreateMode;
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
+  showRiverLayer: boolean;
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   watercourseFocusId: string | null;
@@ -175,8 +213,26 @@ export function RiverMap({
 }) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const { selectedRiver, riverObservations } = useDiscovery();
+  const {
+    selectedRiver,
+    riverObservations,
+    riverObservationRange,
+    setRiverObservationRange,
+  } = useDiscovery();
   const primaryRiverMeasure = getPrimaryObservationMeasure(riverObservations);
+  // riverObservations is flattened across all of the river's sections, so a gauge
+  // linked to several sections (multi-section rivers like the Wye/Tryweryn) appears
+  // more than once. Dedupe by measure id for the per-gauge cards.
+  const uniqueRiverObservations = useMemo(() => {
+    const seen = new Set<string>();
+    return riverObservations.filter((measure) => {
+      if (seen.has(measure.id)) {
+        return false;
+      }
+      seen.add(measure.id);
+      return true;
+    });
+  }, [riverObservations]);
 
   // Spatial connection: selecting a river flies the map to it.
   useEffect(() => {
@@ -220,6 +276,8 @@ export function RiverMap({
   const [hiddenPoiCategories, setHiddenPoiCategories] = useState<
     Set<MapPoiDisplayCategory>
   >(() => new Set());
+  const [riverTab, setRiverTab] = useState<RiverDetailTab>("levels");
+  const [showSafetyNote, setShowSafetyNote] = useState(false);
   const [selectedWatercourseId, setSelectedWatercourseId] = useState<string | null>(
     null,
   );
@@ -274,13 +332,64 @@ export function RiverMap({
         ),
       );
   }, [selectedRiverMapPois]);
+  const tabPoiCategories = useMemo<Set<MapPoiDisplayCategory> | null>(() => {
+    if (
+      riverTab === "rapids" ||
+      riverTab === "hazards" ||
+      riverTab === "access"
+    ) {
+      return new Set(RIVER_TAB_POI_CATEGORIES[riverTab]);
+    }
+    return null;
+  }, [riverTab]);
+  // Both the map markers and the panel list follow the active POI tab: on
+  // Rapids/Hazards/Access we show only that group (minus categories hidden via
+  // the chips); on Levels/Photos/About every reviewed point stays visible.
   const visibleSelectedRiverMapPois = useMemo(
     () =>
-      selectedRiverMapPois.filter(
-        (poi) => !hiddenPoiCategories.has(mapPoiDisplayMeta(poi).category),
-      ),
-    [hiddenPoiCategories, selectedRiverMapPois],
+      selectedRiverMapPois.filter((poi) => {
+        const category = mapPoiDisplayMeta(poi).category;
+        if (hiddenPoiCategories.has(category)) {
+          return false;
+        }
+        if (tabPoiCategories && !tabPoiCategories.has(category)) {
+          return false;
+        }
+        return true;
+      }),
+    [hiddenPoiCategories, selectedRiverMapPois, tabPoiCategories],
   );
+  const tabPoiCounts = useMemo(
+    () =>
+      tabPoiCategories
+        ? selectedRiverPoiCategoryCounts.filter(({ category }) =>
+            tabPoiCategories.has(category),
+          )
+        : [],
+    [selectedRiverPoiCategoryCounts, tabPoiCategories],
+  );
+  // Total reviewed points per points-style tab, so the tab labels can advertise
+  // what's inside before the user clicks (avoids hunting through empty tabs).
+  const riverTabPoiTotals = useMemo(() => {
+    const totals: Record<RiverPoiTab, number> = {
+      rapids: 0,
+      hazards: 0,
+      access: 0,
+    };
+    selectedRiverPoiCategoryCounts.forEach(({ category, count }) => {
+      (Object.keys(totals) as Array<keyof typeof totals>).forEach((tab) => {
+        if (RIVER_TAB_POI_CATEGORIES[tab].includes(category)) {
+          totals[tab] += count;
+        }
+      });
+    });
+    return totals;
+  }, [selectedRiverPoiCategoryCounts]);
+
+  useEffect(() => {
+    setRiverTab("levels");
+    setShowSafetyNote(false);
+  }, [selectedCanonicalRiver?.id]);
 
   useEffect(() => {
     callbackRef.current = onSelectSection;
@@ -470,14 +579,24 @@ export function RiverMap({
 
     layers.clearLayers();
 
-    canonicalRivers.forEach((river) => {
+    (showRiverLayer ? canonicalRivers : []).forEach((river) => {
       const isSelected = selectedCanonicalRiver?.id === river.id;
       const label = river.displayName.trim().charAt(0).toUpperCase() || "R";
+      // Colour pins by discipline using the same --discipline-* tokens as the
+      // search chips, so the map and Search read with one colour language.
+      const disciplineKind =
+        river.discipline === "whitewater"
+          ? "river-whitewater"
+          : river.discipline === "touring"
+            ? "river-touring"
+            : river.discipline === "both"
+              ? "river-both"
+              : "river";
       const marker = L.marker(river.centre, {
         bubblingMouseEvents: false,
         icon: L.divIcon({
           className: "",
-          html: markerHtml(isSelected ? "river-active" : "river", label),
+          html: markerHtml(isSelected ? "river-active" : disciplineKind, label),
           iconSize: [36, 36],
           iconAnchor: [18, 18],
         }),
@@ -1172,6 +1291,7 @@ export function RiverMap({
     routeSuggestions,
     sections,
     showRoutesLayer,
+    showRiverLayer,
     showSelectedRoutePath,
     showKnownRivers,
     onOpenPhoto,
@@ -1326,8 +1446,21 @@ export function RiverMap({
             <div>
               <p className="eyebrow">River</p>
               <h2>{selectedCanonicalRiver.displayName}</h2>
+              {selectedCanonicalRiver.run ? (
+                <p className="river-run">{selectedCanonicalRiver.run}</p>
+              ) : null}
             </div>
             <div className="panel-icon-actions">
+              <button
+                className="icon-button icon-button--compact river-safety-toggle"
+                type="button"
+                aria-label="Conditions and safety note"
+                aria-expanded={showSafetyNote}
+                title="Conditions & safety"
+                onClick={() => setShowSafetyNote((value) => !value)}
+              >
+                <AlertTriangle size={16} />
+              </button>
               <button
                 className="icon-button icon-button--compact"
                 type="button"
@@ -1358,119 +1491,210 @@ export function RiverMap({
           </div>
 
           <div className="watercourse-panel__summary">
+            {selectedCanonicalRiver.grade ? (
+              <span>Grade {selectedCanonicalRiver.grade}</span>
+            ) : null}
+            {selectedCanonicalRiver.discipline ? (
+              <span>{disciplineLabel(selectedCanonicalRiver.discipline)}</span>
+            ) : null}
             <span>{selectedCanonicalRiver.region}</span>
             <span>
               {selectedCanonicalRiver.sectionCount} linked section
               {selectedCanonicalRiver.sectionCount === 1 ? "" : "s"}
             </span>
-            <span>{selectedCanonicalRiver.sourceConfidence}</span>
           </div>
 
-          <p className="source-note">
-            Community-sourced and official information. Conditions change quickly
-            — check locally and paddle within your own judgement.
-          </p>
+          {showSafetyNote ? (
+            <p className="source-note river-safety-note">
+              Community-sourced and official information. Conditions change
+              quickly — check locally and paddle within your own judgement.
+            </p>
+          ) : null}
 
-          <RiverPaddleHistory riverId={selectedCanonicalRiver.id} />
-
-          <div className="watercourse-context">
-            <h3>Today</h3>
-            {primaryRiverMeasure && primaryRiverMeasure.latest ? (
-              <div className="river-card__level">
-                <strong>
-                  {formatObservationValue(
-                    primaryRiverMeasure.latest.value,
-                    primaryRiverMeasure.unit,
-                  )}
-                </strong>
-                <span className="river-card__trend">
-                  {getObservationStats(primaryRiverMeasure).trend}
-                </span>
-                <small>
-                  {primaryRiverMeasure.stationName} ·{" "}
-                  {formatShortDateTime(primaryRiverMeasure.latest.observedAt)}
-                  {primaryRiverMeasure.latest.state !== "live"
-                    ? " · may be out of date"
-                    : ""}
-                </small>
-              </div>
-            ) : (
-              <p className="empty-state">
-                No live gauge linked to this river yet.
-              </p>
-            )}
-          </div>
-
-          <div className="watercourse-context">
-            <h3>On this river</h3>
-            {selectedRiverPoiCategoryCounts.length ? (
-              <div className="poi-filter-strip" aria-label="Filter reviewed points">
+          <div
+            className="segmented-control river-detail-tabs"
+            role="tablist"
+            aria-label="River detail sections"
+          >
+            {RIVER_DETAIL_TABS.map((tab) => {
+              const poiTotal =
+                tab.id === "rapids" ||
+                tab.id === "hazards" ||
+                tab.id === "access"
+                  ? riverTabPoiTotals[tab.id]
+                  : null;
+              return (
                 <button
-                  className={`poi-filter-chip ${
-                    hiddenPoiCategories.size === 0 ? "poi-filter-chip--active" : ""
-                  }`}
+                  key={tab.id}
                   type="button"
-                  onClick={showAllPoiCategories}
+                  role="tab"
+                  aria-selected={riverTab === tab.id}
+                  className={riverTab === tab.id ? "active" : ""}
+                  onClick={() => setRiverTab(tab.id)}
                 >
-                  All
+                  {tab.label}
+                  {poiTotal !== null ? (
+                    <span className="river-detail-tab-count">{poiTotal}</span>
+                  ) : null}
                 </button>
-                {selectedRiverPoiCategoryCounts.map(({ category, count }) => (
+              );
+            })}
+          </div>
+
+          {riverTab === "about" ? (
+            <RiverPaddleHistory riverId={selectedCanonicalRiver.id} />
+          ) : null}
+
+          {riverTab === "levels" ? (
+            <div className="watercourse-context">
+              {primaryRiverMeasure && primaryRiverMeasure.latest ? (
+                <>
+                  <div className="observation-range-toggle" role="tablist">
+                    {([48, 168, 672] as const).map((hours) => (
+                      <button
+                        key={hours}
+                        type="button"
+                        role="tab"
+                        aria-selected={riverObservationRange === hours}
+                        className={
+                          riverObservationRange === hours ? "active" : ""
+                        }
+                        onClick={() => setRiverObservationRange(hours)}
+                      >
+                        {hours === 48 ? "48h" : hours === 168 ? "7d" : "28d"}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="observation-list">
+                    {uniqueRiverObservations.map((measure) => (
+                      <ObservationCard
+                        key={measure.id}
+                        measure={measure}
+                        rangeHours={riverObservationRange}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="empty-state">
+                  No live gauge linked to this river yet — read locally or check
+                  a release schedule.
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          {riverTab === "about" ? (
+            <div className="watercourse-context">
+              <h3>Sources &amp; gaps</h3>
+              <ul className="river-sources">
+                <li>
+                  Level:{" "}
+                  {primaryRiverMeasure
+                    ? `${primaryRiverMeasure.stationName} — ${primaryRiverMeasure.confidence.replaceAll(
+                        "-",
+                        " ",
+                      )}`
+                    : "no online gauge — read locally or check a release schedule"}
+                </li>
+                <li>
+                  Points: {selectedCanonicalRiver.candidatePoiCount}{" "}
+                  source-derived (OpenStreetMap), needs confirmation
+                </li>
+                <li>Access &amp; hazards: not yet reviewed by paddlers</li>
+              </ul>
+            </div>
+          ) : null}
+
+          {riverTab === "photos" ? (
+            <RiverPhotoGallery
+              riverId={selectedCanonicalRiver.id}
+              onOpenPhoto={onOpenPhoto}
+            />
+          ) : null}
+
+          {riverTab === "rapids" ||
+          riverTab === "hazards" ||
+          riverTab === "access" ? (
+            <div className="watercourse-context">
+              {tabPoiCounts.length > 1 ? (
+                <div className="poi-filter-strip" aria-label="Filter points">
                   <button
                     className={`poi-filter-chip ${
-                      hiddenPoiCategories.has(category)
-                        ? ""
-                        : "poi-filter-chip--active"
-                    }`}
-                    key={category}
-                    type="button"
-                    onClick={() => togglePoiCategoryFilter(category)}
-                  >
-                    {mapPoiCategoryLabels[category]} {count}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-            {visibleSelectedRiverMapPois.length ? (
-              <div className="watercourse-list">
-                {visibleSelectedRiverMapPois.slice(0, 8).map((poi) => {
-                  const displayMeta = mapPoiDisplayMeta(poi);
-                  return (
-                  <button
-                    className="watercourse-list-row"
-                    key={poi.id}
-                    type="button"
-                    onClick={() =>
-                      poiDetailsRef.current(
-                        riverMapPoiToSelectedPoi(poi, selectedCanonicalRiver),
-                        {
-                          focusMap: true,
-                          focusPlacement: "mobile-top-half-or-center",
-                        },
+                      tabPoiCounts.every(
+                        ({ category }) => !hiddenPoiCategories.has(category),
                       )
-                    }
+                        ? "poi-filter-chip--active"
+                        : ""
+                    }`}
+                    type="button"
+                    onClick={showAllPoiCategories}
                   >
-                    <span>
-                      <strong>{poi.title}</strong>
-                      <small>
-                        {displayMeta.label} · {poi.source?.label ?? "source confirmed"}
-                      </small>
-                    </span>
-                    <MapPin size={15} />
+                    All
                   </button>
-                  );
-                })}
-              </div>
-            ) : selectedRiverMapPois.length ? (
-              <p className="empty-state">
-                All reviewed points are hidden by the current filters.
-              </p>
-            ) : (
-              <p className="empty-state">
-                No reviewed source candidates have been promoted for this river yet.
-              </p>
-            )}
-          </div>
+                  {tabPoiCounts.map(({ category, count }) => (
+                    <button
+                      className={`poi-filter-chip ${
+                        hiddenPoiCategories.has(category)
+                          ? ""
+                          : "poi-filter-chip--active"
+                      }`}
+                      key={category}
+                      type="button"
+                      onClick={() => togglePoiCategoryFilter(category)}
+                    >
+                      {mapPoiCategoryLabels[category]} {count}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              {visibleSelectedRiverMapPois.length ? (
+                <div className="watercourse-list">
+                  {visibleSelectedRiverMapPois.slice(0, 12).map((poi) => {
+                    const displayMeta = mapPoiDisplayMeta(poi);
+                    return (
+                      <button
+                        className="watercourse-list-row"
+                        key={poi.id}
+                        type="button"
+                        onClick={() =>
+                          poiDetailsRef.current(
+                            riverMapPoiToSelectedPoi(
+                              poi,
+                              selectedCanonicalRiver,
+                            ),
+                            {
+                              focusMap: true,
+                              focusPlacement: "mobile-top-half-or-center",
+                            },
+                          )
+                        }
+                      >
+                        <span>
+                          <strong>{poi.title}</strong>
+                          <small>
+                            {displayMeta.label} ·{" "}
+                            {poi.source?.label ?? "source confirmed"}
+                          </small>
+                        </span>
+                        <MapPin size={15} />
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : tabPoiCounts.length ? (
+                <p className="empty-state">
+                  All points in this tab are hidden by the current filter.
+                </p>
+              ) : (
+                <p className="empty-state">
+                  {RIVER_TAB_EMPTY_MESSAGE[riverTab]}
+                </p>
+              )}
+            </div>
+          ) : null}
 
+          {riverTab === "about" ? (
           <div className="watercourse-context">
             <h3>Sections on this river</h3>
             {selectedCanonicalRiverSections.length ? (
@@ -1500,6 +1724,7 @@ export function RiverMap({
               </p>
             )}
           </div>
+          ) : null}
         </aside>
       ) : null}
       {selectedWatercourse && !selectedCanonicalRiver && !isPoiDetailsOpen ? (

@@ -19,6 +19,7 @@ export interface ApiCanonicalRiverSummary {
   nation: string | null;
   discipline: string | null;
   grade: string | null;
+  run: string | null;
   summary: string;
   centre: [number, number];
   bbox: [number, number, number, number];
@@ -750,6 +751,7 @@ function mapCanonicalRiverRow(row: CanonicalRiverRow): ApiCanonicalRiverSummary 
     nation: payloadString("nation"),
     discipline: payloadString("discipline"),
     grade: payloadString("grade"),
+    run: payloadString("run"),
     summary: row.summary,
     centre: coordinates ? [coordinates[1], coordinates[0]] : [0, 0],
     bbox: [

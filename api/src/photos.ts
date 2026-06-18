@@ -61,6 +61,27 @@ export async function listPhotosForMember(memberId: string): Promise<ApiMemberPh
   return result.rows.map(mapPhotoRow);
 }
 
+// River-wide photo gallery (RIVERDISC-B7): roll up published contribution photos
+// across the river's sections.
+export async function listRiverPhotos(
+  riverId: string,
+): Promise<ApiMemberPhoto[]> {
+  const result = await pool.query<PhotoRow>(
+    `${photoSelectSql()}
+    WHERE p.section_id IN (
+      SELECT section_id FROM canonical_river_section_links
+      WHERE river_id = $1 AND status = 'active'
+    )
+      AND c.visibility = 'published'
+      AND p.moderation_status NOT IN ('hidden', 'rejected')
+    ORDER BY p.created_at DESC
+    LIMIT 100`,
+    [riverId],
+  );
+
+  return result.rows.map(mapPhotoRow);
+}
+
 export async function softDeletePhoto(
   photoId: string,
   actor: Member,
