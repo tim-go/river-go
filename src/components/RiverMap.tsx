@@ -33,6 +33,7 @@ import {
   readCssColourToken,
   routeEndpointBounds,
 } from "../lib/format";
+import { riverMarkerInitial } from "../lib/riverName";
 import {
   createLiveLocationPopup,
   createMapPopupContent,
@@ -644,7 +645,7 @@ export function RiverMap({
 
     (showRiverLayer ? canonicalRivers : []).forEach((river) => {
       const isSelected = selectedCanonicalRiver?.id === river.id;
-      const label = river.displayName.trim().charAt(0).toUpperCase() || "R";
+      const label = riverMarkerInitial(river.displayName);
       // Colour pins by discipline using the same --discipline-* tokens as the
       // search chips, so the map and Search read with one colour language.
       const disciplineKind =
