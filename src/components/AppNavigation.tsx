@@ -1,6 +1,8 @@
 import {
   ChevronLeft,
   ChevronRight,
+  Compass,
+  LayoutDashboard,
   Map as MapIcon,
   MoreHorizontal,
   Search,
@@ -17,6 +19,8 @@ const appNavItems: Array<{
   icon: typeof Search;
 }> = [
   { id: "map", label: "Map", icon: MapIcon },
+  { id: "discover", label: "Discover", icon: Compass },
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "search", label: "Search", icon: Search },
   { id: "groups", label: "Groups", icon: UsersRound },
   { id: "profile", label: "Profile", icon: UserRound },

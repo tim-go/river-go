@@ -138,6 +138,7 @@ import { KitInventoryPanel } from "./components/KitInventoryPanel";
 import { SkillsPanel } from "./components/SkillsPanel";
 import { AppNotificationBanner } from "./components/AppNotificationBanner";
 import { PlaceholderPage } from "./components/PlaceholderPage";
+import { RiverCard } from "./components/RiverCard";
 import { GroupsPanel } from "./components/GroupsPanel";
 import { PhotoLightbox } from "./components/PhotoLightbox";
 import { AuthPromptSheet } from "./components/AuthPromptSheet";
@@ -733,6 +734,9 @@ function App() {
     failedOutboxCount <= syncBannerDismissal!.failedOutboxCount;
   const favouriteSections = appRiverSections.filter((section) =>
     favouriteSectionIds.includes(section.id),
+  );
+  const favouriteRivers = canonicalRivers.filter((river) =>
+    favouriteRiverIds.includes(river.id),
   );
   const isActiveSectionFavourite =
     isSignedIn && favouriteSectionIds.includes(activeSection.id);
@@ -5323,6 +5327,147 @@ function App() {
         </section>
         ) : null}
       </section>
+          ) : activeAppSection === "discover" ? (
+            <PlaceholderPage section="discover" title="Discover rivers">
+              <div className="discover-page">
+                <div className="discover-filters">
+                  <input
+                    className="discover-search"
+                    value={riverSearchTerm}
+                    onChange={(event) => setRiverSearchTerm(event.target.value)}
+                    placeholder="Search rivers, regions, nations…"
+                    aria-label="Search rivers"
+                  />
+                  <div className="discover-chips" role="group" aria-label="Filter rivers">
+                    <button
+                      type="button"
+                      className={`discover-chip${riverDisciplineFilter === "all" ? " discover-chip--active" : ""}`}
+                      onClick={() => setRiverDisciplineFilter("all")}
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      className={`discover-chip${riverDisciplineFilter === "whitewater" ? " discover-chip--active" : ""}`}
+                      onClick={() => setRiverDisciplineFilter("whitewater")}
+                    >
+                      Whitewater
+                    </button>
+                    <button
+                      type="button"
+                      className={`discover-chip${riverDisciplineFilter === "touring" ? " discover-chip--active" : ""}`}
+                      onClick={() => setRiverDisciplineFilter("touring")}
+                    >
+                      Canoe touring
+                    </button>
+                    {riverNations.length ? (
+                      <span className="discover-chip-sep" aria-hidden="true" />
+                    ) : null}
+                    <button
+                      type="button"
+                      className={`discover-chip${riverNationFilter === "all" ? " discover-chip--active" : ""}`}
+                      onClick={() => setRiverNationFilter("all")}
+                    >
+                      All nations
+                    </button>
+                    {riverNations.map((nation) => (
+                      <button
+                        key={nation}
+                        type="button"
+                        className={`discover-chip${riverNationFilter === nation ? " discover-chip--active" : ""}`}
+                        onClick={() => setRiverNationFilter(nation)}
+                      >
+                        {nation}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="discover-count">
+                  {filteredSearchRivers.length} river
+                  {filteredSearchRivers.length === 1 ? "" : "s"}
+                </p>
+                {filteredSearchRivers.length ? (
+                  <div className="river-card-grid">
+                    {filteredSearchRivers.map((river) => (
+                      <RiverCard
+                        key={river.id}
+                        river={river}
+                        isFavourite={favouriteRiverIds.includes(river.id)}
+                        onToggleFavourite={toggleFavouriteRiver}
+                        onOpen={(riverId) => {
+                          selectCanonicalRiver(riverId);
+                          setActiveAppSection("map");
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="empty-state">
+                    No rivers match these filters yet.
+                  </p>
+                )}
+              </div>
+            </PlaceholderPage>
+          ) : activeAppSection === "dashboard" ? (
+            <PlaceholderPage section="dashboard" title="Your dashboard">
+              <div className="dashboard-page">
+                {!isSignedIn ? (
+                  <div className="dashboard-empty">
+                    <p>
+                      Sign in to favourite rivers and keep their conditions one
+                      tap away here.
+                    </p>
+                    <button
+                      type="button"
+                      className="primary-action"
+                      onClick={requireSignInForSave}
+                    >
+                      Sign in
+                    </button>
+                  </div>
+                ) : favouriteRivers.length === 0 ? (
+                  <div className="dashboard-empty">
+                    <p>
+                      No favourite rivers yet. Open a river and tap the star to
+                      add it here.
+                    </p>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => setActiveAppSection("discover")}
+                    >
+                      Browse rivers
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="dashboard-stats">
+                      <div className="dashboard-stat">
+                        <strong>{favouriteRivers.length}</strong>
+                        <span>
+                          favourite river
+                          {favouriteRivers.length === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="river-card-grid">
+                      {favouriteRivers.map((river) => (
+                        <RiverCard
+                          key={river.id}
+                          river={river}
+                          isFavourite
+                          onToggleFavourite={toggleFavouriteRiver}
+                          onOpen={(riverId) => {
+                            selectCanonicalRiver(riverId);
+                            setActiveAppSection("map");
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </PlaceholderPage>
           ) : activeAppSection === "search" ? (
             <PlaceholderPage section="search" title="Search">
               <div className="search-panel">
