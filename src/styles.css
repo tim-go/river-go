@@ -695,6 +695,39 @@ h1 {
   transform: translateX(-50%);
 }
 
+/* Surge: the light-green banner washes out over the map — use dark glass. */
+[data-theme="surge"] .sync-banner {
+  background: rgba(12, 18, 40, 0.94);
+  border-color: rgba(40, 194, 160, 0.45);
+  color: #eaf0ff;
+}
+[data-theme="surge"] .sync-banner__content span {
+  color: #b8c4e6;
+}
+[data-theme="surge"] .sync-banner--failed {
+  background: rgba(46, 14, 20, 0.94);
+  border-color: rgba(255, 120, 110, 0.45);
+  color: #ffd0cb;
+}
+[data-theme="surge"] .sync-banner--offline {
+  background: rgba(48, 34, 12, 0.94);
+  border-color: rgba(255, 196, 80, 0.45);
+  color: #ffe2ad;
+}
+
+/* Surge: the add-mode banner floats over the map too — opaque dark glass. */
+[data-theme="surge"] .add-mode-banner {
+  background: rgba(12, 18, 40, 0.94);
+  border-color: rgba(40, 194, 160, 0.45);
+  color: #eaf0ff;
+}
+[data-theme="surge"] .add-mode-banner .eyebrow {
+  color: #5fe0bf;
+}
+[data-theme="surge"] .add-mode-banner span {
+  color: #b8c4e6;
+}
+
 .route-status-card {
   position: absolute;
   top: 12px;
@@ -6500,7 +6533,6 @@ input[type="file"]::file-selector-button:hover {
 
 /* danger / error (red) */
 [data-theme="surge"] .app-notification--error,
-[data-theme="surge"] .sync-banner--failed,
 [data-theme="surge"] .profile-message,
 [data-theme="surge"] .form-error,
 [data-theme="surge"] .groups-panel__error,
@@ -6529,7 +6561,6 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .notice,
 [data-theme="surge"] .confirm-panel,
 [data-theme="surge"] .inline-admin-control,
-[data-theme="surge"] .sync-banner--offline,
 [data-theme="surge"] .session-block--ice,
 [data-theme="surge"] .kit-item__flag,
 [data-theme="surge"] .coverage-item--gap,
@@ -6546,13 +6577,11 @@ input[type="file"]::file-selector-button:hover {
 }
 
 /* success / green */
-[data-theme="surge"] .sync-banner,
 [data-theme="surge"] .sync-pill--queued,
 [data-theme="surge"] .sync-icon-button--queued,
 [data-theme="surge"] .contributor-step--done,
 [data-theme="surge"] .coverage-item--ok,
 [data-theme="surge"] .location-card,
-[data-theme="surge"] .add-mode-banner,
 [data-theme="surge"] .status-chip--confirmed,
 [data-theme="surge"] .status-chip--sync-synced,
 [data-theme="surge"] .status-chip--sync-queued,
