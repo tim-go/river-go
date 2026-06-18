@@ -163,7 +163,42 @@ npm run data:seed:canonical-river-pilots
 
 ### Reseed rivers on staging
 
-The river seed has no `platform:*:staging` wrapper, and
+There are two ways, depending on whether the dataset already exists somewhere.
+
+**Fastest — copy an already-seeded dataset** (recommended when you have one, e.g.
+your seeded local dev DB or another environment). Far quicker and more reliable than
+refetching OSM for every river. The dataset is five tables — `canonical_rivers`,
+`canonical_river_section_links`, `river_source_features`, `river_source_links`,
+`source_candidate_pois` — copied into an **empty** target in one transaction (which
+keeps foreign-key order correct and rolls back cleanly on any error):
+
+```bash
+# source = local DB (:5440); target = staging through the proxy on :5441
+LURL=$(jq -r '.local.database.adminUrl' platform/.config/river-go-runtime.json)
+SURL=$(jq -r '.staging.database.migrationsUrl' platform/.config/river-go-runtime.json)
+
+pg_dump "$LURL" --data-only --no-owner --no-privileges \
+  -t canonical_rivers -t canonical_river_section_links \
+  -t river_source_features -t river_source_links -t source_candidate_pois \
+  -f /tmp/canon.sql
+
+# pg_dump >= 18 emits `SET transaction_timeout` (a PG17+ setting) that an older
+# Cloud SQL server rejects — strip it before loading:
+sed -i '/^SET transaction_timeout/d' /tmp/canon.sql
+
+psql "$SURL" --single-transaction -v ON_ERROR_STOP=1 -f /tmp/canon.sql
+
+# then promote + levels:
+export RIVER_GO_DATABASE_URL_KEY=migrationsUrl
+node scripts/run-api-runtime-command.mjs staging npm --prefix api run repromote:pilot-candidates --
+node scripts/run-api-runtime-command.mjs staging npm --prefix api run ingest:observations --
+```
+
+`--data-only` uses `COPY` (append, not upsert), so the target tables must be empty;
+this reuses the source's already-fetched candidates rather than fresh OSM.
+
+**From scratch — seed via Overpass** (when there's no seeded source, or you want
+fresh OSM candidates). The river seed has no `platform:*:staging` wrapper, and
 `scripts/run-api-runtime-command.mjs` only injects `DATABASE_URL` — it does **not**
 start a proxy. Staging exposes only `migrationsUrl` (the `github_ci` user, which
 owns the schema and can therefore seed); there is no `adminUrl`. So reseeding means:
