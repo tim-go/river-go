@@ -161,17 +161,49 @@ Seed the pilot canonical rivers locally:
 npm run data:seed:canonical-river-pilots
 ```
 
-Seed the pilot canonical rivers against staging with the existing runtime
-command helper after staging migrations are applied and
-`platform/.config/river-go-runtime.json` contains the staging admin database
-URL:
+### Reseed rivers on staging
+
+The river seed has no `platform:*:staging` wrapper, and
+`scripts/run-api-runtime-command.mjs` only injects `DATABASE_URL` — it does **not**
+start a proxy. Staging exposes only `migrationsUrl` (the `github_ci` user, which
+owns the schema and can therefore seed); there is no `adminUrl`. So reseeding means:
+start one Cloud SQL Auth Proxy on **5441**, then run seed → promote → ingest through
+it with `RIVER_GO_DATABASE_URL_KEY=migrationsUrl`.
+
+Prerequisites: staging migrations applied (`npm run platform:migrate:staging`) and
+the river-go gcloud config active (an account with `cloudsql.client` on
+`river-go-staging`).
 
 ```bash
-RIVER_GO_DATABASE_URL_KEY=adminUrl node scripts/run-api-runtime-command.mjs staging npm --prefix api run seed:canonical-river-pilots --
+# 1. Start the Cloud SQL Auth Proxy on :5441 (leave running in its own terminal)
+cloud-sql-proxy --gcloud-auth --address 127.0.0.1 --port 5441 \
+  river-go-staging:europe-west2:river-go-db-staging
+
+# 2. In another terminal — seed → promote → levels (all via migrationsUrl → :5441)
+export RIVER_GO_DATABASE_URL_KEY=migrationsUrl
+node scripts/run-api-runtime-command.mjs staging \
+  npm --prefix api run seed:canonical-river-pilots -- --catalogue paddling --allow-partial-candidates
+node scripts/run-api-runtime-command.mjs staging \
+  npm --prefix api run repromote:pilot-candidates --
+node scripts/run-api-runtime-command.mjs staging \
+  npm --prefix api run ingest:observations --
+# then stop the proxy (Ctrl-C)
 ```
 
-A dedicated `platform:seed:canonical-river-pilots:staging` wrapper should be
-added before this becomes a routine operator command.
+The seed **upserts** (`ON CONFLICT … DO UPDATE` on river id, section links, source
+features, and candidate POIs), so reseeding updates in place — it never duplicates
+and is safe to re-run. `--catalogue` picks the set: `paddling` (curated
+whitewater/canoe rivers), `all` (paddling + the 5 pilots), or `pilots` (just the 5).
+`repromote:pilot-candidates` opens sections to their live level, and
+`ingest:observations` pulls current EA/NRW/SEPA readings (add
+`backfill:observations -- --hours=672` for ~28 days of chart history — see
+[Observation Data](#observation-data)). Don't run a `platform:*:staging` script
+while this manual proxy is holding 5441.
+
+Production is the same flow against `river-go-prod:europe-west2:river-go-db-prod` on
+**5442**, after staging validation. A dedicated
+`platform:seed:canonical-river-pilots:staging` wrapper would let this drop the
+manual proxy step.
 
 Use dry-run mode to fetch OSM candidate counts without writing to the database:
 
