@@ -25,7 +25,9 @@
       "githubEnvironment": "staging",
       "auth": {
         "serviceAccountKeys": false,
-        "workloadIdentityFederation": true
+        "workloadIdentityFederation": true,
+        "workloadIdentityPool": "github-pool",
+        "workloadIdentityProvider": "github"
       },
       "serviceAccounts": {
         "ci": "github-actions",
@@ -66,7 +68,9 @@
       "githubEnvironment": "production",
       "auth": {
         "serviceAccountKeys": false,
-        "workloadIdentityFederation": true
+        "workloadIdentityFederation": true,
+        "workloadIdentityPool": "github-pool",
+        "workloadIdentityProvider": "github"
       },
       "serviceAccounts": {
         "ci": "github-actions",

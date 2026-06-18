@@ -115,7 +115,7 @@ Staging rollout order:
 | PLATFORM-F6 | Deployment workflow | Ops/CI | Active | v0.3 | — | Build-only GitHub Actions workflow exists; deploy remains blocked until billing is linked. |
 | PLATFORM-F7 | Firebase Hosting config | Ops/config | Landed | v0.3 | — | Staging Hosting includes `/api/**` Cloud Run rewrite; live deploy waits until API preview passes. |
 | PLATFORM-F8 | Platform health check | Ops/tooling | Landed | v0.3 | — | Read-only health check reports billing/API/resource state. |
-| PLATFORM-F9 | Local PostGIS database | Ops/local-dev | Landed | v0.3 | — | Adds isolated RiverLaunch.app PostGIS container on `127.0.0.1:5435` with local app and migration users. |
+| PLATFORM-F9 | Local PostGIS database | Ops/local-dev | Landed | v0.3 | — | Adds isolated RiverLaunch.app PostGIS container on `127.0.0.1:5440` with local app and migration users. |
 | PLATFORM-F10 | Cloud Run API deployment script | Ops/deploy | Active | v0.3 | — | Builds API Docker image, writes `DATABASE_URL` plus configured integration secrets to Secret Manager, deploys Cloud Run with invoker IAM check disabled for public staging access, and checks health. |
 | PLATFORM-F11 | Scheduled backend jobs | Ops/scheduler | Active | MVP | — | Observation ingestion starts as a guarded Cloud Run endpoint with Secret Manager-backed job token; Cloud Scheduler provisioning is queued. |
 | PLATFORM-F12 | Preview-first Hosting deployment | Ops/deploy | Active | v0.3 | — | Deploys API rewrite to a Firebase preview channel before live Hosting cutover. |

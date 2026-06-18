@@ -46,7 +46,7 @@ For normal local development, the template `local` database values are already
 set to:
 
 ```text
-postgresql://river_go_app:river_go@localhost:5435/river_go
+postgresql://river_go_app:river_go@localhost:5440/river_go
 ```
 
 To use Firebase Auth locally, write `.env.local` from the staging Firebase
@@ -67,7 +67,7 @@ npm run db:local:up
 npm run db:local:check
 ```
 
-The database listens on `127.0.0.1:5435` and includes PostGIS.
+The database listens on `127.0.0.1:5440` and includes PostGIS.
 
 Run migrations:
 

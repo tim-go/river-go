@@ -68,7 +68,7 @@ Do not add a `?host=/cloudsql/...` suffix to that URL. The Cloud SQL connection 
 
 The Kinetiq workspace already runs a shared `kinetiq-db` container on `localhost:5432`. Do not reuse or modify that container for RiverLaunch.app.
 
-RiverLaunch.app owns a separate local PostGIS container on `127.0.0.1:5435`.
+RiverLaunch.app owns a separate local PostGIS container on `127.0.0.1:5440`.
 
 For the full local development sequence, including migrations, API startup,
 Vite, LAN testing, and Firebase Auth local env setup, use:
@@ -94,13 +94,13 @@ The local database creates:
 Use:
 
 ```text
-postgresql://river_go_app:river_go@localhost:5435/river_go
+postgresql://river_go_app:river_go@localhost:5440/river_go
 ```
 
 for local app execution, and:
 
 ```text
-postgresql://github_ci:river_go@localhost:5435/river_go
+postgresql://github_ci:river_go@localhost:5440/river_go
 ```
 
 for local migrations.

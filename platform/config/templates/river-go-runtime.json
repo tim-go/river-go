@@ -7,17 +7,17 @@
     "ports": {
       "web": 5173,
       "api": 8080,
-      "database": 5435,
-      "cloudSqlProxy": 5434
+      "database": 5440,
+      "cloudSqlProxy": 5441
     },
     "urls": {
       "web": "http://127.0.0.1:5173",
       "api": "http://127.0.0.1:8080"
     },
     "database": {
-      "url": "postgresql://river_go_app:river_go@localhost:5435/river_go",
-      "migrationsUrl": "postgresql://github_ci:river_go@localhost:5435/river_go",
-      "adminUrl": "postgresql://river_go_admin:river_go@localhost:5435/river_go"
+      "url": "postgresql://river_go_app:river_go@localhost:5440/river_go",
+      "migrationsUrl": "postgresql://github_ci:river_go@localhost:5440/river_go",
+      "adminUrl": "postgresql://river_go_admin:river_go@localhost:5440/river_go"
     },
     "firebase": {
       "projectId": "river-go-staging",
@@ -58,7 +58,7 @@
     },
     "database": {
       "url": "postgresql://river_go_app:<app-password>@localhost/river_go",
-      "migrationsUrl": "postgresql://github_ci:<migration-password>@localhost:5434/river_go"
+      "migrationsUrl": "postgresql://github_ci:<migration-password>@localhost:5441/river_go"
     },
     "firebase": {
       "projectId": "river-go-staging",
@@ -99,7 +99,7 @@
     },
     "database": {
       "url": "postgresql://river_go_app:<app-password>@localhost/river_go",
-      "migrationsUrl": "postgresql://github_ci:<migration-password>@localhost:5432/river_go"
+      "migrationsUrl": "postgresql://github_ci:<migration-password>@localhost:5442/river_go"
     },
     "firebase": {
       "projectId": "river-go-prod",

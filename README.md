@@ -44,4 +44,5 @@ http://127.0.0.1:6173/
 - Product and strategy: `docs/strategy/`
 - Living specs: `docs/specs/`
 - Local development: `docs/development/local-development.md`
-- Platform setup and deployment: `platform/docs/setup.md`
+- Deployment & CI/CD: `docs/development/deployment.md`
+- Platform provisioning (first-time GCP/Firebase setup): `platform/docs/setup.md`
