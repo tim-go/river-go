@@ -1362,7 +1362,9 @@ h1 {
 }
 
 .auth-sheet--welcome {
-  height: min(720px, calc(100dvh - 24px));
+  width: min(1040px, 100%);
+  height: min(860px, calc(100dvh - 24px));
+  max-height: min(860px, calc(100dvh - 24px));
 }
 
 .auth-sheet--onramp {
@@ -1606,16 +1608,22 @@ h1 {
 }
 
 .auth-guest-button {
-  border-color: rgba(15, 95, 85, 0.34);
-  background: #edf7f2;
-  color: var(--river-dark);
+  border-color: #0f5f55;
+  background: #0f5f55;
+  color: #fff;
 }
 
 .auth-mode-tabs .auth-guest-button {
-  border-color: rgba(15, 95, 85, 0.42);
-  background: #e2f3eb;
-  color: var(--river-dark);
+  border-color: #0f5f55;
+  background: #0f5f55;
+  color: #fff;
   font-weight: 720;
+}
+
+.auth-guest-button:hover,
+.auth-mode-tabs .auth-guest-button:hover {
+  border-color: #0b4a42;
+  background: #0b4a42;
 }
 
 .auth-password-tip {
@@ -4609,8 +4617,9 @@ input[type="file"]::file-selector-button:hover {
   }
 
   .auth-sheet--welcome .auth-guest-button {
-    border-color: rgba(15, 95, 85, 0.52);
-    background: #e2f3eb;
+    border-color: #0f5f55;
+    background: #0f5f55;
+    color: #fff;
     font-weight: 760;
   }
 
@@ -5801,6 +5810,7 @@ input[type="file"]::file-selector-button:hover {
   border: 1.5px solid var(--line);
   border-radius: 14px;
   background: var(--surface-strong);
+  color: var(--ink);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s ease, transform 0.15s ease,
@@ -6011,6 +6021,19 @@ input[type="file"]::file-selector-button:hover {
   background: rgba(47, 107, 255, 0.22);
   border-color: rgba(77, 139, 255, 0.5);
   color: #fff;
+}
+
+/* Continue-as-guest stays a teal-green CTA, not a Surge/Daybreak segmented tab. */
+[data-theme="surge"] .app-shell--content-only .segmented-control .auth-guest-button,
+[data-theme="daybreak"] .app-shell--content-only .segmented-control .auth-guest-button {
+  border-color: #0f5f55;
+  background: #0f5f55;
+  color: #fff;
+}
+[data-theme="surge"] .app-shell--content-only .segmented-control .auth-guest-button:hover,
+[data-theme="daybreak"] .app-shell--content-only .segmented-control .auth-guest-button:hover {
+  border-color: #0b4a42;
+  background: #0b4a42;
 }
 
 /* river rows become glowing Surge cards */
