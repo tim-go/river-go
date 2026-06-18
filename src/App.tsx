@@ -128,7 +128,7 @@ import {
   formatWhat3Words,
 } from "./services/locationReferences";
 import { routeSuggestionStatusLabel, routeAdjustmentStatusLabel } from "./lib/mapPopups";
-import { loadContributions, loadFavouriteSectionIds, loadRouteSuggestions, loadAnalyticsConsent, saveAnalyticsConsent, hasDismissedWelcomeForSession, rememberWelcomeDismissedForSession, loadLiveLocationEnabled, saveLiveLocationEnabled, loadMarkerClickMode, saveMarkerClickMode, loadSyncBannerDismissal, saveSyncBannerDismissal, STORAGE_KEY, FAVOURITES_STORAGE_KEY, ROUTE_SUGGESTIONS_STORAGE_KEY } from "./lib/storage";
+import { loadContributions, loadFavouriteSectionIds, loadFavouriteRiverIds, saveFavouriteRiverIds, loadRouteSuggestions, loadAnalyticsConsent, saveAnalyticsConsent, hasDismissedWelcomeForSession, rememberWelcomeDismissedForSession, loadLiveLocationEnabled, saveLiveLocationEnabled, loadMarkerClickMode, saveMarkerClickMode, loadSyncBannerDismissal, saveSyncBannerDismissal, STORAGE_KEY, FAVOURITES_STORAGE_KEY, ROUTE_SUGGESTIONS_STORAGE_KEY } from "./lib/storage";
 import { SyncOutboxBanner } from "./components/SyncOutboxBanner";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
@@ -301,6 +301,9 @@ function App() {
   );
   const [favouriteSectionIds, setFavouriteSectionIds] = useState<string[]>(() =>
     loadFavouriteSectionIds(),
+  );
+  const [favouriteRiverIds, setFavouriteRiverIds] = useState<string[]>(() =>
+    loadFavouriteRiverIds(),
   );
   const [routeSuggestions, setRouteSuggestions] = useState<RouteSuggestion[]>(
     loadRouteSuggestions,
@@ -1340,6 +1343,10 @@ function App() {
       JSON.stringify(favouriteSectionIds),
     );
   }, [favouriteSectionIds]);
+
+  useEffect(() => {
+    saveFavouriteRiverIds(favouriteRiverIds);
+  }, [favouriteRiverIds]);
 
   useEffect(() => {
     let isMounted = true;
@@ -3741,6 +3748,19 @@ function App() {
     });
   }
 
+  function toggleFavouriteRiver(riverId: string) {
+    if (!isSignedIn) {
+      requireSignInForSave();
+      return;
+    }
+
+    setFavouriteRiverIds((current) =>
+      current.includes(riverId)
+        ? current.filter((id) => id !== riverId)
+        : [...current, riverId],
+    );
+  }
+
   function toggleFavouriteSection(section: RiverSection) {
     if (!isSignedIn) {
       requireSignInForSave();
@@ -4101,6 +4121,8 @@ function App() {
           isPoiDetailsOpen={Boolean(selectedPoi)}
           mapPois={visibleSectionMapPois}
           selectedRiverMapPois={selectedRiverMapPois}
+          favouriteRiverIds={favouriteRiverIds}
+          onToggleFavouriteRiver={toggleFavouriteRiver}
           contributions={contributions}
           routeSuggestions={routeSuggestions}
           routeAdjustments={routeAdjustments}

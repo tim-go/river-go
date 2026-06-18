@@ -881,6 +881,14 @@ h1 {
   height: 32px;
 }
 
+.icon-button--favourite {
+  border-color: rgba(242, 181, 10, 0.5);
+  color: #f2b50a;
+}
+.icon-button--favourite:hover {
+  color: #ffd60a;
+}
+
 .primary-action,
 .submit-button,
 .ghost-button {

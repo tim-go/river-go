@@ -8,6 +8,7 @@ import type { AnalyticsConsent } from "../services/analytics";
 
 export const STORAGE_KEY = "river-go-demo-contributions";
 export const FAVOURITES_STORAGE_KEY = "river-go-demo-favourite-sections";
+export const FAVOURITE_RIVERS_STORAGE_KEY = "river-go-favourite-rivers";
 export const ROUTE_SUGGESTIONS_STORAGE_KEY = "riverlaunch-route-suggestions-v1";
 const ANALYTICS_CONSENT_STORAGE_KEY = "riverlaunch-analytics-consent-v1";
 const WELCOME_SESSION_STORAGE_KEY = "riverlaunch-welcome-dismissed-session";
@@ -30,6 +31,31 @@ export function loadFavouriteSectionIds(): string[] {
     return [];
   } catch {
     return [];
+  }
+}
+
+// Favourite canonical rivers (the active "favourite" model — sections are
+// parked). Unlike the legacy section favourites above, these persist.
+export function loadFavouriteRiverIds(): string[] {
+  try {
+    const stored = localStorage.getItem(FAVOURITE_RIVERS_STORAGE_KEY);
+    if (!stored) {
+      return [];
+    }
+    const value = JSON.parse(stored);
+    return Array.isArray(value)
+      ? value.filter((id): id is string => typeof id === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveFavouriteRiverIds(riverIds: string[]) {
+  try {
+    localStorage.setItem(FAVOURITE_RIVERS_STORAGE_KEY, JSON.stringify(riverIds));
+  } catch {
+    // Non-critical; favourites persist only for the current session.
   }
 }
 

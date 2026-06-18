@@ -10,6 +10,7 @@ import {
   Maximize2,
   Minimize2,
   Route,
+  Star,
   X,
 } from "lucide-react";
 import type {
@@ -114,6 +115,8 @@ export function RiverMap({
   isPoiDetailsOpen,
   mapPois,
   selectedRiverMapPois,
+  favouriteRiverIds,
+  onToggleFavouriteRiver,
   contributions,
   routeSuggestions,
   routeAdjustments,
@@ -164,6 +167,8 @@ export function RiverMap({
   isPoiDetailsOpen: boolean;
   mapPois: MapPoi[];
   selectedRiverMapPois: MapPoi[];
+  favouriteRiverIds: string[];
+  onToggleFavouriteRiver: (riverId: string) => void;
   contributions: Contribution[];
   routeSuggestions: RouteSuggestion[];
   routeAdjustments: RouteAdjustment[];
@@ -1563,6 +1568,37 @@ export function RiverMap({
               ) : null}
             </div>
             <div className="panel-icon-actions">
+              <button
+                className={`icon-button icon-button--compact${
+                  favouriteRiverIds.includes(selectedCanonicalRiver.id)
+                    ? " icon-button--favourite"
+                    : ""
+                }`}
+                type="button"
+                aria-pressed={favouriteRiverIds.includes(
+                  selectedCanonicalRiver.id,
+                )}
+                aria-label={
+                  favouriteRiverIds.includes(selectedCanonicalRiver.id)
+                    ? "Remove from favourites"
+                    : "Add to favourites"
+                }
+                title={
+                  favouriteRiverIds.includes(selectedCanonicalRiver.id)
+                    ? "Favourited"
+                    : "Favourite this river"
+                }
+                onClick={() => onToggleFavouriteRiver(selectedCanonicalRiver.id)}
+              >
+                <Star
+                  size={16}
+                  fill={
+                    favouriteRiverIds.includes(selectedCanonicalRiver.id)
+                      ? "currentColor"
+                      : "none"
+                  }
+                />
+              </button>
               <button
                 className="icon-button icon-button--compact river-safety-toggle"
                 type="button"
