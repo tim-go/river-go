@@ -3564,8 +3564,8 @@ h1 {
 .observation-chart {
   display: grid;
   grid-template-columns: minmax(52px, max-content) minmax(0, 1fr);
-  gap: 8px;
-  height: 96px;
+  grid-template-rows: 78px auto;
+  gap: 4px 8px;
   padding: 7px;
   border-radius: 7px;
   background: var(--surface);
@@ -3586,6 +3586,17 @@ h1 {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.observation-chart__xaxis {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .observation-chart__grid {
