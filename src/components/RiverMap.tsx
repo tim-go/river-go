@@ -349,6 +349,22 @@ export function RiverMap({
   // Both the map markers and the panel list follow the active POI tab: on
   // Rapids/Hazards/Access we show only that group (minus categories hidden via
   // the chips); on Levels/Photos/About every reviewed point stays visible.
+  // On the Photos tab, show only points that actually carry photos — the same
+  // "focus the map on what the tab is about" behaviour as Rapids/Hazards/Access,
+  // but filtered on photo presence rather than category. Photos live on
+  // contributions (linked to a source point via mapPoiId), so build the set of
+  // point ids that have at least one photo.
+  const tabPhotosOnly = riverTab === "photos";
+  const poiIdsWithPhotos = useMemo(
+    () =>
+      new Set(
+        contributions
+          .filter((contribution) => contribution.photos?.length)
+          .map((contribution) => contribution.mapPoiId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    [contributions],
+  );
   const visibleSelectedRiverMapPois = useMemo(
     () =>
       selectedRiverMapPois.filter((poi) => {
@@ -359,9 +375,18 @@ export function RiverMap({
         if (tabPoiCategories && !tabPoiCategories.has(category)) {
           return false;
         }
+        if (tabPhotosOnly && !poiIdsWithPhotos.has(poi.id)) {
+          return false;
+        }
         return true;
       }),
-    [hiddenPoiCategories, selectedRiverMapPois, tabPoiCategories],
+    [
+      hiddenPoiCategories,
+      selectedRiverMapPois,
+      tabPoiCategories,
+      tabPhotosOnly,
+      poiIdsWithPhotos,
+    ],
   );
   const tabPoiCounts = useMemo(
     () =>
@@ -389,6 +414,13 @@ export function RiverMap({
     });
     return totals;
   }, [selectedRiverPoiCategoryCounts]);
+  // Points that carry at least one photo — advertised on the Photos tab label and
+  // used to filter the map when that tab is active.
+  const riverPhotoPoiCount = useMemo(
+    () =>
+      contributions.filter((contribution) => contribution.photos?.length).length,
+    [contributions],
+  );
 
   useEffect(() => {
     setRiverTab("levels");
@@ -1053,6 +1085,11 @@ export function RiverMap({
       if (!contribution.location) {
         return;
       }
+      // Photos tab: keep only contributions that carry photos, so the map shows
+      // just the photo points (matching the Rapids/Hazards/Access focus pattern).
+      if (tabPhotosOnly && !contribution.photos?.length) {
+        return;
+      }
 
       const syncStatus = outboxByContributionId.get(contribution.id)?.syncStatus;
       const kind =
@@ -1341,6 +1378,7 @@ export function RiverMap({
     activeSection,
     canonicalRivers,
     contributions,
+    tabPhotosOnly,
     focusNonce,
     liveLocation,
     markerClickMode,
@@ -1596,7 +1634,9 @@ export function RiverMap({
                 tab.id === "hazards" ||
                 tab.id === "access"
                   ? riverTabPoiTotals[tab.id]
-                  : null;
+                  : tab.id === "photos"
+                    ? riverPhotoPoiCount
+                    : null;
               return (
                 <button
                   key={tab.id}
