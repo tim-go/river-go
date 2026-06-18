@@ -131,6 +131,19 @@ should be idempotent/forward-only; the runner applies anything not yet recorded.
 
 ---
 
+## Seeding & reseeding data
+
+Seeding the river dataset, OSM waterways, observations, and what3words is separate
+from deploying — the full runbook is
+[`seed-data-operations.md`](../specs/foundations/seed-data-operations.md).
+
+Note the river seed has no `platform:*` wrapper and the runtime helper doesn't open
+a proxy, so to reseed staging you start a Cloud SQL Auth Proxy on **5441** yourself
+and seed through `migrationsUrl` (staging has no `adminUrl`). The seed upserts by id,
+so it's safe to re-run.
+
+---
+
 ## Working across multiple GCP projects
 
 You don't need to switch your active gcloud project for RiverLaunch — the platform
