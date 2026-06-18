@@ -18,6 +18,7 @@ import {
   MessageSquare,
   MoreHorizontal,
   Navigation,
+  Palette,
   Plus,
   RotateCcw,
   RefreshCw,
@@ -28,7 +29,6 @@ import {
   Star,
   Trash2,
   UserRound,
-  UsersRound,
   Waves,
   X,
 } from "lucide-react";
@@ -138,6 +138,7 @@ import { KitInventoryPanel } from "./components/KitInventoryPanel";
 import { SkillsPanel } from "./components/SkillsPanel";
 import { AppNotificationBanner } from "./components/AppNotificationBanner";
 import { PlaceholderPage } from "./components/PlaceholderPage";
+import { GroupsPanel } from "./components/GroupsPanel";
 import { PhotoLightbox } from "./components/PhotoLightbox";
 import { AuthPromptSheet } from "./components/AuthPromptSheet";
 import {
@@ -270,6 +271,23 @@ function App() {
     useState<AppSection>("map");
   const [activeAdminPage, setActiveAdminPage] = useState<AdminPage>("index");
   const [isAppNavCollapsed, setIsAppNavCollapsed] = useState(false);
+  const [theme, setTheme] = useState<"tide" | "daybreak" | "surge">(() => {
+    if (typeof localStorage !== "undefined") {
+      const saved = localStorage.getItem("rl-theme");
+      if (saved === "surge" || saved === "daybreak" || saved === "tide") {
+        return saved;
+      }
+    }
+    return "tide";
+  });
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem("rl-theme", theme);
+    } catch {
+      // ignore persistence errors
+    }
+  }, [theme]);
   const [activeSectionId, setActiveSectionId] = useState("");
   const [sectionFocusNonce, setSectionFocusNonce] = useState(0);
   const hasCenteredOnFirstRiverRef = useRef(false);
@@ -5742,43 +5760,13 @@ function App() {
             </PlaceholderPage>
           ) : activeAppSection === "groups" ? (
             <PlaceholderPage section="groups" title="Groups">
-              <div className="profile-grid">
-                <AppBrandPanel />
-                <section className="sign-in-card">
-                  <UsersRound size={22} />
-                  <div>
-                    <h3>Group activities</h3>
-                    <p>
-                      This future area will help clubs, friends, and paddling
-                      groups plan trips, share route choices, coordinate meeting
-                      points, and keep activity notes together.
-                    </p>
-                  </div>
-                </section>
-                <div className="placeholder-list">
-                  <div className="placeholder-row">
-                    <span>
-                      <strong>Plan a paddle</strong>
-                      <small>Draft group trips with sections, dates, and meeting points.</small>
-                    </span>
-                    <Route size={18} />
-                  </div>
-                  <div className="placeholder-row">
-                    <span>
-                      <strong>Invite members</strong>
-                      <small>Coordinate who is joining and what information they need.</small>
-                    </span>
-                    <UsersRound size={18} />
-                  </div>
-                  <div className="placeholder-row">
-                    <span>
-                      <strong>Share updates</strong>
-                      <small>Keep level, access, and safety notes attached to an activity.</small>
-                    </span>
-                    <MessageSquare size={18} />
-                  </div>
-                </div>
-              </div>
+              <GroupsPanel
+                isSignedIn={isSignedIn}
+                rivers={canonicalRivers.map((river) => ({
+                  id: river.id,
+                  displayName: river.displayName,
+                }))}
+              />
             </PlaceholderPage>
           ) : activeAppSection === "profile" ? (
             <PlaceholderPage section="profile" title="Profile">
@@ -6556,7 +6544,7 @@ function App() {
                   <div className="settings-panel__header">
                     <span>
                       <strong>Settings</strong>
-                      <small>Map, units, alerts, and account preferences</small>
+                      <small>Appearance, map, alerts, and account preferences</small>
                     </span>
                     <MoreHorizontal size={18} />
                   </div>
@@ -6591,6 +6579,56 @@ function App() {
                       Centre on map
                     </button>
                   ) : null}
+                  <div className="setting-appearance">
+                    <span className="setting-appearance__head">
+                      <Palette size={18} />
+                      <span>
+                        <strong>Appearance</strong>
+                        <small>Theme is saved on this device</small>
+                      </span>
+                    </span>
+                    <div
+                      className="theme-options"
+                      role="radiogroup"
+                      aria-label="Theme"
+                    >
+                      {(
+                        [
+                          { id: "tide", label: "Tide", hint: "Calm green" },
+                          {
+                            id: "daybreak",
+                            label: "Daybreak",
+                            hint: "Light & bright",
+                          },
+                          {
+                            id: "surge",
+                            label: "Surge",
+                            hint: "Dark & electric",
+                          },
+                        ] as const
+                      ).map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={theme === option.id}
+                          className={`theme-option theme-option--${option.id}${
+                            theme === option.id ? " theme-option--active" : ""
+                          }`}
+                          onClick={() => setTheme(option.id)}
+                        >
+                          <span
+                            className="theme-option__swatch"
+                            aria-hidden="true"
+                          />
+                          <span className="theme-option__text">
+                            <strong>{option.label}</strong>
+                            <small>{option.hint}</small>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </section>
               </div>
             </PlaceholderPage>

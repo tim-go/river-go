@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RiverLaunch — theme explorations</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root { --blue: #2f6bff; --yellow: #ffd60a; --bg: #070b1c; --ink: #eaf0ff; --muted: #8d9bc4; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: "Space Grotesk", system-ui, sans-serif; background: var(--bg);
+        color: var(--ink); line-height: 1.55; -webkit-font-smoothing: antialiased;
+        background-image:
+          radial-gradient(60% 50% at 80% 0%, rgba(47,107,255,0.4), transparent 60%),
+          radial-gradient(40% 40% at 0% 100%, rgba(255,214,10,0.12), transparent 60%);
+        background-attachment: fixed;
+      }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 60px 24px 80px; }
+      .eyebrow {
+        color: var(--yellow); font-weight: 700; letter-spacing: 0.18em;
+        text-transform: uppercase; font-size: 0.78rem; margin-bottom: 14px;
+      }
+      h1 { font-family: "Sora", sans-serif; font-size: clamp(2.2rem, 5vw, 3.4rem); letter-spacing: -0.03em; line-height: 1.02; }
+      h1 b { color: var(--yellow); }
+      .intro { color: var(--muted); max-width: 60ch; margin: 18px 0 48px; font-size: 1.05rem; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+      a.card {
+        display: block; text-decoration: none; color: inherit; border-radius: 20px;
+        overflow: hidden; border: 1px solid rgba(120,150,230,0.18);
+        background: rgba(20,30,64,0.5); transition: transform 0.15s ease, border-color 0.15s ease;
+      }
+      a.card:hover { transform: translateY(-4px); border-color: rgba(255,214,10,0.5); }
+      .swatch { height: 130px; display: flex; align-items: flex-end; padding: 14px; gap: 8px; }
+      .swatch.surge { background: radial-gradient(120% 120% at 80% 10%, #2f6bff, #060a1a); }
+      .swatch.daybreak { background: radial-gradient(120% 120% at 80% 0%, #3d72ff, #0b3bd6); }
+      .swatch.stencil { background: #ffd400; }
+      .chiprow { display: flex; gap: 6px; }
+      .chip { width: 26px; height: 26px; border-radius: 7px; border: 2px solid rgba(255,255,255,0.35); }
+      .body { padding: 20px; }
+      .body h2 { font-family: "Sora", sans-serif; font-size: 1.25rem; }
+      .body .num { color: var(--muted); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+      .body p { color: var(--muted); font-size: 0.92rem; margin: 8px 0 16px; }
+      .open { color: var(--yellow); font-weight: 700; font-size: 0.92rem; }
+      .note { margin-top: 44px; color: var(--muted); font-size: 0.88rem; border-top: 1px solid rgba(120,150,230,0.18); padding-top: 20px; }
+      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="eyebrow">RiverLaunch · design explorations</div>
+      <h1>Three <b>blue &amp; yellow</b> directions —<br />a clean break from the map-app green.</h1>
+      <p class="intro">
+        Each is a self-contained mock of the same content (a live river, its
+        level, its rapids, a group session) in a completely different look and
+        feel. Open them full-screen and compare. Nothing here touches the real
+        app — it's a sandbox for the vibe.
+      </p>
+
+      <div class="grid">
+        <a class="card" href="surge.html">
+          <div class="swatch surge">
+            <div class="chiprow">
+              <span class="chip" style="background:#2f6bff"></span>
+              <span class="chip" style="background:#ffd60a"></span>
+              <span class="chip" style="background:#060a1a"></span>
+            </div>
+          </div>
+          <div class="body">
+            <div class="num">01 · Surge</div>
+            <h2>Dark &amp; electric</h2>
+            <p>Glowing live data, big bold type, a sporty night-mode energy. For when the river is ON.</p>
+            <span class="open">Open Surge →</span>
+          </div>
+        </a>
+
+        <a class="card" href="daybreak.html">
+          <div class="swatch daybreak">
+            <div class="chiprow">
+              <span class="chip" style="background:#1e57ff"></span>
+              <span class="chip" style="background:#ffc62b"></span>
+              <span class="chip" style="background:#ffffff"></span>
+            </div>
+          </div>
+          <div class="body">
+            <div class="num">02 · Daybreak</div>
+            <h2>Bright &amp; friendly</h2>
+            <p>Rounded cards, playful gradients, big approachable buttons. Optimistic and adventurous.</p>
+            <span class="open">Open Daybreak →</span>
+          </div>
+        </a>
+
+        <a class="card" href="stencil.html">
+          <div class="swatch stencil">
+            <div class="chiprow">
+              <span class="chip" style="background:#1033c9"></span>
+              <span class="chip" style="background:#070c1c"></span>
+              <span class="chip" style="background:#f7f4e9"></span>
+            </div>
+          </div>
+          <div class="body">
+            <div class="num">03 · Stencil</div>
+            <h2>Bold editorial</h2>
+            <p>Poster-scale type, high-contrast colour blocks, angular cuts. A confident statement look.</p>
+            <span class="open">Open Stencil →</span>
+          </div>
+        </a>
+      </div>
+
+      <p class="note">
+        Fonts load from Google Fonts, so open with a connection. All three keep
+        the product's no-advice stance — levels are shown as facts (a number and
+        a trend), never a go / no-go call.
+      </p>
+    </div>
+  </body>
+</html>

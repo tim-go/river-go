@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RiverLaunch — Surge theme demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --blue: #2f6bff;
+        --blue-bright: #4d8bff;
+        --yellow: #ffd60a;
+        --ink: #eaf0ff;
+        --muted: #8d9bc4;
+        --bg: #060a1a;
+        --panel: rgba(20, 30, 64, 0.62);
+        --line: rgba(120, 150, 230, 0.16);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        line-height: 1.5;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+      /* energetic ambient background */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background:
+          radial-gradient(60% 50% at 78% 8%, rgba(47, 107, 255, 0.5), transparent 60%),
+          radial-gradient(45% 45% at 8% 92%, rgba(255, 214, 10, 0.16), transparent 60%),
+          radial-gradient(40% 40% at 50% 50%, rgba(47, 107, 255, 0.12), transparent 70%),
+          var(--bg);
+      }
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background-image:
+          linear-gradient(rgba(120, 150, 230, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(120, 150, 230, 0.05) 1px, transparent 1px);
+        background-size: 46px 46px;
+        mask: radial-gradient(circle at 50% 30%, #000 30%, transparent 78%);
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 22px 24px 80px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 64px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        font-family: "Sora", sans-serif;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        font-size: 1.18rem;
+      }
+      .brand .dot {
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--blue), var(--blue-bright));
+        box-shadow: 0 0 0 1px rgba(120, 150, 230, 0.3),
+          0 8px 30px rgba(47, 107, 255, 0.55);
+      }
+      .brand b {
+        color: var(--yellow);
+      }
+      nav {
+        display: flex;
+        gap: 26px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      nav span:hover {
+        color: var(--ink);
+      }
+      .pill-link {
+        padding: 9px 16px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 38px;
+        align-items: center;
+      }
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 13px;
+        border-radius: 999px;
+        background: rgba(255, 214, 10, 0.12);
+        border: 1px solid rgba(255, 214, 10, 0.35);
+        color: var(--yellow);
+        font-size: 0.74rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 22px;
+      }
+      .kicker .live {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--yellow);
+        box-shadow: 0 0 10px var(--yellow);
+        animation: pulse 1.6s infinite;
+      }
+      @keyframes pulse {
+        50% { opacity: 0.35; }
+      }
+      h1 {
+        font-family: "Sora", sans-serif;
+        font-size: clamp(2.7rem, 6vw, 4.6rem);
+        line-height: 0.98;
+        letter-spacing: -0.035em;
+        font-weight: 800;
+      }
+      h1 .glow {
+        color: var(--yellow);
+        text-shadow: 0 0 36px rgba(255, 214, 10, 0.5);
+      }
+      .sub {
+        margin: 22px 0 30px;
+        color: var(--muted);
+        font-size: 1.08rem;
+        max-width: 30ch;
+      }
+      .cta-row {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 15px 26px;
+        border-radius: 14px;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        text-decoration: none;
+      }
+      .btn-primary {
+        background: var(--yellow);
+        color: #1a1500;
+        box-shadow: 0 10px 34px rgba(255, 214, 10, 0.32);
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+
+      /* live river card */
+      .live-card {
+        position: relative;
+        padding: 26px;
+        border-radius: 24px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        backdrop-filter: blur(16px);
+        box-shadow: 0 30px 80px rgba(3, 7, 20, 0.7);
+      }
+      .live-card .top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+      .river-name {
+        font-family: "Sora", sans-serif;
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .river-meta {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-top: 3px;
+      }
+      .grade {
+        padding: 7px 12px;
+        border-radius: 11px;
+        background: rgba(47, 107, 255, 0.2);
+        border: 1px solid rgba(77, 139, 255, 0.4);
+        color: var(--blue-bright);
+        font-weight: 700;
+        font-size: 0.82rem;
+        white-space: nowrap;
+      }
+      .level {
+        margin: 26px 0 6px;
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .level .num {
+        font-family: "Sora", sans-serif;
+        font-size: 4.6rem;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--yellow);
+        text-shadow: 0 0 40px rgba(255, 214, 10, 0.4);
+        letter-spacing: -0.04em;
+      }
+      .level .unit {
+        font-size: 1.4rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .trend {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #6ff0a8;
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+      .spark {
+        margin-top: 18px;
+        width: 100%;
+        height: 54px;
+        display: block;
+      }
+      .gauge-line {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.8rem;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .feature-row {
+        margin-top: 56px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+      .feat {
+        padding: 20px;
+        border-radius: 18px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+      }
+      .feat .ico {
+        font-size: 1.5rem;
+      }
+      .feat .big {
+        font-family: "Sora", sans-serif;
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin: 10px 0 2px;
+      }
+      .feat .lbl {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      .feat.accent {
+        background: linear-gradient(150deg, rgba(47, 107, 255, 0.3), rgba(47, 107, 255, 0.05));
+        border-color: rgba(77, 139, 255, 0.45);
+      }
+
+      .session {
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px 24px;
+        border-radius: 18px;
+        background: linear-gradient(100deg, rgba(255, 214, 10, 0.14), rgba(47, 107, 255, 0.12));
+        border: 1px solid var(--line);
+      }
+      .avatars {
+        display: flex;
+      }
+      .avatars span {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 2px solid var(--bg);
+        margin-left: -10px;
+        background: linear-gradient(135deg, var(--blue-bright), var(--yellow));
+        display: grid;
+        place-items: center;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #06122e;
+      }
+      .session h4 {
+        font-family: "Sora", sans-serif;
+        font-size: 1.05rem;
+      }
+      .session p {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      @media (max-width: 800px) {
+        nav { display: none; }
+        .hero { grid-template-columns: 1fr; }
+        .feature-row { grid-template-columns: repeat(2, 1fr); }
+        header { margin-bottom: 40px; }
+      }
+
+      /* --- motion + glow polish --- */
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(22px); }
+        to { opacity: 1; transform: none; }
+      }
+      /* the faded backdrop slowly breathes */
+      @keyframes drift {
+        0%, 100% { transform: translate(0, 0) scale(1.04); }
+        50% { transform: translate(-2.5%, 2%) scale(1.1); }
+      }
+      @keyframes draw { to { stroke-dashoffset: 0; } }
+
+      .kicker { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+      h1 { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.08s both; }
+      .sub { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.16s both; }
+      .cta-row { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.24s both; }
+      .live-card { animation: rise 0.85s cubic-bezier(0.2, 0.7, 0.2, 1) 0.2s both; }
+      .feat { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+      .feat:nth-child(1) { animation-delay: 0.34s; }
+      .feat:nth-child(2) { animation-delay: 0.42s; }
+      .feat:nth-child(3) { animation-delay: 0.5s; }
+      .feat:nth-child(4) { animation-delay: 0.58s; }
+      .session { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.66s both; }
+
+      body::before { animation: drift 24s ease-in-out infinite; }
+
+      .live-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+      .live-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 44px 110px rgba(47, 107, 255, 0.42),
+          0 0 0 1px rgba(255, 214, 10, 0.28);
+      }
+      .feat { transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; }
+      .feat:hover {
+        transform: translateY(-4px);
+        border-color: rgba(255, 214, 10, 0.45);
+        box-shadow: 0 22px 56px rgba(47, 107, 255, 0.28);
+      }
+      .btn-primary { transition: transform 0.16s ease, box-shadow 0.22s ease; }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 52px rgba(255, 214, 10, 0.55);
+      }
+      .btn-ghost { transition: border-color 0.2s ease, color 0.2s ease; }
+      .btn-ghost:hover { border-color: var(--blue-bright); color: #fff; }
+      .pill-link { transition: border-color 0.2s ease; }
+      .pill-link:hover { border-color: var(--yellow); }
+
+      /* the level spark draws itself in */
+      .spark path:last-of-type {
+        stroke-dasharray: 360;
+        stroke-dashoffset: 360;
+        animation: draw 1.6s ease 0.5s both;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, body::before { animation: none !important; }
+        .spark path:last-of-type { stroke-dashoffset: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="brand">
+          <span class="dot">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+              <path d="M2 8c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0" />
+              <path d="M2 14c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0" />
+            </svg>
+          </span>
+          River<b>Launch</b>
+        </div>
+        <nav>
+          <span>Rivers</span><span>Levels</span><span>Groups</span><span>Map</span>
+        </nav>
+        <span class="pill-link">Sign in</span>
+      </header>
+
+      <section class="hero">
+        <div>
+          <span class="kicker"><span class="live"></span> Live · 312 gauges</span>
+          <h1>Catch it<br />while it's <span class="glow">running.</span></h1>
+          <p class="sub">
+            Live levels, real paddler knowledge, and every UK whitewater run —
+            in one place that moves as fast as the water.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="surge-app.html">Find your river →</a>
+            <a class="btn btn-ghost" href="surge-app.html">Browse rivers</a>
+          </div>
+        </div>
+
+        <div class="live-card">
+          <div class="top">
+            <div>
+              <div class="river-name">Afon Tryweryn</div>
+              <div class="river-meta">Bala, North Wales · Whitewater</div>
+            </div>
+            <span class="grade">Grade III–IV</span>
+          </div>
+          <div class="level">
+            <span class="num">1.42</span>
+            <span class="unit">m</span>
+            <span class="trend">▲ rising</span>
+          </div>
+          <svg class="spark" viewBox="0 0 320 54" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="rgba(255,214,10,0.5)" />
+                <stop offset="1" stop-color="rgba(255,214,10,0)" />
+              </linearGradient>
+            </defs>
+            <path d="M0 44 L40 40 L80 42 L120 34 L160 36 L200 24 L240 26 L280 14 L320 10 L320 54 L0 54 Z" fill="url(#g)" />
+            <path d="M0 44 L40 40 L80 42 L120 34 L160 36 L200 24 L240 26 L280 14 L320 10" fill="none" stroke="#ffd60a" stroke-width="2.5" />
+          </svg>
+          <div class="gauge-line">
+            <span>Tryweryn @ Ty Nant</span>
+            <span>updated 8 min ago</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="feature-row">
+        <div class="feat accent">
+          <div class="ico">🌊</div>
+          <div class="big">9</div>
+          <div class="lbl">named rapids on this run</div>
+        </div>
+        <div class="feat">
+          <div class="ico">📈</div>
+          <div class="big">28d</div>
+          <div class="lbl">of level history charted</div>
+        </div>
+        <div class="feat">
+          <div class="ico">📍</div>
+          <div class="big">2</div>
+          <div class="lbl">get-in / get-out points</div>
+        </div>
+        <div class="feat">
+          <div class="ico">⚡</div>
+          <div class="big">Live</div>
+          <div class="lbl">EA · NRW · SEPA feeds</div>
+        </div>
+      </section>
+
+      <section class="session">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div class="avatars">
+            <span>JM</span><span>SK</span><span>RO</span><span>+3</span>
+          </div>
+          <div>
+            <h4>Saturday session · North Wales WW</h4>
+            <p>6 paddlers going · meet 9:30 at the top car park</p>
+          </div>
+        </div>
+        <button class="btn btn-primary">I'm in</button>
+      </section>
+    </div>
+  </body>
+</html>

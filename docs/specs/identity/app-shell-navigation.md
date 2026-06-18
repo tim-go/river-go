@@ -143,6 +143,7 @@ Member-detail admin pages should allow admins to inspect account metadata, updat
 | NAV-B3 | enhancement | Search and discovery | Open | MVP | Connect search to river/section discovery, filters, and grade/runnability state. |
 | NAV-B4 | decision | ICE sharing consent model | Open | MVP | V1 stores emergency contact only; decide who can see it during a group activity and how consent/revocation/audit should work. |
 | NAV-B5 | risk | Public-name moderation | Open | MVP | Need profanity/offensive-name controls, reporting, change limits, and moderator override before relying on user-chosen public names. |
+| NAV-B6 | enhancement | Themeable basemap colours | Open | later | Surge map is a CSS blue wash over OSM raster tiles, which cannot recolour individual features (water, roads, parks). For true per-feature theming, swap to a styled basemap: a designed raster style (MapTiler/Stadia, free API key), full control via MapLibre GL vector tiles (free key or self-hosted Protomaps), or a no-key provider (CartoDB Dark Matter/Voyager, fixed palettes). Deferred 2026-06-17. |
 
 ## Change Log
 
@@ -154,3 +155,4 @@ Member-detail admin pages should allow admins to inspect account metadata, updat
 | 2026-05-24 | Moved favourites into Search, added Groups nav placeholder, and split Profile into tabs. |
 | 2026-05-24 | Added Profile public contributor name and V1 emergency-contact-only ICE model. |
 | 2026-05-25 | Added account creation and sign-in flow requirements for Google and email/password Firebase Auth. |
+| 2026-06-17 | Logged backlog item NAV-B6: themeable basemap colours (map recolouring deferred). |

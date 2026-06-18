@@ -376,3 +376,105 @@ export interface MemberSkill {
   createdAt: string;
   updatedAt: string;
 }
+
+// --- Group Paddle Sessions ---
+
+export type GroupKind = "club" | "subgroup" | "friends" | "trip";
+export type GroupVisibility = "private" | "members" | "public";
+export type GroupRole = "owner" | "organiser" | "leader" | "member" | "guest";
+export type GroupMemberStatus = "invited" | "active" | "left";
+export type GroupDiscipline = "whitewater" | "touring" | "both";
+export type SessionStatus = "planned" | "active" | "completed" | "cancelled";
+export type Rsvp = "invited" | "yes" | "no" | "maybe";
+
+export interface Group {
+  id: string;
+  name: string;
+  kind: GroupKind;
+  parentGroupId: string | null;
+  description: string | null;
+  discipline: GroupDiscipline | null;
+  visibility: GroupVisibility;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  memberCount: number;
+  myRole: GroupRole | null;
+  myStatus: GroupMemberStatus | null;
+}
+
+export interface GroupMember {
+  id: string;
+  memberId: string;
+  publicName: string;
+  role: GroupRole;
+  status: GroupMemberStatus;
+  joinedAt: string;
+}
+
+export interface GroupDetail extends Group {
+  members: GroupMember[];
+}
+
+export interface InvitableMember {
+  id: string;
+  publicName: string;
+}
+
+export interface GroupSession {
+  id: string;
+  groupId: string;
+  groupName: string | null;
+  title: string;
+  riverId: string | null;
+  sectionId: string | null;
+  venue: string | null;
+  scheduledFor: string | null;
+  meetingPoint: string | null;
+  meetingAt: string | null;
+  notes: string | null;
+  organiserId: string;
+  status: SessionStatus;
+  startedAt: string | null;
+  endedAt: string | null;
+  outcomeNotes: string | null;
+  outcomeLevelNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+  participantCount: number;
+  myRsvp: Rsvp | null;
+  myCheckedIn: boolean;
+  myIceConsent: boolean;
+}
+
+export interface SessionParticipant {
+  id: string;
+  memberId: string;
+  publicName: string;
+  rsvp: Rsvp;
+  availabilityNote: string | null;
+  checkedInAt: string | null;
+  checkedOutAt: string | null;
+  checkedInBy: string | null;
+  iceConsent: boolean;
+  ice: {
+    name: string | null;
+    phone: string | null;
+    relationship: string | null;
+  } | null;
+}
+
+export interface SessionCoverageCheck {
+  key: string;
+  label: string;
+  kind: "kit" | "skill";
+  count: number;
+  present: boolean;
+}
+
+export interface SessionDetail extends GroupSession {
+  myGroupRole: GroupRole | null;
+  participants: SessionParticipant[];
+  advisory: SessionCoverageCheck[];
+  iceVisible: boolean;
+}

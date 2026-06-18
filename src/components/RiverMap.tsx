@@ -724,6 +724,9 @@ export function RiverMap({
               return;
             }
 
+            // Clear any selected curated river so the waterway info panel
+            // (which is hidden while a river is selected) can show.
+            canonicalRiverSelectRef.current(null);
             setSelectedWatercourseId(watercourse.id);
           });
         });

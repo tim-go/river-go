@@ -3,13 +3,13 @@ roadmap_community_feature_group: Groups
 roadmap_community_feature_item: Group Paddle Sessions
 roadmap_community_feature_phase: Later
 spec_schema: 4
-maturity: Sketch
+maturity: Built (V1)
 ---
 
 # Group Paddle Sessions
 
-**Work state:** Queued
-**Last updated:** 2026-06-05
+**Work state:** V1 delivered (location/SOS still parked)
+**Last updated:** 2026-06-16
 **Scope:** Clubs, friend groups, planned paddles, check-in/out, optional location sharing, ICE sharing, kit coverage, and session history.
 
 ## Purpose
@@ -134,30 +134,52 @@ Telemetry and live tracking are later-phase. Manual session completion should be
 - Should location sharing be group-only, organiser-only, or spectator-shareable?
 - What language is needed to keep kit/skills checks clearly advisory?
 
+## Decisions (V1)
+
+These resolve the open questions above for the first build:
+
+- **Club/group privacy (GROUP-B1):** groups default to **private**. Member and
+  session lists are visible to the group's members; a `members` or `public`
+  visibility can be chosen per group (`groups.visibility`, default `private`).
+- **Participant lists:** visible to group members. Organisers/leaders manage
+  sessions; any active member can RSVP and see who else is coming.
+- **ICE consent event (GROUP-B2):** the consent event is a participant
+  explicitly toggling "Share my emergency contact for this session". It is
+  timestamped (`ice_consent_at`), revocable (`ice_revoked_at`), and revealed to
+  organisers/leaders only while the session is **live** (planned/active); it
+  closes on completion. The contact data is **not copied** — it stays in
+  `member_emergency_profiles`. No medical/health data is collected.
+- **Advisory language:** kit/skills coverage is **aggregate counts only** and
+  always advisory — the UI never says a group is "safe"; it uses phrasing like
+  "No shared first aid kit recorded" / "N recorded".
+- **Location sharing / SOS (GROUP-F8, GROUP-B3):** intentionally **not built**.
+  No rescue/dispatch/delivery promises.
+- **Presence (GROUP-B5):** out of scope for V1.
+
 ## Tracking
 
 ### Features
 
 | Key | Feature | Surface | Status | Target | Delivered | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| GROUP-F1 | Clubs and subgroups | Groups | Queued | Later | — | Club membership, roles, activity, and optional subgroup structure. |
-| GROUP-F2 | Friend and temporary groups | Groups/profile | Queued | Later | — | Private repeat groups and trip-specific temporary groups. |
-| GROUP-F3 | Planned paddle sessions | Groups/map | Queued | Later | — | River/venue target, meeting point, invitees, timing, and notes. |
-| GROUP-F4 | Participant availability | Groups | Queued | Later | — | Members can indicate which days/sessions they can attend. |
-| GROUP-F5 | Check-in/check-out | Groups/mobile | Queued | Later | — | Participant and organiser check-in/out with session lifecycle. |
-| GROUP-F6 | Session-scoped ICE sharing | Groups/profile | Queued | Later | — | Explicit consent controls temporary emergency-contact visibility. |
-| GROUP-F7 | Kit and skills advisory checks | Groups/profile | Queued | Later | — | Advisory coverage prompts based on participant-shared kit/skills. |
+| GROUP-F1 | Clubs and subgroups | Groups | Delivered | Later | 2026-06-16 | Club/friends/subgroup/trip groups; owner/organiser/leader/member/guest roles; private by default. |
+| GROUP-F2 | Friend and temporary groups | Groups/profile | Delivered | Later | 2026-06-16 | Friends + trip group kinds; invite-by-name, accept/decline, leave. |
+| GROUP-F3 | Planned paddle sessions | Groups/map | Delivered | Later | 2026-06-16 | River/venue, meeting point, timing, notes; manager-gated create. |
+| GROUP-F4 | Participant availability | Groups | Delivered | Later | 2026-06-16 | RSVP (going/maybe/can't) + free-text availability note. |
+| GROUP-F5 | Check-in/check-out | Groups/mobile | Delivered | Later | 2026-06-16 | Self + organiser-manual check-in/out; planned/active/completed/cancelled lifecycle. |
+| GROUP-F6 | Session-scoped ICE sharing | Groups/profile | Delivered | Later | 2026-06-16 | Explicit, revocable, auditable consent; revealed to managers only while live; no data copy. |
+| GROUP-F7 | Kit and skills advisory checks | Groups/profile | Delivered | Later | 2026-06-16 | Aggregate kit/skills coverage; advisory language only, never "safe". |
 | GROUP-F8 | Optional group location sharing | Groups/mobile | Parked | Later | — | Requires privacy design, consent, retention, and poor-signal caveats. |
-| GROUP-F9 | Session completion/history | Groups/profile | Queued | Later | — | Save river, level, duration, notes, media, and club-trip association after a paddle. |
+| GROUP-F9 | Session completion/history | Groups/profile | Delivered | Later | 2026-06-16 | Manual completion outcome notes; telemetry/media later. |
 
 ### Backlog
 
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
-| GROUP-B1 | decision | Club privacy model | Open | Later | Decide public/private defaults for clubs, member lists, trips, and activity. |
-| GROUP-B2 | risk | Emergency-data consent | Open | Later | Needs explicit consent, audit, expiry, and admin access boundaries. |
-| GROUP-B3 | risk | SOS expectations | Open | Later | Must not imply emergency-service monitoring or guaranteed delivery. |
-| GROUP-B4 | dependency | Member profile kit/skills | Open | Later | Required before advisory coverage checks. |
+| GROUP-B1 | decision | Club privacy model | Resolved | V1 | Groups default private; owner chooses per-group members/public visibility. |
+| GROUP-B2 | risk | Emergency-data consent | Resolved | V1 | Explicit per-session consent, timestamped + revocable; revealed to managers only while live; no data copy; no medical data. |
+| GROUP-B3 | risk | SOS expectations | Open | Later | Not built — no SOS/location in V1; must not imply emergency-service monitoring or guaranteed delivery. |
+| GROUP-B4 | dependency | Member profile kit/skills | Done | V1 | Kit/skills (Phase 3) feed advisory coverage. |
 | GROUP-B5 | decision | Presence visibility | Open | Later | Decide aggregate river-busy indicators vs friend/group-specific visibility. |
 
 ## Change Log
@@ -165,3 +187,4 @@ Telemetry and live tracking are later-phase. Manual session completion should be
 | Date | Change |
 | --- | --- |
 | 2026-06-05 | Created group paddle sessions spec from Joe feedback. |
+| 2026-06-16 | V1 built: groups + membership/roles, planned sessions, RSVP + availability, check-in/out, session-scoped ICE consent, advisory kit/skills coverage, manual completion. Location/SOS (F8) remains parked. |
