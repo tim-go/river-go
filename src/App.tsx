@@ -5422,32 +5422,21 @@ function App() {
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <div className="dashboard-stats">
-                      <div className="dashboard-stat">
-                        <strong>{favouriteRivers.length}</strong>
-                        <span>
-                          favourite river
-                          {favouriteRivers.length === 1 ? "" : "s"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="river-card-grid">
-                      {favouriteRivers.map((river) => (
-                        <RiverCard
-                          key={river.id}
-                          river={river}
-                          isFavourite
-                          level={riverLevels[river.id]}
-                          onToggleFavourite={toggleFavouriteRiver}
-                          onOpen={(riverId) => {
-                            selectCanonicalRiver(riverId);
-                            setActiveAppSection("map");
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </>
+                  <div className="river-card-grid">
+                    {favouriteRivers.map((river) => (
+                      <RiverCard
+                        key={river.id}
+                        river={river}
+                        isFavourite
+                        level={riverLevels[river.id]}
+                        onToggleFavourite={toggleFavouriteRiver}
+                        onOpen={(riverId) => {
+                          selectCanonicalRiver(riverId);
+                          setActiveAppSection("map");
+                        }}
+                      />
+                    ))}
+                  </div>
                 )}
                 {isSignedIn ? (
                   <DashboardHub

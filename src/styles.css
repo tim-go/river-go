@@ -1530,7 +1530,11 @@ h1 {
   position: relative;
   min-height: 420px;
   overflow: hidden;
-  background: #26372f;
+  background: #0b1120;
+}
+
+.auth-sheet__image picture {
+  display: contents;
 }
 
 .auth-sheet__image img {
@@ -1667,6 +1671,18 @@ h1 {
 .auth-mode-tabs .auth-guest-button:hover {
   border-color: #0b4a42;
   background: #0b4a42;
+}
+
+/* On the splash the "Continue as guest" CTA is the brand yellow, not the teal it
+   uses as an in-app segmented option. */
+.auth-sheet--welcome .auth-guest-button {
+  border-color: #ffd60a;
+  background: #ffd60a;
+  color: #060a1a;
+}
+.auth-sheet--welcome .auth-guest-button:hover {
+  border-color: #f4c500;
+  background: #f4c500;
 }
 
 .auth-password-tip {
@@ -4660,9 +4676,6 @@ input[type="file"]::file-selector-button:hover {
   }
 
   .auth-sheet--welcome .auth-guest-button {
-    border-color: #0f5f55;
-    background: #0f5f55;
-    color: #fff;
     font-weight: 760;
   }
 
@@ -5468,6 +5481,12 @@ input[type="file"]::file-selector-button:hover {
   color: #9b1c12;
   font-size: 0.82rem;
   font-weight: 600;
+}
+
+.groups-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .groups-panel__head,
