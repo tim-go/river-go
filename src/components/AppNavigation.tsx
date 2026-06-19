@@ -27,6 +27,15 @@ const appNavItems: Array<{
   { id: "more", label: "More", icon: MoreHorizontal },
 ];
 
+// The mobile bottom bar shows a curated 5; the desktop rail keeps the full list.
+const MOBILE_NAV_IDS: AppSection[] = [
+  "map",
+  "discover",
+  "dashboard",
+  "groups",
+  "profile",
+];
+
 export function AppNavigation({
   activeSection,
   collapsed,
@@ -132,7 +141,9 @@ export function MobileBottomNav({
 }) {
   return (
     <nav className="bottom-nav" aria-label="App sections">
-      {appNavItems.map((item) => {
+      {appNavItems
+        .filter((item) => MOBILE_NAV_IDS.includes(item.id))
+        .map((item) => {
         const Icon = item.icon;
         return (
           <button
