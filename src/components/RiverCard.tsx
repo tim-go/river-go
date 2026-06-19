@@ -2,7 +2,11 @@ import { Star } from "lucide-react";
 import type { CanonicalRiverSummary } from "../services/canonicalRiverApi";
 import type { SectionObservationMeasure } from "../services/observationApi";
 import { disciplineLabel } from "../appCore";
-import { getObservationStats } from "../lib/format";
+import {
+  buildObservationChartPoints,
+  formatShortDateTime,
+  getObservationStats,
+} from "../lib/format";
 
 interface RiverCardProps {
   river: CanonicalRiverSummary;
@@ -10,7 +14,7 @@ interface RiverCardProps {
   isFavourite?: boolean;
   onToggleFavourite?: (riverId: string) => void;
   // Live level for this river's primary gauge. `undefined` = not shown (e.g.
-  // Discovery); `null` = loaded but no gauge; a measure = show the reading.
+  // Discovery before lazy-load); `null` = loaded but no gauge; a measure = show.
   level?: SectionObservationMeasure | null;
 }
 
@@ -21,9 +25,8 @@ const TREND_ARROW: Record<string, string> = {
 };
 
 // Shared card for the Discovery and Dashboard pages — the Surge demo "river
-// card" (name, where, grade, optional live level) over the rich static data we
-// already hold. Live levels are only passed on the Dashboard (a small favourite
-// set); Discovery omits them. A card opens the river on the map.
+// card": name, where, grade, then a hero level number with sparkline + gauge
+// footer when there's a live reading, or an honest "No live gauge" otherwise.
 export function RiverCard({
   river,
   onOpen,
@@ -33,6 +36,7 @@ export function RiverCard({
 }: RiverCardProps) {
   const where = [river.region, river.nation].filter(Boolean).join(" · ");
   const stats = level ? getObservationStats(level) : null;
+  const sparkPoints = level ? buildObservationChartPoints(level) : "";
 
   return (
     <article className="river-card">
@@ -73,16 +77,35 @@ export function RiverCard({
         level.latest &&
         typeof level.latest.value === "number" &&
         stats ? (
-          <div className="river-card__level">
-            <span className="river-card__level-num">
-              {level.latest.value.toFixed(2)}
-            </span>
-            <span className="river-card__level-unit">{level.unit}</span>
-            <span
-              className={`river-card__trend river-card__trend--${stats.trend}`}
-            >
-              {TREND_ARROW[stats.trend]} {stats.trend}
-            </span>
+          <div className="river-card__gauge">
+            <div className="river-card__level">
+              <span className="river-card__level-num">
+                {level.latest.value.toFixed(2)}
+              </span>
+              <span className="river-card__level-unit">{level.unit}</span>
+              <span
+                className={`river-card__trend river-card__trend--${stats.trend}`}
+              >
+                {TREND_ARROW[stats.trend]} {stats.trend}
+              </span>
+            </div>
+            {sparkPoints ? (
+              <svg
+                className="river-card__spark"
+                viewBox="0 0 240 72"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <polyline
+                  className={`river-card__spark-line river-card__spark-line--${stats.trend}`}
+                  points={sparkPoints}
+                />
+              </svg>
+            ) : null}
+            <div className="river-card__gauge-foot">
+              <span>{level.stationName}</span>
+              <span>{formatShortDateTime(level.latest.observedAt)}</span>
+            </div>
           </div>
         ) : (
           <p className="river-card__no-gauge">No live gauge</p>

@@ -974,7 +974,9 @@ h1 {
 }
 
 .app-page__header {
-  margin-bottom: 16px;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto 16px;
 }
 
 .app-page__header h2 {
@@ -985,7 +987,9 @@ h1 {
 .app-page__content {
   display: grid;
   gap: 14px;
-  max-width: 760px;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
 }
 
 .search-panel,
@@ -6673,7 +6677,7 @@ input[type="file"]::file-selector-button:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 18px;
+  padding: 20px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface);
@@ -6767,20 +6771,55 @@ input[type="file"]::file-selector-button:hover {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.river-card__gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 .river-card__level {
   display: flex;
   align-items: baseline;
   gap: 8px;
 }
 .river-card__level-num {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 800;
   line-height: 1;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 .river-card__level-unit {
+  font-size: 1.05rem;
   color: var(--muted);
   font-weight: 600;
+}
+.river-card__spark {
+  display: block;
+  width: 100%;
+  height: 36px;
+}
+.river-card__spark-line {
+  fill: none;
+  stroke-width: 2.4;
+  vector-effect: non-scaling-stroke;
+}
+.river-card__spark-line--rising {
+  stroke: #2bb673;
+}
+.river-card__spark-line--falling {
+  stroke: #4d8bff;
+}
+.river-card__spark-line--steady {
+  stroke: var(--muted);
+}
+.river-card__gauge-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.76rem;
 }
 .river-card__trend {
   margin-left: auto;
