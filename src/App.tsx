@@ -147,6 +147,7 @@ import { SkillsPanel } from "./components/SkillsPanel";
 import { AppNotificationBanner } from "./components/AppNotificationBanner";
 import { PlaceholderPage } from "./components/PlaceholderPage";
 import { RiverCard } from "./components/RiverCard";
+import { DashboardHub } from "./components/DashboardHub";
 import { GroupsPanel } from "./components/GroupsPanel";
 import { PhotoLightbox } from "./components/PhotoLightbox";
 import { AuthPromptSheet } from "./components/AuthPromptSheet";
@@ -5521,6 +5522,15 @@ function App() {
                     </div>
                   </>
                 )}
+                {isSignedIn ? (
+                  <DashboardHub
+                    onOpenGroups={() => setActiveAppSection("groups")}
+                    onOpenProfileTab={(tab) => {
+                      setProfileMode(tab);
+                      setActiveAppSection("profile");
+                    }}
+                  />
+                ) : null}
               </div>
             </PlaceholderPage>
           ) : activeAppSection === "search" ? (
