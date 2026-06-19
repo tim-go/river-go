@@ -73,8 +73,7 @@ export function AppNavigation({
           </span>
           <span>
             <strong>
-              <span className="brand-river">River</span>
-              <span className="brand-launch">Launch</span>.app
+              River<span className="brand-launch">Launch</span>.app
             </strong>
             <small>River intelligence</small>
           </span>

@@ -281,17 +281,22 @@ button:disabled {
   white-space: nowrap;
 }
 
-/* Brand wordmark: tint "Launch" with the theme accent. Surge -> its bright
-   yellow, Daybreak -> its amber. Tide leaves --surge-yellow unset, so this
-   falls back to the inherited ink colour (bright yellow on the light rail
-   would be low-contrast). */
-.brand-launch {
-  color: var(--surge-yellow);
+/* Wordmark "Launch" accent. Keyed off [data-theme] rather than the
+   --surge-yellow token (which lives inside the .app-shell--content-only scope
+   and is therefore undefined for the nav on the map view, where the accent
+   would otherwise fall back to white) — so "Launch" stays yellow on every page. */
+[data-theme="surge"] .brand-launch {
+  color: #ffd60a;
+}
+[data-theme="daybreak"] .brand-launch {
+  color: #b07c00;
 }
 
-/* "River" goes pure white under Surge's dark chrome; other themes keep it the
-   inherited ink colour (white on the light rail would vanish). */
-[data-theme="surge"] .brand-river {
+/* Under Surge's dark chrome the whole wordmark is white; only "Launch" keeps its
+   accent. Other themes keep their inherited ink (white would vanish on light). */
+[data-theme="surge"] .app-nav__brand strong,
+[data-theme="surge"] .app-brand-panel strong,
+[data-theme="surge"] .auth-sheet__brand {
   color: #fff;
 }
 
