@@ -1360,6 +1360,13 @@ h1 {
   line-height: 1.1;
 }
 
+/* The rule above blocks every span in the panel (for the title/subtitle stack),
+   which would also break the inline "Launch" accent onto its own line. Keep it
+   inline so the wordmark stays on one line. */
+.app-brand-panel .brand-launch {
+  display: inline;
+}
+
 .app-brand-panel span {
   margin-top: 4px;
   color: var(--muted);
