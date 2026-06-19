@@ -554,8 +554,12 @@ h1 {
 .topbar-message {
   flex-basis: 100%;
   margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #f0b8b2;
+  border-radius: 8px;
+  background: #fff1ef;
   color: #9b1c12;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 650;
 }
 
@@ -6367,7 +6371,9 @@ input[type="file"]::file-selector-button:hover {
   color: #d8e6ff;
 }
 [data-theme="surge"] .topbar-message {
-  color: #ff9d8a;
+  border-color: rgba(255, 120, 110, 0.45);
+  background: rgba(46, 14, 20, 0.95);
+  color: #ffd0cb;
 }
 
 /* legend */
@@ -6456,6 +6462,18 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .contributor-step {
   background: rgba(12, 18, 40, 0.94);
   border-color: rgba(120, 150, 230, 0.25);
+  /* These float over the map (outside .app-shell--content-only), so redefine the
+     dark tokens — otherwise titles (var(--ink)) go dark-on-dark and primary
+     buttons (var(--river-dark)) keep the base green. */
+  --ink: #eaf0ff;
+  --muted: #8d9bc4;
+  --line: rgba(120, 150, 230, 0.18);
+  --surface: rgba(22, 32, 66, 0.62);
+  --surface-strong: rgba(16, 24, 52, 0.82);
+  --river: #2f6bff;
+  --river-dark: #4d8bff;
+  --sky: #4d8bff;
+  color-scheme: dark;
 }
 /* Add-info (contribution) panel: dark tokens so its tabs, inputs, select, date
    + file pickers, textarea and Cancel button theme dark like the rest. */
@@ -6590,7 +6608,6 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .profile-message,
 [data-theme="surge"] .form-error,
 [data-theme="surge"] .groups-panel__error,
-[data-theme="surge"] .topbar-message,
 [data-theme="surge"] .skill-item__flag {
   border-color: rgba(255, 90, 70, 0.42);
   background: rgba(255, 90, 70, 0.13);
