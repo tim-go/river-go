@@ -108,7 +108,8 @@ SERVER_SA_EMAIL="$SERVER_SA_NAME@$GCP_PROJECT.iam.gserviceaccount.com"
 DATABASE_URL="$(runtime_value ".$ENV.database.url")"
 ADMIN_EMAILS="$(jq -er ".$ENV.auth.adminEmails // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 WHAT3WORDS_API_KEY="$(jq -er ".$ENV.integrations.what3words.apiKey // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
-OBSERVATION_JOB_TOKEN="$(jq -er ".$ENV.jobs.observationIngestionToken // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
+OBSERVATION_JOB_OIDC_AUDIENCE="$(jq -er ".$ENV.jobs.observationOidcAudience // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
+OBSERVATION_JOB_SERVICE_ACCOUNT="$(jq -er ".$ENV.jobs.observationServiceAccount // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 
 if [[ -z "$TAG" ]]; then
   GIT_SHA="$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo manual)"
@@ -136,11 +137,10 @@ if [[ -n "$WHAT3WORDS_API_KEY" && "$WHAT3WORDS_API_KEY" != *"<"* && "$WHAT3WORDS
 else
   info "what3words API key not configured; location lookup endpoint will report configured=false"
 fi
-if [[ -n "$OBSERVATION_JOB_TOKEN" && "$OBSERVATION_JOB_TOKEN" != *"<"* && "$OBSERVATION_JOB_TOKEN" != *">"* ]]; then
-  write_secret "OBSERVATION_JOB_TOKEN" "$OBSERVATION_JOB_TOKEN"
-  SET_SECRETS="$SET_SECRETS,OBSERVATION_JOB_TOKEN=OBSERVATION_JOB_TOKEN:latest"
+if [[ -n "$OBSERVATION_JOB_OIDC_AUDIENCE" && -n "$OBSERVATION_JOB_SERVICE_ACCOUNT" ]]; then
+  info "Observation ingestion: Cloud Scheduler OIDC enabled for $OBSERVATION_JOB_SERVICE_ACCOUNT"
 else
-  info "Observation job token not configured; ingestion endpoint will require moderator Firebase auth"
+  info "Observation ingestion: OIDC not configured; endpoint requires moderator Firebase auth"
 fi
 
 section "Build and publish image"
@@ -157,7 +157,7 @@ run gcloud run deploy "$CLOUD_RUN_SERVICE" \
   --no-invoker-iam-check \
   --service-account="$SERVER_SA_EMAIL" \
   --add-cloudsql-instances="$CLOUD_SQL_CONNECTION_NAME" \
-  --set-env-vars="^|^CLOUD_SQL_CONNECTION_NAME=$CLOUD_SQL_CONNECTION_NAME|NODE_ENV=production|ADMIN_EMAILS=$ADMIN_EMAILS" \
+  --set-env-vars="^|^CLOUD_SQL_CONNECTION_NAME=$CLOUD_SQL_CONNECTION_NAME|NODE_ENV=production|ADMIN_EMAILS=$ADMIN_EMAILS|OBSERVATION_JOB_OIDC_AUDIENCE=$OBSERVATION_JOB_OIDC_AUDIENCE|OBSERVATION_JOB_SERVICE_ACCOUNT=$OBSERVATION_JOB_SERVICE_ACCOUNT" \
   --set-secrets="$SET_SECRETS" \
   --port="8080" \
   --memory="512Mi" \

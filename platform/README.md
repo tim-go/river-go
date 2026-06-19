@@ -183,10 +183,12 @@ records `observations.backfill` job runs and asks the provider for a larger
 bounded window. Use it after linking or enabling a new measure; regular
 ingestion should keep history current after that seed.
 
-For hosted environments, deploy the API with `jobs.observationIngestionToken`
-set in `platform/.config/river-go-runtime.json` if the scheduler will call
-`POST /api/jobs/observations/ingest` or
-`POST /api/jobs/observations/backfill` using the temporary job-token header.
+For hosted environments, Cloud Scheduler authenticates to
+`POST /api/jobs/observations/ingest` (and `/backfill`) with a Google-signed
+OIDC token. Set `jobs.observationOidcAudience` (the endpoint URL) and
+`jobs.observationServiceAccount` (the scheduler service-account email) in
+`platform/.config/river-go-runtime.json`. See
+`docs/development/river-level-scheduler.md` for the full setup.
 Production should move this to Cloud Scheduler OIDC once the scheduler resource
 is provisioned.
 

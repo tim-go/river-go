@@ -4,7 +4,8 @@ import {
   getOptionalAuthContext,
   requireAuthContext,
 } from "./auth.js";
-import { getObservationJobToken, getPort } from "./config.js";
+import { getPort } from "./config.js";
+import { isAuthorizedSchedulerOidc } from "./observation-job-auth.js";
 import {
   getCanonicalRiver,
   isSourceCandidatePoiStatus,
@@ -1086,29 +1087,16 @@ function readSourceCandidatePoiStatus(value: string | null) {
 async function requireObservationJobAccess(
   headers: IncomingHttpHeaders,
 ): Promise<void> {
-  const configuredToken = getObservationJobToken();
-  const suppliedToken = readHeader(headers, "x-riverlaunch-job-token");
-
-  if (configuredToken && suppliedToken === configuredToken) {
+  // Cloud Scheduler authenticates with a Google-signed OIDC token (verified in
+  // observation-job-auth). Otherwise fall back to a logged-in moderator — the
+  // Admin "Refresh river levels" control.
+  if (await isAuthorizedSchedulerOidc(headers)) {
     return;
   }
 
   const authContext = await requireAuthContext(headers);
   const member = await upsertMemberFromAuth(authContext);
   requireModerator(member);
-}
-
-function readHeader(
-  headers: IncomingHttpHeaders,
-  headerName: string,
-): string | undefined {
-  const value = headers[headerName.toLowerCase()];
-
-  if (Array.isArray(value)) {
-    return value[0];
-  }
-
-  return value;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
