@@ -586,6 +586,8 @@ function App() {
   );
   const [watercourseFocusNonce, setWatercourseFocusNonce] = useState(0);
   const [locationSearchInput, setLocationSearchInput] = useState("");
+  const [mapSearchInput, setMapSearchInput] = useState("");
+  const [mapSearchMessage, setMapSearchMessage] = useState("");
   const [locationSearchResult, setLocationSearchResult] =
     useState<LocationSearchResult | null>(null);
   const [locationSearchMessage, setLocationSearchMessage] = useState("");
@@ -3797,6 +3799,65 @@ function App() {
     setActiveAppSection("map");
   }
 
+  function focusMapOnSearchLocation(location: LatLngTuple, label: string) {
+    setSearchFocusLocation(location);
+    setSearchFocusLabel(label);
+    setShowSearchFocusMarker(true);
+    setSearchFocusNonce((current) => current + 1);
+    setSelectedLocation(null);
+    setSelectedPoi(null);
+  }
+
+  // Map top-bar search: coordinates / what3words drop a pin; otherwise treat it
+  // as a waterway name and focus the best match. (River-name search is Discover.)
+  async function handleMapSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const value = mapSearchInput.trim();
+    setMapSearchMessage("");
+    if (!value) {
+      return;
+    }
+
+    const coordinates = parseCoordinateSearch(value);
+    if (coordinates) {
+      focusMapOnSearchLocation(coordinates, formatLocation(coordinates));
+      setMapSearchInput("");
+      return;
+    }
+
+    if (looksLikeWhat3Words(value)) {
+      try {
+        const result = await fetchCoordinatesForWhat3Words(
+          normaliseWhat3WordsSearch(value),
+        );
+        if (result.configured && result.coordinates) {
+          focusMapOnSearchLocation(
+            [result.coordinates.lat, result.coordinates.lng],
+            result.words ? formatWhat3Words(result.words) : value,
+          );
+          setMapSearchInput("");
+          return;
+        }
+        setMapSearchMessage("Could not find that what3words address.");
+      } catch {
+        setMapSearchMessage("Could not look up that location.");
+      }
+      return;
+    }
+
+    try {
+      const results = await searchWatercourses(value);
+      if (results.length) {
+        openWatercourseOnMap(results[0]);
+        setMapSearchInput("");
+        return;
+      }
+      setMapSearchMessage("No coordinates, what3words, or waterway matched.");
+    } catch {
+      setMapSearchMessage("Search failed — try coordinates or what3words.");
+    }
+  }
+
   function toggleMarkerClickMode() {
     setMarkerClickMode((current) => {
       const next = current === "info" ? "detail" : "info";
@@ -3881,7 +3942,21 @@ function App() {
               sections are temporarily parked while the river-vs-section model
               is decided, so it pinned to the default first section. Empty
               lockup kept as a spacer so the controls stay right-aligned. */}
-          <div className="brand-lockup" />
+          <div className="brand-lockup">
+            <form
+              className="map-search"
+              onSubmit={(event) => void handleMapSearch(event)}
+            >
+              <Search size={15} />
+              <input
+                className="map-search__input"
+                value={mapSearchInput}
+                onChange={(event) => setMapSearchInput(event.target.value)}
+                placeholder="Place, coords, ///what3words, waterway"
+                aria-label="Search the map"
+              />
+            </form>
+          </div>
           <div
             className={`topbar-actions ${
               isCompactMapControls && areMapControlsExpanded
@@ -4126,9 +4201,9 @@ function App() {
                 Add info
               </button>
             ) : null}
-            {authMessage || authState.error || liveLocationAlert ? (
+            {authMessage || authState.error || liveLocationAlert || mapSearchMessage ? (
               <p className="topbar-message">
-                {authMessage || authState.error || liveLocationAlert}
+                {authMessage || authState.error || liveLocationAlert || mapSearchMessage}
               </p>
             ) : null}
           </div>
@@ -5383,6 +5458,16 @@ function App() {
           ) : activeAppSection === "discover" ? (
             <PlaceholderPage section="discover" title="Discover rivers">
               <div className="discover-page">
+                <button
+                  type="button"
+                  className="discover-place-link"
+                  onClick={() => setActiveAppSection("map")}
+                >
+                  <MapPin size={15} />
+                  <span>
+                    Looking for a place, gauge, or coordinates? Search the map →
+                  </span>
+                </button>
                 <div className="discover-filters">
                   <input
                     className="discover-search"
