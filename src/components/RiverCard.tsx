@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type KeyboardEvent } from "react";
 import { Star } from "lucide-react";
 import type { CanonicalRiverSummary } from "../services/canonicalRiverApi";
 import type { SectionObservationMeasure } from "../services/observationApi";
@@ -14,8 +14,6 @@ interface RiverCardProps {
   onOpen: (riverId: string) => void;
   isFavourite?: boolean;
   onToggleFavourite?: (riverId: string) => void;
-  // Live level for this river's primary gauge. `undefined` = not shown (e.g.
-  // Discovery before lazy-load); `null` = loaded but no gauge; a measure = show.
   level?: SectionObservationMeasure | null;
   // Called once when the card first scrolls into view — lets Discover lazy-load
   // this river's level instead of fetching all ~62 up front.
@@ -30,7 +28,9 @@ const TREND_ARROW: Record<string, string> = {
 
 // Shared card for the Discovery and Dashboard pages — the Surge demo "river
 // card": name, where, grade, then a hero level number with sparkline + gauge
-// footer when there's a live reading, or an honest "No live gauge" otherwise.
+// footer when there's a live reading. The whole card is the click target
+// (selects the river, zooms the map, opens its detail panel); the favourite
+// star is a nested action that stops propagation.
 export function RiverCard({
   river,
   onOpen,
@@ -65,17 +65,33 @@ export function RiverCard({
     return () => observer.disconnect();
   }, [onVisible, river.id]);
 
+  const openRiver = () => onOpen(river.id);
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    // Only act on the card itself, not keystrokes bubbling from the star button.
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openRiver();
+    }
+  };
+
   return (
-    <article className="river-card" ref={cardRef}>
+    <article
+      className="river-card"
+      ref={cardRef}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open ${river.displayName} on the map`}
+      onClick={openRiver}
+      onKeyDown={handleKeyDown}
+    >
       <div className="river-card__head">
-        <button
-          className="river-card__open"
-          type="button"
-          onClick={() => onOpen(river.id)}
-        >
+        <div className="river-card__open">
           <span className="river-card__name">{river.displayName}</span>
           {where ? <span className="river-card__where">{where}</span> : null}
-        </button>
+        </div>
         <div className="river-card__head-actions">
           {river.grade ? (
             <span className="river-card__grade">{river.grade}</span>
@@ -91,7 +107,10 @@ export function RiverCard({
                 isFavourite ? "Remove from favourites" : "Add to favourites"
               }
               title={isFavourite ? "Favourited" : "Favourite this river"}
-              onClick={() => onToggleFavourite(river.id)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleFavourite(river.id);
+              }}
             >
               <Star size={15} fill={isFavourite ? "currentColor" : "none"} />
             </button>

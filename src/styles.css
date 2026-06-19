@@ -6682,6 +6682,11 @@ input[type="file"]::file-selector-button:hover {
   border-radius: 16px;
   background: var(--surface);
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+.river-card:focus-visible {
+  outline: 2px solid var(--river-dark);
+  outline-offset: 2px;
 }
 .river-card:hover {
   transform: translateY(-3px);
@@ -6712,7 +6717,7 @@ input[type="file"]::file-selector-button:hover {
   line-height: 1.15;
   color: var(--ink);
 }
-.river-card__open:hover .river-card__name {
+.river-card:hover .river-card__name {
   color: var(--river-dark);
 }
 .river-card__where {
@@ -6786,7 +6791,11 @@ input[type="file"]::file-selector-button:hover {
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
-  color: var(--ink);
+  color: #b8860b;
+}
+[data-theme="surge"] .river-card__level-num {
+  color: #ffd60a;
+  text-shadow: 0 0 22px rgba(255, 214, 10, 0.35);
 }
 .river-card__level-unit {
   font-size: 1.05rem;
