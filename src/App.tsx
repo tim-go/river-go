@@ -3882,6 +3882,30 @@ function App() {
         />
       ) : null}
 
+      <section
+        className={`app-body ${
+          isAppNavCollapsed ? "app-body--nav-collapsed" : ""
+        }`}
+      >
+        <AppNavigation
+          activeSection={activeAppSection}
+          collapsed={isAppNavCollapsed}
+          isAdmin={canAccessAdminTools}
+          isSignedIn={isSignedIn}
+          isAuthConfigured={isAuthConfigured}
+          memberLabel={accountLabel}
+          memberMeta={accountMeta}
+          memberRole={accountRole}
+          onToggleCollapsed={() => setIsAppNavCollapsed((current) => !current)}
+          onSelectSection={setActiveAppSection}
+          onSignIn={handleSignIn}
+        />
+
+        <section
+          className={`app-view ${
+            activeAppSection === "map" ? "app-view--with-topbar" : ""
+          }`}
+        >
       {activeAppSection === "map" ? (
         <section className="topbar" aria-label="Map controls">
           {/* River banner hidden for now: it tracked activeSection, but
@@ -4141,27 +4165,6 @@ function App() {
           </div>
         </section>
       ) : null}
-
-      <section
-        className={`app-body ${
-          isAppNavCollapsed ? "app-body--nav-collapsed" : ""
-        }`}
-      >
-        <AppNavigation
-          activeSection={activeAppSection}
-          collapsed={isAppNavCollapsed}
-          isAdmin={canAccessAdminTools}
-          isSignedIn={isSignedIn}
-          isAuthConfigured={isAuthConfigured}
-          memberLabel={accountLabel}
-          memberMeta={accountMeta}
-          memberRole={accountRole}
-          onToggleCollapsed={() => setIsAppNavCollapsed((current) => !current)}
-          onSelectSection={setActiveAppSection}
-          onSignIn={handleSignIn}
-        />
-
-        <section className="app-view">
           {activeAppSection === "map" ? (
       <section className="workspace">
         <SyncOutboxBanner
