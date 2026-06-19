@@ -7,7 +7,9 @@ export function AppBrandPanel() {
         <Waves size={22} strokeWidth={2.3} />
       </span>
       <div>
-        <strong>RiverLaunch.app</strong>
+        <strong>
+          River<span className="brand-launch">Launch</span>.app
+        </strong>
         <span>Community river intelligence for paddlers.</span>
       </div>
     </div>

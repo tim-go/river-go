@@ -119,14 +119,19 @@ export function AuthPromptSheet({
         aria-label="Welcome to RiverLaunch.app"
       >
         <div className="auth-sheet__image">
-          <img src="/images/river-tryweryn.jpeg" alt="" />
+          <picture>
+            <source srcSet="/images/river-tryweryn.webp" type="image/webp" />
+            <img src="/images/river-tryweryn.jpeg" alt="" />
+          </picture>
         </div>
         <div className="auth-sheet__content">
           <div className="auth-sheet__brand">
             <span className="brand-mark">
               <Waves size={22} strokeWidth={2.3} />
             </span>
-            <span>RiverLaunch.app</span>
+            <span>
+              River<span className="brand-launch">Launch</span>.app
+            </span>
           </div>
           <div>
             <p className="eyebrow">Community river intelligence</p>

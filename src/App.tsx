@@ -32,7 +32,14 @@ import {
   Waves,
   X,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   setAnalyticsConsentPreference,
   trackPageView,
@@ -40,6 +47,7 @@ import {
   type AnalyticsConsent,
 } from "./services/analytics";
 import {
+  fetchCanonicalRiver,
   fetchCanonicalRivers,
   fetchSourceCandidatePois,
   updateSourceCandidatePoiStatus,
@@ -128,7 +136,7 @@ import {
   formatWhat3Words,
 } from "./services/locationReferences";
 import { routeSuggestionStatusLabel, routeAdjustmentStatusLabel } from "./lib/mapPopups";
-import { loadContributions, loadFavouriteSectionIds, loadRouteSuggestions, loadAnalyticsConsent, saveAnalyticsConsent, hasDismissedWelcomeForSession, rememberWelcomeDismissedForSession, loadLiveLocationEnabled, saveLiveLocationEnabled, loadMarkerClickMode, saveMarkerClickMode, loadSyncBannerDismissal, saveSyncBannerDismissal, STORAGE_KEY, FAVOURITES_STORAGE_KEY, ROUTE_SUGGESTIONS_STORAGE_KEY } from "./lib/storage";
+import { loadContributions, loadFavouriteSectionIds, loadFavouriteRiverIds, saveFavouriteRiverIds, loadRouteSuggestions, loadAnalyticsConsent, saveAnalyticsConsent, hasDismissedWelcomeForSession, rememberWelcomeDismissedForSession, loadLiveLocationEnabled, saveLiveLocationEnabled, loadMarkerClickMode, saveMarkerClickMode, loadSyncBannerDismissal, saveSyncBannerDismissal, STORAGE_KEY, FAVOURITES_STORAGE_KEY, ROUTE_SUGGESTIONS_STORAGE_KEY } from "./lib/storage";
 import { SyncOutboxBanner } from "./components/SyncOutboxBanner";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
@@ -138,6 +146,8 @@ import { KitInventoryPanel } from "./components/KitInventoryPanel";
 import { SkillsPanel } from "./components/SkillsPanel";
 import { AppNotificationBanner } from "./components/AppNotificationBanner";
 import { PlaceholderPage } from "./components/PlaceholderPage";
+import { RiverCard } from "./components/RiverCard";
+import { DashboardHub } from "./components/DashboardHub";
 import { GroupsPanel } from "./components/GroupsPanel";
 import { PhotoLightbox } from "./components/PhotoLightbox";
 import { AuthPromptSheet } from "./components/AuthPromptSheet";
@@ -205,7 +215,6 @@ import {
   candidateRouteSuggestionId,
   canonicalRiverOverviewSectionId,
   canonicalRiverToOverviewSection,
-  disciplineLabel,
   categoryOptions,
   COMPACT_MAP_CONTROLS_QUERY,
   contributionOptions,
@@ -302,6 +311,12 @@ function App() {
   const [favouriteSectionIds, setFavouriteSectionIds] = useState<string[]>(() =>
     loadFavouriteSectionIds(),
   );
+  const [favouriteRiverIds, setFavouriteRiverIds] = useState<string[]>(() =>
+    loadFavouriteRiverIds(),
+  );
+  const [riverLevels, setRiverLevels] = useState<
+    Record<string, SectionObservationMeasure | null>
+  >({});
   const [routeSuggestions, setRouteSuggestions] = useState<RouteSuggestion[]>(
     loadRouteSuggestions,
   );
@@ -731,6 +746,9 @@ function App() {
   const favouriteSections = appRiverSections.filter((section) =>
     favouriteSectionIds.includes(section.id),
   );
+  const favouriteRivers = canonicalRivers.filter((river) =>
+    favouriteRiverIds.includes(river.id),
+  );
   const isActiveSectionFavourite =
     isSignedIn && favouriteSectionIds.includes(activeSection.id);
   const canAccessAdminTools = hasModeratorAccess(memberProfile?.role);
@@ -835,8 +853,8 @@ function App() {
         ? `Admin ${activeAdminPage}`
         : activeAppSection === "profile"
           ? `Profile ${profileMode}`
-          : activeAppSection === "search"
-            ? `Search ${searchMode}`
+          : activeAppSection === "discover"
+            ? `Discover ${searchMode}`
             : activeAppSection === "map"
               ? `Map ${activeSection.sectionName}`
               : activeAppSection;
@@ -845,8 +863,8 @@ function App() {
         ? `/admin/${activeAdminPage}`
         : activeAppSection === "profile"
           ? `/profile/${profileMode}`
-          : activeAppSection === "search"
-            ? `/search/${searchMode}`
+          : activeAppSection === "discover"
+            ? `/discover/${searchMode}`
             : `/${activeAppSection}`;
 
     void trackPageView({ title, path });
@@ -1059,6 +1077,14 @@ function App() {
 
     return () => window.clearTimeout(timeoutId);
   }, [appNotification]);
+
+  // Surface a live-location problem (denied/unavailable/error) as a dismissible,
+  // auto-clearing notification rather than a persistent top-bar message.
+  useEffect(() => {
+    if (liveLocationAlert) {
+      showAppNotification(liveLocationAlert, "error");
+    }
+  }, [liveLocationAlert]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1340,6 +1366,51 @@ function App() {
       JSON.stringify(favouriteSectionIds),
     );
   }, [favouriteSectionIds]);
+
+  useEffect(() => {
+    saveFavouriteRiverIds(favouriteRiverIds);
+  }, [favouriteRiverIds]);
+
+  // Shared cache of each river's primary-gauge level, used by the Dashboard
+  // (favourites, eagerly) and Discover (lazily, as cards scroll in).
+  // requestRiverLevel dedupes via a ref so it stays a stable callback; failures
+  // and gauge-less rivers resolve to null so cards stay honest ("No live gauge").
+  const requestedRiverLevels = useRef(new Set<string>());
+  const requestRiverLevel = useCallback((riverId: string) => {
+    if (requestedRiverLevels.current.has(riverId)) {
+      return;
+    }
+    requestedRiverLevels.current.add(riverId);
+    void (async () => {
+      let measure: SectionObservationMeasure | null = null;
+      try {
+        // The synthetic overview section carries no gauge — a river's gauges
+        // live on its linked sections, so fetch the detail for the section ids
+        // then flatten their observations (mirrors DiscoveryContext's fetch).
+        const river = await fetchCanonicalRiver(riverId);
+        const groups = await Promise.all(
+          (river.sectionLinks ?? []).map((link) =>
+            fetchSectionObservations(link.sectionId, 48).catch(
+              () => [] as SectionObservationMeasure[],
+            ),
+          ),
+        );
+        measure = getPrimaryObservationMeasure(groups.flat()) ?? null;
+      } catch {
+        measure = null;
+      }
+      setRiverLevels((current) => ({ ...current, [riverId]: measure }));
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (activeAppSection !== "dashboard" || !isSignedIn) {
+      return;
+    }
+    for (const riverId of favouriteRiverIds) {
+      requestRiverLevel(riverId);
+    }
+  }, [activeAppSection, isSignedIn, favouriteRiverIds, requestRiverLevel]);
 
   useEffect(() => {
     let isMounted = true;
@@ -3741,6 +3812,19 @@ function App() {
     });
   }
 
+  function toggleFavouriteRiver(riverId: string) {
+    if (!isSignedIn) {
+      requireSignInForSave();
+      return;
+    }
+
+    setFavouriteRiverIds((current) =>
+      current.includes(riverId)
+        ? current.filter((id) => id !== riverId)
+        : [...current, riverId],
+    );
+  }
+
   function toggleFavouriteSection(section: RiverSection) {
     if (!isSignedIn) {
       requireSignInForSave();
@@ -3798,6 +3882,30 @@ function App() {
         />
       ) : null}
 
+      <section
+        className={`app-body ${
+          isAppNavCollapsed ? "app-body--nav-collapsed" : ""
+        }`}
+      >
+        <AppNavigation
+          activeSection={activeAppSection}
+          collapsed={isAppNavCollapsed}
+          isAdmin={canAccessAdminTools}
+          isSignedIn={isSignedIn}
+          isAuthConfigured={isAuthConfigured}
+          memberLabel={accountLabel}
+          memberMeta={accountMeta}
+          memberRole={accountRole}
+          onToggleCollapsed={() => setIsAppNavCollapsed((current) => !current)}
+          onSelectSection={setActiveAppSection}
+          onSignIn={handleSignIn}
+        />
+
+        <section
+          className={`app-view ${
+            activeAppSection === "map" ? "app-view--with-topbar" : ""
+          }`}
+        >
       {activeAppSection === "map" ? (
         <section className="topbar" aria-label="Map controls">
           {/* River banner hidden for now: it tracked activeSection, but
@@ -4049,35 +4157,14 @@ function App() {
                 Add info
               </button>
             ) : null}
-            {authMessage || authState.error || liveLocationAlert ? (
+            {authMessage || authState.error ? (
               <p className="topbar-message">
-                {authMessage || authState.error || liveLocationAlert}
+                {authMessage || authState.error}
               </p>
             ) : null}
           </div>
         </section>
       ) : null}
-
-      <section
-        className={`app-body ${
-          isAppNavCollapsed ? "app-body--nav-collapsed" : ""
-        }`}
-      >
-        <AppNavigation
-          activeSection={activeAppSection}
-          collapsed={isAppNavCollapsed}
-          isAdmin={canAccessAdminTools}
-          isSignedIn={isSignedIn}
-          isAuthConfigured={isAuthConfigured}
-          memberLabel={accountLabel}
-          memberMeta={accountMeta}
-          memberRole={accountRole}
-          onToggleCollapsed={() => setIsAppNavCollapsed((current) => !current)}
-          onSelectSection={setActiveAppSection}
-          onSignIn={handleSignIn}
-        />
-
-        <section className="app-view">
           {activeAppSection === "map" ? (
       <section className="workspace">
         <SyncOutboxBanner
@@ -4101,6 +4188,8 @@ function App() {
           isPoiDetailsOpen={Boolean(selectedPoi)}
           mapPois={visibleSectionMapPois}
           selectedRiverMapPois={selectedRiverMapPois}
+          favouriteRiverIds={favouriteRiverIds}
+          onToggleFavouriteRiver={toggleFavouriteRiver}
           contributions={contributions}
           routeSuggestions={routeSuggestions}
           routeAdjustments={routeAdjustments}
@@ -5301,8 +5390,67 @@ function App() {
         </section>
         ) : null}
       </section>
-          ) : activeAppSection === "search" ? (
-            <PlaceholderPage section="search" title="Search">
+          ) : activeAppSection === "dashboard" ? (
+            <PlaceholderPage section="dashboard" title="Your dashboard">
+              <div className="dashboard-page">
+                {!isSignedIn ? (
+                  <div className="dashboard-empty">
+                    <p>
+                      Sign in to favourite rivers and keep their conditions one
+                      tap away here.
+                    </p>
+                    <button
+                      type="button"
+                      className="primary-action"
+                      onClick={requireSignInForSave}
+                    >
+                      Sign in
+                    </button>
+                  </div>
+                ) : favouriteRivers.length === 0 ? (
+                  <div className="dashboard-empty">
+                    <p>
+                      No favourite rivers yet. Open a river and tap the star to
+                      add it here.
+                    </p>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => setActiveAppSection("discover")}
+                    >
+                      Browse rivers
+                    </button>
+                  </div>
+                ) : (
+                  <div className="river-card-grid">
+                    {favouriteRivers.map((river) => (
+                      <RiverCard
+                        key={river.id}
+                        river={river}
+                        isFavourite
+                        level={riverLevels[river.id]}
+                        onToggleFavourite={toggleFavouriteRiver}
+                        onOpen={(riverId) => {
+                          selectCanonicalRiver(riverId);
+                          setActiveAppSection("map");
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+                {isSignedIn ? (
+                  <DashboardHub
+                    onOpenGroups={() => setActiveAppSection("groups")}
+                    onOpenProfileTab={(tab) => {
+                      setProfileMode(tab);
+                      setActiveAppSection("profile");
+                    }}
+                  />
+                ) : null}
+              </div>
+            </PlaceholderPage>
+          ) : activeAppSection === "discover" ? (
+            <PlaceholderPage section="discover" title="Discover">
               <div className="search-panel">
                 <div className="segmented-control search-mode-tabs" role="tablist">
                   <button
@@ -5348,109 +5496,90 @@ function App() {
                 </div>
 
                 {searchMode === "name" ? (
-                  <section className="search-mode-panel" aria-label="Search rivers">
-                    <label>
-                      River name
+                  <div className="discover-page">
+                    <div className="discover-filters">
                       <input
+                        className="discover-search"
                         value={riverSearchTerm}
                         onChange={(event) => setRiverSearchTerm(event.target.value)}
-                        placeholder="Tryweryn, Wye, Dee"
+                        placeholder="Search rivers, regions, nations…"
+                        aria-label="Search rivers"
                       />
-                    </label>
-                    <div className="river-filters">
                       <div
-                        className="segmented-control river-discipline-filter"
-                        role="tablist"
+                        className="discover-chips"
+                        role="group"
+                        aria-label="Filter rivers"
                       >
                         <button
                           type="button"
-                          className={
-                            riverDisciplineFilter === "all" ? "active" : ""
-                          }
+                          className={`discover-chip${riverDisciplineFilter === "all" ? " discover-chip--active" : ""}`}
                           onClick={() => setRiverDisciplineFilter("all")}
                         >
                           All
                         </button>
                         <button
                           type="button"
-                          className={
-                            riverDisciplineFilter === "whitewater" ? "active" : ""
-                          }
+                          className={`discover-chip${riverDisciplineFilter === "whitewater" ? " discover-chip--active" : ""}`}
                           onClick={() => setRiverDisciplineFilter("whitewater")}
                         >
                           Whitewater
                         </button>
                         <button
                           type="button"
-                          className={
-                            riverDisciplineFilter === "touring" ? "active" : ""
-                          }
+                          className={`discover-chip${riverDisciplineFilter === "touring" ? " discover-chip--active" : ""}`}
                           onClick={() => setRiverDisciplineFilter("touring")}
                         >
-                          Canoe
+                          Canoe touring
                         </button>
-                      </div>
-                      <select
-                        className="river-nation-filter"
-                        value={riverNationFilter}
-                        onChange={(event) =>
-                          setRiverNationFilter(event.target.value)
-                        }
-                        aria-label="Filter rivers by nation"
-                      >
-                        <option value="all">All nations</option>
+                        {riverNations.length ? (
+                          <span className="discover-chip-sep" aria-hidden="true" />
+                        ) : null}
+                        <button
+                          type="button"
+                          className={`discover-chip${riverNationFilter === "all" ? " discover-chip--active" : ""}`}
+                          onClick={() => setRiverNationFilter("all")}
+                        >
+                          All nations
+                        </button>
                         {riverNations.map((nation) => (
-                          <option key={nation} value={nation}>
-                            {nation}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    {filteredSearchRivers.length ? (
-                      <div className="canonical-river-list">
-                        {filteredSearchRivers.map((river) => (
                           <button
-                            className="canonical-river-row"
-                            key={river.id}
+                            key={nation}
                             type="button"
-                            onClick={() => {
-                              selectCanonicalRiver(river.id);
-                              setActiveAppSection("map");
-                            }}
+                            className={`discover-chip${riverNationFilter === nation ? " discover-chip--active" : ""}`}
+                            onClick={() => setRiverNationFilter(nation)}
                           >
-                            <span>
-                              <strong>{river.displayName}</strong>
-                              <span className="river-row-tags">
-                                {river.discipline ? (
-                                  <span
-                                    className={`discipline-chip discipline-chip--${river.discipline}`}
-                                  >
-                                    {disciplineLabel(river.discipline)}
-                                  </span>
-                                ) : null}
-                                {(river.nation ?? river.region) ? (
-                                  <span className="country-badge">
-                                    {river.nation ?? river.region}
-                                  </span>
-                                ) : null}
-                              </span>
-                            </span>
-                            {river.grade ? (
-                              <span className="grade-pill">Gr {river.grade}</span>
-                            ) : river.reviewNeededCandidatePoiCount ? (
-                              <span className="candidate-pill">
-                                {river.reviewNeededCandidatePoiCount} candidates
-                              </span>
-                            ) : null}
+                            {nation}
                           </button>
                         ))}
                       </div>
+                    </div>
+                    <p className="discover-count">
+                      {filteredSearchRivers.length} river
+                      {filteredSearchRivers.length === 1 ? "" : "s"}
+                    </p>
+                    {filteredSearchRivers.length ? (
+                      <div className="river-card-grid">
+                        {filteredSearchRivers.map((river) => (
+                          <RiverCard
+                            key={river.id}
+                            river={river}
+                            isFavourite={favouriteRiverIds.includes(river.id)}
+                            level={riverLevels[river.id]}
+                            onToggleFavourite={toggleFavouriteRiver}
+                            onVisible={requestRiverLevel}
+                            onOpen={(riverId) => {
+                              selectCanonicalRiver(riverId);
+                              setActiveAppSection("map");
+                            }}
+                          />
+                        ))}
+                      </div>
                     ) : (
-                      <p className="source-note">
-                        No rivers match these filters.
+                      <p className="empty-state">
+                        No rivers match these filters yet.
                       </p>
                     )}
-                  </section>
+                  </div>
                 ) : searchMode === "waterways" ? (
                   <form
                     className="location-search-card"
@@ -5929,6 +6058,14 @@ function App() {
                   />
                     </div>
                     <div className="profile-actions">
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={() => setActiveAppSection("more")}
+                  >
+                    <MoreHorizontal size={16} />
+                    Settings &amp; more
+                  </button>
                   {isSignedIn ? (
                     <button
                       className="ghost-button"

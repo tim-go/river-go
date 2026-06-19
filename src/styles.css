@@ -75,7 +75,7 @@ button:disabled {
 
 .app-shell {
   display: grid;
-  grid-template-rows: var(--beta-banner-height) 56px minmax(0, 1fr);
+  grid-template-rows: var(--beta-banner-height) minmax(0, 1fr);
   width: 100%;
   height: 100vh;
   height: 100dvh;
@@ -227,6 +227,15 @@ button:disabled {
   min-height: 0;
 }
 
+/* On the map page the controls bar lives at the top of the content pane (not as
+   a full-width row above the rail), so the left nav stays put when switching to
+   the map. The bar takes its own height; the map fills the rest. */
+.app-view--with-topbar {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
 .app-nav {
   z-index: 480;
   display: grid;
@@ -270,6 +279,25 @@ button:disabled {
   line-height: 1.05;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Wordmark "Launch" accent. Keyed off [data-theme] rather than the
+   --surge-yellow token (which lives inside the .app-shell--content-only scope
+   and is therefore undefined for the nav on the map view, where the accent
+   would otherwise fall back to white) — so "Launch" stays yellow on every page. */
+[data-theme="surge"] .brand-launch {
+  color: #ffd60a;
+}
+[data-theme="daybreak"] .brand-launch {
+  color: #b07c00;
+}
+
+/* Under Surge's dark chrome the whole wordmark is white; only "Launch" keeps its
+   accent. Other themes keep their inherited ink (white would vanish on light). */
+[data-theme="surge"] .app-nav__brand strong,
+[data-theme="surge"] .app-brand-panel strong,
+[data-theme="surge"] .auth-sheet__brand {
+  color: #fff;
 }
 
 .app-nav__brand small {
@@ -554,8 +582,12 @@ h1 {
 .topbar-message {
   flex-basis: 100%;
   margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #f0b8b2;
+  border-radius: 8px;
+  background: #fff1ef;
   color: #9b1c12;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 650;
 }
 
@@ -881,6 +913,14 @@ h1 {
   height: 32px;
 }
 
+.icon-button--favourite {
+  border-color: rgba(242, 181, 10, 0.5);
+  color: #f2b50a;
+}
+.icon-button--favourite:hover {
+  color: #ffd60a;
+}
+
 .primary-action,
 .submit-button,
 .ghost-button {
@@ -966,7 +1006,9 @@ h1 {
 }
 
 .app-page__header {
-  margin-bottom: 16px;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto 16px;
 }
 
 .app-page__header h2 {
@@ -977,7 +1019,9 @@ h1 {
 .app-page__content {
   display: grid;
   gap: 14px;
-  max-width: 760px;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
 }
 
 .search-panel,
@@ -1318,7 +1362,7 @@ h1 {
 }
 
 .app-brand-panel strong,
-.app-brand-panel span {
+.app-brand-panel > div > span {
   display: block;
 }
 
@@ -1327,7 +1371,10 @@ h1 {
   line-height: 1.1;
 }
 
-.app-brand-panel span {
+/* Subtitle styling — scoped to the inner div's span so it doesn't bleed onto the
+   brand-mark icon or the inline accent spans inside the wordmark strong (those
+   keep the strong's colour/size and their own accent colour). */
+.app-brand-panel > div > span {
   margin-top: 4px;
   color: var(--muted);
   font-size: 0.88rem;
@@ -1483,7 +1530,11 @@ h1 {
   position: relative;
   min-height: 420px;
   overflow: hidden;
-  background: #26372f;
+  background: #0b1120;
+}
+
+.auth-sheet__image picture {
+  display: contents;
 }
 
 .auth-sheet__image img {
@@ -1620,6 +1671,18 @@ h1 {
 .auth-mode-tabs .auth-guest-button:hover {
   border-color: #0b4a42;
   background: #0b4a42;
+}
+
+/* On the splash the "Continue as guest" CTA is the brand yellow, not the teal it
+   uses as an in-app segmented option. */
+.auth-sheet--welcome .auth-guest-button {
+  border-color: #ffd60a;
+  background: #ffd60a;
+  color: #060a1a;
+}
+.auth-sheet--welcome .auth-guest-button:hover {
+  border-color: #f4c500;
+  background: #f4c500;
 }
 
 .auth-password-tip {
@@ -4434,7 +4497,7 @@ input[type="file"]::file-selector-button:hover {
 
 @media (max-width: 720px) {
   .app-shell {
-    grid-template-rows: var(--beta-banner-height) auto minmax(0, 1fr);
+    grid-template-rows: var(--beta-banner-height) minmax(0, 1fr);
     padding-bottom: var(--bottom-nav-height);
   }
 
@@ -4613,9 +4676,6 @@ input[type="file"]::file-selector-button:hover {
   }
 
   .auth-sheet--welcome .auth-guest-button {
-    border-color: #0f5f55;
-    background: #0f5f55;
-    color: #fff;
     font-weight: 760;
   }
 
@@ -5421,6 +5481,12 @@ input[type="file"]::file-selector-button:hover {
   color: #9b1c12;
   font-size: 0.82rem;
   font-weight: 600;
+}
+
+.groups-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .groups-panel__head,
@@ -6355,7 +6421,9 @@ input[type="file"]::file-selector-button:hover {
   color: #d8e6ff;
 }
 [data-theme="surge"] .topbar-message {
-  color: #ff9d8a;
+  border-color: rgba(255, 120, 110, 0.45);
+  background: rgba(46, 14, 20, 0.95);
+  color: #ffd0cb;
 }
 
 /* legend */
@@ -6432,6 +6500,13 @@ input[type="file"]::file-selector-button:hover {
   box-shadow: 0 -10px 26px rgba(0, 0, 0, 0.45);
 }
 
+/* The active item otherwise falls back to the base teal --river-dark (the bottom
+   bar sits outside the .app-shell--content-only token scope), reading as an
+   unthemed green. Match the rail's yellow accent. */
+[data-theme="surge"] .bottom-nav__item--active {
+  color: #ffd60a;
+}
+
 /* panels that float over the map: translucent white -> dark glass */
 [data-theme="surge"] .quick-add-panel,
 [data-theme="surge"] .admin-panel,
@@ -6444,6 +6519,18 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .contributor-step {
   background: rgba(12, 18, 40, 0.94);
   border-color: rgba(120, 150, 230, 0.25);
+  /* These float over the map (outside .app-shell--content-only), so redefine the
+     dark tokens — otherwise titles (var(--ink)) go dark-on-dark and primary
+     buttons (var(--river-dark)) keep the base green. */
+  --ink: #eaf0ff;
+  --muted: #8d9bc4;
+  --line: rgba(120, 150, 230, 0.18);
+  --surface: rgba(22, 32, 66, 0.62);
+  --surface-strong: rgba(16, 24, 52, 0.82);
+  --river: #2f6bff;
+  --river-dark: #4d8bff;
+  --sky: #4d8bff;
+  color-scheme: dark;
 }
 /* Add-info (contribution) panel: dark tokens so its tabs, inputs, select, date
    + file pickers, textarea and Cancel button theme dark like the rest. */
@@ -6515,6 +6602,29 @@ input[type="file"]::file-selector-button:hover {
 }
 [data-theme="surge"] .auth-sheet__content {
   background: linear-gradient(rgba(10, 16, 38, 0.97), rgba(16, 24, 52, 0.98));
+  /* Redefine the neutral tokens so inputs/labels/borders inside also theme dark
+     — otherwise the panel goes dark but the var(--surface) inputs stay white. */
+  --ink: #eaf0ff;
+  --muted: #8d9bc4;
+  --line: rgba(120, 150, 230, 0.18);
+  --surface: rgba(22, 32, 66, 0.62);
+  --surface-strong: rgba(16, 24, 52, 0.82);
+  --river: #2f6bff;
+  --river-dark: #4d8bff;
+  --sky: #4d8bff;
+  --surge-yellow: #ffd60a;
+  color-scheme: dark;
+}
+/* The base theme styles these green and only re-themes them inside
+   .app-shell--content-only, which the splash screen (map section) lacks — so
+   theme them straight off the sheet for Surge. */
+[data-theme="surge"] .auth-sheet h2 {
+  color: var(--ink);
+}
+[data-theme="surge"] .auth-sheet .segmented-control button.active {
+  border-color: rgba(77, 139, 255, 0.5);
+  background: rgba(47, 107, 255, 0.22);
+  color: #fff;
 }
 
 /* base status chip (neutral) — MUST precede the variants below */
@@ -6555,7 +6665,6 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .profile-message,
 [data-theme="surge"] .form-error,
 [data-theme="surge"] .groups-panel__error,
-[data-theme="surge"] .topbar-message,
 [data-theme="surge"] .skill-item__flag {
   border-color: rgba(255, 90, 70, 0.42);
   background: rgba(255, 90, 70, 0.13);
@@ -6642,4 +6751,402 @@ input[type="file"]::file-selector-button:hover {
   border-color: rgba(160, 130, 240, 0.45);
   background: rgba(140, 110, 230, 0.18);
   color: #cbb8f7;
+}
+
+/* River cards (Discover + Dashboard) */
+.river-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  .river-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .river-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.river-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+.river-card:focus-visible {
+  outline: 2px solid var(--river-dark);
+  outline-offset: 2px;
+}
+.river-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--river-dark);
+  box-shadow: 0 18px 44px rgba(8, 16, 24, 0.16);
+}
+.river-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.river-card__open {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.river-card__name {
+  font-size: 1.1rem;
+  font-weight: 750;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.river-card:hover .river-card__name {
+  color: var(--river-dark);
+}
+.river-card__where {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.river-card__head-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+.river-card__grade {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+.river-card__fav {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.river-card__fav--active {
+  border-color: rgba(242, 181, 10, 0.5);
+  color: #f2b50a;
+}
+.river-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.river-card__stat {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.river-card__summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.river-card__gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.river-card__level {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.river-card__level-num {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #b8860b;
+}
+[data-theme="surge"] .river-card__level-num {
+  color: #ffd60a;
+  text-shadow: 0 0 22px rgba(255, 214, 10, 0.35);
+}
+.river-card__level-unit {
+  font-size: 1.05rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.river-card__spark {
+  display: block;
+  width: 100%;
+  height: 36px;
+}
+.river-card__spark-line {
+  fill: none;
+  stroke-width: 2.4;
+  vector-effect: non-scaling-stroke;
+}
+.river-card__spark-line--rising {
+  stroke: #2bb673;
+}
+.river-card__spark-line--falling {
+  stroke: #4d8bff;
+}
+.river-card__spark-line--steady {
+  stroke: var(--muted);
+}
+.river-card__gauge-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.river-card__trend {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+.river-card__trend--rising {
+  color: #2bb673;
+}
+.river-card__trend--falling {
+  color: #4d8bff;
+}
+.river-card__trend--steady {
+  color: var(--muted);
+}
+.river-card__no-gauge {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+/* Discover page */
+.discover-page,
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.discover-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.discover-search {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.discover-search::placeholder {
+  color: var(--muted);
+}
+.discover-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.discover-chip {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.discover-chip--active {
+  border-color: var(--river-dark);
+  background: var(--river-dark);
+  color: #fff;
+}
+.discover-chip-sep {
+  width: 1px;
+  height: 22px;
+  margin: 0 4px;
+  background: var(--line);
+}
+.discover-count {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.discover-place-link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.discover-place-link:hover {
+  border-color: var(--river-dark);
+}
+
+/* Dashboard page */
+.dashboard-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.dashboard-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.dashboard-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.dashboard-stat strong {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ink);
+}
+.dashboard-stat span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* Dashboard hub summary sections */
+.dashboard-hub {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 720px) {
+  .dashboard-hub {
+    grid-template-columns: 1fr;
+  }
+}
+.dashboard-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.dashboard-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.dashboard-section__head h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.95rem;
+}
+.dashboard-section__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--river-dark);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dashboard-section__empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.dashboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dashboard-list__row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dashboard-list__row .status-chip {
+  align-self: flex-start;
+}
+.dashboard-list__title {
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+.dashboard-list__meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.dashboard-photo-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 6px;
+}
+.dashboard-photo-strip img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 8px;
 }

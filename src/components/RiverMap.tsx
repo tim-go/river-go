@@ -10,6 +10,7 @@ import {
   Maximize2,
   Minimize2,
   Route,
+  Star,
   X,
 } from "lucide-react";
 import type {
@@ -33,6 +34,7 @@ import {
   readCssColourToken,
   routeEndpointBounds,
 } from "../lib/format";
+import { riverMarkerInitial } from "../lib/riverName";
 import {
   createLiveLocationPopup,
   createMapPopupContent,
@@ -113,6 +115,8 @@ export function RiverMap({
   isPoiDetailsOpen,
   mapPois,
   selectedRiverMapPois,
+  favouriteRiverIds,
+  onToggleFavouriteRiver,
   contributions,
   routeSuggestions,
   routeAdjustments,
@@ -163,6 +167,8 @@ export function RiverMap({
   isPoiDetailsOpen: boolean;
   mapPois: MapPoi[];
   selectedRiverMapPois: MapPoi[];
+  favouriteRiverIds: string[];
+  onToggleFavouriteRiver: (riverId: string) => void;
   contributions: Contribution[];
   routeSuggestions: RouteSuggestion[];
   routeAdjustments: RouteAdjustment[];
@@ -348,6 +354,22 @@ export function RiverMap({
   // Both the map markers and the panel list follow the active POI tab: on
   // Rapids/Hazards/Access we show only that group (minus categories hidden via
   // the chips); on Levels/Photos/About every reviewed point stays visible.
+  // On the Photos tab, show only points that actually carry photos — the same
+  // "focus the map on what the tab is about" behaviour as Rapids/Hazards/Access,
+  // but filtered on photo presence rather than category. Photos live on
+  // contributions (linked to a source point via mapPoiId), so build the set of
+  // point ids that have at least one photo.
+  const tabPhotosOnly = riverTab === "photos";
+  const poiIdsWithPhotos = useMemo(
+    () =>
+      new Set(
+        contributions
+          .filter((contribution) => contribution.photos?.length)
+          .map((contribution) => contribution.mapPoiId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    [contributions],
+  );
   const visibleSelectedRiverMapPois = useMemo(
     () =>
       selectedRiverMapPois.filter((poi) => {
@@ -358,9 +380,18 @@ export function RiverMap({
         if (tabPoiCategories && !tabPoiCategories.has(category)) {
           return false;
         }
+        if (tabPhotosOnly && !poiIdsWithPhotos.has(poi.id)) {
+          return false;
+        }
         return true;
       }),
-    [hiddenPoiCategories, selectedRiverMapPois, tabPoiCategories],
+    [
+      hiddenPoiCategories,
+      selectedRiverMapPois,
+      tabPoiCategories,
+      tabPhotosOnly,
+      poiIdsWithPhotos,
+    ],
   );
   const tabPoiCounts = useMemo(
     () =>
@@ -388,6 +419,13 @@ export function RiverMap({
     });
     return totals;
   }, [selectedRiverPoiCategoryCounts]);
+  // Points that carry at least one photo — advertised on the Photos tab label and
+  // used to filter the map when that tab is active.
+  const riverPhotoPoiCount = useMemo(
+    () =>
+      contributions.filter((contribution) => contribution.photos?.length).length,
+    [contributions],
+  );
 
   useEffect(() => {
     setRiverTab("levels");
@@ -644,7 +682,7 @@ export function RiverMap({
 
     (showRiverLayer ? canonicalRivers : []).forEach((river) => {
       const isSelected = selectedCanonicalRiver?.id === river.id;
-      const label = river.displayName.trim().charAt(0).toUpperCase() || "R";
+      const label = riverMarkerInitial(river.displayName);
       // Colour pins by discipline using the same --discipline-* tokens as the
       // search chips, so the map and Search read with one colour language.
       const disciplineKind =
@@ -1052,6 +1090,11 @@ export function RiverMap({
       if (!contribution.location) {
         return;
       }
+      // Photos tab: keep only contributions that carry photos, so the map shows
+      // just the photo points (matching the Rapids/Hazards/Access focus pattern).
+      if (tabPhotosOnly && !contribution.photos?.length) {
+        return;
+      }
 
       const syncStatus = outboxByContributionId.get(contribution.id)?.syncStatus;
       const kind =
@@ -1340,6 +1383,7 @@ export function RiverMap({
     activeSection,
     canonicalRivers,
     contributions,
+    tabPhotosOnly,
     focusNonce,
     liveLocation,
     markerClickMode,
@@ -1525,6 +1569,37 @@ export function RiverMap({
             </div>
             <div className="panel-icon-actions">
               <button
+                className={`icon-button icon-button--compact${
+                  favouriteRiverIds.includes(selectedCanonicalRiver.id)
+                    ? " icon-button--favourite"
+                    : ""
+                }`}
+                type="button"
+                aria-pressed={favouriteRiverIds.includes(
+                  selectedCanonicalRiver.id,
+                )}
+                aria-label={
+                  favouriteRiverIds.includes(selectedCanonicalRiver.id)
+                    ? "Remove from favourites"
+                    : "Add to favourites"
+                }
+                title={
+                  favouriteRiverIds.includes(selectedCanonicalRiver.id)
+                    ? "Favourited"
+                    : "Favourite this river"
+                }
+                onClick={() => onToggleFavouriteRiver(selectedCanonicalRiver.id)}
+              >
+                <Star
+                  size={16}
+                  fill={
+                    favouriteRiverIds.includes(selectedCanonicalRiver.id)
+                      ? "currentColor"
+                      : "none"
+                  }
+                />
+              </button>
+              <button
                 className="icon-button icon-button--compact river-safety-toggle"
                 type="button"
                 aria-label="Conditions and safety note"
@@ -1595,7 +1670,9 @@ export function RiverMap({
                 tab.id === "hazards" ||
                 tab.id === "access"
                   ? riverTabPoiTotals[tab.id]
-                  : null;
+                  : tab.id === "photos"
+                    ? riverPhotoPoiCount
+                    : null;
               return (
                 <button
                   key={tab.id}

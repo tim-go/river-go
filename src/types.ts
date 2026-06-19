@@ -15,8 +15,9 @@ export type SyncBannerDismissal = {
 };
 
 export type AppSection =
-  | "search"
   | "map"
+  | "discover"
+  | "dashboard"
   | "groups"
   | "profile"
   | "more"

@@ -1,6 +1,8 @@
 import {
   ChevronLeft,
   ChevronRight,
+  Compass,
+  LayoutDashboard,
   Map as MapIcon,
   MoreHorizontal,
   Search,
@@ -17,10 +19,20 @@ const appNavItems: Array<{
   icon: typeof Search;
 }> = [
   { id: "map", label: "Map", icon: MapIcon },
-  { id: "search", label: "Search", icon: Search },
+  { id: "discover", label: "Discover", icon: Compass },
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "groups", label: "Groups", icon: UsersRound },
   { id: "profile", label: "Profile", icon: UserRound },
   { id: "more", label: "More", icon: MoreHorizontal },
+];
+
+// The mobile bottom bar shows a curated 5; the desktop rail keeps the full list.
+const MOBILE_NAV_IDS: AppSection[] = [
+  "map",
+  "discover",
+  "dashboard",
+  "groups",
+  "profile",
 ];
 
 export function AppNavigation({
@@ -60,7 +72,9 @@ export function AppNavigation({
             <Waves size={20} strokeWidth={2.3} />
           </span>
           <span>
-            <strong>RiverLaunch.app</strong>
+            <strong>
+              River<span className="brand-launch">Launch</span>.app
+            </strong>
             <small>River intelligence</small>
           </span>
         </div>
@@ -128,7 +142,9 @@ export function MobileBottomNav({
 }) {
   return (
     <nav className="bottom-nav" aria-label="App sections">
-      {appNavItems.map((item) => {
+      {appNavItems
+        .filter((item) => MOBILE_NAV_IDS.includes(item.id))
+        .map((item) => {
         const Icon = item.icon;
         return (
           <button
