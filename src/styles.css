@@ -6540,6 +6540,17 @@ input[type="file"]::file-selector-button:hover {
   --surge-yellow: #ffd60a;
   color-scheme: dark;
 }
+/* The base theme styles these green and only re-themes them inside
+   .app-shell--content-only, which the splash screen (map section) lacks — so
+   theme them straight off the sheet for Surge. */
+[data-theme="surge"] .auth-sheet h2 {
+  color: var(--ink);
+}
+[data-theme="surge"] .auth-sheet .segmented-control button.active {
+  border-color: rgba(77, 139, 255, 0.5);
+  background: rgba(47, 107, 255, 0.22);
+  color: #fff;
+}
 
 /* base status chip (neutral) — MUST precede the variants below */
 [data-theme="surge"] .status-chip {
