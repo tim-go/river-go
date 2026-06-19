@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Star } from "lucide-react";
 import type { CanonicalRiverSummary } from "../services/canonicalRiverApi";
 import type { SectionObservationMeasure } from "../services/observationApi";
@@ -16,6 +17,9 @@ interface RiverCardProps {
   // Live level for this river's primary gauge. `undefined` = not shown (e.g.
   // Discovery before lazy-load); `null` = loaded but no gauge; a measure = show.
   level?: SectionObservationMeasure | null;
+  // Called once when the card first scrolls into view — lets Discover lazy-load
+  // this river's level instead of fetching all ~62 up front.
+  onVisible?: (riverId: string) => void;
 }
 
 const TREND_ARROW: Record<string, string> = {
@@ -33,13 +37,36 @@ export function RiverCard({
   isFavourite,
   onToggleFavourite,
   level,
+  onVisible,
 }: RiverCardProps) {
   const where = [river.region, river.nation].filter(Boolean).join(" · ");
   const stats = level ? getObservationStats(level) : null;
   const sparkPoints = level ? buildObservationChartPoints(level) : "";
 
+  const cardRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!onVisible) {
+      return;
+    }
+    const element = cardRef.current;
+    if (!element) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          onVisible(river.id);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "150px" },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [onVisible, river.id]);
+
   return (
-    <article className="river-card">
+    <article className="river-card" ref={cardRef}>
       <div className="river-card__head">
         <button
           className="river-card__open"

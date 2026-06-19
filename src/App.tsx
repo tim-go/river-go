@@ -32,7 +32,14 @@ import {
   Waves,
   X,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   setAnalyticsConsentPreference,
   trackPageView,
@@ -306,7 +313,7 @@ function App() {
   const [favouriteRiverIds, setFavouriteRiverIds] = useState<string[]>(() =>
     loadFavouriteRiverIds(),
   );
-  const [dashboardRiverLevels, setDashboardRiverLevels] = useState<
+  const [riverLevels, setRiverLevels] = useState<
     Record<string, SectionObservationMeasure | null>
   >({});
   const [routeSuggestions, setRouteSuggestions] = useState<RouteSuggestion[]>(
@@ -1355,48 +1362,39 @@ function App() {
     saveFavouriteRiverIds(favouriteRiverIds);
   }, [favouriteRiverIds]);
 
-  // Dashboard: best-effort live level for each favourite river's primary gauge.
-  // Fetches once per river; failures and gauge-less rivers resolve to null so
-  // the card stays honest ("No live gauge") rather than invent a number.
+  // Shared cache of each river's primary-gauge level, used by the Dashboard
+  // (favourites, eagerly) and Discover (lazily, as cards scroll in).
+  // requestRiverLevel dedupes via a ref so it stays a stable callback; failures
+  // and gauge-less rivers resolve to null so cards stay honest ("No live gauge").
+  const requestedRiverLevels = useRef(new Set<string>());
+  const requestRiverLevel = useCallback((riverId: string) => {
+    if (requestedRiverLevels.current.has(riverId)) {
+      return;
+    }
+    requestedRiverLevels.current.add(riverId);
+    void (async () => {
+      let measure: SectionObservationMeasure | null = null;
+      try {
+        const measures = await fetchSectionObservations(
+          canonicalRiverOverviewSectionId(riverId),
+          48,
+        );
+        measure = getPrimaryObservationMeasure(measures) ?? null;
+      } catch {
+        measure = null;
+      }
+      setRiverLevels((current) => ({ ...current, [riverId]: measure }));
+    })();
+  }, []);
+
   useEffect(() => {
     if (activeAppSection !== "dashboard" || !isSignedIn) {
       return;
     }
-    const toFetch = favouriteRiverIds.filter(
-      (riverId) => !(riverId in dashboardRiverLevels),
-    );
-    if (toFetch.length === 0) {
-      return;
+    for (const riverId of favouriteRiverIds) {
+      requestRiverLevel(riverId);
     }
-    let cancelled = false;
-    void Promise.all(
-      toFetch.map(async (riverId) => {
-        try {
-          const measures = await fetchSectionObservations(
-            canonicalRiverOverviewSectionId(riverId),
-            48,
-          );
-          return [riverId, getPrimaryObservationMeasure(measures) ?? null] as const;
-        } catch {
-          return [riverId, null] as const;
-        }
-      }),
-    ).then((entries) => {
-      if (cancelled) {
-        return;
-      }
-      setDashboardRiverLevels((current) => {
-        const next = { ...current };
-        for (const [riverId, measure] of entries) {
-          next[riverId] = measure;
-        }
-        return next;
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeAppSection, isSignedIn, favouriteRiverIds, dashboardRiverLevels]);
+  }, [activeAppSection, isSignedIn, favouriteRiverIds, requestRiverLevel]);
 
   useEffect(() => {
     let isMounted = true;
@@ -5439,7 +5437,9 @@ function App() {
                         key={river.id}
                         river={river}
                         isFavourite={favouriteRiverIds.includes(river.id)}
+                        level={riverLevels[river.id]}
                         onToggleFavourite={toggleFavouriteRiver}
+                        onVisible={requestRiverLevel}
                         onOpen={(riverId) => {
                           selectCanonicalRiver(riverId);
                           setActiveAppSection("map");
@@ -5502,7 +5502,7 @@ function App() {
                           key={river.id}
                           river={river}
                           isFavourite
-                          level={dashboardRiverLevels[river.id]}
+                          level={riverLevels[river.id]}
                           onToggleFavourite={toggleFavouriteRiver}
                           onOpen={(riverId) => {
                             selectCanonicalRiver(riverId);
