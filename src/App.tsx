@@ -1079,6 +1079,14 @@ function App() {
     return () => window.clearTimeout(timeoutId);
   }, [appNotification]);
 
+  // Surface a live-location problem (denied/unavailable/error) as a dismissible,
+  // auto-clearing notification rather than a persistent top-bar message.
+  useEffect(() => {
+    if (liveLocationAlert) {
+      showAppNotification(liveLocationAlert, "error");
+    }
+  }, [liveLocationAlert]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -4126,9 +4134,9 @@ function App() {
                 Add info
               </button>
             ) : null}
-            {authMessage || authState.error || liveLocationAlert ? (
+            {authMessage || authState.error ? (
               <p className="topbar-message">
-                {authMessage || authState.error || liveLocationAlert}
+                {authMessage || authState.error}
               </p>
             ) : null}
           </div>
