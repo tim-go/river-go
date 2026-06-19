@@ -12,6 +12,8 @@
     "setup:cicd:staging": "scripts/infra/setup-cicd.sh staging",
     "setup:cicd:prod": "scripts/infra/setup-cicd.sh prod",
     "setup:cicd:all": "scripts/infra/setup-cicd.sh all",
+    "setup:scheduler:staging": "scripts/infra/setup-scheduler.sh staging",
+    "setup:scheduler:prod": "scripts/infra/setup-scheduler.sh prod",
     "health:staging": "scripts/infra/check-health.sh staging",
     "health:prod": "scripts/infra/check-health.sh prod",
     "auth:staging": "node scripts/check-auth-config.mjs staging",

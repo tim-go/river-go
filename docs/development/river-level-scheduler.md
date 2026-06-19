@@ -35,65 +35,63 @@ Two non-secret values, set per environment in
 
 ```jsonc
 "jobs": {
-  // Audience the scheduler's OIDC token is minted for; we verify aud == this.
-  "observationOidcAudience": "https://<cloud-run-host>",
-  // Email of the service account the scheduler runs as.
+  // OIDC token audience — a stable public origin for the API. Any value works
+  // as long as it is identical on both sides; deploy-api.sh and the scheduler
+  // setup both read THIS key, so they always agree.
+  "observationOidcAudience": "https://staging.riverlaunch.info",
+  // The scheduler's service-account email. setup-scheduler.sh creates it if it
+  // is missing; the API checks the token's email against it.
   "observationServiceAccount": "river-levels-scheduler@<project>.iam.gserviceaccount.com"
 }
 ```
 
 `deploy-api.sh` passes these to Cloud Run as `OBSERVATION_JOB_OIDC_AUDIENCE`
 and `OBSERVATION_JOB_SERVICE_ACCOUNT` (plain env vars, not secrets). Leave them
-empty to disable OIDC (endpoint then requires a moderator session).
+empty to disable OIDC (the endpoint then requires a moderator session).
 
-## One-time GCP setup
+## Setup
 
-Values come from `platform/config/river-go-platform.json`
-(`environments.<env>.gcpProject`, `.region`, `.cloudRunService`) and the
-service's host. Replace the `<...>` placeholders.
+All GCP provisioning is done by platform scripts — no manual `gcloud`. The
+scheduler script is idempotent (safe to re-run) and mirrors the other
+`platform:*` scripts.
 
-```bash
-PROJECT=<project>
-REGION=<region>
-HOST=<cloud-run-host>              # e.g. river-go-api-xxxx-nw.a.run.app or the custom domain
-AUDIENCE="https://$HOST"          # must equal observationOidcAudience
+1. **Configure** the two `jobs` values above in
+   `platform/.config/river-go-runtime.json`, and apply the same change to the
+   `RIVER_GO_RUNTIME_CONFIG` secret used by CI.
 
-# 1. Service account the scheduler runs as
-gcloud iam service-accounts create river-levels-scheduler \
-  --project="$PROJECT" \
-  --display-name="River levels Cloud Scheduler"
+2. **Deploy the API** so it picks them up as env vars:
 
-# 2. The scheduler job (every 30 min; comfortably above the 15-min cooldown).
-#    No run.invoker grant needed — the service is public and validates the
-#    token itself. We only need a valid OIDC token from the right SA.
-gcloud scheduler jobs create http river-levels-ingest \
-  --project="$PROJECT" \
-  --location="$REGION" \
-  --schedule="*/30 * * * *" \
-  --time-zone="Europe/London" \
-  --http-method=POST \
-  --uri="https://$HOST/api/jobs/observations/ingest" \
-  --oidc-service-account-email="river-levels-scheduler@$PROJECT.iam.gserviceaccount.com" \
-  --oidc-token-audience="$AUDIENCE"
-```
+   ```bash
+   npm run platform:deploy-api:staging
+   ```
 
-Then set `observationOidcAudience` / `observationServiceAccount` in the runtime
-config secret (`RIVER_GO_RUNTIME_CONFIG`) and redeploy the API so the env vars
-land on the service.
+3. **Provision the scheduler** — creates the service account, lets the Cloud
+   Scheduler agent mint OIDC tokens as it, and creates/updates the job
+   (`river-levels-ingest-<env>`) pointed at the live Cloud Run URL:
 
-> If `jobs create` fails with a permission error about generating OIDC tokens,
-> grant the Cloud Scheduler service agent
-> (`service-<project-number>@gcp-sa-cloudscheduler.iam.gserviceaccount.com`) the
-> **Service Account Token Creator** role on `river-levels-scheduler`.
+   ```bash
+   npm run platform:setup:scheduler:staging
+   # preview only: npm run platform:setup:scheduler:staging -- --dry-run
+   ```
+
+The cadence defaults to every 30 minutes (`Europe/London`), comfortably above
+the 15-minute cooldown. Override per environment by adding
+`environments.<env>.scheduler.ingestionSchedule` / `.timeZone` to the platform
+config. No `run.invoker` grant is needed — the service is public and validates
+the token itself.
 
 ## Verify
 
+`setup-scheduler.sh` prints a ready-to-run trigger command. Or:
+
 ```bash
-gcloud scheduler jobs run river-levels-ingest --location="$REGION" --project="$PROJECT"
+gcloud scheduler jobs run river-levels-ingest-staging \
+  --location=<region> --project=<project>
 ```
 
 A `200` (or `429` if something ran in the last 15 min) means auth passed. A
-`401` means the audience or service-account values don't match between the
-scheduler job and the deployed env vars. The run also shows up in Admin →
-System under the ingestion status, and via `GET /api/jobs/observations` (job
-runs), regardless of whether you or the scheduler triggered it.
+`401` means the audience or service-account values don't line up — but since
+`deploy-api.sh` and `setup-scheduler.sh` read them from the same runtime-config
+keys, that should only happen if the API wasn't redeployed after a config
+change. The run shows up in Admin → System and via `GET /api/jobs/observations`,
+whoever triggered it.

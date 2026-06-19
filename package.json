@@ -37,6 +37,8 @@
     "platform:setup:prod": "npm --prefix platform run setup:prod --",
     "platform:setup:cicd:staging": "npm --prefix platform run setup:cicd:staging --",
     "platform:setup:cicd:prod": "npm --prefix platform run setup:cicd:prod --",
+    "platform:setup:scheduler:staging": "npm --prefix platform run setup:scheduler:staging --",
+    "platform:setup:scheduler:prod": "npm --prefix platform run setup:scheduler:prod --",
     "platform:health:staging": "npm --prefix platform run health:staging",
     "platform:health:prod": "npm --prefix platform run health:prod",
     "platform:auth:staging": "npm --prefix platform run auth:staging",
