@@ -8,7 +8,8 @@ export function AppBrandPanel() {
       </span>
       <div>
         <strong>
-          River<span className="brand-launch">Launch</span>.app
+          <span className="brand-river">River</span>
+          <span className="brand-launch">Launch</span>.app
         </strong>
         <span>Community river intelligence for paddlers.</span>
       </div>
