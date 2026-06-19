@@ -6161,6 +6161,14 @@ function App() {
                   />
                     </div>
                     <div className="profile-actions">
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={() => setActiveAppSection("more")}
+                  >
+                    <MoreHorizontal size={16} />
+                    Settings &amp; more
+                  </button>
                   {isSignedIn ? (
                     <button
                       className="ghost-button"
