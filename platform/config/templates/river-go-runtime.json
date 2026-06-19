@@ -48,7 +48,8 @@
       }
     },
     "jobs": {
-      "observationIngestionToken": ""
+      "observationOidcAudience": "",
+      "observationServiceAccount": ""
     }
   },
   "staging": {
@@ -89,7 +90,8 @@
       }
     },
     "jobs": {
-      "observationIngestionToken": ""
+      "observationOidcAudience": "",
+      "observationServiceAccount": ""
     }
   },
   "prod": {
@@ -130,7 +132,8 @@
       }
     },
     "jobs": {
-      "observationIngestionToken": ""
+      "observationOidcAudience": "",
+      "observationServiceAccount": ""
     }
   }
 }
