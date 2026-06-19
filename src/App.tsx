@@ -215,7 +215,6 @@ import {
   candidateRouteSuggestionId,
   canonicalRiverOverviewSectionId,
   canonicalRiverToOverviewSection,
-  disciplineLabel,
   categoryOptions,
   COMPACT_MAP_CONTROLS_QUERY,
   contributionOptions,
@@ -854,8 +853,8 @@ function App() {
         ? `Admin ${activeAdminPage}`
         : activeAppSection === "profile"
           ? `Profile ${profileMode}`
-          : activeAppSection === "search"
-            ? `Search ${searchMode}`
+          : activeAppSection === "discover"
+            ? `Discover ${searchMode}`
             : activeAppSection === "map"
               ? `Map ${activeSection.sectionName}`
               : activeAppSection;
@@ -864,8 +863,8 @@ function App() {
         ? `/admin/${activeAdminPage}`
         : activeAppSection === "profile"
           ? `/profile/${profileMode}`
-          : activeAppSection === "search"
-            ? `/search/${searchMode}`
+          : activeAppSection === "discover"
+            ? `/discover/${searchMode}`
             : `/${activeAppSection}`;
 
     void trackPageView({ title, path });
@@ -5388,97 +5387,6 @@ function App() {
         </section>
         ) : null}
       </section>
-          ) : activeAppSection === "discover" ? (
-            <PlaceholderPage section="discover" title="Discover rivers">
-              <div className="discover-page">
-                <button
-                  type="button"
-                  className="discover-place-link"
-                  onClick={() => setActiveAppSection("search")}
-                >
-                  <Search size={15} />
-                  <span>Detailed search</span>
-                </button>
-                <div className="discover-filters">
-                  <input
-                    className="discover-search"
-                    value={riverSearchTerm}
-                    onChange={(event) => setRiverSearchTerm(event.target.value)}
-                    placeholder="Search rivers, regions, nations…"
-                    aria-label="Search rivers"
-                  />
-                  <div className="discover-chips" role="group" aria-label="Filter rivers">
-                    <button
-                      type="button"
-                      className={`discover-chip${riverDisciplineFilter === "all" ? " discover-chip--active" : ""}`}
-                      onClick={() => setRiverDisciplineFilter("all")}
-                    >
-                      All
-                    </button>
-                    <button
-                      type="button"
-                      className={`discover-chip${riverDisciplineFilter === "whitewater" ? " discover-chip--active" : ""}`}
-                      onClick={() => setRiverDisciplineFilter("whitewater")}
-                    >
-                      Whitewater
-                    </button>
-                    <button
-                      type="button"
-                      className={`discover-chip${riverDisciplineFilter === "touring" ? " discover-chip--active" : ""}`}
-                      onClick={() => setRiverDisciplineFilter("touring")}
-                    >
-                      Canoe touring
-                    </button>
-                    {riverNations.length ? (
-                      <span className="discover-chip-sep" aria-hidden="true" />
-                    ) : null}
-                    <button
-                      type="button"
-                      className={`discover-chip${riverNationFilter === "all" ? " discover-chip--active" : ""}`}
-                      onClick={() => setRiverNationFilter("all")}
-                    >
-                      All nations
-                    </button>
-                    {riverNations.map((nation) => (
-                      <button
-                        key={nation}
-                        type="button"
-                        className={`discover-chip${riverNationFilter === nation ? " discover-chip--active" : ""}`}
-                        onClick={() => setRiverNationFilter(nation)}
-                      >
-                        {nation}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <p className="discover-count">
-                  {filteredSearchRivers.length} river
-                  {filteredSearchRivers.length === 1 ? "" : "s"}
-                </p>
-                {filteredSearchRivers.length ? (
-                  <div className="river-card-grid">
-                    {filteredSearchRivers.map((river) => (
-                      <RiverCard
-                        key={river.id}
-                        river={river}
-                        isFavourite={favouriteRiverIds.includes(river.id)}
-                        level={riverLevels[river.id]}
-                        onToggleFavourite={toggleFavouriteRiver}
-                        onVisible={requestRiverLevel}
-                        onOpen={(riverId) => {
-                          selectCanonicalRiver(riverId);
-                          setActiveAppSection("map");
-                        }}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="empty-state">
-                    No rivers match these filters yet.
-                  </p>
-                )}
-              </div>
-            </PlaceholderPage>
           ) : activeAppSection === "dashboard" ? (
             <PlaceholderPage section="dashboard" title="Your dashboard">
               <div className="dashboard-page">
@@ -5549,8 +5457,8 @@ function App() {
                 ) : null}
               </div>
             </PlaceholderPage>
-          ) : activeAppSection === "search" ? (
-            <PlaceholderPage section="search" title="Search">
+          ) : activeAppSection === "discover" ? (
+            <PlaceholderPage section="discover" title="Discover">
               <div className="search-panel">
                 <div className="segmented-control search-mode-tabs" role="tablist">
                   <button
@@ -5596,109 +5504,90 @@ function App() {
                 </div>
 
                 {searchMode === "name" ? (
-                  <section className="search-mode-panel" aria-label="Search rivers">
-                    <label>
-                      River name
+                  <div className="discover-page">
+                    <div className="discover-filters">
                       <input
+                        className="discover-search"
                         value={riverSearchTerm}
                         onChange={(event) => setRiverSearchTerm(event.target.value)}
-                        placeholder="Tryweryn, Wye, Dee"
+                        placeholder="Search rivers, regions, nations…"
+                        aria-label="Search rivers"
                       />
-                    </label>
-                    <div className="river-filters">
                       <div
-                        className="segmented-control river-discipline-filter"
-                        role="tablist"
+                        className="discover-chips"
+                        role="group"
+                        aria-label="Filter rivers"
                       >
                         <button
                           type="button"
-                          className={
-                            riverDisciplineFilter === "all" ? "active" : ""
-                          }
+                          className={`discover-chip${riverDisciplineFilter === "all" ? " discover-chip--active" : ""}`}
                           onClick={() => setRiverDisciplineFilter("all")}
                         >
                           All
                         </button>
                         <button
                           type="button"
-                          className={
-                            riverDisciplineFilter === "whitewater" ? "active" : ""
-                          }
+                          className={`discover-chip${riverDisciplineFilter === "whitewater" ? " discover-chip--active" : ""}`}
                           onClick={() => setRiverDisciplineFilter("whitewater")}
                         >
                           Whitewater
                         </button>
                         <button
                           type="button"
-                          className={
-                            riverDisciplineFilter === "touring" ? "active" : ""
-                          }
+                          className={`discover-chip${riverDisciplineFilter === "touring" ? " discover-chip--active" : ""}`}
                           onClick={() => setRiverDisciplineFilter("touring")}
                         >
-                          Canoe
+                          Canoe touring
                         </button>
-                      </div>
-                      <select
-                        className="river-nation-filter"
-                        value={riverNationFilter}
-                        onChange={(event) =>
-                          setRiverNationFilter(event.target.value)
-                        }
-                        aria-label="Filter rivers by nation"
-                      >
-                        <option value="all">All nations</option>
+                        {riverNations.length ? (
+                          <span className="discover-chip-sep" aria-hidden="true" />
+                        ) : null}
+                        <button
+                          type="button"
+                          className={`discover-chip${riverNationFilter === "all" ? " discover-chip--active" : ""}`}
+                          onClick={() => setRiverNationFilter("all")}
+                        >
+                          All nations
+                        </button>
                         {riverNations.map((nation) => (
-                          <option key={nation} value={nation}>
-                            {nation}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    {filteredSearchRivers.length ? (
-                      <div className="canonical-river-list">
-                        {filteredSearchRivers.map((river) => (
                           <button
-                            className="canonical-river-row"
-                            key={river.id}
+                            key={nation}
                             type="button"
-                            onClick={() => {
-                              selectCanonicalRiver(river.id);
-                              setActiveAppSection("map");
-                            }}
+                            className={`discover-chip${riverNationFilter === nation ? " discover-chip--active" : ""}`}
+                            onClick={() => setRiverNationFilter(nation)}
                           >
-                            <span>
-                              <strong>{river.displayName}</strong>
-                              <span className="river-row-tags">
-                                {river.discipline ? (
-                                  <span
-                                    className={`discipline-chip discipline-chip--${river.discipline}`}
-                                  >
-                                    {disciplineLabel(river.discipline)}
-                                  </span>
-                                ) : null}
-                                {(river.nation ?? river.region) ? (
-                                  <span className="country-badge">
-                                    {river.nation ?? river.region}
-                                  </span>
-                                ) : null}
-                              </span>
-                            </span>
-                            {river.grade ? (
-                              <span className="grade-pill">Gr {river.grade}</span>
-                            ) : river.reviewNeededCandidatePoiCount ? (
-                              <span className="candidate-pill">
-                                {river.reviewNeededCandidatePoiCount} candidates
-                              </span>
-                            ) : null}
+                            {nation}
                           </button>
                         ))}
                       </div>
+                    </div>
+                    <p className="discover-count">
+                      {filteredSearchRivers.length} river
+                      {filteredSearchRivers.length === 1 ? "" : "s"}
+                    </p>
+                    {filteredSearchRivers.length ? (
+                      <div className="river-card-grid">
+                        {filteredSearchRivers.map((river) => (
+                          <RiverCard
+                            key={river.id}
+                            river={river}
+                            isFavourite={favouriteRiverIds.includes(river.id)}
+                            level={riverLevels[river.id]}
+                            onToggleFavourite={toggleFavouriteRiver}
+                            onVisible={requestRiverLevel}
+                            onOpen={(riverId) => {
+                              selectCanonicalRiver(riverId);
+                              setActiveAppSection("map");
+                            }}
+                          />
+                        ))}
+                      </div>
                     ) : (
-                      <p className="source-note">
-                        No rivers match these filters.
+                      <p className="empty-state">
+                        No rivers match these filters yet.
                       </p>
                     )}
-                  </section>
+                  </div>
                 ) : searchMode === "waterways" ? (
                   <form
                     className="location-search-card"
