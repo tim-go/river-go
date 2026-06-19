@@ -47,6 +47,7 @@ import {
   type AnalyticsConsent,
 } from "./services/analytics";
 import {
+  fetchCanonicalRiver,
   fetchCanonicalRivers,
   fetchSourceCandidatePois,
   updateSourceCandidatePoiStatus,
@@ -1375,11 +1376,18 @@ function App() {
     void (async () => {
       let measure: SectionObservationMeasure | null = null;
       try {
-        const measures = await fetchSectionObservations(
-          canonicalRiverOverviewSectionId(riverId),
-          48,
+        // The synthetic overview section carries no gauge — a river's gauges
+        // live on its linked sections, so fetch the detail for the section ids
+        // then flatten their observations (mirrors DiscoveryContext's fetch).
+        const river = await fetchCanonicalRiver(riverId);
+        const groups = await Promise.all(
+          (river.sectionLinks ?? []).map((link) =>
+            fetchSectionObservations(link.sectionId, 48).catch(
+              () => [] as SectionObservationMeasure[],
+            ),
+          ),
         );
-        measure = getPrimaryObservationMeasure(measures) ?? null;
+        measure = getPrimaryObservationMeasure(groups.flat()) ?? null;
       } catch {
         measure = null;
       }
