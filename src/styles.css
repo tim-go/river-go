@@ -6527,6 +6527,18 @@ input[type="file"]::file-selector-button:hover {
 }
 [data-theme="surge"] .auth-sheet__content {
   background: linear-gradient(rgba(10, 16, 38, 0.97), rgba(16, 24, 52, 0.98));
+  /* Redefine the neutral tokens so inputs/labels/borders inside also theme dark
+     — otherwise the panel goes dark but the var(--surface) inputs stay white. */
+  --ink: #eaf0ff;
+  --muted: #8d9bc4;
+  --line: rgba(120, 150, 230, 0.18);
+  --surface: rgba(22, 32, 66, 0.62);
+  --surface-strong: rgba(16, 24, 52, 0.82);
+  --river: #2f6bff;
+  --river-dark: #4d8bff;
+  --sky: #4d8bff;
+  --surge-yellow: #ffd60a;
+  color-scheme: dark;
 }
 
 /* base status chip (neutral) — MUST precede the variants below */
