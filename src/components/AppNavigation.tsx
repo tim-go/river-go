@@ -72,7 +72,9 @@ export function AppNavigation({
             <Waves size={20} strokeWidth={2.3} />
           </span>
           <span>
-            <strong>RiverLaunch.app</strong>
+            <strong>
+              River<span className="brand-launch">Launch</span>.app
+            </strong>
             <small>River intelligence</small>
           </span>
         </div>

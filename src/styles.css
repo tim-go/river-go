@@ -281,6 +281,14 @@ button:disabled {
   white-space: nowrap;
 }
 
+/* Brand wordmark: tint "Launch" with the theme accent. Surge -> its bright
+   yellow, Daybreak -> its amber. Tide leaves --surge-yellow unset, so this
+   falls back to the inherited ink colour (bright yellow on the light rail
+   would be low-contrast). */
+.brand-launch {
+  color: var(--surge-yellow);
+}
+
 .app-nav__brand small {
   margin-top: 3px;
   overflow: hidden;

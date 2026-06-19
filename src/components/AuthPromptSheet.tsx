@@ -126,7 +126,9 @@ export function AuthPromptSheet({
             <span className="brand-mark">
               <Waves size={22} strokeWidth={2.3} />
             </span>
-            <span>RiverLaunch.app</span>
+            <span>
+              River<span className="brand-launch">Launch</span>.app
+            </span>
           </div>
           <div>
             <p className="eyebrow">Community river intelligence</p>
