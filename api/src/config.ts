@@ -64,6 +64,10 @@ export function getObservationJobServiceAccount(): string | undefined {
   return process.env.OBSERVATION_JOB_SERVICE_ACCOUNT?.trim() || undefined;
 }
 
+export function getAppBaseUrl(): string | undefined {
+  return process.env.APP_BASE_URL?.trim() || undefined;
+}
+
 export function isEmailVerificationRequired(): boolean {
   // Relaxed by default while transactional email (Resend) is being set up;
   // Firebase's default verification emails aren't being delivered. Set

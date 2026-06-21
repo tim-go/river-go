@@ -19,6 +19,11 @@ const firebaseProjectId = readString(envConfig?.firebase?.projectId);
 const adminEmails = readString(envConfig?.auth?.adminEmails);
 const what3wordsApiKey = readString(envConfig?.integrations?.what3words?.apiKey);
 const observationJobToken = readString(envConfig?.jobs?.observationIngestionToken);
+const emailIntegration = readObject(envConfig?.integrations?.email);
+const resendApiKey = readString(emailIntegration?.apiKey);
+const emailFrom = readString(emailIntegration?.from);
+const emailReplyTo = readString(emailIntegration?.replyTo);
+const appBaseUrl = readString(envConfig?.urls?.web);
 
 const env = { ...process.env };
 
@@ -27,6 +32,13 @@ setIfPresent(env, "FIREBASE_PROJECT_ID", firebaseProjectId);
 setIfPresent(env, "ADMIN_EMAILS", adminEmails);
 setIfPresent(env, "WHAT3WORDS_API_KEY", what3wordsApiKey);
 setIfPresent(env, "OBSERVATION_JOB_TOKEN", observationJobToken);
+setIfPresent(env, "RESEND_API_KEY", resendApiKey);
+setIfPresent(env, "EMAIL_FROM", emailFrom);
+setIfPresent(env, "EMAIL_REPLY_TO", emailReplyTo);
+setIfPresent(env, "APP_BASE_URL", appBaseUrl);
+if (resendApiKey) {
+  env.EMAIL_PROVIDER = "resend";
+}
 
 if (databaseUrl && !databaseUrl.includes("<")) {
   setIfPresent(env, "DATABASE_URL", databaseUrl);

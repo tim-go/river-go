@@ -45,6 +45,12 @@
     "integrations": {
       "what3words": {
         "apiKey": ""
+      },
+      "email": {
+        "provider": "resend",
+        "from": "RiverLaunch.app <hello@mail.riverlaunch.app>",
+        "replyTo": "hello@mail.riverlaunch.app",
+        "apiKey": ""
       }
     },
     "jobs": {
@@ -87,6 +93,12 @@
     "integrations": {
       "what3words": {
         "apiKey": ""
+      },
+      "email": {
+        "provider": "resend",
+        "from": "RiverLaunch.app <hello@mail.riverlaunch.app>",
+        "replyTo": "hello@mail.riverlaunch.app",
+        "apiKey": ""
       }
     },
     "jobs": {
@@ -128,6 +140,12 @@
     },
     "integrations": {
       "what3words": {
+        "apiKey": ""
+      },
+      "email": {
+        "provider": "resend",
+        "from": "RiverLaunch.app <hello@mail.riverlaunch.app>",
+        "replyTo": "hello@mail.riverlaunch.app",
         "apiKey": ""
       }
     },

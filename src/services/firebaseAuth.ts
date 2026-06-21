@@ -1,20 +1,22 @@
 import {
+  applyActionCode,
+  confirmPasswordReset,
   createUserWithEmailAndPassword,
   getAuth,
   getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
-  sendEmailVerification,
-  sendPasswordResetEmail,
   signInWithPopup,
   signInWithRedirect,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
+  verifyPasswordResetCode,
   type Auth,
   type AuthError,
   type User,
 } from "firebase/auth";
+import { getApiBaseUrl } from "./apiConfig";
 import { getClientFirebaseApp } from "./firebaseApp";
 import { REQUIRE_EMAIL_VERIFICATION } from "../lib/contributorTerms";
 
@@ -113,7 +115,8 @@ export async function createAccountWithEmail(input: {
 
     if (REQUIRE_EMAIL_VERIFICATION) {
       try {
-        await sendEmailVerification(credential.user);
+        const token = await credential.user.getIdToken();
+        await postServiceEmail("/api/auth/email/verification", token);
       } catch {
         // Non-fatal: the member can re-request verification from the contributor on-ramp.
       }
@@ -141,18 +144,14 @@ export async function signInWithEmail(input: {
 }
 
 export async function sendEmailPasswordReset(email: string): Promise<void> {
-  const auth = getClientAuth();
-
-  if (!auth) {
+  if (!getClientAuth()) {
     throw new Error("Firebase Auth is not configured for this build.");
   }
 
   try {
-    await sendPasswordResetEmail(auth, email);
-  } catch (error) {
-    throw new Error(
-      getFriendlyAuthErrorMessage(error, "Could not send password reset email."),
-    );
+    await postServiceEmail("/api/auth/email/password-reset", null, { email });
+  } catch {
+    throw new Error("Could not send the password reset email. Please try again.");
   }
 }
 
@@ -164,14 +163,10 @@ export async function sendCurrentUserEmailVerification(): Promise<void> {
   }
 
   try {
-    await sendEmailVerification(auth.currentUser);
-  } catch (error) {
-    throw new Error(
-      getFriendlyAuthErrorMessage(
-        error,
-        "Could not send the verification email.",
-      ),
-    );
+    const token = await auth.currentUser.getIdToken();
+    await postServiceEmail("/api/auth/email/verification", token);
+  } catch {
+    throw new Error("Could not send the verification email. Please try again.");
   }
 }
 
@@ -205,6 +200,47 @@ export async function getCurrentUserIdToken(): Promise<string | null> {
   }
 
   return auth.currentUser.getIdToken();
+}
+
+async function postServiceEmail(
+  path: string,
+  token: string | null,
+  body?: Record<string, unknown>,
+): Promise<void> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) {
+    headers.authorization = `Bearer ${token}`;
+  }
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+    method: "POST",
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!response.ok) {
+    throw new Error(`Service email request failed (${response.status}).`);
+  }
+}
+
+// Used by the /auth/action landing page to apply Firebase action codes.
+export async function applyEmailVerificationCode(oobCode: string): Promise<void> {
+  const auth = getClientAuth();
+  if (!auth) throw new Error("Firebase Auth is not configured for this build.");
+  await applyActionCode(auth, oobCode);
+}
+
+export async function verifyPasswordResetOobCode(oobCode: string): Promise<string> {
+  const auth = getClientAuth();
+  if (!auth) throw new Error("Firebase Auth is not configured for this build.");
+  return verifyPasswordResetCode(auth, oobCode);
+}
+
+export async function confirmPasswordResetWithCode(
+  oobCode: string,
+  newPassword: string,
+): Promise<void> {
+  const auth = getClientAuth();
+  if (!auth) throw new Error("Firebase Auth is not configured for this build.");
+  await confirmPasswordReset(auth, oobCode, newPassword);
 }
 
 export function getClientAuth(): Auth | null {
