@@ -1,0 +1,254 @@
+/* PWA install + update UI (toast, install banner, iOS instructions sheet). */
+
+/* Bottom-anchored stack so the update toast and the install banner never
+   overlap — whichever are visible flow in a column above the (mobile) nav. */
+.pwa-overlay-stack {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + var(--safe-area-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: min(94vw, 520px);
+  pointer-events: none;
+}
+
+.pwa-overlay-stack > * {
+  pointer-events: auto;
+}
+
+@media (max-width: 720px) {
+  .pwa-overlay-stack {
+    bottom: calc(var(--bottom-nav-height, 64px) + 12px + var(--safe-area-bottom, 0px));
+  }
+}
+
+/* --- Update toast (registerType: prompt) --- */
+.pwa-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(120, 150, 230, 0.25);
+  border-radius: 12px;
+  background: rgba(12, 18, 40, 0.97);
+  color: #eaf0ff;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.pwa-toast__message {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.pwa-toast__actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.pwa-toast .primary-action {
+  border-color: #ffd60a;
+  background: #ffd60a;
+  color: #060a1a;
+}
+
+.pwa-toast .ghost-button {
+  border-color: rgba(120, 150, 230, 0.35);
+  color: #c7d3f0;
+  background: transparent;
+}
+
+/* --- Dismissible install banner --- */
+.pwa-install-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(120, 150, 230, 0.25);
+  border-radius: 14px;
+  background: rgba(12, 18, 40, 0.97);
+  color: #eaf0ff;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+}
+
+.pwa-install-banner__mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #2f6bff, #1b3aa0);
+  color: #fff;
+}
+
+.pwa-install-banner__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pwa-install-banner__text strong {
+  font-size: 0.92rem;
+}
+
+.pwa-install-banner__text span {
+  font-size: 0.76rem;
+  color: #aab8e0;
+  line-height: 1.3;
+}
+
+.pwa-install-banner__cta {
+  flex: 0 0 auto;
+  border-color: #ffd60a;
+  background: #ffd60a;
+  color: #060a1a;
+}
+
+.pwa-install-banner__close {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #8d9bc4;
+  cursor: pointer;
+}
+
+.pwa-install-banner__close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #eaf0ff;
+}
+
+/* --- iOS "Add to Home Screen" sheet --- */
+.pwa-ios-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(4, 8, 20, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.pwa-ios-sheet {
+  position: relative;
+  width: min(94vw, 420px);
+  padding: 22px 20px;
+  border: 1px solid rgba(120, 150, 230, 0.25);
+  border-radius: 18px;
+  background: #0c1430;
+  color: #eaf0ff;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.pwa-ios-sheet h2 {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+}
+
+.pwa-ios-sheet > p {
+  margin: 0 0 14px;
+  font-size: 0.86rem;
+  color: #aab8e0;
+}
+
+.pwa-ios-sheet__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #c7d3f0;
+  cursor: pointer;
+}
+
+.pwa-ios-steps {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pwa-ios-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.pwa-ios-steps__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(47, 107, 255, 0.18);
+  color: #8fb4ff;
+}
+
+.pwa-ios-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #8d9bc4;
+  line-height: 1.4;
+}
+
+/* --- "Install app" row in More -> Settings --- */
+.pwa-setting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pwa-setting__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pwa-setting__text strong {
+  font-size: 0.92rem;
+}
+
+.pwa-setting__text span {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pwa-setting > button,
+.pwa-setting__chip,
+.pwa-setting__hint {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.pwa-setting__hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: right;
+}

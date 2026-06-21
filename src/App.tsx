@@ -148,6 +148,7 @@ import { AppNotificationBanner } from "./components/AppNotificationBanner";
 import { PlaceholderPage } from "./components/PlaceholderPage";
 import { RiverCard } from "./components/RiverCard";
 import { DashboardHub } from "./components/DashboardHub";
+import { PwaInstallSettingRow } from "./pwa/PwaInstallSettingRow";
 import { GroupsPanel } from "./components/GroupsPanel";
 import { PhotoLightbox } from "./components/PhotoLightbox";
 import { AuthPromptSheet } from "./components/AuthPromptSheet";
@@ -6066,6 +6067,16 @@ function App() {
                     <MoreHorizontal size={16} />
                     Settings &amp; more
                   </button>
+                  {canAccessAdminTools ? (
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={() => setActiveAppSection("admin")}
+                    >
+                      <ShieldCheck size={16} />
+                      Admin
+                    </button>
+                  ) : null}
                   {isSignedIn ? (
                     <button
                       className="ghost-button"
@@ -6679,6 +6690,7 @@ function App() {
                     </span>
                     <MoreHorizontal size={18} />
                   </div>
+                  <PwaInstallSettingRow />
                   <label className="setting-toggle">
                     <input
                       type="checkbox"
