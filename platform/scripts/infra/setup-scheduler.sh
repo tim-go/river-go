@@ -73,6 +73,9 @@ REGION="$(json_value ".environments.$ENV.region")"
 CLOUD_RUN_SERVICE="$(json_value ".environments.$ENV.cloudRunService")"
 SCHEDULE="$(jq -r ".environments.$ENV.scheduler.ingestionSchedule // \"*/30 * * * *\"" "$CONFIG_PATH")"
 TIME_ZONE="$(jq -r ".environments.$ENV.scheduler.timeZone // \"Europe/London\"" "$CONFIG_PATH")"
+# Ingestion runs synchronously for ~2-5 min; the deadline must exceed that or
+# Cloud Scheduler marks completed runs as failed and retries them.
+ATTEMPT_DEADLINE="$(jq -r ".environments.$ENV.scheduler.attemptDeadline // \"600s\"" "$CONFIG_PATH")"
 
 AUDIENCE="$(jq -er ".$ENV.jobs.observationOidcAudience // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 SCHEDULER_SA_EMAIL="$(jq -er ".$ENV.jobs.observationServiceAccount // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
@@ -141,6 +144,7 @@ if gcloud scheduler jobs describe "$JOB_NAME" \
   run gcloud scheduler jobs update http "$JOB_NAME" \
     --location="$REGION" --project="$GCP_PROJECT" \
     --schedule="$SCHEDULE" --time-zone="$TIME_ZONE" \
+    --attempt-deadline="$ATTEMPT_DEADLINE" \
     --http-method=POST --uri="$INGEST_URI" \
     --oidc-service-account-email="$SCHEDULER_SA_EMAIL" \
     --oidc-token-audience="$AUDIENCE"
@@ -149,6 +153,7 @@ else
   run gcloud scheduler jobs create http "$JOB_NAME" \
     --location="$REGION" --project="$GCP_PROJECT" \
     --schedule="$SCHEDULE" --time-zone="$TIME_ZONE" \
+    --attempt-deadline="$ATTEMPT_DEADLINE" \
     --http-method=POST --uri="$INGEST_URI" \
     --oidc-service-account-email="$SCHEDULER_SA_EMAIL" \
     --oidc-token-audience="$AUDIENCE"

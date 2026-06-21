@@ -149,6 +149,8 @@ run gcloud builds submit "$REPO_DIR/api" \
   --project="$GCP_PROJECT"
 
 section "Deploy Cloud Run service"
+# --timeout=600: the observation-ingestion endpoint runs synchronously for a few
+# minutes, so it must not be cut off at Cloud Run's 300s default request timeout.
 run gcloud run deploy "$CLOUD_RUN_SERVICE" \
   --image="$IMAGE" \
   --region="$REGION" \
@@ -160,6 +162,7 @@ run gcloud run deploy "$CLOUD_RUN_SERVICE" \
   --set-env-vars="^|^CLOUD_SQL_CONNECTION_NAME=$CLOUD_SQL_CONNECTION_NAME|NODE_ENV=production|ADMIN_EMAILS=$ADMIN_EMAILS|OBSERVATION_JOB_OIDC_AUDIENCE=$OBSERVATION_JOB_OIDC_AUDIENCE|OBSERVATION_JOB_SERVICE_ACCOUNT=$OBSERVATION_JOB_SERVICE_ACCOUNT" \
   --set-secrets="$SET_SECRETS" \
   --port="8080" \
+  --timeout="600" \
   --memory="512Mi" \
   --cpu="1" \
   --min-instances="0" \

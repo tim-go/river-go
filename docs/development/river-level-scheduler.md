@@ -75,10 +75,18 @@ scheduler script is idempotent (safe to re-run) and mirrors the other
    ```
 
 The cadence defaults to every 30 minutes (`Europe/London`), comfortably above
-the 15-minute cooldown. Override per environment by adding
-`environments.<env>.scheduler.ingestionSchedule` / `.timeZone` to the platform
-config. No `run.invoker` grant is needed — the service is public and validates
-the token itself.
+the 15-minute cooldown. Override per environment via the platform config:
+`environments.<env>.scheduler.ingestionSchedule`, `.timeZone`, and
+`.attemptDeadline` (default `600s`). No `run.invoker` grant is needed — the
+service is public and validates the token itself.
+
+**Timeouts.** Ingestion runs *synchronously* (~2–5 min), so two timeouts must
+sit above it: the scheduler `attemptDeadline` (default `600s`, above) and the
+Cloud Run request timeout (`deploy-api.sh` sets `--timeout=600`, up from the
+300s default). If either is too low, the job completes server-side and updates
+levels but the caller records a failure — Cloud Scheduler then logs a failed
+attempt (`status.code: 2`) and retries. (A future improvement is to make the
+endpoint async: return `202` and run the job in the background.)
 
 ## Verify
 
