@@ -6067,6 +6067,16 @@ function App() {
                     <MoreHorizontal size={16} />
                     Settings &amp; more
                   </button>
+                  {canAccessAdminTools ? (
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={() => setActiveAppSection("admin")}
+                    >
+                      <ShieldCheck size={16} />
+                      Admin
+                    </button>
+                  ) : null}
                   {isSignedIn ? (
                     <button
                       className="ghost-button"

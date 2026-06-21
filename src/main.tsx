@@ -11,9 +11,8 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { DiscoveryProvider } from "./discovery/DiscoveryContext";
 import { PwaProvider } from "./pwa/PwaProvider";
-import { PwaInstallBanner } from "./pwa/PwaInstallBanner";
 import { PwaIosInstallSheet } from "./pwa/PwaIosInstallSheet";
-import { PwaReloadPrompt } from "./pwa/PwaReloadPrompt";
+import { PwaOverlays } from "./pwa/PwaOverlays";
 import "./styles.css";
 import "./pwa/pwa.css";
 
@@ -22,9 +21,8 @@ createRoot(document.getElementById("root")!).render(
     <DiscoveryProvider>
       <PwaProvider>
         <App />
-        <PwaInstallBanner />
         <PwaIosInstallSheet />
-        <PwaReloadPrompt />
+        <PwaOverlays />
       </PwaProvider>
     </DiscoveryProvider>
   </StrictMode>,

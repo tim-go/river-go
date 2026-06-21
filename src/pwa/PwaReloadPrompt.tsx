@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
 // registerType is "prompt": when a new service worker is waiting we surface a
@@ -8,6 +9,15 @@ export function PwaReloadPrompt() {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW();
+
+  // The "ready to use offline" confirmation is transient — auto-dismiss it so it
+  // doesn't linger. The update prompt stays until the user acts on it.
+  useEffect(() => {
+    if (offlineReady && !needRefresh) {
+      const timer = setTimeout(() => setOfflineReady(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [offlineReady, needRefresh, setOfflineReady]);
 
   if (!offlineReady && !needRefresh) {
     return null;

@@ -1,17 +1,37 @@
 /* PWA install + update UI (toast, install banner, iOS instructions sheet). */
 
-/* --- Update toast (registerType: prompt) --- */
-.pwa-toast {
+/* Bottom-anchored stack so the update toast and the install banner never
+   overlap — whichever are visible flow in a column above the (mobile) nav. */
+.pwa-overlay-stack {
   position: fixed;
   left: 50%;
   bottom: calc(16px + var(--safe-area-bottom, 0px));
   transform: translateX(-50%);
   z-index: 1300;
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: min(94vw, 520px);
+  pointer-events: none;
+}
+
+.pwa-overlay-stack > * {
+  pointer-events: auto;
+}
+
+@media (max-width: 720px) {
+  .pwa-overlay-stack {
+    bottom: calc(var(--bottom-nav-height, 64px) + 12px + var(--safe-area-bottom, 0px));
+  }
+}
+
+/* --- Update toast (registerType: prompt) --- */
+.pwa-toast {
+  display: flex;
   align-items: center;
   gap: 12px;
-  width: max-content;
-  max-width: min(92vw, 460px);
+  width: 100%;
   padding: 12px 14px;
   border: 1px solid rgba(120, 150, 230, 0.25);
   border-radius: 12px;
@@ -47,15 +67,10 @@
 
 /* --- Dismissible install banner --- */
 .pwa-install-banner {
-  position: fixed;
-  left: 50%;
-  bottom: calc(16px + var(--safe-area-bottom, 0px));
-  transform: translateX(-50%);
-  z-index: 1250;
   display: flex;
   align-items: center;
   gap: 12px;
-  width: min(92vw, 520px);
+  width: 100%;
   padding: 12px 14px;
   border: 1px solid rgba(120, 150, 230, 0.25);
   border-radius: 14px;
@@ -116,16 +131,6 @@
 .pwa-install-banner__close:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #eaf0ff;
-}
-
-@media (max-width: 720px) {
-  .pwa-toast {
-    bottom: calc(var(--bottom-nav-height, 64px) + 12px + var(--safe-area-bottom, 0px));
-  }
-  .pwa-install-banner {
-    width: 94vw;
-    bottom: calc(var(--bottom-nav-height, 64px) + 10px + var(--safe-area-bottom, 0px));
-  }
 }
 
 /* --- iOS "Add to Home Screen" sheet --- */
