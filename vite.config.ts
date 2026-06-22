@@ -53,7 +53,11 @@ export default defineConfig(({ mode }) => {
             "**/zxcvbn-*.js",
           ],
           navigateFallback: "/index.html",
-          navigateFallbackDenylist: [/^\/api\//],
+          // Never serve the SPA shell for /api/* or Firebase's reserved /__/*
+          // paths. /__/auth/handler is the OAuth handler the popup/redirect
+          // navigates to — if the SW falls back to index.html there, Google
+          // sign-in silently bounces home with the app shell instead.
+          navigateFallbackDenylist: [/^\/api\//, /^\/__\//],
           cleanupOutdatedCaches: true,
         },
         devOptions: { enabled: false },
