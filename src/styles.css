@@ -1413,7 +1413,7 @@ h1 {
 .auth-sheet--onramp {
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
-  width: min(520px, 100%);
+  width: min(680px, 100%);
   max-height: min(880px, calc(100dvh - 24px));
 }
 
