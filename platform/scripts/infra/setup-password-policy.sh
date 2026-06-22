@@ -40,6 +40,7 @@ TOKEN="$(gcloud auth print-access-token)"
 RESPONSE="$(curl -sS -X PATCH \
   "https://identitytoolkit.googleapis.com/admin/v2/projects/$PROJECT_ID/config?updateMask=passwordPolicyConfig" \
   -H "Authorization: Bearer $TOKEN" \
+  -H "x-goog-user-project: $PROJECT_ID" \
   -H "Content-Type: application/json" \
   -d "{
     \"passwordPolicyConfig\": {

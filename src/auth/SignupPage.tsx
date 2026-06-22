@@ -5,6 +5,7 @@ import {
   signInWithGoogle,
   subscribeToAuthState,
 } from "../services/firebaseAuth";
+import { GoogleIcon } from "../components/auth/GoogleIcon";
 import { PasswordStrengthField } from "../components/auth/PasswordStrengthField";
 import {
   validatePasswordConfirmation,
@@ -154,6 +155,7 @@ export function SignupPage() {
           onClick={() => void handleGoogle()}
           disabled={submitting || unconfigured}
         >
+          <GoogleIcon size={18} />
           Sign up with Google
         </button>
 

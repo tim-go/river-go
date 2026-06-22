@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { LogIn, Waves } from "lucide-react";
+import { GoogleIcon } from "./auth/GoogleIcon";
 import type { AuthSheetMode } from "../types";
 
 export function AuthPromptSheet({
@@ -167,7 +168,7 @@ export function AuthPromptSheet({
             onClick={handleGoogleAuth}
             disabled={!isAuthConfigured || isSubmitting}
           >
-            <LogIn size={16} />
+            <GoogleIcon size={18} />
             Sign in with Google
           </button>
 

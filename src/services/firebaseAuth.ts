@@ -18,7 +18,6 @@ import {
 } from "firebase/auth";
 import { getApiBaseUrl } from "./apiConfig";
 import { getClientFirebaseApp } from "./firebaseApp";
-import { REQUIRE_EMAIL_VERIFICATION } from "../lib/contributorTerms";
 
 export interface AuthUser {
   uid: string;
@@ -113,13 +112,13 @@ export async function createAccountWithEmail(input: {
       await credential.user.getIdToken(true);
     }
 
-    if (REQUIRE_EMAIL_VERIFICATION) {
-      try {
-        const token = await credential.user.getIdToken();
-        await postServiceEmail("/api/auth/email/verification", token);
-      } catch {
-        // Non-fatal: the member can re-request verification from the contributor on-ramp.
-      }
+    // Always send a verification email on sign-up so the address can be
+    // confirmed (whether or not contributing currently requires it).
+    try {
+      const token = await credential.user.getIdToken();
+      await postServiceEmail("/api/auth/email/verification", token);
+    } catch {
+      // Non-fatal: the member can re-request verification from the contributor on-ramp.
     }
   } catch (error) {
     throw new Error(getFriendlyAuthErrorMessage(error, "Could not create account."));

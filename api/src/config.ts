@@ -69,8 +69,7 @@ export function getAppBaseUrl(): string | undefined {
 }
 
 export function isEmailVerificationRequired(): boolean {
-  // Relaxed by default while transactional email (Resend) is being set up;
-  // Firebase's default verification emails aren't being delivered. Set
-  // REQUIRE_EMAIL_VERIFICATION=true to enforce once Resend is live.
-  return process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+  // Enforced by default now that Resend delivers verification emails. Set
+  // REQUIRE_EMAIL_VERIFICATION=false only to relax it (e.g. a throwaway env).
+  return process.env.REQUIRE_EMAIL_VERIFICATION !== "false";
 }
