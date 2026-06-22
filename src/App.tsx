@@ -146,6 +146,7 @@ import { KitInventoryPanel } from "./components/KitInventoryPanel";
 import { SkillsPanel } from "./components/SkillsPanel";
 import { AppNotificationBanner } from "./components/AppNotificationBanner";
 import { PlaceholderPage } from "./components/PlaceholderPage";
+import { SignedOutNotice } from "./components/SignedOutNotice";
 import { RiverCard } from "./components/RiverCard";
 import { DashboardHub } from "./components/DashboardHub";
 import { PwaInstallSettingRow } from "./pwa/PwaInstallSettingRow";
@@ -1013,6 +1014,28 @@ function App() {
     isWelcomeDismissedForSession,
   ]);
 
+  // After a fresh sign-in within the session, land on the Dashboard. The ref
+  // skips the initial load (already-signed-in users keep the default view), and
+  // the sessionStorage flag carries the intent across the full-page redirects
+  // used by /signup and installed-PWA Google sign-in.
+  const prevSignedInRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (authState.status === "loading") {
+      return;
+    }
+    const signedIn = Boolean(authState.user);
+    const previouslySignedIn = prevSignedInRef.current;
+    prevSignedInRef.current = signedIn;
+    if (!signedIn) {
+      return;
+    }
+    const pendingLanding = sessionStorage.getItem("postAuthLanding");
+    if (previouslySignedIn === false || pendingLanding === "dashboard") {
+      sessionStorage.removeItem("postAuthLanding");
+      setActiveAppSection("dashboard");
+    }
+  }, [authState.status, authState.user]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -1800,6 +1823,9 @@ function App() {
 
     try {
       await signOutCurrentUser();
+      // Return to the map and re-show the login screen.
+      setActiveAppSection("map");
+      setIsWelcomeDismissedForSession(false);
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : "Could not sign out.");
     }
@@ -5395,19 +5421,10 @@ function App() {
             <PlaceholderPage section="dashboard" title="Your dashboard">
               <div className="dashboard-page">
                 {!isSignedIn ? (
-                  <div className="dashboard-empty">
-                    <p>
-                      Sign in to favourite rivers and keep their conditions one
-                      tap away here.
-                    </p>
-                    <button
-                      type="button"
-                      className="primary-action"
-                      onClick={requireSignInForSave}
-                    >
-                      Sign in
-                    </button>
-                  </div>
+                  <SignedOutNotice
+                    message="Sign in to favourite rivers and keep their conditions one tap away."
+                    onSignIn={handleSignIn}
+                  />
                 ) : favouriteRivers.length === 0 ? (
                   <div className="dashboard-empty">
                     <p>
@@ -5884,16 +5901,29 @@ function App() {
             </PlaceholderPage>
           ) : activeAppSection === "groups" ? (
             <PlaceholderPage section="groups" title="Groups">
-              <GroupsPanel
-                isSignedIn={isSignedIn}
-                rivers={canonicalRivers.map((river) => ({
-                  id: river.id,
-                  displayName: river.displayName,
-                }))}
-              />
+              {!isSignedIn ? (
+                <SignedOutNotice
+                  message="Sign in to create and join paddling groups."
+                  onSignIn={handleSignIn}
+                />
+              ) : (
+                <GroupsPanel
+                  isSignedIn={isSignedIn}
+                  rivers={canonicalRivers.map((river) => ({
+                    id: river.id,
+                    displayName: river.displayName,
+                  }))}
+                />
+              )}
             </PlaceholderPage>
           ) : activeAppSection === "profile" ? (
             <PlaceholderPage section="profile" title="Profile">
+              {!isSignedIn ? (
+                <SignedOutNotice
+                  message="Sign in to view and manage your profile."
+                  onSignIn={handleSignIn}
+                />
+              ) : (
               <div className="profile-grid">
                 <div className="segmented-control profile-mode-tabs" role="tablist">
                   <button
@@ -5989,7 +6019,6 @@ function App() {
                 </div>
                 {profileMode === "account" ? (
                   <section className="profile-mode-panel" aria-label="My account">
-                    <AppBrandPanel />
                     <div className="profile-card">
                       <UserRound size={22} />
                       <div>
@@ -6059,27 +6088,9 @@ function App() {
                   />
                     </div>
                     <div className="profile-actions">
-                  <button
-                    className="ghost-button"
-                    type="button"
-                    onClick={() => setActiveAppSection("more")}
-                  >
-                    <MoreHorizontal size={16} />
-                    Settings &amp; more
-                  </button>
-                  {canAccessAdminTools ? (
-                    <button
-                      className="ghost-button"
-                      type="button"
-                      onClick={() => setActiveAppSection("admin")}
-                    >
-                      <ShieldCheck size={16} />
-                      Admin
-                    </button>
-                  ) : null}
                   {isSignedIn ? (
                     <button
-                      className="ghost-button"
+                      className="ghost-button profile-action--signout"
                       type="button"
                       onClick={handleSignOut}
                     >
@@ -6650,6 +6661,7 @@ function App() {
                   </section>
                 ) : null}
               </div>
+              )}
             </PlaceholderPage>
           ) : activeAppSection === "more" ? (
             <PlaceholderPage section="more" title="More">
