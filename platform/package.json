@@ -18,6 +18,8 @@
     "setup:password-policy:prod": "scripts/infra/setup-password-policy.sh prod",
     "sync-config:staging": "scripts/infra/sync-config-secrets.sh staging",
     "sync-config:prod": "scripts/infra/sync-config-secrets.sh prod",
+    "setup-auth-domains:staging": "scripts/infra/setup-auth-domains.sh staging",
+    "setup-auth-domains:prod": "scripts/infra/setup-auth-domains.sh prod",
     "health:staging": "scripts/infra/check-health.sh staging",
     "health:prod": "scripts/infra/check-health.sh prod",
     "auth:staging": "node scripts/check-auth-config.mjs staging",

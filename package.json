@@ -44,6 +44,8 @@
     "platform:setup:password-policy:prod": "npm --prefix platform run setup:password-policy:prod --",
     "platform:sync-config:staging": "npm --prefix platform run sync-config:staging --",
     "platform:sync-config:prod": "npm --prefix platform run sync-config:prod --",
+    "platform:setup-auth-domains:staging": "npm --prefix platform run setup-auth-domains:staging --",
+    "platform:setup-auth-domains:prod": "npm --prefix platform run setup-auth-domains:prod --",
     "platform:health:staging": "npm --prefix platform run health:staging",
     "platform:health:prod": "npm --prefix platform run health:prod",
     "platform:auth:staging": "npm --prefix platform run auth:staging",
