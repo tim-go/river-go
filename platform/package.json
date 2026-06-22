@@ -16,6 +16,8 @@
     "setup:scheduler:prod": "scripts/infra/setup-scheduler.sh prod",
     "setup:password-policy:staging": "scripts/infra/setup-password-policy.sh staging",
     "setup:password-policy:prod": "scripts/infra/setup-password-policy.sh prod",
+    "sync-config:staging": "scripts/infra/sync-config-secrets.sh staging",
+    "sync-config:prod": "scripts/infra/sync-config-secrets.sh prod",
     "health:staging": "scripts/infra/check-health.sh staging",
     "health:prod": "scripts/infra/check-health.sh prod",
     "auth:staging": "node scripts/check-auth-config.mjs staging",
