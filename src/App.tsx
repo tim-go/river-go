@@ -1013,6 +1013,28 @@ function App() {
     isWelcomeDismissedForSession,
   ]);
 
+  // After a fresh sign-in within the session, land on the Dashboard. The ref
+  // skips the initial load (already-signed-in users keep the default view), and
+  // the sessionStorage flag carries the intent across the full-page redirects
+  // used by /signup and installed-PWA Google sign-in.
+  const prevSignedInRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (authState.status === "loading") {
+      return;
+    }
+    const signedIn = Boolean(authState.user);
+    const previouslySignedIn = prevSignedInRef.current;
+    prevSignedInRef.current = signedIn;
+    if (!signedIn) {
+      return;
+    }
+    const pendingLanding = sessionStorage.getItem("postAuthLanding");
+    if (previouslySignedIn === false || pendingLanding === "dashboard") {
+      sessionStorage.removeItem("postAuthLanding");
+      setActiveAppSection("dashboard");
+    }
+  }, [authState.status, authState.user]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -1800,6 +1822,9 @@ function App() {
 
     try {
       await signOutCurrentUser();
+      // Return to the map and re-show the login screen.
+      setActiveAppSection("map");
+      setIsWelcomeDismissedForSession(false);
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : "Could not sign out.");
     }

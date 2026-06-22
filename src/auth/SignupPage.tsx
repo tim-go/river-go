@@ -13,6 +13,12 @@ import {
 } from "../lib/passwordPolicy";
 import "./signup.css";
 
+function landOnDashboardApp() {
+  // Tell the app to open the Dashboard once the redirect completes.
+  sessionStorage.setItem("postAuthLanding", "dashboard");
+  window.location.href = "/";
+}
+
 export function SignupPage() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,7 +35,7 @@ export function SignupPage() {
       if (state.status === "unconfigured") {
         setUnconfigured(true);
       } else if (state.status === "ready" && state.user) {
-        window.location.href = "/";
+        landOnDashboardApp();
       }
     });
   }, []);
@@ -61,7 +67,7 @@ export function SignupPage() {
         password,
         displayName: displayName.trim(),
       });
-      window.location.href = "/";
+      landOnDashboardApp();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create account.");
       setSubmitting(false);
@@ -74,7 +80,7 @@ export function SignupPage() {
     try {
       await signInWithGoogle();
       // Popup path resolves here; redirect path navigates away and returns above.
-      window.location.href = "/";
+      landOnDashboardApp();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign up with Google.");
       setSubmitting(false);
