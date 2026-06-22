@@ -113,7 +113,7 @@ OBSERVATION_JOB_SERVICE_ACCOUNT="$(jq -er ".$ENV.jobs.observationServiceAccount 
 RESEND_API_KEY="$(jq -er ".$ENV.integrations.email.apiKey // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 EMAIL_FROM="$(jq -er ".$ENV.integrations.email.from // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 EMAIL_REPLY_TO="$(jq -er ".$ENV.integrations.email.replyTo // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
-APP_BASE_URL="$(jq -er ".$ENV.urls.web // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
+APP_BASE_URL="$(jq -er ".$ENV.urls.app // .$ENV.urls.web // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 EMAIL_PROVIDER=""
 
 if [[ -z "$TAG" ]]; then

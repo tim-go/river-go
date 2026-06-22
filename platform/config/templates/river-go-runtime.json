@@ -61,7 +61,8 @@
   "staging": {
     "urls": {
       "web": "https://staging.riverlaunch.info",
-      "api": "https://staging.riverlaunch.info/api"
+      "api": "https://staging.riverlaunch.info/api",
+      "app": "https://staging.riverlaunch.app"
     },
     "database": {
       "url": "postgresql://river_go_app:<app-password>@localhost/river_go",
@@ -109,7 +110,8 @@
   "prod": {
     "urls": {
       "web": "https://riverlaunch.info",
-      "api": "https://riverlaunch.info/api"
+      "api": "https://riverlaunch.info/api",
+      "app": "https://riverlaunch.app"
     },
     "database": {
       "url": "postgresql://river_go_app:<app-password>@localhost/river_go",

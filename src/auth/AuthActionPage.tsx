@@ -44,7 +44,11 @@ export function AuthActionPage() {
   const params = new URLSearchParams(window.location.search);
   const mode = params.get("mode");
   const oobCode = params.get("oobCode");
-  const preview = normalisePreview(params.get("preview"));
+  // Any ?preview value turns on preview mode (e.g. ?preview=true); unknown values
+  // default to the verify state, and the switcher bar links to the rest.
+  const inPreview = params.get("preview") !== null;
+  const preview =
+    normalisePreview(params.get("preview")) ?? (inPreview ? "verifyEmail" : null);
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -181,6 +185,15 @@ export function AuthActionPage() {
 
   return (
     <main className="auth-action">
+      {inPreview ? (
+        <nav className="auth-action__preview-bar" aria-label="Preview states">
+          <span>Preview</span>
+          <a href="/auth/action?preview=verifyEmail">verify</a>
+          <a href="/auth/action?preview=resetPassword">reset form</a>
+          <a href="/auth/action?preview=resetSuccess">reset done</a>
+          <a href="/auth/action?preview=error">error</a>
+        </nav>
+      ) : null}
       <div className="auth-action__card">
         <span className="auth-action__mark" aria-hidden="true">
           <Waves size={26} strokeWidth={2.3} />

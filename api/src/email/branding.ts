@@ -17,13 +17,17 @@ function isPublicHttpsUrl(value: string | null | undefined): boolean {
   }
 }
 
+// Always a public https URL so it renders in mail clients (and the local
+// browser preview) — falls back to the deployed staging icon when APP_BASE_URL
+// isn't public (e.g. local dev pointing at localhost). Real staging/prod emails
+// use their own APP_BASE_URL.
+const FALLBACK_LOGO_URL = "https://staging.riverlaunch.app/apple-touch-icon.png";
+
 export function getEmailTemplateBranding(): EmailTemplateBranding {
   const base = getAppBaseUrl();
-  // The logo must be a public https URL to render in mail clients; otherwise the
-  // shell falls back to the brand name as text.
   const logoUrl = isPublicHttpsUrl(base)
     ? new URL("/apple-touch-icon.png", base).toString()
-    : null;
+    : FALLBACK_LOGO_URL;
 
   return {
     brandName: "RiverLaunch.app",

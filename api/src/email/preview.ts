@@ -7,7 +7,7 @@ import {
 const PREVIEW_RECIPIENT = "paddler@example.com";
 const PREVIEW_SUPPORT = "hello@mail.riverlaunch.app";
 const previewActionUrl = (mode: string) =>
-  `https://staging.riverlaunch.info/auth/action?mode=${mode}&oobCode=PREVIEW-CODE`;
+  `https://riverlaunch.app/auth/action?mode=${mode}&oobCode=PREVIEW-CODE`;
 
 export const EMAIL_PREVIEW_TEMPLATES = ["verification", "password-reset"] as const;
 

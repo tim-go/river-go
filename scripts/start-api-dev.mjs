@@ -23,7 +23,8 @@ const emailIntegration = readObject(envConfig?.integrations?.email);
 const resendApiKey = readString(emailIntegration?.apiKey);
 const emailFrom = readString(emailIntegration?.from);
 const emailReplyTo = readString(emailIntegration?.replyTo);
-const appBaseUrl = readString(envConfig?.urls?.web);
+const appBaseUrl =
+  readString(envConfig?.urls?.app) ?? readString(envConfig?.urls?.web);
 
 const env = { ...process.env };
 

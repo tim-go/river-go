@@ -35,8 +35,10 @@ Per environment in the runtime config under `integrations.email`:
 ```
 
 `deploy-api.sh` mounts `RESEND_API_KEY` as a Secret Manager secret and sets
-`EMAIL_PROVIDER` / `EMAIL_FROM` / `EMAIL_REPLY_TO` / `APP_BASE_URL` (from
-`urls.web`) as env vars. With no key configured the endpoints no-op
+`EMAIL_PROVIDER` / `EMAIL_FROM` / `EMAIL_REPLY_TO` / `APP_BASE_URL` as env vars.
+`APP_BASE_URL` is the brand `.app` domain (`urls.app`, e.g.
+`https://staging.riverlaunch.app`, falling back to `urls.web`) — it's both the
+host for the `/auth/action` links and the email logo. With no key configured the endpoints no-op
 (`status: "skipped"`) — sign-up and reset still work, just without the email.
 
 ## Local preview
@@ -45,8 +47,9 @@ Per environment in the runtime config under `integrations.email`:
 is proxied to the API):
 
 - **Emails:** <http://localhost:6173/api/dev/email-preview>
-- **Landing pages:** `/auth/action?preview=verifyEmail` ·
-  `?preview=resetPassword` · `?preview=resetSuccess` · `?preview=error`
+- **Landing pages:** `/auth/action?preview=true` (shows a switcher), or directly
+  `?preview=verifyEmail` · `?preview=resetPassword` · `?preview=resetSuccess` ·
+  `?preview=error`
 
 The preview route is disabled when `NODE_ENV=production`.
 
