@@ -31,8 +31,8 @@ const MOBILE_NAV_IDS: AppSection[] = [
   "map",
   "discover",
   "dashboard",
-  "groups",
   "profile",
+  "more",
 ];
 
 export function AppNavigation({

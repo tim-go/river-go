@@ -119,8 +119,7 @@ export function AuthPromptSheet({
           </div>
           {isAccountRequired ? (
             <p className="profile-message profile-message--neutral">
-              That action needs an account. You can still continue browsing as a
-              guest.
+              That action needs an account — you can keep browsing as a guest.
             </p>
           ) : null}
           {authMessage ? <p className="profile-message">{authMessage}</p> : null}

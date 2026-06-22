@@ -1276,6 +1276,19 @@ h1 {
   gap: 8px;
 }
 
+/* Sign out stands out as a clear, slightly destructive action. */
+.profile-action--signout {
+  border-color: var(--danger);
+  background: transparent;
+  color: var(--danger);
+}
+
+.profile-action--signout:hover {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
 .profile-photo-list {
   display: grid;
   gap: 8px;
@@ -4265,10 +4278,11 @@ figcaption span {
   font-weight: 650;
 }
 
+/* Selected segmented-control tab/filter is brand yellow across the app. */
 .segmented-control button.active {
-  border-color: var(--river-dark);
-  background: #e6f3ed;
-  color: var(--river-dark);
+  border-color: #ffd60a;
+  background: #ffd60a;
+  color: #1a1300;
 }
 
 label {
@@ -6103,9 +6117,9 @@ input[type="file"]::file-selector-button:hover {
   color: var(--muted);
 }
 [data-theme="surge"] .app-shell--content-only .segmented-control button.active {
-  background: rgba(47, 107, 255, 0.22);
-  border-color: rgba(77, 139, 255, 0.5);
-  color: #fff;
+  background: #ffd60a;
+  border-color: #ffd60a;
+  color: #1a1300;
 }
 
 /* Continue-as-guest stays a teal-green CTA, not a Surge/Daybreak segmented tab. */
@@ -6235,9 +6249,9 @@ input[type="file"]::file-selector-button:hover {
   .app-shell--content-only
   .segmented-control
   button.active {
-  background: rgba(30, 87, 255, 0.12);
-  border-color: rgba(30, 87, 255, 0.4);
-  color: var(--river);
+  background: #ffd60a;
+  border-color: #ffd60a;
+  color: #1a1300;
 }
 [data-theme="daybreak"] .app-shell--content-only .canonical-river-row:hover,
 [data-theme="daybreak"]
