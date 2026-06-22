@@ -19,13 +19,16 @@ export function getClientFirebaseApp(): FirebaseApp | null {
 }
 
 function getFirebaseConfig(): FirebaseOptions | null {
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID as
+    | string
+    | undefined;
   const configuredAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as
     | string
     | undefined;
   const config = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string | undefined,
-    authDomain: getRuntimeAuthDomain(configuredAuthDomain),
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID as string | undefined,
+    authDomain: getOAuthAuthDomain(projectId, configuredAuthDomain),
+    projectId,
     storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET as string | undefined,
     messagingSenderId: import.meta.env
       .VITE_FIREBASE_MESSAGING_SENDER_ID as string | undefined,
@@ -48,29 +51,19 @@ function getFirebaseConfig(): FirebaseOptions | null {
   return config;
 }
 
-function getRuntimeAuthDomain(configuredAuthDomain?: string) {
-  const fallback = configuredAuthDomain?.trim();
-
-  if (typeof window === "undefined") {
-    return fallback;
+// Use the canonical <project>.firebaseapp.com auth domain. Firebase Hosting's
+// injected auth handler (/__/auth/handler) and config (/__/firebase/init.json)
+// are wired to this domain, so the OAuth popup/redirect result is delivered
+// correctly back to whichever app domain is loaded (.info / .app). Pointing
+// authDomain at the current custom host instead desynced the app from the
+// handler, so Google sign-in silently bounced home without completing.
+function getOAuthAuthDomain(
+  projectId?: string,
+  configuredAuthDomain?: string,
+): string | undefined {
+  const id = projectId?.trim();
+  if (id) {
+    return `${id}.firebaseapp.com`;
   }
-
-  const hostname = window.location.hostname.trim().toLowerCase();
-
-  if (!hostname || isLocalHostname(hostname)) {
-    return fallback;
-  }
-
-  return hostname;
-}
-
-function isLocalHostname(hostname: string) {
-  return (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "::1" ||
-    /^192\.168\./.test(hostname) ||
-    /^10\./.test(hostname) ||
-    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
-  );
+  return configuredAuthDomain?.trim();
 }
