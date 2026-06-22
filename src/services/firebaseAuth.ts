@@ -337,15 +337,32 @@ function shouldUseRedirectSignIn() {
     import.meta.env.VITE_FIREBASE_AUTH_FLOW as string | undefined
   )?.trim();
 
-  if (configuredFlow === "redirect") {
-    return true;
-  }
-
+  // An explicit popup config always wins.
   if (configuredFlow === "popup") {
     return false;
   }
 
-  return import.meta.env.PROD;
+  // signInWithRedirect fails silently in a normal browser tab: browsers now
+  // partition the third-party storage the redirect handshake relies on, so
+  // getRedirectResult comes back empty (no error, no sign-in). Popup runs the
+  // OAuth first-party and works. Use redirect only in an installed PWA
+  // (standalone display mode), where a popup would punt the user to an external
+  // browser — that's the case redirect was chosen for.
+  return isStandaloneDisplayMode();
+}
+
+function isStandaloneDisplayMode() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const matchesStandalone =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(display-mode: standalone)").matches;
+  const iosStandalone =
+    (window.navigator as { standalone?: boolean }).standalone === true;
+
+  return matchesStandalone || iosStandalone;
 }
 
 function isLocalBrowserOrigin() {
