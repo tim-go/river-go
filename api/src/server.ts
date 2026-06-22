@@ -163,8 +163,12 @@ async function route(
     const authContext = await requireAuthContext(headers);
     const delivery = await sendBrandedEmailVerification({
       firebaseUid: authContext.userId,
+    }).catch((error) => {
+      console.error("[email] verification send threw:", error);
+      return null;
     });
-    if (delivery.status === "failed") {
+    if (!delivery || delivery.status === "failed") {
+      if (delivery) console.error("[email] verification delivery failed:", delivery);
       throw new HttpError(502, "Could not send the verification email.");
     }
     return { status: 200, body: { status: delivery.status } };
@@ -176,7 +180,9 @@ async function route(
     const email =
       isRecord(body) && typeof body.email === "string" ? body.email : "";
     if (email.trim()) {
-      await sendBrandedPasswordReset({ email }).catch(() => undefined);
+      await sendBrandedPasswordReset({ email }).catch((error) => {
+        console.error("[email] password-reset send threw:", error);
+      });
     }
     return { status: 200, body: { ok: true } };
   }
