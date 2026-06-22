@@ -1699,6 +1699,20 @@ h1 {
   font-weight: 650;
 }
 
+.auth-sheet__signup-prompt {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 560;
+}
+
+.auth-sheet__signup-prompt a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 .auth-sheet--welcome .auth-sheet__content {
   align-content: start;
 }

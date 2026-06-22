@@ -5,6 +5,11 @@ import {
   confirmPasswordResetWithCode,
   verifyPasswordResetOobCode,
 } from "../services/firebaseAuth";
+import { PasswordStrengthField } from "../components/auth/PasswordStrengthField";
+import {
+  validatePasswordConfirmation,
+  type PasswordPolicyStatus,
+} from "../lib/passwordPolicy";
 
 type Status = "checking" | "ready" | "success" | "error";
 
@@ -54,6 +59,7 @@ export function AuthActionPage() {
   const [confirm, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [pwStatus, setPwStatus] = useState<PasswordPolicyStatus | null>(null);
   const [state, setState] = useState<State>({
     status: "checking",
     title: "Checking your link…",
@@ -153,12 +159,13 @@ export function AuthActionPage() {
   async function handleReset(event: FormEvent) {
     event.preventDefault();
     setFormError(null);
-    if (password.length < 6) {
-      setFormError("Password must be at least 6 characters.");
+    if (!pwStatus?.valid) {
+      setFormError(pwStatus?.message ?? "Choose a stronger password.");
       return;
     }
-    if (password !== confirm) {
-      setFormError("Passwords do not match.");
+    const confirmError = validatePasswordConfirmation(password, confirm);
+    if (confirmError) {
+      setFormError(confirmError);
       return;
     }
     setSubmitting(true);
@@ -213,17 +220,13 @@ export function AuthActionPage() {
 
         {showResetForm ? (
           <form className="auth-action__form" onSubmit={handleReset}>
-            <label>
-              New password
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                disabled={submitting}
-                required
-              />
-            </label>
+            <PasswordStrengthField
+              label="New password"
+              value={password}
+              onChange={setPassword}
+              onStatusChange={setPwStatus}
+              disabled={submitting}
+            />
             <label>
               Confirm password
               <input
@@ -239,7 +242,9 @@ export function AuthActionPage() {
             <button
               type="submit"
               className="auth-action__submit"
-              disabled={submitting || !password || !confirm}
+              disabled={
+                submitting || !pwStatus?.valid || password !== confirm || !confirm
+              }
             >
               {submitting ? "Updating…" : "Update password"}
             </button>
