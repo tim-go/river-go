@@ -41,6 +41,24 @@ if (resendApiKey) {
   env.EMAIL_PROVIDER = "resend";
 }
 
+// Firebase Admin SDK credentials for local dev. A service-account key avoids the
+// reauth (invalid_rapt) failures that user ADC hits on Workspace accounts, and is
+// the recommended way to run the Admin SDK off-GCP. Drop the key at
+// .config/firebase-admin.json (gitignored); it's used for privileged ops like
+// generating email-verification / password-reset links.
+if (!env.GOOGLE_APPLICATION_CREDENTIALS) {
+  const adminKeyPath = path.join(repoDir, ".config", "firebase-admin.json");
+  if (fs.existsSync(adminKeyPath)) {
+    env.GOOGLE_APPLICATION_CREDENTIALS = adminKeyPath;
+    console.log(`Firebase Admin: using service-account key ${adminKeyPath}`);
+  } else {
+    console.log(
+      "Firebase Admin: no .config/firebase-admin.json found — falling back to " +
+        "ADC (privileged ops like email links may fail with invalid_rapt).",
+    );
+  }
+}
+
 if (databaseUrl && !databaseUrl.includes("<")) {
   setIfPresent(env, "DATABASE_URL", databaseUrl);
 }
