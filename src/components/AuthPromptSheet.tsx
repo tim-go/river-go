@@ -1,17 +1,13 @@
 import { FormEvent, useState } from "react";
 import { LogIn, Waves } from "lucide-react";
+import { GoogleIcon } from "./auth/GoogleIcon";
 import type { AuthSheetMode } from "../types";
-
-export const MIN_ACCOUNT_PASSWORD_LENGTH = 12;
-
-type AuthPanelMode = "create" | "signin";
 
 export function AuthPromptSheet({
   mode,
   authMessage,
   isAuthConfigured,
   onGoogleAuth,
-  onCreateEmailAccount,
   onEmailSignIn,
   onPasswordReset,
   onContinueAsGuest,
@@ -21,6 +17,7 @@ export function AuthPromptSheet({
   authMessage: string;
   isAuthConfigured: boolean;
   onGoogleAuth: () => Promise<boolean>;
+  // Kept for API compatibility; account creation now lives on the /signup page.
   onCreateEmailAccount: (input: {
     email: string;
     password: string;
@@ -32,15 +29,12 @@ export function AuthPromptSheet({
   onClose: () => void;
 }) {
   const isAccountRequired = mode === "save-required";
-  const [authPanelMode, setAuthPanelMode] =
-    useState<AuthPanelMode>(isAccountRequired ? "signin" : "create");
-  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formMessage, setFormMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function submitEmailAuth(event: FormEvent<HTMLFormElement>) {
+  async function submitSignIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormMessage("");
 
@@ -49,32 +43,13 @@ export function AuthPromptSheet({
     }
 
     const safeEmail = email.trim();
-    const safePassword = password;
-
-    if (!safeEmail || !safePassword) {
+    if (!safeEmail || !password) {
       setFormMessage("Email and password are required.");
       return;
     }
 
-    if (
-      authPanelMode === "create" &&
-      safePassword.length < MIN_ACCOUNT_PASSWORD_LENGTH
-    ) {
-      setFormMessage(
-        `Use a password with at least ${MIN_ACCOUNT_PASSWORD_LENGTH} characters.`,
-      );
-      return;
-    }
-
     setIsSubmitting(true);
-    const ok =
-      authPanelMode === "create"
-        ? await onCreateEmailAccount({
-            displayName: displayName.trim(),
-            email: safeEmail,
-            password: safePassword,
-          })
-        : await onEmailSignIn({ email: safeEmail, password: safePassword });
+    const ok = await onEmailSignIn({ email: safeEmail, password });
     setIsSubmitting(false);
 
     if (ok) {
@@ -152,47 +127,8 @@ export function AuthPromptSheet({
           {formMessage ? (
             <p className="profile-message profile-message--neutral">{formMessage}</p>
           ) : null}
-          <div
-            className="segmented-control auth-mode-tabs"
-            role="group"
-            aria-label="Account action"
-          >
-            <button
-              className={authPanelMode === "create" ? "active" : ""}
-              type="button"
-              aria-pressed={authPanelMode === "create"}
-              onClick={() => setAuthPanelMode("create")}
-            >
-              Create account
-            </button>
-            <button
-              className={authPanelMode === "signin" ? "active" : ""}
-              type="button"
-              aria-pressed={authPanelMode === "signin"}
-              onClick={() => setAuthPanelMode("signin")}
-            >
-              Sign in
-            </button>
-            <button
-              className="auth-guest-button"
-              type="button"
-              onClick={onContinueAsGuest}
-            >
-              Continue as guest
-            </button>
-          </div>
-          <form className="auth-form" onSubmit={submitEmailAuth}>
-            {authPanelMode === "create" ? (
-              <label>
-                Display name
-                <input
-                  autoComplete="name"
-                  value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  placeholder="Your paddling name"
-                />
-              </label>
-            ) : null}
+
+          <form className="auth-form" onSubmit={submitSignIn}>
             <label>
               Email
               <input
@@ -208,24 +144,13 @@ export function AuthPromptSheet({
             <label>
               Password
               <input
-                autoComplete={
-                  authPanelMode === "create" ? "new-password" : "current-password"
-                }
+                autoComplete="current-password"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder={
-                  authPanelMode === "create"
-                    ? "At least 12 characters"
-                    : "Your password"
-                }
+                placeholder="Your password"
                 required
               />
-              {authPanelMode === "create" ? (
-                <span className="auth-password-tip">
-                  Tip: three unrelated words are memorable and hard to guess.
-                </span>
-              ) : null}
             </label>
             <button
               className="primary-action primary-action--full"
@@ -233,36 +158,42 @@ export function AuthPromptSheet({
               disabled={!isAuthConfigured || isSubmitting}
             >
               <LogIn size={16} />
-              {isSubmitting
-                ? "Please wait..."
-                : authPanelMode === "create"
-                  ? "Create account"
-                  : "Sign in"}
+              {isSubmitting ? "Please wait..." : "Sign in"}
             </button>
           </form>
+
           <button
             className="ghost-button auth-google-button"
             type="button"
             onClick={handleGoogleAuth}
             disabled={!isAuthConfigured || isSubmitting}
           >
-            <LogIn size={16} />
-            {authPanelMode === "create"
-              ? "Create account with Google"
-              : "Sign in with Google"}
+            <GoogleIcon size={18} />
+            Sign in with Google
           </button>
-          {authPanelMode === "signin" ? (
-            <div className="auth-sheet__actions">
-              <button
-                className="ghost-button"
-                type="button"
-                onClick={() => void resetPassword()}
-                disabled={!isAuthConfigured || isSubmitting}
-              >
-                Reset password
-              </button>
-            </div>
-          ) : null}
+
+          <div className="auth-sheet__actions">
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => void resetPassword()}
+              disabled={!isAuthConfigured || isSubmitting}
+            >
+              Reset password
+            </button>
+          </div>
+
+          <p className="auth-sheet__signup-prompt">
+            New to RiverLaunch.app? <a href="/signup">Create an account</a>
+          </p>
+          <button
+            className="auth-guest-button"
+            type="button"
+            onClick={onContinueAsGuest}
+          >
+            Continue as guest
+          </button>
+
           {!isAuthConfigured ? (
             <p className="auth-sheet__note">
               Sign-in is not configured in this environment.

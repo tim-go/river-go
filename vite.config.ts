@@ -44,7 +44,14 @@ export default defineConfig(({ mode }) => {
           // SW. Runtime caching of API GETs / map tiles / remote images is P2
           // (see docs/specs/pwa-installable.md).
           globPatterns: ["**/*.{js,css,html,svg,woff2,png,ico}"],
-          globIgnores: ["**/apple-splash-*.png", "**/images/**"],
+          // Keep the heavy zxcvbn dictionary out of the precache — it's a
+          // separate chunk lazy-loaded only on the online-only sign-up / reset
+          // password fields.
+          globIgnores: [
+            "**/apple-splash-*.png",
+            "**/images/**",
+            "**/zxcvbn-*.js",
+          ],
           navigateFallback: "/index.html",
           navigateFallbackDenylist: [/^\/api\//],
           cleanupOutdatedCaches: true,
@@ -57,6 +64,17 @@ export default defineConfig(({ mode }) => {
         "/api": {
           target: env.VITE_API_PROXY_TARGET || "http://127.0.0.1:8080",
           changeOrigin: true,
+        },
+      },
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          // Name the zxcvbn chunk so the PWA precache can exclude it.
+          manualChunks(id) {
+            if (id.includes("@zxcvbn-ts")) return "zxcvbn";
+            return undefined;
+          },
         },
       },
     },

@@ -6,15 +6,14 @@
 export const CONTRIBUTOR_TERMS_VERSION = "2026-06-14";
 
 /**
- * Whether contributors must verify their email before contributing. Relaxed by
- * default while transactional email (Resend) is being set up — Firebase's
- * default verification emails aren't being delivered. Set
- * VITE_REQUIRE_EMAIL_VERIFICATION=true to enforce once Resend is live; mirror it
- * server-side with REQUIRE_EMAIL_VERIFICATION.
+ * Whether contributors must verify their email before contributing. Enforced by
+ * default now that transactional email (Resend) delivers verification emails.
+ * Set VITE_REQUIRE_EMAIL_VERIFICATION=false only to relax it (mirror server-side
+ * with REQUIRE_EMAIL_VERIFICATION=false).
  */
 export const REQUIRE_EMAIL_VERIFICATION =
-  (import.meta.env.VITE_REQUIRE_EMAIL_VERIFICATION as string | undefined) ===
-  "true";
+  (import.meta.env.VITE_REQUIRE_EMAIL_VERIFICATION as string | undefined) !==
+  "false";
 
 export const CONTRIBUTOR_TERMS_POINTS = [
   "Share accurate, first-hand local knowledge — facts and observations, not advice on whether anyone should paddle.",

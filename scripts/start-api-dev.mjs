@@ -19,6 +19,12 @@ const firebaseProjectId = readString(envConfig?.firebase?.projectId);
 const adminEmails = readString(envConfig?.auth?.adminEmails);
 const what3wordsApiKey = readString(envConfig?.integrations?.what3words?.apiKey);
 const observationJobToken = readString(envConfig?.jobs?.observationIngestionToken);
+const emailIntegration = readObject(envConfig?.integrations?.email);
+const resendApiKey = readString(emailIntegration?.apiKey);
+const emailFrom = readString(emailIntegration?.from);
+const emailReplyTo = readString(emailIntegration?.replyTo);
+const appBaseUrl =
+  readString(envConfig?.urls?.app) ?? readString(envConfig?.urls?.web);
 
 const env = { ...process.env };
 
@@ -27,6 +33,31 @@ setIfPresent(env, "FIREBASE_PROJECT_ID", firebaseProjectId);
 setIfPresent(env, "ADMIN_EMAILS", adminEmails);
 setIfPresent(env, "WHAT3WORDS_API_KEY", what3wordsApiKey);
 setIfPresent(env, "OBSERVATION_JOB_TOKEN", observationJobToken);
+setIfPresent(env, "RESEND_API_KEY", resendApiKey);
+setIfPresent(env, "EMAIL_FROM", emailFrom);
+setIfPresent(env, "EMAIL_REPLY_TO", emailReplyTo);
+setIfPresent(env, "APP_BASE_URL", appBaseUrl);
+if (resendApiKey) {
+  env.EMAIL_PROVIDER = "resend";
+}
+
+// Firebase Admin SDK credentials for local dev. A service-account key avoids the
+// reauth (invalid_rapt) failures that user ADC hits on Workspace accounts, and is
+// the recommended way to run the Admin SDK off-GCP. Drop the key at
+// .config/firebase-admin.json (gitignored); it's used for privileged ops like
+// generating email-verification / password-reset links.
+if (!env.GOOGLE_APPLICATION_CREDENTIALS) {
+  const adminKeyPath = path.join(repoDir, ".config", "firebase-admin.json");
+  if (fs.existsSync(adminKeyPath)) {
+    env.GOOGLE_APPLICATION_CREDENTIALS = adminKeyPath;
+    console.log(`Firebase Admin: using service-account key ${adminKeyPath}`);
+  } else {
+    console.log(
+      "Firebase Admin: no .config/firebase-admin.json found — falling back to " +
+        "ADC (privileged ops like email links may fail with invalid_rapt).",
+    );
+  }
+}
 
 if (databaseUrl && !databaseUrl.includes("<")) {
   setIfPresent(env, "DATABASE_URL", databaseUrl);

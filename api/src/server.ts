@@ -1,11 +1,16 @@
 import { createServer } from "node:http";
-import type { IncomingHttpHeaders } from "node:http";
+import type { IncomingHttpHeaders, ServerResponse } from "node:http";
 import {
   getOptionalAuthContext,
   requireAuthContext,
 } from "./auth.js";
 import { getPort } from "./config.js";
 import { isAuthorizedSchedulerOidc } from "./observation-job-auth.js";
+import {
+  sendBrandedEmailVerification,
+  sendBrandedPasswordReset,
+} from "./email/auth-emails.js";
+import { renderEmailPreview, renderEmailPreviewIndex } from "./email/preview.js";
 import {
   getCanonicalRiver,
   isSourceCandidatePoiStatus,
@@ -152,6 +157,34 @@ async function route(
         database: db.rows[0].ok === 1 ? "ok" : "unknown",
       },
     };
+  }
+
+  if (method === "POST" && url.pathname === "/api/auth/email/verification") {
+    const authContext = await requireAuthContext(headers);
+    const delivery = await sendBrandedEmailVerification({
+      firebaseUid: authContext.userId,
+    }).catch((error) => {
+      console.error("[email] verification send threw:", error);
+      return null;
+    });
+    if (!delivery || delivery.status === "failed") {
+      if (delivery) console.error("[email] verification delivery failed:", delivery);
+      throw new HttpError(502, "Could not send the verification email.");
+    }
+    return { status: 200, body: { status: delivery.status } };
+  }
+
+  if (method === "POST" && url.pathname === "/api/auth/email/password-reset") {
+    // Public endpoint — always return success so it can't be used to discover
+    // which email addresses have accounts.
+    const email =
+      isRecord(body) && typeof body.email === "string" ? body.email : "";
+    if (email.trim()) {
+      await sendBrandedPasswordReset({ email }).catch((error) => {
+        console.error("[email] password-reset send threw:", error);
+      });
+    }
+    return { status: 200, body: { ok: true } };
   }
 
   if (method === "GET" && url.pathname === "/api/me") {
@@ -995,15 +1028,18 @@ async function route(
 export function createApiServer() {
   return createServer(async (request, response) => {
     try {
-      const body = ["PATCH", "POST", "PUT"].includes(request.method ?? "")
+      const method = request.method ?? "GET";
+      if (
+        method === "GET" &&
+        (request.url ?? "").startsWith("/api/dev/email-preview")
+      ) {
+        sendEmailPreview(response, new URL(request.url ?? "/", "http://localhost"));
+        return;
+      }
+      const body = ["PATCH", "POST", "PUT"].includes(method)
         ? await readJsonBody(request)
         : {};
-      const result = await route(
-        request.url ?? "/",
-        request.method ?? "GET",
-        request.headers,
-        body,
-      );
+      const result = await route(request.url ?? "/", method, request.headers, body);
       sendJson(response, result);
     } catch (error) {
       const status = error instanceof HttpError ? error.status : 500;
@@ -1014,6 +1050,37 @@ export function createApiServer() {
       sendJson(response, { status, body: { error: message } });
     }
   });
+}
+
+// Dev-only: render service email templates with sample data for local preview.
+function sendEmailPreview(response: ServerResponse, url: URL): void {
+  if (process.env.NODE_ENV === "production") {
+    response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    response.end("Not found");
+    return;
+  }
+
+  const template = url.searchParams.get("template");
+  const format = url.searchParams.get("format") === "text" ? "text" : "html";
+
+  if (!template) {
+    response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    response.end(renderEmailPreviewIndex());
+    return;
+  }
+
+  const rendered = renderEmailPreview(template, format);
+  if (rendered == null) {
+    response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    response.end(`Unknown template: ${template}`);
+    return;
+  }
+
+  response.writeHead(200, {
+    "Content-Type":
+      format === "text" ? "text/plain; charset=utf-8" : "text/html; charset=utf-8",
+  });
+  response.end(rendered);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

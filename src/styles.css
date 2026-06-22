@@ -1413,7 +1413,7 @@ h1 {
 .auth-sheet--onramp {
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
-  width: min(520px, 100%);
+  width: min(680px, 100%);
   max-height: min(880px, calc(100dvh - 24px));
 }
 
@@ -1655,9 +1655,18 @@ h1 {
 }
 
 .auth-guest-button {
-  border-color: #0f5f55;
+  display: inline-flex;
+  min-height: 46px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid #0f5f55;
+  border-radius: 11px;
   background: #0f5f55;
   color: #fff;
+  font-weight: 720;
 }
 
 .auth-mode-tabs .auth-guest-button {
@@ -1697,6 +1706,20 @@ h1 {
   color: #9b1c12;
   font-size: 0.84rem;
   font-weight: 650;
+}
+
+.auth-sheet__signup-prompt {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 560;
+}
+
+.auth-sheet__signup-prompt a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 .auth-sheet--welcome .auth-sheet__content {

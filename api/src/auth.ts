@@ -59,7 +59,7 @@ async function getAuthContext(
   }
 }
 
-function getFirebaseAdminApp() {
+export function getFirebaseAdminApp() {
   const existingApp = getApps()[0];
 
   if (existingApp) {

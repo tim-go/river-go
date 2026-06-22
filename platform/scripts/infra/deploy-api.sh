@@ -110,6 +110,11 @@ ADMIN_EMAILS="$(jq -er ".$ENV.auth.adminEmails // \"\"" "$RUNTIME_CONFIG_PATH" 2
 WHAT3WORDS_API_KEY="$(jq -er ".$ENV.integrations.what3words.apiKey // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 OBSERVATION_JOB_OIDC_AUDIENCE="$(jq -er ".$ENV.jobs.observationOidcAudience // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 OBSERVATION_JOB_SERVICE_ACCOUNT="$(jq -er ".$ENV.jobs.observationServiceAccount // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
+RESEND_API_KEY="$(jq -er ".$ENV.integrations.email.apiKey // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
+EMAIL_FROM="$(jq -er ".$ENV.integrations.email.from // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
+EMAIL_REPLY_TO="$(jq -er ".$ENV.integrations.email.replyTo // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
+APP_BASE_URL="$(jq -er ".$ENV.urls.app // .$ENV.urls.web // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
+EMAIL_PROVIDER=""
 
 if [[ -z "$TAG" ]]; then
   GIT_SHA="$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo manual)"
@@ -142,6 +147,14 @@ if [[ -n "$OBSERVATION_JOB_OIDC_AUDIENCE" && -n "$OBSERVATION_JOB_SERVICE_ACCOUN
 else
   info "Observation ingestion: OIDC not configured; endpoint requires moderator Firebase auth"
 fi
+if [[ -n "$RESEND_API_KEY" && "$RESEND_API_KEY" != *"<"* && "$RESEND_API_KEY" != *">"* ]]; then
+  write_secret "RESEND_API_KEY" "$RESEND_API_KEY"
+  SET_SECRETS="$SET_SECRETS,RESEND_API_KEY=RESEND_API_KEY:latest"
+  EMAIL_PROVIDER="resend"
+  info "Service emails: Resend enabled (from $EMAIL_FROM)"
+else
+  info "Service emails: Resend not configured; verification/reset emails will be skipped"
+fi
 
 section "Build and publish image"
 run gcloud builds submit "$REPO_DIR/api" \
@@ -159,7 +172,7 @@ run gcloud run deploy "$CLOUD_RUN_SERVICE" \
   --no-invoker-iam-check \
   --service-account="$SERVER_SA_EMAIL" \
   --add-cloudsql-instances="$CLOUD_SQL_CONNECTION_NAME" \
-  --set-env-vars="^|^CLOUD_SQL_CONNECTION_NAME=$CLOUD_SQL_CONNECTION_NAME|NODE_ENV=production|ADMIN_EMAILS=$ADMIN_EMAILS|OBSERVATION_JOB_OIDC_AUDIENCE=$OBSERVATION_JOB_OIDC_AUDIENCE|OBSERVATION_JOB_SERVICE_ACCOUNT=$OBSERVATION_JOB_SERVICE_ACCOUNT" \
+  --set-env-vars="^|^CLOUD_SQL_CONNECTION_NAME=$CLOUD_SQL_CONNECTION_NAME|NODE_ENV=production|ADMIN_EMAILS=$ADMIN_EMAILS|OBSERVATION_JOB_OIDC_AUDIENCE=$OBSERVATION_JOB_OIDC_AUDIENCE|OBSERVATION_JOB_SERVICE_ACCOUNT=$OBSERVATION_JOB_SERVICE_ACCOUNT|EMAIL_PROVIDER=$EMAIL_PROVIDER|EMAIL_FROM=$EMAIL_FROM|EMAIL_REPLY_TO=$EMAIL_REPLY_TO|APP_BASE_URL=$APP_BASE_URL" \
   --set-secrets="$SET_SECRETS" \
   --port="8080" \
   --timeout="600" \
