@@ -128,6 +128,7 @@ import {
   getRecentObservationIngestionJobRun,
   listObservationJobRuns,
   listObservationsForSection,
+  listSectionLevelStates,
   runObservationBackfillJob,
   runObservationIngestionJob,
 } from "./observations.js";
@@ -960,6 +961,11 @@ async function route(
       member?.id ?? null,
     );
     return { status: 200, body: { contributions } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/sections/level-states") {
+    const levelStates = await listSectionLevelStates();
+    return { status: 200, body: { levelStates } };
   }
 
   const sectionObservationsMatch = url.pathname.match(
