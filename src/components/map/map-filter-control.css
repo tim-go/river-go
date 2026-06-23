@@ -134,12 +134,22 @@
 }
 
 .map-filter__category-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding-top: 7px;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #6b7689;
+}
+
+.map-filter__category-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
 }
 
 .map-filter__options {

@@ -11,6 +11,7 @@ const CATEGORIES: FilterCategory[] = [
   {
     id: "discipline",
     label: "Discipline",
+    color: "#6ed7a6",
     options: [
       { id: "ww", label: "Whitewater" },
       { id: "touring", label: "Touring" },
@@ -19,19 +20,31 @@ const CATEGORIES: FilterCategory[] = [
     ],
   },
   {
-    id: "paddling",
-    label: "Paddling",
+    id: "layers",
+    label: "Layers",
+    color: "#7db8f5",
+    options: [
+      { id: "rivers", label: "Rivers" },
+      { id: "waterways", label: "Waterways" },
+      { id: "sections", label: "Sections" },
+      { id: "routes", label: "Routes" },
+    ],
+  },
+  {
+    id: "pois",
+    label: "POIs",
+    color: "#ffce4d",
     options: [
       { id: "access", label: "Access" },
       { id: "hazards", label: "Hazards" },
       { id: "rapids", label: "Rapids" },
       { id: "photos", label: "Photos" },
-      { id: "routes", label: "Routes" },
     ],
   },
   {
     id: "stations",
     label: "Stations",
+    color: "#5fd0d9",
     options: [
       { id: "gauges", label: "Paddler gauges" },
       { id: "up", label: "Up now" },
@@ -42,6 +55,7 @@ const CATEGORIES: FilterCategory[] = [
   {
     id: "amenities",
     label: "Amenities",
+    color: "#e8b079",
     options: [
       { id: "pubs", label: "Pubs" },
       { id: "carparks", label: "Car parks" },
@@ -52,6 +66,7 @@ const CATEGORIES: FilterCategory[] = [
   {
     id: "weather",
     label: "Weather",
+    color: "#b9a6ee",
     options: [
       { id: "rain", label: "Rain radar" },
       { id: "wind", label: "Wind" },
@@ -62,7 +77,7 @@ const CATEGORIES: FilterCategory[] = [
 
 export function MapFilterPrototype() {
   const [selected, setSelected] = useState<Set<string>>(
-    () => new Set(["ww", "access", "rain"]),
+    () => new Set(["rivers", "ww", "access", "rain"]),
   );
 
   function toggle(id: string) {

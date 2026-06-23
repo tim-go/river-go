@@ -10,6 +10,8 @@ export interface FilterOption {
 export interface FilterCategory {
   id: string;
   label: string;
+  /** Colour for this category's pills and active options. */
+  color: string;
   options: FilterOption[];
 }
 
@@ -36,14 +38,16 @@ export function MapFilterControl({
   const pillsRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
 
-  const optionById = useMemo(() => {
-    const map = new Map<string, FilterOption>();
+  const { optionById, colorByOptionId } = useMemo(() => {
+    const byId = new Map<string, FilterOption>();
+    const colorById = new Map<string, string>();
     for (const category of categories) {
       for (const option of category.options) {
-        map.set(option.id, option);
+        byId.set(option.id, option);
+        colorById.set(option.id, category.color);
       }
     }
-    return map;
+    return { optionById: byId, colorByOptionId: colorById };
   }, [categories]);
 
   const activeIds = [...selected].filter((id) => optionById.has(id));
@@ -96,7 +100,11 @@ export function MapFilterControl({
                 const option = optionById.get(id);
                 if (!option) return null;
                 return (
-                  <span className="map-filter__pill" key={id}>
+                  <span
+                    className="map-filter__pill"
+                    key={id}
+                    style={{ backgroundColor: colorByOptionId.get(id) }}
+                  >
                     {option.label}
                     <button
                       type="button"
@@ -160,7 +168,14 @@ export function MapFilterControl({
           </div>
           {categories.map((category) => (
             <div className="map-filter__category" key={category.id}>
-              <span className="map-filter__category-label">{category.label}</span>
+              <span className="map-filter__category-label">
+                <span
+                  className="map-filter__category-dot"
+                  style={{ backgroundColor: category.color }}
+                  aria-hidden="true"
+                />
+                {category.label}
+              </span>
               <div className="map-filter__options">
                 {category.options.map((option) => {
                   const on = selected.has(option.id);
@@ -171,6 +186,14 @@ export function MapFilterControl({
                       className={`map-filter__option ${
                         on ? "map-filter__option--on" : ""
                       }`}
+                      style={
+                        on
+                          ? {
+                              backgroundColor: category.color,
+                              borderColor: category.color,
+                            }
+                          : undefined
+                      }
                       onClick={() => onToggle(option.id)}
                       aria-pressed={on}
                     >
