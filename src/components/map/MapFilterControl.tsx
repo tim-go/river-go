@@ -37,6 +37,7 @@ interface MapFilterControlProps {
 
 const PILL_GAP = 5;
 const MORE_CHIP_RESERVE = 42;
+const MAX_PILL_ROWS = 2;
 
 // Active filters live as compact, category-coloured pills along the top; the
 // expander reveals everything by category, split into "Filter" (narrows what's
@@ -81,16 +82,27 @@ export function MapFilterControl({
     const measure = measureRef.current;
     if (!container || !measure) return;
 
+    // Pack pills into up to MAX_PILL_ROWS rows; reserve room for the +N chip on
+    // the last row when more pills remain.
     const compute = () => {
       const available = container.clientWidth;
       const items = Array.from(measure.children) as HTMLElement[];
-      let used = 0;
+      const total = items.length;
+      let row = 0;
+      let rowWidth = 0;
       let count = 0;
-      for (let i = 0; i < items.length; i += 1) {
-        const next = used + (count > 0 ? PILL_GAP : 0) + items[i].offsetWidth;
-        const reserve = i < items.length - 1 ? PILL_GAP + MORE_CHIP_RESERVE : 0;
-        if (next + reserve <= available) {
-          used = next;
+      for (let i = 0; i < total; i += 1) {
+        const width = items[i].offsetWidth;
+        const gap = rowWidth > 0 ? PILL_GAP : 0;
+        const onLastRow = row === MAX_PILL_ROWS - 1;
+        const reserve =
+          onLastRow && i < total - 1 ? PILL_GAP + MORE_CHIP_RESERVE : 0;
+        if (rowWidth + gap + width + reserve <= available) {
+          rowWidth += gap + width;
+          count += 1;
+        } else if (!onLastRow) {
+          row += 1;
+          rowWidth = width;
           count += 1;
         } else {
           break;

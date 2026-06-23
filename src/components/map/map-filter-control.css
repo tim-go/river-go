@@ -19,6 +19,7 @@
 .map-filter__pills {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 5px;
   flex: 1 1 auto;
