@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { RefreshCw } from "lucide-react";
 import {
   MapFilterControl,
   type FilterCategory,
@@ -102,6 +103,16 @@ export function MapFilterPrototype() {
           selected={selected}
           onToggle={toggle}
           onClear={() => setSelected(new Set())}
+          actions={
+            <button
+              type="button"
+              className="map-filter-action"
+              aria-label="Sync now"
+              title="Sync now"
+            >
+              <RefreshCw size={17} />
+            </button>
+          }
         />
       </div>
       <p className="map-proto__note">

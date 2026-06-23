@@ -97,6 +97,29 @@
   cursor: pointer;
 }
 
+/* Map actions sit next to (not inside) the filter affordance, behind a divider. */
+.map-filter__bar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding-left: 7px;
+  margin-left: 3px;
+  border-left: 1px solid rgba(20, 30, 50, 0.14);
+}
+
+.map-filter-action {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(20, 30, 50, 0.12);
+  border-radius: 10px;
+  background: #fff;
+  color: #1a2238;
+  cursor: pointer;
+}
+
 .map-filter__panel {
   display: flex;
   flex-direction: column;

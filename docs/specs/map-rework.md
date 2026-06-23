@@ -90,6 +90,32 @@ why the two are visually separated.
 - Needs: a **legend** for the level palette, visible **active-filter** state, and saved
   **presets** ("my setup").
 
+## Map top bar → filter control, focus panel & actions
+The current *map controls* bar (not the app section nav — Map/Discover/Dashboard/
+Profile/More is untouched) mixes three jobs; the rework separates them.
+
+Today's controls and where they go:
+
+| Control | Type | New home |
+| --- | --- | --- |
+| Rivers, Waterways, Routes | layer toggles | **Filter control** (Layers / display toggles) |
+| Levels, Details | open the section panel | **Focus mode** (on tapping a river/section) |
+| Click: Info/Detail | marker-click behaviour | **Setting** (More/settings) |
+| Sync | push queued edits | **Action cluster** (below) |
+| Controls ▸ | mobile expand | **Gone** — the filter bar has its own pills/expander |
+
+Levels/Details/Routes only appear today *because a section is selected*, so they're
+already focus-mode controls — in the map-scoped model they live in the river/section
+panel you get on tap, not the always-on bar.
+
+**Actions stay on the map, but outside "Filters".** Frequently-used *actions* (Sync,
+locate-me, future ones) don't belong in the Filters semantic — putting them there
+muddies "what's shown". They sit as a **distinct, adjacent action cluster** in the same
+top strip, behind a divider and icon-only: `[ pills ] [ Filters ▾ ] │ [ ⟳ ] [ ⌖ ]`.
+Architecturally the cluster is a **sibling slot** the map view passes into the filter
+control (`actions` prop), so the control stays purely about filters. If the action set
+grows it can collapse to a "⋯" menu.
+
 ## Architecture notes (for later, not committing yet)
 - **Bounds API** — "POIs / stations / routes in viewport" spatial query, debounced on
   map move. This is the biggest shift from per-river loading.

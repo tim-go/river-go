@@ -1,4 +1,10 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { ChevronDown, ChevronUp, Filter, X } from "lucide-react";
 import "./map-filter-control.css";
 
@@ -25,6 +31,8 @@ interface MapFilterControlProps {
   selected: Set<string>;
   onToggle: (id: string) => void;
   onClear: () => void;
+  /** Map actions (sync, locate, …) — a distinct cluster, not part of "Filters". */
+  actions?: ReactNode;
 }
 
 const PILL_GAP = 5;
@@ -39,6 +47,7 @@ export function MapFilterControl({
   selected,
   onToggle,
   onClear,
+  actions,
 }: MapFilterControlProps) {
   const [expanded, setExpanded] = useState(false);
   const pillsRef = useRef<HTMLDivElement>(null);
@@ -203,6 +212,9 @@ export function MapFilterControl({
           <span>Filters</span>
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
+        {actions ? (
+          <div className="map-filter__bar-actions">{actions}</div>
+        ) : null}
       </div>
 
       {expanded ? (
