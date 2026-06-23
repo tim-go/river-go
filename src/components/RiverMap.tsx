@@ -147,6 +147,7 @@ export function RiverMap({
   showRoutesLayer,
   showRiverLayer,
   sectionLevelStates,
+  levelNetwork,
   showSelectedRoutePath,
   showKnownRivers,
   watercourseFocusId,
@@ -200,6 +201,7 @@ export function RiverMap({
   showRoutesLayer: boolean;
   showRiverLayer: boolean;
   sectionLevelStates?: Map<string, SectionLevelState>;
+  levelNetwork?: RiverSection[];
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   watercourseFocusId: string | null;
@@ -685,6 +687,21 @@ export function RiverMap({
     }
 
     layers.clearLayers();
+
+    // Always-on level network: sections with line geometry, coloured by their
+    // gauge's level state (grey where unknown) — the map-scoped headline, shown
+    // regardless of selecting a single river.
+    (levelNetwork ?? []).forEach((section) => {
+      if (!section.route || section.route.length < 2) {
+        return;
+      }
+      L.polyline(section.route, {
+        color: levelBandColor(sectionLevelStates?.get(section.id)?.band),
+        weight: 3,
+        opacity: 0.8,
+        interactive: false,
+      }).addTo(layers);
+    });
 
     (showRiverLayer ? canonicalRivers : []).forEach((river) => {
       const isSelected = selectedCanonicalRiver?.id === river.id;
@@ -1414,6 +1431,7 @@ export function RiverMap({
     showRoutesLayer,
     showRiverLayer,
     sectionLevelStates,
+    levelNetwork,
     showSelectedRoutePath,
     showKnownRivers,
     onOpenPhoto,

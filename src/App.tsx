@@ -50,6 +50,7 @@ import {
   fetchSectionLevelStates,
   type SectionLevelState,
 } from "./services/levelStateApi";
+import { ukKayakingSampleSections } from "./data/ukKayakingSeed";
 import {
   fetchCanonicalRiver,
   fetchCanonicalRivers,
@@ -4267,6 +4268,7 @@ function App() {
           showRoutesLayer={showRoutesLayer}
           showRiverLayer={showRiverLayer}
           sectionLevelStates={sectionLevelStates}
+          levelNetwork={ukKayakingSampleSections}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
           watercourseFocusId={watercourseFocusId}
