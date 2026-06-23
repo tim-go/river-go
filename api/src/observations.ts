@@ -837,6 +837,90 @@ export async function listSectionLevelStates(): Promise<SectionLevelState[]> {
   });
 }
 
+export interface RiverLevelState {
+  riverId: string;
+  band: SectionLevelBand;
+  parameter: string;
+  unit: string | null;
+  value: number | null;
+  observedAt: string | null;
+  percentile: number | null;
+  sampleSize: number;
+}
+
+// Honest level state per canonical river: pick a primary gauge from one of its
+// sections and classify against that gauge's own recent history (percentile).
+// Rivers with no live primary gauge or too little history are omitted (grey).
+export async function listRiverLevelStates(): Promise<RiverLevelState[]> {
+  const result = await pool.query(
+    `WITH primary_measure AS (
+       SELECT DISTINCT ON (crsl.river_id)
+         crsl.river_id,
+         m.id AS measure_id,
+         m.parameter,
+         m.unit,
+         latest.value AS latest_value,
+         latest.observed_at
+       FROM canonical_river_section_links crsl
+       JOIN section_measure_links sml
+         ON sml.section_id = crsl.section_id AND sml.relevance = 'primary'
+       JOIN observation_measures m ON m.id = sml.measure_id
+       JOIN observation_latest_readings latest ON latest.measure_id = m.id
+       WHERE m.parameter IN ('river_level', 'river_flow')
+         AND latest.state = 'live'
+         AND latest.value IS NOT NULL
+       ORDER BY crsl.river_id,
+         CASE m.parameter WHEN 'river_level' THEN 1 ELSE 2 END,
+         m.id
+     ),
+     stats AS (
+       SELECT pm.river_id,
+         pm.parameter,
+         pm.unit,
+         pm.latest_value,
+         pm.observed_at,
+         count(r.*) AS sample_size,
+         count(r.*) FILTER (WHERE r.value < pm.latest_value) AS below
+       FROM primary_measure pm
+       JOIN observation_readings r
+         ON r.measure_id = pm.measure_id
+         AND r.observed_at >= now() - ($1::int * interval '1 day')
+         AND r.value IS NOT NULL
+       GROUP BY pm.river_id, pm.parameter, pm.unit, pm.latest_value, pm.observed_at
+     )
+     SELECT river_id,
+       parameter,
+       unit,
+       latest_value,
+       observed_at,
+       sample_size,
+       CASE WHEN sample_size > 0 THEN below::float8 / sample_size ELSE NULL END
+         AS percentile
+     FROM stats`,
+    [LEVEL_STATE_HISTORY_DAYS],
+  );
+
+  return result.rows.map((row) => {
+    const sampleSize = Number(row.sample_size ?? 0);
+    const percentile =
+      row.percentile === null || row.percentile === undefined
+        ? null
+        : Number(row.percentile);
+    return {
+      riverId: row.river_id as string,
+      parameter: row.parameter as string,
+      unit: (row.unit as string | null) ?? null,
+      value: row.latest_value === null ? null : Number(row.latest_value),
+      observedAt: row.observed_at
+        ? new Date(row.observed_at).toISOString()
+        : null,
+      percentile,
+      sampleSize,
+      band: classifyLevelBand(sampleSize, percentile),
+    };
+  });
+}
+
 async function ensureInitialObservationMeasures(client: PoolClient) {
   for (const seed of initialObservationMeasures) {
     const stationResult = await client.query<{ id: string }>(

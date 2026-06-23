@@ -128,6 +128,7 @@ import {
   getRecentObservationIngestionJobRun,
   listObservationJobRuns,
   listObservationsForSection,
+  listRiverLevelStates,
   listSectionLevelStates,
   runObservationBackfillJob,
   runObservationIngestionJob,
@@ -687,6 +688,11 @@ async function route(
       decodeURIComponent(riverPhotosMatch[1]),
     );
     return { status: 200, body: { photos } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/rivers/level-states") {
+    const riverLevelStates = await listRiverLevelStates();
+    return { status: 200, body: { riverLevelStates } };
   }
 
   const riverDetailMatch = url.pathname.match(/^\/api\/rivers\/([^/]+)$/);
