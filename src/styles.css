@@ -480,6 +480,42 @@ button:disabled {
   backdrop-filter: blur(14px);
 }
 
+/* The filter control sits flush in the top bar (drops its own card chrome). */
+.topbar > .topbar-actions {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.topbar .map-filter {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.topbar .map-filter__bar {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.topbar .map-filter__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(420px, calc(100vw - 24px));
+  z-index: 600;
+}
+
+/* Global map actions float over the map, bottom-right (legend is bottom-left). */
+.map-floating-actions {
+  position: fixed;
+  right: 12px;
+  bottom: calc(var(--bottom-nav-height, 16px) + 12px);
+  z-index: 600;
+}
+
 .brand-lockup {
   display: flex;
   align-items: center;

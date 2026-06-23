@@ -4,7 +4,6 @@ import {
   Backpack,
   Camera,
   CheckCircle2,
-  ChevronDown,
   Clock3,
   Droplets,
   ExternalLink,
@@ -52,6 +51,11 @@ import {
 } from "./services/levelStateApi";
 import { ukKayakingSampleSections } from "./data/ukKayakingSeed";
 import { MapLevelLegend } from "./components/map/MapLevelLegend";
+import {
+  MapFilterControl,
+  type FilterCategory,
+} from "./components/map/MapFilterControl";
+import { MapActionButton, MapActions } from "./components/map/MapActions";
 import {
   fetchCanonicalRiver,
   fetchCanonicalRivers,
@@ -224,7 +228,6 @@ import {
   canonicalRiverOverviewSectionId,
   canonicalRiverToOverviewSection,
   categoryOptions,
-  COMPACT_MAP_CONTROLS_QUERY,
   contributionOptions,
   defaultObservedDate,
   emptyCanonicalOverviewSection,
@@ -382,6 +385,38 @@ function App() {
   );
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
   const [showRiverLayer, setShowRiverLayer] = useState(true);
+  const mapLayerCategories = useMemo<FilterCategory[]>(
+    () => [
+      {
+        id: "layers",
+        label: "Layers",
+        color: "#7db8f5",
+        options: [
+          { id: "rivers", label: "Rivers" },
+          { id: "waterways", label: "Waterways" },
+          { id: "routes", label: "Routes" },
+        ],
+      },
+    ],
+    [],
+  );
+  const selectedMapLayers = useMemo(() => {
+    const set = new Set<string>();
+    if (showRiverLayer) set.add("rivers");
+    if (showKnownRivers) set.add("waterways");
+    if (showRoutesLayer) set.add("routes");
+    return set;
+  }, [showRiverLayer, showKnownRivers, showRoutesLayer]);
+  const toggleMapLayer = (id: string) => {
+    if (id === "rivers") setShowRiverLayer((value) => !value);
+    else if (id === "waterways") setShowKnownRivers((value) => !value);
+    else if (id === "routes") setShowRoutesLayer((value) => !value);
+  };
+  const clearMapLayers = () => {
+    setShowRiverLayer(false);
+    setShowKnownRivers(false);
+    setShowRoutesLayer(false);
+  };
   const [riverDisciplineFilter, setRiverDisciplineFilter] = useState<
     "all" | "whitewater" | "touring"
   >("all");
@@ -438,12 +473,6 @@ function App() {
     null,
   );
   const [routeAdjustmentFocusNonce, setRouteAdjustmentFocusNonce] = useState(0);
-  const [isCompactMapControls, setIsCompactMapControls] = useState(() =>
-    typeof window === "undefined"
-      ? false
-      : window.matchMedia(COMPACT_MAP_CONTROLS_QUERY).matches,
-  );
-  const [areMapControlsExpanded, setAreMapControlsExpanded] = useState(false);
   const [selectedPoi, setSelectedPoi] = useState<SelectedPoi | null>(null);
   const [poiContributions, setPoiContributions] = useState<Contribution[]>([]);
   const [isPoiDetailExpanded, setIsPoiDetailExpanded] = useState(false);
@@ -998,27 +1027,6 @@ function App() {
       }
     };
   }, [photoPreviewUrl]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const mediaQuery = window.matchMedia(COMPACT_MAP_CONTROLS_QUERY);
-    const updateCompactControls = () => {
-      setIsCompactMapControls(mediaQuery.matches);
-      if (!mediaQuery.matches) {
-        setAreMapControlsExpanded(false);
-      }
-    };
-
-    updateCompactControls();
-    mediaQuery.addEventListener("change", updateCompactControls);
-
-    return () => {
-      mediaQuery.removeEventListener("change", updateCompactControls);
-    };
-  }, []);
 
   useEffect(() => {
     if (authState.status === "loading") {
@@ -3962,48 +3970,15 @@ function App() {
       {activeAppSection === "map" ? <MapLevelLegend /> : null}
       {activeAppSection === "map" ? (
         <section className="topbar" aria-label="Map controls">
-          {/* River banner hidden for now: it tracked activeSection, but
-              sections are temporarily parked while the river-vs-section model
-              is decided, so it pinned to the default first section. Empty
-              lockup kept as a spacer so the controls stay right-aligned. */}
-          <div className="brand-lockup" />
-          <div
-            className={`topbar-actions ${
-              isCompactMapControls && areMapControlsExpanded
-                ? "topbar-actions--expanded"
-                : ""
-            }`}
-          >
-            <button
-              className={`ghost-button map-panel-toggle ${
-                showRiverLayer ? "map-panel-toggle--active" : ""
-              }`}
-              type="button"
-              onClick={() => setShowRiverLayer((current) => !current)}
-              title={showRiverLayer ? "Hide rivers on map" : "Show rivers on map"}
-              aria-label={
-                showRiverLayer ? "Hide rivers on map" : "Show rivers on map"
-              }
-              aria-pressed={showRiverLayer}
-            >
-              <Waves size={16} />
-              Rivers
-            </button>
+          <div className="topbar-actions">
+            <MapFilterControl
+              categories={mapLayerCategories}
+              selected={selectedMapLayers}
+              onToggle={toggleMapLayer}
+              onClear={clearMapLayers}
+            />
             {!isCanonicalRiverOverviewActive ? (
               <>
-                <button
-                  className={`ghost-button map-panel-toggle ${
-                    showRoutesLayer ? "map-panel-toggle--active" : ""
-                  }`}
-                  type="button"
-                  onClick={() => setShowRoutesLayer((current) => !current)}
-                  title={showRoutesLayer ? "Hide routes" : "Show routes"}
-                  aria-label={showRoutesLayer ? "Hide routes" : "Show routes"}
-                  aria-pressed={showRoutesLayer}
-                >
-                  <MapPinned size={16} />
-                  Routes
-                </button>
                 <button
                   className={`ghost-button map-panel-toggle ${
                     isPanelOpen && routeDetailsTab === "levels"
@@ -4034,146 +4009,48 @@ function App() {
                   <MapPinned size={16} />
                   Details
                 </button>
-              </>
-            ) : null}
-            <button
-              className={`ghost-button map-panel-toggle topbar-secondary-control ${
-                showKnownRivers ? "map-panel-toggle--active" : ""
-              }`}
-              type="button"
-              onClick={() => setShowKnownRivers((current) => !current)}
-              title="Show reference waterways"
-              aria-label="Show reference waterways"
-              aria-pressed={showKnownRivers}
-            >
-              <Waves size={16} />
-              Waterways
-            </button>
-            <button
-              className={`ghost-button map-panel-toggle topbar-secondary-control ${
-                markerClickMode === "detail" ? "map-panel-toggle--active" : ""
-              }`}
-              type="button"
-              onClick={toggleMarkerClickMode}
-              title={
-                markerClickMode === "info"
-                  ? "Marker clicks show quick info first"
-                  : "Marker clicks open details directly"
-              }
-              aria-label={
-                markerClickMode === "info"
-                  ? "Marker clicks show quick info first"
-                  : "Marker clicks open details directly"
-              }
-              aria-pressed={markerClickMode === "detail"}
-            >
-              <MessageSquare size={16} />
-              Click: {markerClickMode === "info" ? "Info" : "Detail"}
-            </button>
-            {isCompactMapControls ? (
-              <button
-                className={`ghost-button map-panel-toggle topbar-controls-toggle ${
-                  areMapControlsExpanded ? "map-panel-toggle--active" : ""
-                }`}
-                type="button"
-                onClick={() => setAreMapControlsExpanded((current) => !current)}
-                title={
-                  areMapControlsExpanded ? "Hide map controls" : "Show map controls"
-                }
-                aria-label={
-                  areMapControlsExpanded ? "Hide map controls" : "Show map controls"
-                }
-                aria-expanded={areMapControlsExpanded}
-              >
-                <MoreHorizontal size={16} />
-                Controls
-                <ChevronDown size={14} />
-              </button>
-            ) : null}
-            <button
-              className={`icon-button sync-icon-button topbar-secondary-control ${
-                queuedOutboxCount > 0 ? "sync-icon-button--queued" : ""
-              }`}
-              type="button"
-              onClick={syncOutboxNow}
-              disabled={!canSyncOutbox}
-              title={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
-              aria-label={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
-            >
-              <RefreshCw size={16} />
-              <span className="topbar-control-label">Sync</span>
-              {queuedOutboxCount > 0 ? (
-                <span className="sync-badge">{queuedOutboxCount}</span>
-              ) : null}
-            </button>
-            {!isCanonicalRiverOverviewActive ? (
-              <button
-                className={`icon-button topbar-secondary-control ${
-                  isActiveSectionFavourite ? "icon-button--active" : ""
-                }`}
-                type="button"
-                title={
-                  !isSignedIn
-                    ? "Create account to save favourites"
-                    : isActiveSectionFavourite
-                    ? "Remove from favourites"
-                    : "Add to favourites"
-                }
-                aria-label={
-                  !isSignedIn
-                    ? "Create account to save favourites"
-                    : isActiveSectionFavourite
-                    ? "Remove from favourites"
-                    : "Add to favourites"
-                }
-                aria-pressed={isActiveSectionFavourite}
-                onClick={() => toggleFavouriteSection(activeSection)}
-              >
-                <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
-                <span className="topbar-control-label">
-                  {isActiveSectionFavourite ? "Saved" : "Favourite"}
-                </span>
-              </button>
-            ) : null}
-            <button
-              className={`icon-button topbar-secondary-control ${
-                isLiveLocationEnabled ? "icon-button--active" : ""
-              }`}
-              type="button"
-              title={
-                isLiveLocationEnabled
-                  ? "Centre on my live location"
-                  : "Show my live location"
-              }
-              aria-label={
-                isLiveLocationEnabled
-                  ? "Centre on my live location"
-                  : "Show my live location"
-              }
-              aria-pressed={isLiveLocationEnabled}
-              onClick={handleLiveLocationButtonClick}
-              disabled={!isLiveLocationSupported}
-            >
-              <Navigation size={18} />
-              <span className="topbar-control-label">Location</span>
-            </button>
-            {canAccessAdminTools && !isCanonicalRiverOverviewActive ? (
-              <button
-                className={`ghost-button map-panel-toggle topbar-secondary-control ${
-                  routeDraftTarget.type !== "new" ? "map-panel-toggle--active" : ""
-                }`}
-                type="button"
-                title="Edit this route"
-                aria-label="Edit this route"
-                aria-pressed={routeDraftTarget.type !== "new"}
-                onClick={() => startRouteAdjustmentMode(activeSection)}
-              >
-                <Route size={16} />
-                Edit route
-              </button>
-            ) : null}
-            {!isCanonicalRiverOverviewActive ? (
-              <>
+                <button
+                  className={`icon-button topbar-secondary-control ${
+                    isActiveSectionFavourite ? "icon-button--active" : ""
+                  }`}
+                  type="button"
+                  title={
+                    !isSignedIn
+                      ? "Create account to save favourites"
+                      : isActiveSectionFavourite
+                      ? "Remove from favourites"
+                      : "Add to favourites"
+                  }
+                  aria-label={
+                    !isSignedIn
+                      ? "Create account to save favourites"
+                      : isActiveSectionFavourite
+                      ? "Remove from favourites"
+                      : "Add to favourites"
+                  }
+                  aria-pressed={isActiveSectionFavourite}
+                  onClick={() => toggleFavouriteSection(activeSection)}
+                >
+                  <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
+                  <span className="topbar-control-label">
+                    {isActiveSectionFavourite ? "Saved" : "Favourite"}
+                  </span>
+                </button>
+                {canAccessAdminTools ? (
+                  <button
+                    className={`ghost-button map-panel-toggle topbar-secondary-control ${
+                      routeDraftTarget.type !== "new" ? "map-panel-toggle--active" : ""
+                    }`}
+                    type="button"
+                    title="Edit this route"
+                    aria-label="Edit this route"
+                    aria-pressed={routeDraftTarget.type !== "new"}
+                    onClick={() => startRouteAdjustmentMode(activeSection)}
+                  >
+                    <Route size={16} />
+                    Edit route
+                  </button>
+                ) : null}
                 <button
                   className={`ghost-button map-panel-toggle topbar-secondary-control ${
                     routeCreateMode !== "idle" && routeDraftTarget.type === "new"
@@ -4189,27 +4066,7 @@ function App() {
                   <Route size={16} />
                   Suggest route
                 </button>
-                <button
-                  className="primary-action topbar-secondary-control"
-                  type="button"
-                  title="Add local knowledge"
-                  onClick={() => requestAddContribution()}
-                >
-                  <Plus size={18} />
-                  Add info
-                </button>
               </>
-            ) : null}
-            {isCanonicalRiverOverviewActive ? (
-              <button
-                className="primary-action topbar-secondary-control"
-                type="button"
-                title="Add local knowledge"
-                onClick={() => requestAddContribution()}
-              >
-                <Plus size={18} />
-                Add info
-              </button>
             ) : null}
             {authMessage || authState.error ? (
               <p className="topbar-message">
@@ -4218,6 +4075,49 @@ function App() {
             ) : null}
           </div>
         </section>
+      ) : null}
+      {activeAppSection === "map" ? (
+        <div className="map-floating-actions">
+          <MapActions>
+            <MapActionButton
+              label={
+                isLiveLocationEnabled
+                  ? "Centre on my location"
+                  : "Show my location"
+              }
+              active={isLiveLocationEnabled}
+              onClick={handleLiveLocationButtonClick}
+            >
+              <Navigation size={19} />
+            </MapActionButton>
+            <MapActionButton
+              label={
+                markerClickMode === "info"
+                  ? "Marker clicks: quick info"
+                  : "Marker clicks: open details"
+              }
+              active={markerClickMode === "detail"}
+              onClick={toggleMarkerClickMode}
+            >
+              <MessageSquare size={19} />
+            </MapActionButton>
+            <MapActionButton
+              label="Add local knowledge"
+              onClick={() => requestAddContribution()}
+            >
+              <Plus size={19} />
+            </MapActionButton>
+            <MapActionButton
+              label={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
+              badge={queuedOutboxCount > 0}
+              onClick={() => {
+                if (canSyncOutbox) syncOutboxNow();
+              }}
+            >
+              <RefreshCw size={18} />
+            </MapActionButton>
+          </MapActions>
+        </div>
       ) : null}
           {activeAppSection === "map" ? (
       <section className="workspace">
