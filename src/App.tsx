@@ -135,6 +135,7 @@ import {
 } from "./services/photoApi";
 import {
   fetchModerationMapPoiReviews,
+  fetchAllMapPois,
   fetchRiverMapPois,
   fetchSectionMapPois,
   reviewMapPoi,
@@ -408,6 +409,9 @@ function App() {
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
   const [showRiverLayer, setShowRiverLayer] = useState(true);
   const [isLevelLegendOpen, setIsLevelLegendOpen] = useState(false);
+  const [activePoiKinds, setActivePoiKinds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const mapLayerCategories = useMemo<FilterCategory[]>(
     () => [
       {
@@ -420,6 +424,16 @@ function App() {
           { id: "routes", label: "Routes" },
         ],
       },
+      {
+        id: "pois",
+        label: "POIs",
+        color: "#ffce4d",
+        options: [
+          { id: "poi:access", label: "Access" },
+          { id: "poi:hazard", label: "Hazards" },
+          { id: "poi:feature", label: "Features" },
+        ],
+      },
     ],
     [],
   );
@@ -428,18 +442,50 @@ function App() {
     if (showRiverLayer) set.add("rivers");
     if (showKnownRivers) set.add("waterways");
     if (showRoutesLayer) set.add("routes");
+    for (const kind of activePoiKinds) set.add(`poi:${kind}`);
     return set;
-  }, [showRiverLayer, showKnownRivers, showRoutesLayer]);
+  }, [showRiverLayer, showKnownRivers, showRoutesLayer, activePoiKinds]);
   const toggleMapLayer = (id: string) => {
     if (id === "rivers") setShowRiverLayer((value) => !value);
     else if (id === "waterways") setShowKnownRivers((value) => !value);
     else if (id === "routes") setShowRoutesLayer((value) => !value);
+    else if (id.startsWith("poi:")) {
+      const kind = id.slice(4);
+      setActivePoiKinds((previous) => {
+        const next = new Set(previous);
+        if (next.has(kind)) {
+          next.delete(kind);
+        } else {
+          next.add(kind);
+        }
+        return next;
+      });
+    }
   };
   const clearMapLayers = () => {
     setShowRiverLayer(false);
     setShowKnownRivers(false);
     setShowRoutesLayer(false);
+    setActivePoiKinds(new Set());
   };
+  const [allMapPois, setAllMapPois] = useState<MapPoi[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchAllMapPois()
+      .then((pois) => {
+        if (!cancelled) setAllMapPois(pois);
+      })
+      .catch(() => {
+        // No global POIs available → POI filters render nothing.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const globalPois = useMemo(
+    () => allMapPois.filter((poi) => activePoiKinds.has(poi.kind)),
+    [allMapPois, activePoiKinds],
+  );
   const [riverDisciplineFilter, setRiverDisciplineFilter] = useState<
     "all" | "whitewater" | "touring"
   >("all");
@@ -4201,6 +4247,7 @@ function App() {
           showRiverLayer={showRiverLayer}
           sectionLevelStates={sectionLevelStates}
           riverLevelStates={riverLevelStates}
+          globalPois={globalPois}
           levelNetwork={ukKayakingSampleSections}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}

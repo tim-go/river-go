@@ -164,6 +164,21 @@ export async function listMapPoisForRiver(
   return result.rows.map(mapPoiRow);
 }
 
+// All curated map POIs, location-agnostic and public — for the global POI map layer.
+export async function listAllMapPois(
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiMapPoi[]> {
+  const result = await client.query<MapPoiRow>(
+    `SELECT DISTINCT ON (p.id)
+      ${mapPoiSelectColumnsSql(null)}
+    FROM map_pois p
+    WHERE p.verification_status IN ('confirmed', 'needs-confirmation')
+    ORDER BY p.id, p.kind ASC, p.title ASC`,
+  );
+
+  return result.rows.map(mapPoiRow);
+}
+
 function locationBackedMapPoiSelectColumnsSql(viewerMemberId?: string | null) {
   return `
     p.id,

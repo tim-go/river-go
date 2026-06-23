@@ -35,6 +35,7 @@ import {
   isMapPoiReviewAction,
   isMapPoiReviewDecision,
   listMapPoiCorrectionReviews,
+  listAllMapPois,
   listMapPoisForRiver,
   listMapPoisForSection,
   reviewMapPoi,
@@ -693,6 +694,11 @@ async function route(
   if (method === "GET" && url.pathname === "/api/rivers/level-states") {
     const riverLevelStates = await listRiverLevelStates();
     return { status: 200, body: { riverLevelStates } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/map-pois") {
+    const pois = await listAllMapPois();
+    return { status: 200, body: { pois } };
   }
 
   const riverDetailMatch = url.pathname.match(/^\/api\/rivers\/([^/]+)$/);

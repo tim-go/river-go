@@ -151,6 +151,7 @@ export function RiverMap({
   sectionLevelStates,
   levelNetwork,
   riverLevelStates,
+  globalPois,
   showSelectedRoutePath,
   showKnownRivers,
   watercourseFocusId,
@@ -206,6 +207,7 @@ export function RiverMap({
   sectionLevelStates?: Map<string, SectionLevelState>;
   levelNetwork?: RiverSection[];
   riverLevelStates?: Map<string, RiverLevelState>;
+  globalPois?: MapPoi[];
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   watercourseFocusId: string | null;
@@ -294,6 +296,8 @@ export function RiverMap({
     [],
   );
   const [knownWatercourseStatus, setKnownWatercourseStatus] = useState("");
+  const POI_MIN_ZOOM = 9;
+  const [poiZoomVisible, setPoiZoomVisible] = useState(false);
   const [hiddenPoiCategories, setHiddenPoiCategories] = useState<
     Set<MapPoiDisplayCategory>
   >(() => new Set());
@@ -558,6 +562,12 @@ export function RiverMap({
       }
     };
     map.on("moveend zoomend", persistMapView);
+    const updatePoiZoom = () => {
+      const visible = map.getZoom() >= POI_MIN_ZOOM;
+      setPoiZoomVisible((previous) => (previous === visible ? previous : visible));
+    };
+    updatePoiZoom();
+    map.on("zoomend", updatePoiZoom);
 
     const resizeObserver = new ResizeObserver(() => {
       window.requestAnimationFrame(() => {
@@ -718,6 +728,27 @@ export function RiverMap({
         { sticky: true },
       );
     });
+
+    // Global POI layer — zoom-gated (>= POI_MIN_ZOOM) so the national view isn't
+    // flooded by 600+ pins. The user zooms in to reveal them.
+    if (poiZoomVisible) {
+      (globalPois ?? []).forEach((poi) => {
+        const displayMeta = mapPoiDisplayMeta(poi);
+        const poiMarker = L.marker(poi.location, {
+          bubblingMouseEvents: false,
+          icon: L.divIcon({
+            className: "",
+            html: markerHtml(displayMeta.markerKind, displayMeta.markerLabel),
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          }),
+        });
+        poiMarker.addTo(layers);
+        poiMarker.bindTooltip(`${poi.title} · ${displayMeta.label}`, {
+          sticky: true,
+        });
+      });
+    }
 
     (showRiverLayer ? canonicalRivers : []).forEach((river) => {
       const isSelected = selectedCanonicalRiver?.id === river.id;
@@ -1460,6 +1491,8 @@ export function RiverMap({
     sectionLevelStates,
     levelNetwork,
     riverLevelStates,
+    globalPois,
+    poiZoomVisible,
     showSelectedRoutePath,
     showKnownRivers,
     onOpenPhoto,
