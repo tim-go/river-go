@@ -66,6 +66,20 @@ viewport, with detail revealed by zoom.
 - Easy controls to add **wind, cloud, temp, tides**. Wind + tides surface for sea/SUP.
 - Toggleable raster overlays with opacity.
 
+## Filter semantics — filters vs display toggles
+The controls hold two *kinds* of thing, with opposite empty-state behaviour:
+- **Filters** (e.g. **Discipline**) *narrow* the paddling data. Empty = **all** (no
+  constraint). Within a category → OR; across categories → compose. Discipline scopes
+  the rivers/sections + their POIs; it leaves amenities and weather alone.
+- **Display toggles** (Layers · POIs · Stations · Amenities · Weather) *show/hide*.
+  Empty = **none** (opt-in). The app ships with sensible defaults on (e.g. Rivers +
+  gauges) so first-run isn't blank; "clear all" then honestly means nothing shown.
+
+Discipline **stays in the control** (for reach) but is **presented as a filter** — a
+funnel icon on its pills and its own "Filter — narrows what's shown" section, set
+apart from the "Show on map" toggles. The opposite empty-state semantics are exactly
+why the two are visually separated.
+
 ## Controls / UX — the key open decision
 - **Map stays full-bleed; controls must not eat the screen.** Screen-real-estate
   management is the priority.

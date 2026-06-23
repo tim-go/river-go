@@ -126,6 +126,31 @@
   cursor: pointer;
 }
 
+.map-filter__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.map-filter__section-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #98a2b3;
+}
+
+/* The filter section (e.g. discipline) is set apart from the display toggles. */
+.map-filter__section--filter {
+  padding: 11px 12px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(20, 30, 50, 0.08);
+  background: rgba(20, 30, 50, 0.04);
+}
+
 .map-filter__category {
   display: grid;
   grid-template-columns: 88px minmax(0, 1fr);

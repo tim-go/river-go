@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Filter, X } from "lucide-react";
 import "./map-filter-control.css";
 
 export interface FilterOption {
@@ -12,6 +12,11 @@ export interface FilterCategory {
   label: string;
   /** Colour for this category's pills and active options. */
   color: string;
+  /**
+   * "filter" narrows what's shown (e.g. discipline) — empty means "all".
+   * "display" is a show/hide toggle — empty means "none". Defaults to display.
+   */
+  kind?: "filter" | "display";
   options: FilterOption[];
 }
 
@@ -25,9 +30,10 @@ interface MapFilterControlProps {
 const PILL_GAP = 5;
 const MORE_CHIP_RESERVE = 42;
 
-// Active filters live as compact closable pills along the top; when they don't all
-// fit, the overflow collapses to a "+N" chip (tap → opens the panel). The expander
-// reveals every filter by category. Both are views of one state.
+// Active filters live as compact, category-coloured pills along the top; the
+// expander reveals everything by category, split into "Filter" (narrows what's
+// shown — e.g. discipline) and "Show on map" (display toggles). Both are views of
+// one state.
 export function MapFilterControl({
   categories,
   selected,
@@ -38,16 +44,22 @@ export function MapFilterControl({
   const pillsRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
 
-  const { optionById, colorByOptionId } = useMemo(() => {
+  const { optionById, colorByOptionId, filterOptionIds } = useMemo(() => {
     const byId = new Map<string, FilterOption>();
     const colorById = new Map<string, string>();
+    const filterIds = new Set<string>();
     for (const category of categories) {
       for (const option of category.options) {
         byId.set(option.id, option);
         colorById.set(option.id, category.color);
+        if (category.kind === "filter") filterIds.add(option.id);
       }
     }
-    return { optionById: byId, colorByOptionId: colorById };
+    return {
+      optionById: byId,
+      colorByOptionId: colorById,
+      filterOptionIds: filterIds,
+    };
   }, [categories]);
 
   const activeIds = [...selected].filter((id) => optionById.has(id));
@@ -55,7 +67,6 @@ export function MapFilterControl({
 
   const [visibleCount, setVisibleCount] = useState(activeIds.length);
 
-  // Measure (off-flow copy) how many pills fit, reserving room for the +N chip.
   useLayoutEffect(() => {
     const container = pillsRef.current;
     const measure = measureRef.current;
@@ -88,35 +99,85 @@ export function MapFilterControl({
   const visibleIds = activeIds.slice(0, visibleCount);
   const hiddenCount = activeIds.length - visibleIds.length;
 
+  const renderPill = (id: string, forMeasure: boolean) => {
+    const option = optionById.get(id);
+    if (!option) return null;
+    const isFilter = filterOptionIds.has(id);
+    const close = forMeasure ? (
+      <span className="map-filter__pill-close">
+        <X size={12} strokeWidth={2.5} />
+      </span>
+    ) : (
+      <button
+        type="button"
+        className="map-filter__pill-close"
+        onClick={() => onToggle(id)}
+        aria-label={`Remove ${option.label}`}
+      >
+        <X size={12} strokeWidth={2.5} />
+      </button>
+    );
+    return (
+      <span
+        className="map-filter__pill"
+        key={id}
+        style={{ backgroundColor: colorByOptionId.get(id) }}
+      >
+        {isFilter ? <Filter size={11} strokeWidth={2.5} /> : null}
+        {option.label}
+        {close}
+      </span>
+    );
+  };
+
+  const renderCategory = (category: FilterCategory) => (
+    <div className="map-filter__category" key={category.id}>
+      <span className="map-filter__category-label">
+        <span
+          className="map-filter__category-dot"
+          style={{ backgroundColor: category.color }}
+          aria-hidden="true"
+        />
+        {category.label}
+      </span>
+      <div className="map-filter__options">
+        {category.options.map((option) => {
+          const on = selected.has(option.id);
+          return (
+            <button
+              type="button"
+              key={option.id}
+              className={`map-filter__option ${
+                on ? "map-filter__option--on" : ""
+              }`}
+              style={
+                on
+                  ? { backgroundColor: category.color, borderColor: category.color }
+                  : undefined
+              }
+              onClick={() => onToggle(option.id)}
+              aria-pressed={on}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const filterCategories = categories.filter((c) => c.kind === "filter");
+  const displayCategories = categories.filter((c) => c.kind !== "filter");
+
   return (
     <div className={`map-filter ${expanded ? "map-filter--expanded" : ""}`}>
       <div className="map-filter__bar">
         <div className="map-filter__pills" ref={pillsRef}>
           {activeIds.length === 0 ? (
-            <span className="map-filter__placeholder">Standard view</span>
+            <span className="map-filter__placeholder">No layers shown</span>
           ) : (
             <>
-              {visibleIds.map((id) => {
-                const option = optionById.get(id);
-                if (!option) return null;
-                return (
-                  <span
-                    className="map-filter__pill"
-                    key={id}
-                    style={{ backgroundColor: colorByOptionId.get(id) }}
-                  >
-                    {option.label}
-                    <button
-                      type="button"
-                      className="map-filter__pill-close"
-                      onClick={() => onToggle(id)}
-                      aria-label={`Remove ${option.label}`}
-                    >
-                      <X size={12} strokeWidth={2.5} />
-                    </button>
-                  </span>
-                );
-              })}
+              {visibleIds.map((id) => renderPill(id, false))}
               {hiddenCount > 0 ? (
                 <button
                   type="button"
@@ -127,20 +188,8 @@ export function MapFilterControl({
                   +{hiddenCount}
                 </button>
               ) : null}
-              {/* Off-flow copy of every pill, used only to measure widths. */}
               <div className="map-filter__measure" ref={measureRef} aria-hidden="true">
-                {activeIds.map((id) => {
-                  const option = optionById.get(id);
-                  if (!option) return null;
-                  return (
-                    <span className="map-filter__pill" key={id}>
-                      {option.label}
-                      <span className="map-filter__pill-close">
-                        <X size={12} strokeWidth={2.5} />
-                      </span>
-                    </span>
-                  );
-                })}
+                {activeIds.map((id) => renderPill(id, true))}
               </div>
             </>
           )}
@@ -166,44 +215,19 @@ export function MapFilterControl({
               </button>
             ) : null}
           </div>
-          {categories.map((category) => (
-            <div className="map-filter__category" key={category.id}>
-              <span className="map-filter__category-label">
-                <span
-                  className="map-filter__category-dot"
-                  style={{ backgroundColor: category.color }}
-                  aria-hidden="true"
-                />
-                {category.label}
+          {filterCategories.length > 0 ? (
+            <div className="map-filter__section map-filter__section--filter">
+              <span className="map-filter__section-head">
+                <Filter size={12} strokeWidth={2.5} />
+                Filter — narrows what's shown
               </span>
-              <div className="map-filter__options">
-                {category.options.map((option) => {
-                  const on = selected.has(option.id);
-                  return (
-                    <button
-                      type="button"
-                      key={option.id}
-                      className={`map-filter__option ${
-                        on ? "map-filter__option--on" : ""
-                      }`}
-                      style={
-                        on
-                          ? {
-                              backgroundColor: category.color,
-                              borderColor: category.color,
-                            }
-                          : undefined
-                      }
-                      onClick={() => onToggle(option.id)}
-                      aria-pressed={on}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
+              {filterCategories.map(renderCategory)}
             </div>
-          ))}
+          ) : null}
+          <div className="map-filter__section">
+            <span className="map-filter__section-head">Show on map</span>
+            {displayCategories.map(renderCategory)}
+          </div>
         </div>
       ) : null}
     </div>

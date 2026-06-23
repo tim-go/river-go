@@ -12,6 +12,7 @@ const CATEGORIES: FilterCategory[] = [
     id: "discipline",
     label: "Discipline",
     color: "#6ed7a6",
+    kind: "filter",
     options: [
       { id: "ww", label: "Whitewater" },
       { id: "touring", label: "Touring" },
