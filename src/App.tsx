@@ -3967,7 +3967,6 @@ function App() {
             activeAppSection === "map" ? "app-view--with-topbar" : ""
           }`}
         >
-      {activeAppSection === "map" ? <MapLevelLegend /> : null}
       {activeAppSection === "map" ? (
         <section className="topbar" aria-label="Map controls">
           <div className="topbar-actions">
@@ -4121,6 +4120,7 @@ function App() {
       ) : null}
           {activeAppSection === "map" ? (
       <section className="workspace">
+        <MapLevelLegend />
         <SyncOutboxBanner
           queuedOutboxCount={queuedOutboxCount}
           failedOutboxCount={failedOutboxCount}

@@ -503,7 +503,7 @@ button:disabled {
 .topbar .map-filter__panel {
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  right: 0;
   width: min(420px, calc(100vw - 24px));
   z-index: 600;
 }
