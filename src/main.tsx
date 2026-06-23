@@ -11,6 +11,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AuthActionPage } from "./auth/AuthActionPage";
 import { SignupPage } from "./auth/SignupPage";
+import { MapFilterPrototype } from "./prototype/MapFilterPrototype";
 import { DiscoveryProvider } from "./discovery/DiscoveryContext";
 import { PwaProvider } from "./pwa/PwaProvider";
 import { PwaIosInstallSheet } from "./pwa/PwaIosInstallSheet";
@@ -29,6 +30,8 @@ createRoot(document.getElementById("root")!).render(
       <AuthActionPage />
     ) : path === "/signup" ? (
       <SignupPage />
+    ) : path === "/prototype/filters" ? (
+      <MapFilterPrototype />
     ) : (
       <DiscoveryProvider>
         <PwaProvider>
