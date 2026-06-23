@@ -17,17 +17,36 @@
 }
 
 .map-filter__pills {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex: 1 1 auto;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: hidden;
 }
 
-.map-filter__pills::-webkit-scrollbar {
-  display: none;
+.map-filter__measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  gap: 5px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.map-filter__more {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border: 1px solid rgba(20, 30, 50, 0.18);
+  border-radius: 999px;
+  background: #fff;
+  color: #1a2238;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 .map-filter__placeholder {
@@ -40,13 +59,13 @@
 .map-filter__pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   flex: 0 0 auto;
-  padding: 4px 4px 4px 11px;
+  padding: 3px 3px 3px 9px;
   border-radius: 999px;
   background: #ffd60a;
   color: #1a1300;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   font-weight: 650;
   white-space: nowrap;
 }
@@ -54,8 +73,8 @@
 .map-filter__pill-close {
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border: 0;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.14);

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import "./map-filter-control.css";
 
@@ -20,8 +20,12 @@ interface MapFilterControlProps {
   onClear: () => void;
 }
 
-// Active filters live as closable pills along the top (quick "what's applied?");
-// the expander reveals every filter by category. Both are views of one state.
+const PILL_GAP = 5;
+const MORE_CHIP_RESERVE = 42;
+
+// Active filters live as compact closable pills along the top; when they don't all
+// fit, the overflow collapses to a "+N" chip (tap → opens the panel). The expander
+// reveals every filter by category. Both are views of one state.
 export function MapFilterControl({
   categories,
   selected,
@@ -29,6 +33,8 @@ export function MapFilterControl({
   onClear,
 }: MapFilterControlProps) {
   const [expanded, setExpanded] = useState(false);
+  const pillsRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
 
   const optionById = useMemo(() => {
     const map = new Map<string, FilterOption>();
@@ -41,31 +47,94 @@ export function MapFilterControl({
   }, [categories]);
 
   const activeIds = [...selected].filter((id) => optionById.has(id));
+  const activeKey = activeIds.join("|");
+
+  const [visibleCount, setVisibleCount] = useState(activeIds.length);
+
+  // Measure (off-flow copy) how many pills fit, reserving room for the +N chip.
+  useLayoutEffect(() => {
+    const container = pillsRef.current;
+    const measure = measureRef.current;
+    if (!container || !measure) return;
+
+    const compute = () => {
+      const available = container.clientWidth;
+      const items = Array.from(measure.children) as HTMLElement[];
+      let used = 0;
+      let count = 0;
+      for (let i = 0; i < items.length; i += 1) {
+        const next = used + (count > 0 ? PILL_GAP : 0) + items[i].offsetWidth;
+        const reserve = i < items.length - 1 ? PILL_GAP + MORE_CHIP_RESERVE : 0;
+        if (next + reserve <= available) {
+          used = next;
+          count += 1;
+        } else {
+          break;
+        }
+      }
+      setVisibleCount(count);
+    };
+
+    compute();
+    const observer = new ResizeObserver(compute);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [activeKey]);
+
+  const visibleIds = activeIds.slice(0, visibleCount);
+  const hiddenCount = activeIds.length - visibleIds.length;
 
   return (
     <div className={`map-filter ${expanded ? "map-filter--expanded" : ""}`}>
       <div className="map-filter__bar">
-        <div className="map-filter__pills">
+        <div className="map-filter__pills" ref={pillsRef}>
           {activeIds.length === 0 ? (
             <span className="map-filter__placeholder">Standard view</span>
           ) : (
-            activeIds.map((id) => {
-              const option = optionById.get(id);
-              if (!option) return null;
-              return (
-                <span className="map-filter__pill" key={id}>
-                  {option.label}
-                  <button
-                    type="button"
-                    className="map-filter__pill-close"
-                    onClick={() => onToggle(id)}
-                    aria-label={`Remove ${option.label}`}
-                  >
-                    <X size={13} strokeWidth={2.5} />
-                  </button>
-                </span>
-              );
-            })
+            <>
+              {visibleIds.map((id) => {
+                const option = optionById.get(id);
+                if (!option) return null;
+                return (
+                  <span className="map-filter__pill" key={id}>
+                    {option.label}
+                    <button
+                      type="button"
+                      className="map-filter__pill-close"
+                      onClick={() => onToggle(id)}
+                      aria-label={`Remove ${option.label}`}
+                    >
+                      <X size={12} strokeWidth={2.5} />
+                    </button>
+                  </span>
+                );
+              })}
+              {hiddenCount > 0 ? (
+                <button
+                  type="button"
+                  className="map-filter__more"
+                  onClick={() => setExpanded(true)}
+                  aria-label={`${hiddenCount} more active filters`}
+                >
+                  +{hiddenCount}
+                </button>
+              ) : null}
+              {/* Off-flow copy of every pill, used only to measure widths. */}
+              <div className="map-filter__measure" ref={measureRef} aria-hidden="true">
+                {activeIds.map((id) => {
+                  const option = optionById.get(id);
+                  if (!option) return null;
+                  return (
+                    <span className="map-filter__pill" key={id}>
+                      {option.label}
+                      <span className="map-filter__pill-close">
+                        <X size={12} strokeWidth={2.5} />
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
         <button
