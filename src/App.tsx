@@ -385,6 +385,7 @@ function App() {
   );
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
   const [showRiverLayer, setShowRiverLayer] = useState(true);
+  const [isLevelLegendOpen, setIsLevelLegendOpen] = useState(false);
   const mapLayerCategories = useMemo<FilterCategory[]>(
     () => [
       {
@@ -4079,6 +4080,13 @@ function App() {
         <div className="map-floating-actions">
           <MapActions>
             <MapActionButton
+              label={isLevelLegendOpen ? "Hide level key" : "Show level key"}
+              active={isLevelLegendOpen}
+              onClick={() => setIsLevelLegendOpen((value) => !value)}
+            >
+              <Palette size={19} />
+            </MapActionButton>
+            <MapActionButton
               label={
                 isLiveLocationEnabled
                   ? "Centre on my location"
@@ -4120,7 +4128,7 @@ function App() {
       ) : null}
           {activeAppSection === "map" ? (
       <section className="workspace">
-        <MapLevelLegend />
+        {isLevelLegendOpen ? <MapLevelLegend /> : null}
         <SyncOutboxBanner
           queuedOutboxCount={queuedOutboxCount}
           failedOutboxCount={failedOutboxCount}
