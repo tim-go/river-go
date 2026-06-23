@@ -38,13 +38,13 @@ export async function fetchSectionLevelStates(): Promise<SectionLevelState[]> {
 export function levelBandColor(band: SectionLevelBand | undefined): string {
   switch (band) {
     case "low":
-      return "#22d3ee";
-    case "normal":
       return "#3b82f6";
+    case "normal":
+      return "#14b8a6";
     case "high":
-      return "#4f46e5";
+      return "#ffd60a";
     case "very-high":
-      return "#312e81";
+      return "#f97316";
     default:
       return "#64748b";
   }
