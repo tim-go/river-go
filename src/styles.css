@@ -231,9 +231,24 @@ button:disabled {
    a full-width row above the rail), so the left nav stays put when switching to
    the map. The bar takes its own height; the map fills the rest. */
 .app-view--with-topbar {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
+}
+
+/* Section tools (shown when a river/section is selected) — a wrapping button bar
+   that floats just under the filter bar, over the map, so the top bar stays just
+   the filter control. Out of flow, so it never steals a grid row. */
+.map-section-toolbar {
+  position: absolute;
+  top: 56px;
+  left: 12px;
+  z-index: 590;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100% - 24px);
 }
 
 .app-nav {
@@ -516,18 +531,6 @@ button:disabled {
   z-index: 600;
 }
 
-.brand-lockup {
-  display: flex;
-  align-items: center;
-  flex: 1 1 auto;
-  gap: 8px;
-  min-width: 0;
-}
-
-.brand-lockup > div {
-  min-width: 0;
-}
-
 .brand-mark {
   display: grid;
   width: 34px;
@@ -605,10 +608,6 @@ h1 {
   flex: 0 0 auto;
   gap: 5px;
   min-width: 0;
-}
-
-.topbar-controls-toggle {
-  display: none;
 }
 
 .topbar-control-label {
@@ -4839,11 +4838,6 @@ input[type="file"]::file-selector-button:hover {
     padding: 4px 8px 5px;
   }
 
-  .brand-lockup {
-    width: 100%;
-    gap: 6px;
-  }
-
   .brand-mark {
     width: 28px;
     height: 28px;
@@ -5286,35 +5280,6 @@ input[type="file"]::file-selector-button:hover {
     gap: 6px;
   }
 
-  /* Expanded: a full-width vertical menu that inherits the themed topbar
-     (the topbar redefines --line/--ink per theme, so this stays on-theme). */
-  .topbar-actions--expanded {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-    margin-top: 2px;
-    padding-top: 8px;
-    border-top: 1px solid var(--line);
-  }
-
-  .topbar-actions--expanded > button {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .topbar-controls-toggle {
-    display: inline-flex;
-    order: 1;
-  }
-
-  .topbar-controls-toggle svg:last-child {
-    transition: transform 0.16s ease;
-  }
-
-  .topbar-actions--expanded .topbar-controls-toggle svg:last-child {
-    transform: rotate(180deg);
-  }
-
   /* Collapsed shows every control as an icon; expanding adds the labels. */
   .topbar-secondary-control {
     display: inline-flex;
@@ -5329,40 +5294,6 @@ input[type="file"]::file-selector-button:hover {
     gap: 0;
     overflow: hidden;
     font-size: 0;
-  }
-
-  .topbar-actions--expanded .map-panel-toggle,
-  .topbar-actions--expanded .primary-action {
-    width: auto;
-    min-width: 0;
-    max-width: none;
-    padding: 0 7px;
-    gap: 5px;
-    overflow: visible;
-    font-size: 0.66rem;
-  }
-
-  .topbar-actions--expanded .topbar-controls-toggle {
-    order: -1;
-    grid-column: 1 / -1;
-    justify-content: space-between;
-  }
-
-  .topbar-actions--expanded .icon-button.topbar-secondary-control {
-    display: inline-flex;
-    width: auto;
-    min-width: 0;
-    height: 30px;
-    padding: 0 7px;
-    gap: 5px;
-    font-size: 0.66rem;
-  }
-
-  .topbar-actions--expanded .topbar-control-label {
-    display: inline;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .topbar .map-panel-toggle svg,

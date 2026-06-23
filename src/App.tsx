@@ -3977,97 +3977,6 @@ function App() {
               onToggle={toggleMapLayer}
               onClear={clearMapLayers}
             />
-            {!isCanonicalRiverOverviewActive ? (
-              <>
-                <button
-                  className={`ghost-button map-panel-toggle ${
-                    isPanelOpen && routeDetailsTab === "levels"
-                      ? "map-panel-toggle--active"
-                      : ""
-                  }`}
-                  type="button"
-                  onClick={() => openCurrentRouteDetailsTab("levels")}
-                  title="View levels"
-                  aria-label="View levels"
-                  aria-pressed={isPanelOpen && routeDetailsTab === "levels"}
-                >
-                  <Droplets size={16} />
-                  Levels
-                </button>
-                <button
-                  className={`ghost-button map-panel-toggle ${
-                    isPanelOpen && routeDetailsTab !== "levels"
-                      ? "map-panel-toggle--active"
-                      : ""
-                  }`}
-                  type="button"
-                  onClick={toggleRouteDetailsPanel}
-                  title="Section details"
-                  aria-label="Section details"
-                  aria-pressed={isPanelOpen && routeDetailsTab !== "levels"}
-                >
-                  <MapPinned size={16} />
-                  Details
-                </button>
-                <button
-                  className={`icon-button topbar-secondary-control ${
-                    isActiveSectionFavourite ? "icon-button--active" : ""
-                  }`}
-                  type="button"
-                  title={
-                    !isSignedIn
-                      ? "Create account to save favourites"
-                      : isActiveSectionFavourite
-                      ? "Remove from favourites"
-                      : "Add to favourites"
-                  }
-                  aria-label={
-                    !isSignedIn
-                      ? "Create account to save favourites"
-                      : isActiveSectionFavourite
-                      ? "Remove from favourites"
-                      : "Add to favourites"
-                  }
-                  aria-pressed={isActiveSectionFavourite}
-                  onClick={() => toggleFavouriteSection(activeSection)}
-                >
-                  <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
-                  <span className="topbar-control-label">
-                    {isActiveSectionFavourite ? "Saved" : "Favourite"}
-                  </span>
-                </button>
-                {canAccessAdminTools ? (
-                  <button
-                    className={`ghost-button map-panel-toggle topbar-secondary-control ${
-                      routeDraftTarget.type !== "new" ? "map-panel-toggle--active" : ""
-                    }`}
-                    type="button"
-                    title="Edit this route"
-                    aria-label="Edit this route"
-                    aria-pressed={routeDraftTarget.type !== "new"}
-                    onClick={() => startRouteAdjustmentMode(activeSection)}
-                  >
-                    <Route size={16} />
-                    Edit route
-                  </button>
-                ) : null}
-                <button
-                  className={`ghost-button map-panel-toggle topbar-secondary-control ${
-                    routeCreateMode !== "idle" && routeDraftTarget.type === "new"
-                      ? "map-panel-toggle--active"
-                      : ""
-                  }`}
-                  type="button"
-                  title="Suggest a missing route"
-                  aria-label="Suggest a missing route"
-                  aria-pressed={routeCreateMode !== "idle"}
-                  onClick={() => startRouteSuggestionMode()}
-                >
-                  <Route size={16} />
-                  Suggest route
-                </button>
-              </>
-            ) : null}
             {authMessage || authState.error ? (
               <p className="topbar-message">
                 {authMessage || authState.error}
@@ -4075,6 +3984,97 @@ function App() {
             ) : null}
           </div>
         </section>
+      ) : null}
+      {activeAppSection === "map" && !isCanonicalRiverOverviewActive ? (
+        <div className="map-section-toolbar">
+          <button
+            className={`ghost-button map-panel-toggle ${
+              isPanelOpen && routeDetailsTab === "levels"
+                ? "map-panel-toggle--active"
+                : ""
+            }`}
+            type="button"
+            onClick={() => openCurrentRouteDetailsTab("levels")}
+            title="View levels"
+            aria-label="View levels"
+            aria-pressed={isPanelOpen && routeDetailsTab === "levels"}
+          >
+            <Droplets size={16} />
+            Levels
+          </button>
+          <button
+            className={`ghost-button map-panel-toggle ${
+              isPanelOpen && routeDetailsTab !== "levels"
+                ? "map-panel-toggle--active"
+                : ""
+            }`}
+            type="button"
+            onClick={toggleRouteDetailsPanel}
+            title="Section details"
+            aria-label="Section details"
+            aria-pressed={isPanelOpen && routeDetailsTab !== "levels"}
+          >
+            <MapPinned size={16} />
+            Details
+          </button>
+          <button
+            className={`icon-button topbar-secondary-control ${
+              isActiveSectionFavourite ? "icon-button--active" : ""
+            }`}
+            type="button"
+            title={
+              !isSignedIn
+                ? "Create account to save favourites"
+                : isActiveSectionFavourite
+                ? "Remove from favourites"
+                : "Add to favourites"
+            }
+            aria-label={
+              !isSignedIn
+                ? "Create account to save favourites"
+                : isActiveSectionFavourite
+                ? "Remove from favourites"
+                : "Add to favourites"
+            }
+            aria-pressed={isActiveSectionFavourite}
+            onClick={() => toggleFavouriteSection(activeSection)}
+          >
+            <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
+            <span className="topbar-control-label">
+              {isActiveSectionFavourite ? "Saved" : "Favourite"}
+            </span>
+          </button>
+          {canAccessAdminTools ? (
+            <button
+              className={`ghost-button map-panel-toggle topbar-secondary-control ${
+                routeDraftTarget.type !== "new" ? "map-panel-toggle--active" : ""
+              }`}
+              type="button"
+              title="Edit this route"
+              aria-label="Edit this route"
+              aria-pressed={routeDraftTarget.type !== "new"}
+              onClick={() => startRouteAdjustmentMode(activeSection)}
+            >
+              <Route size={16} />
+              Edit route
+            </button>
+          ) : null}
+          <button
+            className={`ghost-button map-panel-toggle topbar-secondary-control ${
+              routeCreateMode !== "idle" && routeDraftTarget.type === "new"
+                ? "map-panel-toggle--active"
+                : ""
+            }`}
+            type="button"
+            title="Suggest a missing route"
+            aria-label="Suggest a missing route"
+            aria-pressed={routeCreateMode !== "idle"}
+            onClick={() => startRouteSuggestionMode()}
+          >
+            <Route size={16} />
+            Suggest route
+          </button>
+        </div>
       ) : null}
       {activeAppSection === "map" ? (
         <div className="map-floating-actions">
