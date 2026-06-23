@@ -8,8 +8,9 @@ import {
 } from "../services/locationReferences";
 import { formatLocation } from "./format";
 
-export function markerHtml(kind: string, label: string) {
-  return `<span class="map-marker map-marker--${kind}" aria-hidden="true">${label}</span>`;
+export function markerHtml(kind: string, label: string, styleOverride = "") {
+  const style = styleOverride ? ` style="${styleOverride}"` : "";
+  return `<span class="map-marker map-marker--${kind}"${style} aria-hidden="true">${label}</span>`;
 }
 
 export function createMapPopupContent({

@@ -7,6 +7,7 @@ import { useDiscovery } from "../discovery/DiscoveryContext";
 import {
   LEVEL_BAND_LABELS,
   levelBandColor,
+  type RiverLevelState,
   type SectionLevelState,
 } from "../services/levelStateApi";
 import {
@@ -149,6 +150,7 @@ export function RiverMap({
   showRiverLayer,
   sectionLevelStates,
   levelNetwork,
+  riverLevelStates,
   showSelectedRoutePath,
   showKnownRivers,
   watercourseFocusId,
@@ -203,6 +205,7 @@ export function RiverMap({
   showRiverLayer: boolean;
   sectionLevelStates?: Map<string, SectionLevelState>;
   levelNetwork?: RiverSection[];
+  riverLevelStates?: Map<string, RiverLevelState>;
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   watercourseFocusId: string | null;
@@ -729,11 +732,22 @@ export function RiverMap({
             : river.discipline === "both"
               ? "river-both"
               : "river";
+      const riverBand = riverLevelStates?.get(river.id)?.band;
+      const levelStyle =
+        riverBand && !isSelected
+          ? `background:${levelBandColor(riverBand)};border-color:${levelBandColor(
+              riverBand,
+            )};color:#102a43;`
+          : "";
       const marker = L.marker(river.centre, {
         bubblingMouseEvents: false,
         icon: L.divIcon({
           className: "",
-          html: markerHtml(isSelected ? "river-active" : disciplineKind, label),
+          html: markerHtml(
+            isSelected ? "river-active" : disciplineKind,
+            label,
+            levelStyle,
+          ),
           iconSize: [36, 36],
           iconAnchor: [18, 18],
         }),
@@ -1445,6 +1459,7 @@ export function RiverMap({
     showRiverLayer,
     sectionLevelStates,
     levelNetwork,
+    riverLevelStates,
     showSelectedRoutePath,
     showKnownRivers,
     onOpenPhoto,
