@@ -51,6 +51,7 @@ import {
   type SectionLevelState,
 } from "./services/levelStateApi";
 import { ukKayakingSampleSections } from "./data/ukKayakingSeed";
+import { MapLevelLegend } from "./components/map/MapLevelLegend";
 import {
   fetchCanonicalRiver,
   fetchCanonicalRivers,
@@ -3958,6 +3959,7 @@ function App() {
             activeAppSection === "map" ? "app-view--with-topbar" : ""
           }`}
         >
+      {activeAppSection === "map" ? <MapLevelLegend /> : null}
       {activeAppSection === "map" ? (
         <section className="topbar" aria-label="Map controls">
           {/* River banner hidden for now: it tracked activeSection, but
