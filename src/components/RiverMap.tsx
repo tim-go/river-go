@@ -5,6 +5,7 @@ import { ObservationCard } from "./ObservationCard";
 import { RiverPhotoGallery } from "./RiverPhotoGallery";
 import { useDiscovery } from "../discovery/DiscoveryContext";
 import {
+  LEVEL_BAND_LABELS,
   levelBandColor,
   type SectionLevelState,
 } from "../services/levelStateApi";
@@ -695,12 +696,24 @@ export function RiverMap({
       if (!section.route || section.route.length < 2) {
         return;
       }
-      L.polyline(section.route, {
-        color: levelBandColor(sectionLevelStates?.get(section.id)?.band),
+      const levelState = sectionLevelStates?.get(section.id);
+      const line = L.polyline(section.route, {
+        color: levelBandColor(levelState?.band),
         weight: 5,
         opacity: 0.9,
-        interactive: false,
+        interactive: true,
       }).addTo(layers);
+      const bandLabel = levelState
+        ? LEVEL_BAND_LABELS[levelState.band]
+        : "No level data";
+      const valueText =
+        levelState?.value != null
+          ? ` · ${levelState.value}${levelState.unit ?? ""}`
+          : "";
+      line.bindTooltip(
+        `${section.riverName} — ${section.sectionName}: ${bandLabel}${valueText}`,
+        { sticky: true },
+      );
     });
 
     (showRiverLayer ? canonicalRivers : []).forEach((river) => {
