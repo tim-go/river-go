@@ -697,8 +697,8 @@ export function RiverMap({
       }
       L.polyline(section.route, {
         color: levelBandColor(sectionLevelStates?.get(section.id)?.band),
-        weight: 3,
-        opacity: 0.8,
+        weight: 5,
+        opacity: 0.9,
         interactive: false,
       }).addTo(layers);
     });
