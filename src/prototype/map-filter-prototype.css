@@ -26,6 +26,13 @@
   margin: 0 auto;
 }
 
+.map-proto__actions {
+  position: fixed;
+  right: 12px;
+  bottom: 44px;
+  z-index: 10;
+}
+
 .map-proto__note {
   position: fixed;
   left: 0;

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Eye, LocateFixed, MousePointerClick, RefreshCw } from "lucide-react";
 import {
   MapFilterControl,
   type FilterCategory,
 } from "../components/map/MapFilterControl";
+import { MapActionButton, MapActions } from "../components/map/MapActions";
 import "./map-filter-prototype.css";
 
 // Static stand-in for the eventual filter config (paddling vs amenities tiers,
@@ -81,6 +82,7 @@ export function MapFilterPrototype() {
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(["rivers", "ww", "access", "rain"]),
   );
+  const [clickMode, setClickMode] = useState<"info" | "detail">("info");
 
   function toggle(id: string) {
     setSelected((previous) => {
@@ -103,20 +105,32 @@ export function MapFilterPrototype() {
           selected={selected}
           onToggle={toggle}
           onClear={() => setSelected(new Set())}
-          actions={
-            <button
-              type="button"
-              className="map-filter-action"
-              aria-label="Sync now"
-              title="Sync now"
-            >
-              <RefreshCw size={17} />
-            </button>
-          }
         />
       </div>
+      <div className="map-proto__actions">
+        <MapActions>
+          <MapActionButton label="Locate me">
+            <LocateFixed size={19} />
+          </MapActionButton>
+          <MapActionButton label="Show me what's here">
+            <Eye size={19} />
+          </MapActionButton>
+          <MapActionButton
+            label={`Click mode: ${clickMode === "info" ? "Info" : "Detail"}`}
+            active={clickMode === "detail"}
+            onClick={() =>
+              setClickMode((mode) => (mode === "info" ? "detail" : "info"))
+            }
+          >
+            <MousePointerClick size={19} />
+          </MapActionButton>
+          <MapActionButton label="Sync now" badge>
+            <RefreshCw size={18} />
+          </MapActionButton>
+        </MapActions>
+      </div>
       <p className="map-proto__note">
-        Prototype — filter pills + expander · static data, no map wiring
+        Prototype — filters (top) · floating actions (bottom-right) · static data
       </p>
     </div>
   );

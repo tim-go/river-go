@@ -100,21 +100,31 @@ Today's controls and where they go:
 | --- | --- | --- |
 | Rivers, Waterways, Routes | layer toggles | **Filter control** (Layers / display toggles) |
 | Levels, Details | open the section panel | **Focus mode** (on tapping a river/section) |
-| Click: Info/Detail | marker-click behaviour | **Setting** (More/settings) |
-| Sync | push queued edits | **Action cluster** (below) |
+| Click: Info/Detail | marker-click behaviour | **Floating action** (toggle) |
+| Sync | push queued edits | **Floating action** (contextual) |
 | Controls ▸ | mobile expand | **Gone** — the filter bar has its own pills/expander |
 
 Levels/Details/Routes only appear today *because a section is selected*, so they're
 already focus-mode controls — in the map-scoped model they live in the river/section
 panel you get on tap, not the always-on bar.
 
-**Actions stay on the map, but outside "Filters".** Frequently-used *actions* (Sync,
-locate-me, future ones) don't belong in the Filters semantic — putting them there
-muddies "what's shown". They sit as a **distinct, adjacent action cluster** in the same
-top strip, behind a divider and icon-only: `[ pills ] [ Filters ▾ ] │ [ ⟳ ] [ ⌖ ]`.
-Architecturally the cluster is a **sibling slot** the map view passes into the filter
-control (`actions` prop), so the control stays purely about filters. If the action set
-grows it can collapse to a "⋯" menu.
+**Actions float on the map, outside "Filters".** Frequently-used *actions* (locate-me,
+"show me", info-click mode, sync…) are "do something", not "what's shown" — so they live
+in a **floating cluster** of round buttons (bottom-right), spatially separate from the
+filter bar. Costs no top-strip space and matches where map apps put action buttons.
+
+```
+[ pills ]            [ Filters ▾ ]      ← top: what's shown
+                                  [⌖]
+              MAP                 [👁]   ← floating: do something
+                                  [⟳]   (⟳ only when pending)
+```
+
+Notes: **info-click moves here** (a toggle), not into settings — it's flipped often
+enough to deserve reach. **Sync is contextual** — it surfaces only when there are
+pending edits (an attention dot), so it isn't a permanent fixture. Component:
+`MapActions` / `MapActionButton`, a sibling of the filter control. The cluster can grow
+vertically or collapse to a "⋯" if it gets long.
 
 ## Architecture notes (for later, not committing yet)
 - **Bounds API** — "POIs / stations / routes in viewport" spatial query, debounced on
