@@ -5,6 +5,10 @@ import { ObservationCard } from "./ObservationCard";
 import { RiverPhotoGallery } from "./RiverPhotoGallery";
 import { useDiscovery } from "../discovery/DiscoveryContext";
 import {
+  levelBandColor,
+  type SectionLevelState,
+} from "../services/levelStateApi";
+import {
   AlertTriangle,
   MapPin,
   Maximize2,
@@ -142,6 +146,7 @@ export function RiverMap({
   markerClickMode,
   showRoutesLayer,
   showRiverLayer,
+  sectionLevelStates,
   showSelectedRoutePath,
   showKnownRivers,
   watercourseFocusId,
@@ -194,6 +199,7 @@ export function RiverMap({
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
   showRiverLayer: boolean;
+  sectionLevelStates?: Map<string, SectionLevelState>;
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   watercourseFocusId: string | null;
@@ -846,20 +852,18 @@ export function RiverMap({
     renderedSections.forEach((section) => {
       const isActive = section.id === activeSection.id;
       const isCandidate = isCandidateSection(section);
-      const color =
-        isCandidate
-          ? "#7c3aed"
-          : section.levelBand === "good"
-          ? "#1f8a70"
-          : section.levelBand === "high"
-            ? "#b54708"
-            : section.levelBand === "too-low"
-              ? "#7c5c1d"
-              : "#52606d";
+      const levelBand = sectionLevelStates?.get(section.id)?.band;
+      const color = isCandidate ? "#7c3aed" : levelBandColor(levelBand);
       const defaultRouteStyle: L.PolylineOptions = {
         color,
-        weight: isActive ? 4 : 3,
-        opacity: isActive ? 0.5 : 0.26,
+        weight: isActive ? (isCandidate ? 4 : 5) : isCandidate ? 3 : 4,
+        opacity: isCandidate
+          ? isActive
+            ? 0.5
+            : 0.26
+          : isActive
+            ? 0.95
+            : 0.7,
         dashArray: isCandidate ? "8 6" : undefined,
       };
       const highlightedRouteStyle: L.PolylineOptions = {
@@ -1409,6 +1413,7 @@ export function RiverMap({
     sections,
     showRoutesLayer,
     showRiverLayer,
+    sectionLevelStates,
     showSelectedRoutePath,
     showKnownRivers,
     onOpenPhoto,

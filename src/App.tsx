@@ -47,6 +47,10 @@ import {
   type AnalyticsConsent,
 } from "./services/analytics";
 import {
+  fetchSectionLevelStates,
+  type SectionLevelState,
+} from "./services/levelStateApi";
+import {
   fetchCanonicalRiver,
   fetchCanonicalRivers,
   fetchSourceCandidatePois,
@@ -330,6 +334,26 @@ function App() {
   const [canonicalRivers, setCanonicalRivers] = useState<CanonicalRiverSummary[]>(
     [],
   );
+  const [sectionLevelStates, setSectionLevelStates] = useState<
+    Map<string, SectionLevelState>
+  >(() => new Map());
+  useEffect(() => {
+    let cancelled = false;
+    fetchSectionLevelStates()
+      .then((states) => {
+        if (!cancelled) {
+          setSectionLevelStates(
+            new Map(states.map((state) => [state.sectionId, state])),
+          );
+        }
+      })
+      .catch(() => {
+        // No level states available → section lines render neutral/grey.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [selectedCanonicalRiverId, setSelectedCanonicalRiverId] =
     useState<string | null>(null);
   const { selectRiver: selectDiscoveryRiver } = useDiscovery();
@@ -4242,6 +4266,7 @@ function App() {
           markerClickMode={markerClickMode}
           showRoutesLayer={showRoutesLayer}
           showRiverLayer={showRiverLayer}
+          sectionLevelStates={sectionLevelStates}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
           watercourseFocusId={watercourseFocusId}
