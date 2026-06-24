@@ -58,6 +58,29 @@ export async function fetchRiverLevelStates(): Promise<RiverLevelState[]> {
   return result.riverLevelStates ?? [];
 }
 
+export interface RiverLevelLine {
+  riverId: string;
+  band: SectionLevelBand;
+  value: number | null;
+  unit: string | null;
+  lines: [number, number][][];
+}
+
+export async function fetchRiverLevelLines(): Promise<RiverLevelLine[]> {
+  const response = await fetch(`${getApiBaseUrl()}/api/rivers/level-lines`, {
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    throw new Error(`River level-lines API failed with HTTP ${response.status}`);
+  }
+
+  const result = (await response.json()) as {
+    riverLevelLines?: RiverLevelLine[];
+  };
+  return result.riverLevelLines ?? [];
+}
+
 // Honest blue-intensity palette — "how much water" relative to the gauge's own
 // history: light (low) → deep navy (very-high). No green=go / red=stop verdict.
 // Unknown (no live primary gauge or too little history) renders neutral grey.

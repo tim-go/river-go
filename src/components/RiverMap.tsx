@@ -7,6 +7,7 @@ import { useDiscovery } from "../discovery/DiscoveryContext";
 import {
   LEVEL_BAND_LABELS,
   levelBandColor,
+  type RiverLevelLine,
   type RiverLevelState,
   type SectionLevelState,
 } from "../services/levelStateApi";
@@ -149,7 +150,7 @@ export function RiverMap({
   showRoutesLayer,
   showRiverLayer,
   sectionLevelStates,
-  levelNetwork,
+  riverLevelLines,
   riverLevelStates,
   globalPois,
   showSelectedRoutePath,
@@ -205,7 +206,7 @@ export function RiverMap({
   showRoutesLayer: boolean;
   showRiverLayer: boolean;
   sectionLevelStates?: Map<string, SectionLevelState>;
-  levelNetwork?: RiverSection[];
+  riverLevelLines?: RiverLevelLine[];
   riverLevelStates?: Map<string, RiverLevelState>;
   globalPois?: MapPoi[];
   showSelectedRoutePath: boolean;
@@ -702,32 +703,35 @@ export function RiverMap({
 
     layers.clearLayers();
 
-    // Always-on level network: sections with line geometry, coloured by their
-    // gauge's level state (grey where unknown) — the map-scoped headline, shown
-    // regardless of selecting a single river.
-    (levelNetwork ?? []).forEach((section) => {
-      if (!section.route || section.route.length < 2) {
-        return;
-      }
-      const levelState = sectionLevelStates?.get(section.id);
-      const line = L.polyline(section.route, {
-        color: levelBandColor(levelState?.band),
-        weight: 5,
-        opacity: 0.9,
-        interactive: true,
-      }).addTo(layers);
-      const bandLabel = levelState
-        ? LEVEL_BAND_LABELS[levelState.band]
-        : "No level data";
-      const valueText =
-        levelState?.value != null
-          ? ` · ${levelState.value}${levelState.unit ?? ""}`
-          : "";
-      line.bindTooltip(
-        `${section.riverName} — ${section.sectionName}: ${bandLabel}${valueText}`,
-        { sticky: true },
-      );
-    });
+    // River network coloured by live level (real OSM geometry) — part of the
+    // "Rivers" layer alongside the markers; grey where there's no gauge. Filtered
+    // to the displayed rivers so the discipline filter applies here too.
+    const displayedRiverIds = new Set(canonicalRivers.map((river) => river.id));
+    const riverNameById = new Map(
+      canonicalRivers.map((river) => [river.id, river.displayName]),
+    );
+    (showRiverLayer ? (riverLevelLines ?? []) : [])
+      .filter((river) => displayedRiverIds.has(river.riverId))
+      .forEach((river) => {
+        const bandLabel = LEVEL_BAND_LABELS[river.band];
+        const valueText =
+          river.value != null ? ` · ${river.value}${river.unit ?? ""}` : "";
+        const riverName = riverNameById.get(river.riverId) ?? river.riverId;
+        river.lines.forEach((segment) => {
+          if (segment.length < 2) {
+            return;
+          }
+          const line = L.polyline(segment, {
+            color: levelBandColor(river.band),
+            weight: 5,
+            opacity: 0.9,
+            interactive: true,
+          }).addTo(layers);
+          line.bindTooltip(`${riverName} — ${bandLabel}${valueText}`, {
+            sticky: true,
+          });
+        });
+      });
 
     // Global POI layer — zoom-gated (>= POI_MIN_ZOOM) so the national view isn't
     // flooded by 600+ pins. The user zooms in to reveal them.
@@ -1489,7 +1493,7 @@ export function RiverMap({
     showRoutesLayer,
     showRiverLayer,
     sectionLevelStates,
-    levelNetwork,
+    riverLevelLines,
     riverLevelStates,
     globalPois,
     poiZoomVisible,

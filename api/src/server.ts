@@ -135,6 +135,7 @@ import {
   runObservationIngestionJob,
 } from "./observations.js";
 import {
+  listRiverLevelLines,
   listWatercourseImportStatus,
   listWatercoursesForViewport,
   searchWatercoursesByName,
@@ -694,6 +695,11 @@ async function route(
   if (method === "GET" && url.pathname === "/api/rivers/level-states") {
     const riverLevelStates = await listRiverLevelStates();
     return { status: 200, body: { riverLevelStates } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/rivers/level-lines") {
+    const riverLevelLines = await listRiverLevelLines();
+    return { status: 200, body: { riverLevelLines } };
   }
 
   if (method === "GET" && url.pathname === "/api/map-pois") {

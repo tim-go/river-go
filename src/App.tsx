@@ -46,12 +46,13 @@ import {
   type AnalyticsConsent,
 } from "./services/analytics";
 import {
+  fetchRiverLevelLines,
   fetchRiverLevelStates,
   fetchSectionLevelStates,
+  type RiverLevelLine,
   type RiverLevelState,
   type SectionLevelState,
 } from "./services/levelStateApi";
-import { ukKayakingSampleSections } from "./data/ukKayakingSeed";
 import { MapLevelLegend } from "./components/map/MapLevelLegend";
 import {
   MapFilterControl,
@@ -377,6 +378,20 @@ function App() {
       })
       .catch(() => {
         // No river level states → river markers keep their discipline colour.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const [riverLevelLines, setRiverLevelLines] = useState<RiverLevelLine[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchRiverLevelLines()
+      .then((lines) => {
+        if (!cancelled) setRiverLevelLines(lines);
+      })
+      .catch(() => {
+        // No river lines available → the level network simply isn't drawn.
       });
     return () => {
       cancelled = true;
@@ -4287,7 +4302,7 @@ function App() {
           sectionLevelStates={sectionLevelStates}
           riverLevelStates={riverLevelStates}
           globalPois={globalPois}
-          levelNetwork={ukKayakingSampleSections}
+          riverLevelLines={riverLevelLines}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
           watercourseFocusId={watercourseFocusId}
