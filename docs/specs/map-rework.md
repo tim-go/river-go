@@ -142,26 +142,44 @@ Time scrubber (levels + rain), **"runnable near me, now"** synthesis, near-me / 
 Don't decide scope yet — but keep the bounds API, LOD and time axis ready so it isn't a
 rewrite later.
 
-## Phasing — now / next / later
-**Now (foundation):**
-- River geometry rendering + gauge↔section mapping → **level-coloured river lines** (state,
-  grey where no data).
-- Bounds-based POI loading + LOD tiers + clustering.
-- The **filter surface** (responsive controls) with core paddling toggles + discipline.
-- **Rain radar (Met Office)**.
+## Status & backlog (living)
 
-**Next:**
-- Measuring-station filters (state / agency / type, paddler-vs-all); rainfall + radar pairing.
-- Photos-on-map (thumbnails); public routes layer.
-- Amenities (OSM) tier.
-- More weather (wind); tides for sea/SUP.
-- Presets, legend, search / near-me.
+**Done**
+- Filter control (pills + expander, category colours, filter-vs-toggle, "+N" overflow, 2-row wrap).
+- Top-bar migration → filter control + floating actions + section toolbar; dead CSS/code tidied.
+- Honest level state (percentile-vs-own-history) backend for **sections and rivers**.
+- Level colouring: section lines (seed geometry) + **river markers (51/62)**; vibrant
+  blue→teal→yellow→orange palette; legend (toggle) + line tooltips.
+- POI filter layer (Access/Hazards/Features, zoom-gated LOD).
 
-**Later:**
-- Trip planning (scrubber, "runnable near me").
-- Community live reports → reference data → **runnable overlay**.
-- Simplified "hydro" basemap style.
-- Vector-tile pipeline at scale.
+**Layers still to add**
+- **Rain radar** (Met Office / RainViewer) — *next*.
+- More weather: wind, cloud, temp; **tides** (sea/SUP); discipline-aware surfacing.
+- **Measuring stations**: paddler-gauges vs all-stations; filter by state / agency (EA/NRW/SEPA)
+  / type (level/flow/rainfall); rainfall-as-leading-indicator.
+- **Amenities** (OSM, "near rivers"): pubs, car parks, toilets, shops.
+- **Photos** layer (thumbnails on map); **public routes** layer (snapped polylines).
+- **Discipline filter** (whitewater/touring/sea/SUP + grade) — wire into the live filter.
+
+**River geometry (the coloured-lines finale)**
+- Match canonical rivers ↔ OSM waterway geometry (name + bbox) → real river lines for all 61.
+- Resolve the section-geometry ↔ gauge-section ID mismatch; replace the seed network.
+
+**Presentation & scale**
+- Clustering / LOD (supercluster) for POIs + stations; trend arrows on levels; simplified
+  "hydro" basemap; vector tiles at national scale; generalised bounds-based loading.
+
+**UX / interactivity**
+- Saved filter presets; search + "near me"; tap river/line → select/focus; section tools fully
+  into the river panel; mobile polish; wire empty-state semantics (toggles=none, filters=all).
+
+**Honest-data future**
+- Community live reports (data-gathering engine) → reference ranges → a separate **runnable**
+  overlay; time/forecast scrubber; trip planning ("runnable near me, now").
+
+**Debt / polish**
+- POI clustering; seed access POIs; section-toolbar `top:56px` edge case (2-row pill wrap);
+  pin letter contrast on the "low" band; deploy to staging (route_overrides → full network).
 
 ## Open decisions
 - **Controls pattern** (bottom sheet vs top-bar+drawer vs floating) — *next up*.
