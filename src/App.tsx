@@ -409,11 +409,24 @@ function App() {
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
   const [showRiverLayer, setShowRiverLayer] = useState(true);
   const [isLevelLegendOpen, setIsLevelLegendOpen] = useState(false);
+  const [riverDisciplineFilter, setRiverDisciplineFilter] = useState<
+    "all" | "whitewater" | "touring"
+  >("all");
   const [activePoiKinds, setActivePoiKinds] = useState<Set<string>>(
     () => new Set(),
   );
   const mapLayerCategories = useMemo<FilterCategory[]>(
     () => [
+      {
+        id: "discipline",
+        label: "Discipline",
+        color: "#6ed7a6",
+        kind: "filter",
+        options: [
+          { id: "discipline:whitewater", label: "Whitewater" },
+          { id: "discipline:touring", label: "Touring" },
+        ],
+      },
       {
         id: "layers",
         label: "Layers",
@@ -439,14 +452,31 @@ function App() {
   );
   const selectedMapLayers = useMemo(() => {
     const set = new Set<string>();
+    if (riverDisciplineFilter !== "all") {
+      set.add(`discipline:${riverDisciplineFilter}`);
+    }
     if (showRiverLayer) set.add("rivers");
     if (showKnownRivers) set.add("waterways");
     if (showRoutesLayer) set.add("routes");
     for (const kind of activePoiKinds) set.add(`poi:${kind}`);
     return set;
-  }, [showRiverLayer, showKnownRivers, showRoutesLayer, activePoiKinds]);
+  }, [
+    riverDisciplineFilter,
+    showRiverLayer,
+    showKnownRivers,
+    showRoutesLayer,
+    activePoiKinds,
+  ]);
   const toggleMapLayer = (id: string) => {
-    if (id === "rivers") setShowRiverLayer((value) => !value);
+    if (id === "discipline:whitewater") {
+      setRiverDisciplineFilter((current) =>
+        current === "whitewater" ? "all" : "whitewater",
+      );
+    } else if (id === "discipline:touring") {
+      setRiverDisciplineFilter((current) =>
+        current === "touring" ? "all" : "touring",
+      );
+    } else if (id === "rivers") setShowRiverLayer((value) => !value);
     else if (id === "waterways") setShowKnownRivers((value) => !value);
     else if (id === "routes") setShowRoutesLayer((value) => !value);
     else if (id.startsWith("poi:")) {
@@ -463,6 +493,7 @@ function App() {
     }
   };
   const clearMapLayers = () => {
+    setRiverDisciplineFilter("all");
     setShowRiverLayer(false);
     setShowKnownRivers(false);
     setShowRoutesLayer(false);
@@ -486,9 +517,17 @@ function App() {
     () => allMapPois.filter((poi) => activePoiKinds.has(poi.kind)),
     [allMapPois, activePoiKinds],
   );
-  const [riverDisciplineFilter, setRiverDisciplineFilter] = useState<
-    "all" | "whitewater" | "touring"
-  >("all");
+  const mapDisplayRivers = useMemo(
+    () =>
+      riverDisciplineFilter === "all"
+        ? canonicalRivers
+        : canonicalRivers.filter(
+            (river) =>
+              river.discipline === "both" ||
+              river.discipline === riverDisciplineFilter,
+          ),
+    [canonicalRivers, riverDisciplineFilter],
+  );
   const [riverNationFilter, setRiverNationFilter] = useState("all");
   const riverNations = useMemo(() => {
     const nations = new Set<string>();
@@ -4211,7 +4250,7 @@ function App() {
         <RiverMap
           sections={appRiverSections}
           activeSection={activeSection}
-          canonicalRivers={canonicalRivers}
+          canonicalRivers={mapDisplayRivers}
           selectedCanonicalRiver={selectedCanonicalRiver}
           isSelectedRiverPanelOpen={isSelectedRiverPanelOpen}
           isSelectedRiverPanelExpanded={isSelectedRiverPanelExpanded}
