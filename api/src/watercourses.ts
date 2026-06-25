@@ -324,22 +324,15 @@ export async function listRiverLevelLines(): Promise<RiverLevelLine[]> {
       | { type: "LineString" | "MultiLineString"; coordinates: unknown }
       | null;
   }>(
-    `WITH river_geom AS (
-       SELECT cr.id AS river_id,
-         ST_CollectionExtract(ST_Collect(w.geometry), 2) AS geom
-       FROM canonical_rivers cr
-       JOIN watercourses w
-         ON w.geometry && cr.bbox
-         AND ST_Intersects(w.geometry, cr.bbox)
-         AND lower(w.name) = lower(split_part(cr.display_name, ' / ', 1))
-       WHERE cr.bbox IS NOT NULL
-       GROUP BY cr.id
-     )
-     SELECT river_id,
-       ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom, 0.0006))::json
+    // Read the precomputed per-river geometry (populated by build:river-geometry
+    // from the watercourse match) and simplify it cheaply on read — no 850k-way
+    // join per request. 0.0001 deg (~11m) hugs the river far closer than the old
+    // live 0.0006 (~67m).
+    `SELECT id AS river_id,
+       ST_AsGeoJSON(ST_SimplifyPreserveTopology(matched_geometry, 0.0001))::json
          AS geometry_geojson
-     FROM river_geom
-     WHERE geom IS NOT NULL AND NOT ST_IsEmpty(geom)`,
+     FROM canonical_rivers
+     WHERE matched_geometry IS NOT NULL AND NOT ST_IsEmpty(matched_geometry)`,
   );
 
   const states = await listRiverLevelStates();

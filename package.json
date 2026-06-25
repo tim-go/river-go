@@ -30,6 +30,7 @@
     "osm:download-extract": "scripts/download-osm-extract.sh",
     "osm:prepare-waterways": "scripts/prepare-osm-waterways.sh",
     "osm:prepare-amenities": "scripts/prepare-osm-amenities.sh",
+    "build:river-geometry": "node api/scripts/build-river-geometry.mjs",
     "platform:import:osm-waterways:staging": "npm --prefix platform run import:osm-waterways:staging --",
     "platform:import:osm-waterways:prod": "npm --prefix platform run import:osm-waterways:prod --",
     "platform:import:osm-amenities:staging": "npm --prefix platform run import:osm-amenities:staging --",
