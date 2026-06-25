@@ -120,6 +120,7 @@ import {
   listModerationRouteAdjustments,
 } from "./route-adjustments.js";
 import { listRouteOverrides } from "./route-overrides.js";
+import { listAmenities } from "./amenities.js";
 import { pushSyncOperations } from "./sync.js";
 import {
   lookupCoordinatesForWhat3Words,
@@ -716,6 +717,11 @@ async function route(
   if (method === "GET" && url.pathname === "/api/map-pois") {
     const pois = await listAllMapPois();
     return { status: 200, body: { pois } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/amenities") {
+    const amenities = await listAmenities();
+    return { status: 200, body: { amenities } };
   }
 
   const riverDetailMatch = url.pathname.match(/^\/api\/rivers\/([^/]+)$/);

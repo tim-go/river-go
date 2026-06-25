@@ -12,6 +12,7 @@ import {
   type SectionLevelState,
   type Station,
 } from "../services/levelStateApi";
+import type { Amenity } from "../services/amenityApi";
 import {
   AlertTriangle,
   MapPin,
@@ -158,6 +159,7 @@ export function RiverMap({
   rainTs,
   globalPois,
   stations,
+  amenities,
   showSelectedRoutePath,
   showKnownRivers,
   watercourseFocusId,
@@ -217,6 +219,7 @@ export function RiverMap({
   rainTs?: number;
   globalPois?: MapPoi[];
   stations?: Station[];
+  amenities?: Amenity[];
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   watercourseFocusId: string | null;
@@ -822,6 +825,46 @@ export function RiverMap({
         { sticky: true },
       );
     });
+
+    // Riverside amenities (OSM) — same zoom gate as the POIs.
+    if (poiZoomVisible) {
+      const amenityLetter: Record<string, string> = {
+        pub: "P",
+        car_park: "C",
+        toilets: "T",
+        cafe: "F",
+        drinking_water: "W",
+        shop: "S",
+      };
+      const amenityName: Record<string, string> = {
+        pub: "Pub",
+        car_park: "Car park",
+        toilets: "Toilets",
+        cafe: "Café",
+        drinking_water: "Drinking water",
+        shop: "Shop",
+      };
+      (amenities ?? []).forEach((amenity) => {
+        const amenityMarker = L.marker([amenity.lat, amenity.lng], {
+          bubblingMouseEvents: false,
+          icon: L.divIcon({
+            className: "",
+            html: markerHtml(
+              "amenity",
+              amenityLetter[amenity.category] ?? "•",
+              "background:#e8b079;border-color:#e8b079;color:#3a2613;",
+            ),
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+          }),
+        });
+        amenityMarker.addTo(layers);
+        const label = amenityName[amenity.category] ?? amenity.category;
+        amenityMarker.bindTooltip(`${amenity.name ?? label} · ${label}`, {
+          sticky: true,
+        });
+      });
+    }
 
     (showRiverLayer ? canonicalRivers : []).forEach((river) => {
       const isSelected = selectedCanonicalRiver?.id === river.id;
@@ -1566,6 +1609,7 @@ export function RiverMap({
     riverLevelStates,
     globalPois,
     stations,
+    amenities,
     poiZoomVisible,
     showSelectedRoutePath,
     showKnownRivers,

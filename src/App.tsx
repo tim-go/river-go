@@ -152,6 +152,7 @@ import {
   type MapPoiCorrectionReview,
   type MapPoiReviewDecision,
 } from "./services/mapPoiApi";
+import { fetchAmenities, type Amenity } from "./services/amenityApi";
 import {
   fetchCoordinatesForWhat3Words,
   fetchWhat3WordsAddress,
@@ -438,6 +439,9 @@ function App() {
   const [activePoiKinds, setActivePoiKinds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [activeAmenityKinds, setActiveAmenityKinds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [showRain, setShowRain] = useState(false);
   const [rainFrames, setRainFrames] = useState<RainFrameInfo[]>([]);
   const [selectedRainTs, setSelectedRainTs] = useState(0);
@@ -508,6 +512,18 @@ function App() {
           { id: "stations:all", label: "All stations" },
         ],
       },
+      {
+        id: "amenities",
+        label: "Amenities",
+        color: "#e8b079",
+        options: [
+          { id: "amenity:pub", label: "Pubs" },
+          { id: "amenity:car_park", label: "Car parks" },
+          { id: "amenity:toilets", label: "Toilets" },
+          { id: "amenity:cafe", label: "Cafés" },
+          { id: "amenity:shop", label: "Shops" },
+        ],
+      },
     ],
     [],
   );
@@ -520,6 +536,7 @@ function App() {
     if (showKnownRivers) set.add("waterways");
     if (showRoutesLayer) set.add("routes");
     for (const kind of activePoiKinds) set.add(`poi:${kind}`);
+    for (const kind of activeAmenityKinds) set.add(`amenity:${kind}`);
     if (showRain) set.add("weather:rain");
     if (showPaddlerGauges) set.add("stations:paddler");
     if (showAllStations) set.add("stations:all");
@@ -530,6 +547,7 @@ function App() {
     showKnownRivers,
     showRoutesLayer,
     activePoiKinds,
+    activeAmenityKinds,
     showRain,
     showPaddlerGauges,
     showAllStations,
@@ -561,6 +579,17 @@ function App() {
         }
         return next;
       });
+    } else if (id.startsWith("amenity:")) {
+      const kind = id.slice(8);
+      setActiveAmenityKinds((previous) => {
+        const next = new Set(previous);
+        if (next.has(kind)) {
+          next.delete(kind);
+        } else {
+          next.add(kind);
+        }
+        return next;
+      });
     }
   };
   const clearMapLayers = () => {
@@ -569,6 +598,7 @@ function App() {
     setShowKnownRivers(false);
     setShowRoutesLayer(false);
     setActivePoiKinds(new Set());
+    setActiveAmenityKinds(new Set());
     setShowRain(false);
     setShowPaddlerGauges(false);
     setShowAllStations(false);
@@ -590,6 +620,27 @@ function App() {
   const globalPois = useMemo(
     () => allMapPois.filter((poi) => activePoiKinds.has(poi.kind)),
     [allMapPois, activePoiKinds],
+  );
+  const [allAmenities, setAllAmenities] = useState<Amenity[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchAmenities()
+      .then((result) => {
+        if (!cancelled) setAllAmenities(result);
+      })
+      .catch(() => {
+        // No amenities available → the amenity filters render nothing.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const displayedAmenities = useMemo(
+    () =>
+      allAmenities.filter((amenity) =>
+        activeAmenityKinds.has(amenity.category),
+      ),
+    [allAmenities, activeAmenityKinds],
   );
   useEffect(() => {
     let cancelled = false;
@@ -4386,6 +4437,7 @@ function App() {
           sectionLevelStates={sectionLevelStates}
           riverLevelStates={riverLevelStates}
           globalPois={globalPois}
+          amenities={displayedAmenities}
           riverLevelLines={riverLevelLines}
           showRain={showRain}
           stations={displayedStations}
