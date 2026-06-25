@@ -212,15 +212,15 @@ export function MapFilterControl({
           onClick={() => setExpanded((current) => !current)}
           aria-expanded={expanded}
         >
-          <span>Filters</span>
+          <span>Layers</span>
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
       </div>
 
       {expanded ? (
-        <div className="map-filter__panel" role="group" aria-label="Map filters">
+        <div className="map-filter__panel" role="group" aria-label="Map layers">
           <div className="map-filter__panel-head">
-            <strong>Filters</strong>
+            <strong>Layers</strong>
             {activeIds.length > 0 ? (
               <button type="button" className="map-filter__clear" onClick={onClear}>
                 Clear all
