@@ -479,6 +479,8 @@ async function upsertBatch(records: OsmWaterwayRecord[]) {
 
 function readOptions(args: string[]): ImportOptions {
   const valueFor = (name: string) => {
+    const inline = args.find((arg) => arg.startsWith(`${name}=`));
+    if (inline !== undefined) return inline.slice(name.length + 1);
     const index = args.indexOf(name);
     return index >= 0 ? args[index + 1] : undefined;
   };
