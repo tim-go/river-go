@@ -1,9 +1,14 @@
 // Build/refresh canonical_rivers.matched_geometry: the OSM watercourse ways whose
-// name matches each canonical river, within its bbox, collected at FULL precision.
-// OSM names a river inconsistently along its length (some Dart segments are
-// "River Dart", others just "Dart") AND sometimes double-maps a stretch in parallel.
-// So: take the full-name ways, then add only the stripped-name ("River/Afon/..."
-// removed) ways that are NOT a parallel duplicate (within 30m) of a full-name way.
+// name matches each canonical river, within its bbox, spatially deduped and collected.
+//
+// OSM names a river inconsistently ("River Dart" vs "Dart") AND routinely maps the
+// SAME channel twice in parallel — typically once as waterway=river and once as
+// waterway=watercourse, offset 60-100m. So we dedupe: order a river's matched ways
+// by type (proper river/canal first) then longest-first, and keep a way only if it
+// adds real new coverage (>50% of it lies beyond 110m of the ways already kept).
+// Parallel duplicates run within 110m of a kept way → dropped; genuine gap-filling
+// stretches reach beyond it → kept.
+//
 // Run AFTER the watercourse import (part of the repeatable OSM pipeline):
 //   node api/scripts/build-river-geometry.mjs   (DATABASE_URL overrides the local default)
 import pg from "pg";
@@ -16,50 +21,48 @@ const pool = new Pool({
 });
 
 const result = await pool.query(`
-  WITH full_match AS (
-    SELECT cr.id AS river_id, ST_Collect(w.geometry) AS geom
+  WITH ways AS (
+    SELECT cr.id AS river_id,
+      row_number() OVER (
+        PARTITION BY cr.id
+        ORDER BY
+          CASE w.watercourse_type WHEN 'river' THEN 0 WHEN 'canal' THEN 1 ELSE 2 END,
+          ST_Length(w.geometry::geography) DESC
+      ) AS rn,
+      w.geometry AS g
     FROM canonical_rivers cr
     JOIN watercourses w
       ON w.geometry && cr.bbox
       AND ST_Intersects(w.geometry, cr.bbox)
-      AND lower(w.name) = lower(split_part(cr.display_name, ' / ', 1))
+      AND lower(w.name) IN (
+        lower(split_part(cr.display_name, ' / ', 1)),
+        lower(regexp_replace(split_part(cr.display_name, ' / ', 1), '^(River|Afon|Water of|Allt) ', ''))
+      )
     WHERE cr.bbox IS NOT NULL
-    GROUP BY cr.id
   ),
-  stripped_match AS (
-    SELECT cr.id AS river_id, ST_Collect(w.geometry) AS geom
-    FROM canonical_rivers cr
-    JOIN watercourses w
-      ON w.geometry && cr.bbox
-      AND ST_Intersects(w.geometry, cr.bbox)
-      AND lower(w.name) = lower(regexp_replace(split_part(cr.display_name, ' / ', 1), '^(River|Afon|Water of|Allt) ', ''))
-      AND lower(w.name) <> lower(split_part(cr.display_name, ' / ', 1))
-    WHERE cr.bbox IS NOT NULL
-    GROUP BY cr.id
+  kept AS (
+    SELECT w.river_id, w.g
+    FROM ways w
+    WHERE w.rn = 1
+      OR ST_Length(
+           ST_Difference(
+             w.g,
+             ST_Buffer(
+               (SELECT ST_Collect(o.g) FROM ways o
+                WHERE o.river_id = w.river_id AND o.rn < w.rn)::geography,
+               110
+             )::geometry
+           )::geography
+         ) > 0.50 * ST_Length(w.g::geography)
   ),
-  combined AS (
-    SELECT
-      COALESCE(f.river_id, s.river_id) AS river_id,
-      CASE
-        WHEN f.geom IS NULL THEN s.geom
-        WHEN s.geom IS NULL THEN f.geom
-        -- keep all full-name geometry; add stripped-name parts only where they are
-        -- NOT a parallel duplicate (within 30m) of a full-name way
-        ELSE ST_Collect(
-          f.geom,
-          ST_Difference(s.geom, ST_Buffer(f.geom::geography, 30)::geometry)
-        )
-      END AS geom
-    FROM full_match f
-    FULL OUTER JOIN stripped_match s ON f.river_id = s.river_id
+  agg AS (
+    SELECT river_id, ST_Multi(ST_CollectionExtract(ST_Collect(g), 2)) AS geom
+    FROM kept GROUP BY river_id
   )
   UPDATE canonical_rivers cr
-  SET matched_geometry = ST_Multi(ST_CollectionExtract(c.geom, 2)),
-      updated_at = now()
-  FROM combined c
-  WHERE cr.id = c.river_id
-    AND c.geom IS NOT NULL
-    AND NOT ST_IsEmpty(c.geom)
+  SET matched_geometry = agg.geom, updated_at = now()
+  FROM agg
+  WHERE cr.id = agg.river_id AND agg.geom IS NOT NULL AND NOT ST_IsEmpty(agg.geom)
 `);
 
 console.log(`rivers with matched geometry populated: ${result.rowCount}`);
