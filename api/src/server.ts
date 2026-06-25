@@ -131,6 +131,7 @@ import {
   listObservationsForSection,
   listRiverLevelStates,
   listSectionLevelStates,
+  listStations,
   runObservationBackfillJob,
   runObservationIngestionJob,
 } from "./observations.js";
@@ -700,6 +701,11 @@ async function route(
   if (method === "GET" && url.pathname === "/api/rivers/level-states") {
     const riverLevelStates = await listRiverLevelStates();
     return { status: 200, body: { riverLevelStates } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/stations") {
+    const stations = await listStations();
+    return { status: 200, body: { stations } };
   }
 
   if (method === "GET" && url.pathname === "/api/rivers/level-lines") {

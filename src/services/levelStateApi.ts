@@ -106,3 +106,32 @@ export const LEVEL_BAND_LABELS: Record<SectionLevelBand, string> = {
   "very-high": "Very high",
   unknown: "No data",
 };
+
+export interface Station {
+  stationId: string;
+  name: string;
+  provider: string;
+  parameter: string;
+  lat: number;
+  lng: number;
+  value: number | null;
+  unit: string | null;
+  observedAt: string | null;
+  band: SectionLevelBand;
+  percentile: number | null;
+  sampleSize: number;
+  paddlerGauge: boolean;
+}
+
+export async function fetchStations(): Promise<Station[]> {
+  const response = await fetch(`${getApiBaseUrl()}/api/stations`, {
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Stations API failed with HTTP ${response.status}`);
+  }
+
+  const result = (await response.json()) as { stations?: Station[] };
+  return result.stations ?? [];
+}

@@ -10,6 +10,7 @@ import {
   type RiverLevelLine,
   type RiverLevelState,
   type SectionLevelState,
+  type Station,
 } from "../services/levelStateApi";
 import {
   AlertTriangle,
@@ -156,6 +157,7 @@ export function RiverMap({
   showRain,
   rainTs,
   globalPois,
+  stations,
   showSelectedRoutePath,
   showKnownRivers,
   watercourseFocusId,
@@ -214,6 +216,7 @@ export function RiverMap({
   showRain?: boolean;
   rainTs?: number;
   globalPois?: MapPoi[];
+  stations?: Station[];
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   watercourseFocusId: string | null;
@@ -791,6 +794,34 @@ export function RiverMap({
         });
       });
     }
+
+    (stations ?? []).forEach((station) => {
+      const bandColor = levelBandColor(station.band);
+      const stationMarker = L.marker([station.lat, station.lng], {
+        bubblingMouseEvents: false,
+        icon: L.divIcon({
+          className: "",
+          html: markerHtml(
+            "gauge",
+            "",
+            `background:${bandColor};border-color:${bandColor};`,
+          ),
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        }),
+      });
+      stationMarker.addTo(layers);
+      const valueText =
+        station.value != null
+          ? ` · ${station.value}${station.unit ?? ""}`
+          : "";
+      stationMarker.bindTooltip(
+        `${station.name} (${station.provider}) — ${
+          LEVEL_BAND_LABELS[station.band]
+        }${valueText}`,
+        { sticky: true },
+      );
+    });
 
     (showRiverLayer ? canonicalRivers : []).forEach((river) => {
       const isSelected = selectedCanonicalRiver?.id === river.id;
@@ -1534,6 +1565,7 @@ export function RiverMap({
     riverLevelLines,
     riverLevelStates,
     globalPois,
+    stations,
     poiZoomVisible,
     showSelectedRoutePath,
     showKnownRivers,

@@ -49,9 +49,11 @@ import {
   fetchRiverLevelLines,
   fetchRiverLevelStates,
   fetchSectionLevelStates,
+  fetchStations,
   type RiverLevelLine,
   type RiverLevelState,
   type SectionLevelState,
+  type Station,
 } from "./services/levelStateApi";
 import { MapLevelLegend } from "./components/map/MapLevelLegend";
 import {
@@ -439,6 +441,9 @@ function App() {
   const [showRain, setShowRain] = useState(false);
   const [rainFrames, setRainFrames] = useState<RainFrameInfo[]>([]);
   const [selectedRainTs, setSelectedRainTs] = useState(0);
+  const [showPaddlerGauges, setShowPaddlerGauges] = useState(false);
+  const [showAllStations, setShowAllStations] = useState(false);
+  const [stations, setStations] = useState<Station[]>([]);
   useEffect(() => {
     if (!showRain || rainFrames.length > 0) return;
     let cancelled = false;
@@ -494,6 +499,15 @@ function App() {
         color: "#b9a6ee",
         options: [{ id: "weather:rain", label: "Rain" }],
       },
+      {
+        id: "stations",
+        label: "Stations",
+        color: "#5fd0d9",
+        options: [
+          { id: "stations:paddler", label: "Paddler gauges" },
+          { id: "stations:all", label: "All stations" },
+        ],
+      },
     ],
     [],
   );
@@ -507,6 +521,8 @@ function App() {
     if (showRoutesLayer) set.add("routes");
     for (const kind of activePoiKinds) set.add(`poi:${kind}`);
     if (showRain) set.add("weather:rain");
+    if (showPaddlerGauges) set.add("stations:paddler");
+    if (showAllStations) set.add("stations:all");
     return set;
   }, [
     riverDisciplineFilter,
@@ -515,6 +531,8 @@ function App() {
     showRoutesLayer,
     activePoiKinds,
     showRain,
+    showPaddlerGauges,
+    showAllStations,
   ]);
   const toggleMapLayer = (id: string) => {
     if (id === "discipline:whitewater") {
@@ -529,6 +547,9 @@ function App() {
     else if (id === "waterways") setShowKnownRivers((value) => !value);
     else if (id === "routes") setShowRoutesLayer((value) => !value);
     else if (id === "weather:rain") setShowRain((value) => !value);
+    else if (id === "stations:paddler")
+      setShowPaddlerGauges((value) => !value);
+    else if (id === "stations:all") setShowAllStations((value) => !value);
     else if (id.startsWith("poi:")) {
       const kind = id.slice(4);
       setActivePoiKinds((previous) => {
@@ -549,6 +570,8 @@ function App() {
     setShowRoutesLayer(false);
     setActivePoiKinds(new Set());
     setShowRain(false);
+    setShowPaddlerGauges(false);
+    setShowAllStations(false);
   };
   const [allMapPois, setAllMapPois] = useState<MapPoi[]>([]);
   useEffect(() => {
@@ -568,6 +591,24 @@ function App() {
     () => allMapPois.filter((poi) => activePoiKinds.has(poi.kind)),
     [allMapPois, activePoiKinds],
   );
+  useEffect(() => {
+    let cancelled = false;
+    fetchStations()
+      .then((result) => {
+        if (!cancelled) setStations(result);
+      })
+      .catch(() => {
+        // No stations available → the stations layer renders nothing.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const displayedStations = useMemo(() => {
+    if (showAllStations) return stations;
+    if (showPaddlerGauges) return stations.filter((s) => s.paddlerGauge);
+    return [];
+  }, [stations, showAllStations, showPaddlerGauges]);
   const mapDisplayRivers = useMemo(
     () =>
       riverDisciplineFilter === "all"
@@ -4347,6 +4388,7 @@ function App() {
           globalPois={globalPois}
           riverLevelLines={riverLevelLines}
           showRain={showRain}
+          stations={displayedStations}
           rainTs={selectedRainTs}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
