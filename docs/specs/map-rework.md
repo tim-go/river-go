@@ -149,11 +149,14 @@ rewrite later.
   filter-vs-toggle, "+N" overflow, 2-row wrap; top-bar migration → Layers control + floating
   actions + section toolbar; dead CSS/code tidied.
 - **Honest level state** (percentile-vs-own-90-day-history) for sections + rivers.
-- **River geometry — the finale, precomputed.** Match canonical rivers ↔ OSM ways (exact
-  name within bbox); collated once at full precision into `canonical_rivers.matched_geometry`
-  (`build:river-geometry`); the endpoint reads + simplifies on read (~11m) — no per-request
-  850k-way join. 54/62 rivers, coloured by live band, tooltips, discipline-filtered. Seed
-  network retired.
+- **River geometry — the finale, from OS Open Rivers.** Source = **OS Open Rivers**
+  (Ordnance Survey, OGL) — a clean, authoritative, single-line named GB network, loaded
+  into `os_open_rivers` (`import:os-open-rivers`). `build:river-geometry` collects the OS
+  links by name within each river's bbox into `canonical_rivers.matched_geometry`; the
+  endpoint reads + simplifies on read (~11m). **62/62 rivers**, all clean single traces,
+  coloured by live band, tooltips, discipline-filtered. Seed network retired.
+  - *Why not OSM:* OSM names rivers inconsistently and double-maps them (two centrelines
+    60-100m apart), so no dedupe heuristic got every river right — OS names/traces each once.
 - **River markers** coloured by level (51/62).
 - **Discipline filter** (Whitewater/Touring) wired into the live control.
 - **POI layer** (Access/Hazards/Features, zoom-gated).
@@ -174,7 +177,8 @@ rewrite later.
 - **Full station network** ingestion (EA ~5k + NRW + SEPA) so "All stations" is genuinely all
   — today it's only the ~55 curated paddler gauges; needs clustering.
 - **Zoom-based geometry** serving (finer at high zoom) — cheap now that geometry is precomputed.
-- **Run on staging:** migrations + `build:river-geometry` + `import:osm-amenities` + the station
+- **Run on staging:** migrations + `import:os-open-rivers` + `build:river-geometry` +
+  `import:osm-amenities` + the station
   backfill; ensure `route_overrides` populated there.
 - Trend arrows; section tools → river panel; mobile polish; presets; search/near-me; seed access
   POIs; section-toolbar `top:56px` 2-row edge case; pin letter contrast on the "low" band.
@@ -186,8 +190,9 @@ rewrite later.
 - **Level state** = percentile of the latest reading vs that gauge's own 90-day history
   (low/normal/high/very-high; grey = no live gauge / too little history). Never a "runnable" verdict.
 - **Palette** = vibrant blue → teal → **bright-yellow (high)** → orange; grey = no data.
-- **River geometry is precomputed** (`canonical_rivers.matched_geometry`); re-run
-  `build:river-geometry` after each watercourse import; stored geometry is hand-correctable.
+- **River geometry comes from OS Open Rivers** (not OSM), precomputed into
+  `canonical_rivers.matched_geometry`; re-run `import:os-open-rivers` then
+  `build:river-geometry` to refresh; stored geometry is hand-correctable.
 - **Rain = Met Office DataHub Map Images** (free tier, 1,000/day). Order `o081200335114`,
   UK-model-extent, Total precipitation rate, hourly→3-hourly→6-hourly to 168h. Proxied + cached
   server-side (`/api/weather/rain.png?ts=N`, `/api/weather/rain/frames`); **JWT key in the
