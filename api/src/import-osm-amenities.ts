@@ -74,7 +74,10 @@ async function main() {
       SELECT w.geometry
       FROM watercourses w
       JOIN canonical_rivers cr
-        ON lower(w.name) = lower(split_part(cr.display_name, ' / ', 1))
+        ON lower(w.name) IN (
+          lower(split_part(cr.display_name, ' / ', 1)),
+          lower(regexp_replace(split_part(cr.display_name, ' / ', 1), '^(River|Afon|Water of|Allt) ', ''))
+        )
         AND ST_Intersects(w.geometry, cr.bbox)`);
     await client.query(
       "CREATE INDEX our_rivers_gix ON our_rivers USING gist (geometry)",

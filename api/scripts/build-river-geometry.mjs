@@ -19,7 +19,14 @@ const result = await pool.query(`
     JOIN watercourses w
       ON w.geometry && cr.bbox
       AND ST_Intersects(w.geometry, cr.bbox)
-      AND lower(w.name) = lower(split_part(cr.display_name, ' / ', 1))
+      -- OSM names rivers inconsistently along their length (e.g. some Dart segments
+      -- are "River Dart", others just "Dart"), so match the full name OR the name
+      -- with a leading "River/Afon/Water of/Allt" stripped. Exact equality (not LIKE)
+      -- keeps tributaries like "East Dart River" out.
+      AND lower(w.name) IN (
+        lower(split_part(cr.display_name, ' / ', 1)),
+        lower(regexp_replace(split_part(cr.display_name, ' / ', 1), '^(River|Afon|Water of|Allt) ', ''))
+      )
     WHERE cr.bbox IS NOT NULL
     GROUP BY cr.id
   )
