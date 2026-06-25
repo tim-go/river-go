@@ -1,0 +1,1113 @@
+[
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4153",
+    "providerMeasureId": "4153:164",
+    "stationName": "Tryweryn at Bala Weir X",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4153?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "tryweryn-dam-centre",
+        "relevance": "downstream",
+        "confidence": "nearby-candidate",
+        "notes": "NRW Bala Weir X is downstream of the upper Tryweryn section. Useful release/level context, but needs local validation before interpreting conditions near the dam or centre."
+      },
+      {
+        "sectionId": "tryweryn-centre-bala",
+        "relevance": "primary",
+        "confidence": "section-candidate",
+        "notes": "NRW Bala Weir X is a candidate primary level measure for the lower Tryweryn toward Bala. Runnable interpretation needs local validation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "1018",
+    "providerMeasureId": "1018:10113",
+    "stationName": "Tryweryn Dam Pluvio and raingauge",
+    "parameter": "rainfall",
+    "unit": "mm",
+    "samplingInterval": "15_min",
+    "datum": "rainfall",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/1018?lang=en&parameterType=2",
+    "sectionLinks": [
+      {
+        "sectionId": "tryweryn-dam-centre",
+        "relevance": "rainfall_context",
+        "confidence": "nearby-candidate",
+        "notes": "NRW rainfall measure at Tryweryn Dam provides local catchment context only. Release-managed flow still needs release schedule and local interpretation."
+      },
+      {
+        "sectionId": "tryweryn-centre-bala",
+        "relevance": "rainfall_context",
+        "confidence": "nearby-candidate",
+        "notes": "NRW rainfall measure at Tryweryn Dam provides upstream rainfall context for the lower Tryweryn."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4014",
+    "providerMeasureId": "4014:197",
+    "stationName": "Wye at Glasbury",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4014?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "wye-glasbury-hay",
+        "relevance": "primary",
+        "confidence": "section-candidate",
+        "notes": "NRW Glasbury is a candidate primary level measure for Glasbury to Hay-on-Wye. Runnable ranges need local validation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4016",
+    "providerMeasureId": "4016:198",
+    "stationName": "Wye at Hay On Wye",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4016?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "wye-glasbury-hay",
+        "relevance": "downstream",
+        "confidence": "section-candidate",
+        "notes": "NRW Hay-on-Wye is a downstream candidate for Glasbury to Hay-on-Wye."
+      },
+      {
+        "sectionId": "wye-hay-whitney",
+        "relevance": "primary",
+        "confidence": "section-candidate",
+        "notes": "NRW Hay-on-Wye is a candidate primary level measure for Hay-on-Wye to Whitney Bridge."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4004",
+    "providerMeasureId": "4004:10036",
+    "stationName": "Wye at Bredwardine",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4004?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "wye-whitney-bredwardine",
+        "relevance": "primary",
+        "confidence": "section-candidate",
+        "notes": "NRW/EA Bredwardine is a candidate primary level measure for Whitney Bridge to Bredwardine."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "055807_TG_320",
+    "providerMeasureId": "055807_TG_320-level-stage-i-15_min-mASD",
+    "stationName": "Old Wye Bridge",
+    "parameter": "river_level",
+    "unit": "mASD",
+    "samplingInterval": "15_min",
+    "datum": "mASD",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/055807_TG_320-level-stage-i-15_min-mASD",
+    "sectionLinks": [
+      {
+        "sectionId": "wye-hoarwithy-ross",
+        "relevance": "upstream",
+        "confidence": "nearby-candidate",
+        "notes": "EA Old Wye Bridge is upstream of Hoarwithy to Ross-on-Wye. Use as context until a better section-specific link is validated."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "055817_TG_323",
+    "providerMeasureId": "055817_TG_323-level-stage-i-15_min-mASD",
+    "stationName": "Ross On Wye",
+    "parameter": "river_level",
+    "unit": "mASD",
+    "samplingInterval": "15_min",
+    "datum": "mASD",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/055817_TG_323-level-stage-i-15_min-mASD",
+    "sectionLinks": [
+      {
+        "sectionId": "wye-hoarwithy-ross",
+        "relevance": "downstream",
+        "confidence": "section-candidate",
+        "notes": "EA Ross-on-Wye is a downstream candidate for Hoarwithy to Ross-on-Wye."
+      },
+      {
+        "sectionId": "wye-ross-kerne",
+        "relevance": "primary",
+        "confidence": "section-candidate",
+        "notes": "EA Ross-on-Wye is a candidate primary level measure for Ross-on-Wye to Kerne Bridge."
+      },
+      {
+        "sectionId": "wye-kerne-symonds-yat",
+        "relevance": "upstream",
+        "confidence": "section-candidate",
+        "notes": "EA Ross-on-Wye is an upstream candidate for Kerne Bridge to Symonds Yat."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "2320",
+    "providerMeasureId": "2320-level-stage-i-15_min-mASD",
+    "stationName": "Lydbrook LVL",
+    "parameter": "river_level",
+    "unit": "mASD",
+    "samplingInterval": "15_min",
+    "datum": "mASD",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/2320-level-stage-i-15_min-mASD",
+    "sectionLinks": [
+      {
+        "sectionId": "wye-ross-kerne",
+        "relevance": "downstream",
+        "confidence": "section-candidate",
+        "notes": "EA Lydbrook is downstream of Ross-on-Wye to Kerne Bridge. Needs local validation before interpreting runnable ranges."
+      },
+      {
+        "sectionId": "wye-kerne-symonds-yat",
+        "relevance": "primary",
+        "confidence": "section-candidate",
+        "notes": "Lower Wye candidate EA level measure. Needs local validation before interpreting runnable ranges."
+      },
+      {
+        "sectionId": "wye-symonds-yat-monmouth",
+        "relevance": "primary",
+        "confidence": "section-candidate",
+        "notes": "Lower Wye candidate EA level measure. Needs local validation before interpreting runnable ranges."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "46122",
+    "providerMeasureId": "46122-level-stage-i-15_min-m",
+    "stationName": "River Dart at Austins Bridge",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "m",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/46122-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "dart-loop",
+        "relevance": "primary",
+        "confidence": "section-candidate",
+        "notes": "EA Austins Bridge is the standard paddler gauge for the Dart Loop (Newbridge to Buckfastleigh). Runnable ranges need local validation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4163",
+    "providerMeasureId": "4163:38",
+    "stationName": "Dee at Corwen",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4163?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "dee-llangollen",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "NRW Dee at Corwen is the nearest online gauge upstream of Llangollen (Town Falls/Serpent's Tail); there is no telemetered gauge in Llangollen itself. Runnable ranges need local validation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "14935",
+    "providerMeasureId": "55173010",
+    "stationName": "Tay at Pitnacree",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55173010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "tay-grandtully",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "SEPA Pitnacree is the closest gauge (about 2 km downstream) to Grandtully; the de-facto Tay-at-Grandtully level. Runnable ranges need local validation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "750801",
+    "providerMeasureId": "750801-level-stage-i-15_min-m",
+    "stationName": "Greta at Riddings Wood",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/750801-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-greta-cumbria-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "730511",
+    "providerMeasureId": "730511-level-stage-i-15_min-m",
+    "stationName": "Kent at Sedgwick",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/730511-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-kent-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "735430",
+    "providerMeasureId": "735430-level-stage-i-15_min-m",
+    "stationName": "Leven at Newby Bridge",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/735430-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-leven-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "737537",
+    "providerMeasureId": "737537-level-stage-i-15_min-m",
+    "stationName": "Crake at Low Nibthwaite",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/737537-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-crake-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "740101",
+    "providerMeasureId": "740101-level-stage-i-15_min-m",
+    "stationName": "Duddon at Ulpha",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/740101-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-duddon-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "742006",
+    "providerMeasureId": "742006-level-stage-i-15_min-m",
+    "stationName": "Esk at Cropple How",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/742006-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-esk-eskdale-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "735123",
+    "providerMeasureId": "735123-level-stage-i-15_min-m",
+    "stationName": "Brathay at Jeffy Knotts",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/735123-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-brathay-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "760502",
+    "providerMeasureId": "760502-level-stage-i-15_min-m",
+    "stationName": "Eden at Temple Sowerby",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/760502-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-eden-cumbria-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "722242",
+    "providerMeasureId": "722242-level-stage-i-15_min-m",
+    "stationName": "Lune at Lunes Bridge",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/722242-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-lune-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "723423",
+    "providerMeasureId": "723423-level-stage-i-15_min-m",
+    "stationName": "Rawthey at Brigflats",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/723423-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-rawthey-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "F3505",
+    "providerMeasureId": "F3505-level-stage-i-15_min-m",
+    "stationName": "Tees at Middleton",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/F3505-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-tees-upper-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "F2306",
+    "providerMeasureId": "F2306-level-stage-i-15_min-m",
+    "stationName": "Swale at Catterick Bridge",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/F2306-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-swale-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "L2208",
+    "providerMeasureId": "L2208-level-stage-i-15_min-m",
+    "stationName": "Ure at Bainbridge",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/L2208-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-ure-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "L1907",
+    "providerMeasureId": "L1907-level-stage-i-15_min-m",
+    "stationName": "Wharfe at Kettlewell",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/L1907-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-wharfe-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "023003",
+    "providerMeasureId": "023003-level-stage-i-15_min-m",
+    "stationName": "North Tyne at Reaverhill",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/023003-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-north-tyne-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "47135",
+    "providerMeasureId": "47135-level-stage-i-15_min-m",
+    "stationName": "Tavy at Mary Tavy",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/47135-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-tavy-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "45121",
+    "providerMeasureId": "45121-level-stage-i-15_min-m",
+    "stationName": "Barle at Brushford",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/45121-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-barle-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "environment-agency",
+    "providerStationId": "50150",
+    "providerMeasureId": "50150-level-stage-i-15_min-m",
+    "stationName": "East Lyn at Brendon",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/50150-level-stage-i-15_min-m",
+    "sectionLinks": [
+      {
+        "sectionId": "river-east-lyn-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4145",
+    "providerMeasureId": "4145:28",
+    "stationName": "Conwy at Cwmlanerch",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4145?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-conwy-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      },
+      {
+        "sectionId": "river-llugwy-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      },
+      {
+        "sectionId": "river-lledr-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4155",
+    "providerMeasureId": "4155:71",
+    "stationName": "Glaslyn at Beddgelert",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4155?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-glaslyn-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      },
+      {
+        "sectionId": "river-colwyn-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4171",
+    "providerMeasureId": "4171:50",
+    "stationName": "Dwyfor at Garndolbenmaen",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4171?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-dwyfor-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4179",
+    "providerMeasureId": "4179:130",
+    "stationName": "Seiont at Peblic Mill",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4179?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-seiont-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4150",
+    "providerMeasureId": "4150:102",
+    "stationName": "Mawddach at Tyddyn Gwladys",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4150?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-mawddach-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4146",
+    "providerMeasureId": "4146:51",
+    "stationName": "Dyfi at Dyfi Bridge",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4146?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-dyfi-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4210",
+    "providerMeasureId": "4210:156",
+    "stationName": "Teifi at Glan Teifi",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4210?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-teifi-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4286",
+    "providerMeasureId": "4286:10093",
+    "stationName": "Usk at Brecon Promenade",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4286?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-usk-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4010",
+    "providerMeasureId": "4010:84",
+    "stationName": "Irfon at Cilmery",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4010?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-irfon-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4196",
+    "providerMeasureId": "4196:169",
+    "stationName": "Tywi at Dolau Hirion",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4196?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-tywi-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4091",
+    "providerMeasureId": "4091:152",
+    "stationName": "Tawe at Craig y Nos",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4091?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-tawe-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "natural-resources-wales",
+    "providerStationId": "4121",
+    "providerMeasureId": "4121:103",
+    "stationName": "Mellte at Pontneddfechan",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4121?lang=en&parameterType=1",
+    "sectionLinks": [
+      {
+        "sectionId": "river-mellte-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "133087",
+    "providerMeasureId": "52986010",
+    "stationName": "Orchy at Glen Orchy",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=52986010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-orchy-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "116011",
+    "providerMeasureId": "52539010",
+    "stationName": "Nevis at Claggan",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=52539010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-nevis-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "234189",
+    "providerMeasureId": "57174010",
+    "stationName": "Garry at Craigard",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57174010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-garry-invergarry-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "234262",
+    "providerMeasureId": "57823010",
+    "stationName": "Moriston at Levishie",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57823010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-moriston-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "234215",
+    "providerMeasureId": "57395010",
+    "stationName": "Affric at Fasnakyle",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57395010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-affric-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "234289",
+    "providerMeasureId": "58017010",
+    "stationName": "Carron at New Kelso",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=58017010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-carron-wester-ross-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "234306",
+    "providerMeasureId": "58236010",
+    "stationName": "Findhorn at Shenachie",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=58236010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-findhorn-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "234168",
+    "providerMeasureId": "56932010",
+    "stationName": "Spey at Boat of Garten",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=56932010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-spey-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "234217",
+    "providerMeasureId": "57411010",
+    "stationName": "Feshie at Feshie Bridge",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57411010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-feshie-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "234274",
+    "providerMeasureId": "57912010",
+    "stationName": "Dee at Mar Lodge",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57912010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-dee-aberdeenshire-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "14963",
+    "providerMeasureId": "55554010",
+    "stationName": "Tummel at Pitlochry",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55554010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-tummel-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      },
+      {
+        "sectionId": "river-garry-perthshire-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "14951",
+    "providerMeasureId": "55383010",
+    "stationName": "Lyon at Comrie Bridge",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55383010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-lyon-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "14956",
+    "providerMeasureId": "55481010",
+    "stationName": "Ericht at Craighall",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55481010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-ericht-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "14979",
+    "providerMeasureId": "55822010",
+    "stationName": "Tweed at Peebles",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55822010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-tweed-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
+      }
+    ]
+  }
+]

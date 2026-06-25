@@ -217,8 +217,13 @@ fresh database, in order:
 3. **Waterways layer + amenities** (OSM, heavy ~2GB — only when refreshing OSM):
    `osm:download-extract` → `osm:prepare-waterways` → `api:import:osm-waterways` (→
    `watercourses`, ~850k); then `osm:prepare-amenities` → `api:import:osm-amenities`.
-4. **Station coords** — `node api/scripts/backfill-station-geometry.mjs` (EA/SEPA/NRW).
-5. **Rain** — live server proxy, nothing to seed (key in `.config/metoffice_api_key`).
+4. **Observation gauges** — `npm run api:seed:observations` (local) /
+   `npm run platform:seed:observations:staging|prod` — upserts the curated gauges from
+   `api/seed/observation-stations.json` (idempotent, runs through the Cloud SQL proxy like
+   migrate). The 30-min ingest only pulls readings for existing measures — it **no longer
+   self-seeds**, so run this on deploy / whenever the pack changes.
+5. **Station coords** — `node api/scripts/backfill-station-geometry.mjs` (EA/SEPA/NRW).
+6. **Rain** — live server proxy, nothing to seed (key in `.config/metoffice_api_key`).
 
 **Sources → tables:** OS Open Rivers → `os_open_rivers` → `canonical_rivers.matched_geometry`
 (the headline lines); OSM → `watercourses` (Waterways layer + amenities proximity only —

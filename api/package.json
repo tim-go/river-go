@@ -12,6 +12,7 @@
     "seed:map-pois": "tsx src/seed-map-pois.ts",
     "ingest:observations": "tsx src/ingest-observations.ts",
     "backfill:observations": "tsx src/backfill-observations.ts",
+    "seed:observations": "tsx src/seed-observations.ts",
     "backfill:w3w": "tsx src/backfill-what3words.ts",
     "import:osm-waterways": "tsx src/import-osm-waterways.ts",
     "import:osm-amenities": "tsx src/import-osm-amenities.ts",
