@@ -198,7 +198,7 @@ until locally reviewed.
 
 On narrow mobile viewports, the map header may collapse secondary controls behind an explicit `Controls` toggle. Expanded controls must show text labels for route actions so `Suggest route` and `Edit route` are distinguishable.
 
-River Wye route traces are generated from OpenStreetMap River Wye waterway geometry through `/scripts/generateWyeRouteTraces.mjs` and stored in `/src/data/wyeRouteTraces.ts`.
+River Wye route traces are generated from OpenStreetMap River Wye waterway geometry through `/scripts/build/generateWyeRouteTraces.mjs` and stored in `/src/data/wyeRouteTraces.ts`.
 
 The active Tryweryn sample map uses OSM-derived Afon Tryweryn route geometry stored in `/src/data/trywerynRouteTraces.ts`. The first section starts near the Llyn Celyn dam/stilling-basin outflow and runs to Canolfan Tryweryn.
 

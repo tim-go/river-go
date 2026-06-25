@@ -11,7 +11,7 @@ for instant repeat loads and an offline-capable app shell.
   (`#060a1a`), name/short_name/description, categories, and 192 / 512 / 512-maskable
   icons.
 - **Icons + iOS splash** generated from `assets/icon.svg` (the Waves brand mark on
-  the Surge gradient) by `scripts/generate-pwa-assets.mjs` → `public/`:
+  the Surge gradient) by `scripts/build/generate-pwa-assets.mjs` → `public/`:
   `pwa-192/512`, `pwa-maskable-512`, `apple-touch-icon`, `favicon` (svg + 32),
   and the **full** apple-touch-startup-image matrix (17 devices × portrait +
   landscape = 34 images).

@@ -8,7 +8,7 @@
 # Env: OS_RIVERS_GPKG=/path/to.gpkg reuses a local file and skips the ~52MB download.
 #      DATABASE_URL overrides the local database.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 DB="${DATABASE_URL:-postgresql://river_go_admin:river_go@127.0.0.1:5440/river_go}"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -24,7 +24,7 @@ else
 fi
 
 echo "Parsing $GPKG ..."
-python3 scripts/os-open-rivers-export.py "$GPKG" "$WORK/links.tsv"
+python3 scripts/data/os-open-rivers-export.py "$GPKG" "$WORK/links.tsv"
 
 echo "Loading os_open_rivers ..."
 psql "$DB" -v ON_ERROR_STOP=1 <<SQL

@@ -1,5 +1,5 @@
 // Generates the PWA icon set + the full iOS splash matrix from assets/icon.svg.
-// Run with: node scripts/generate-pwa-assets.mjs
+// Run with: node scripts/build/generate-pwa-assets.mjs
 import sharp from "sharp";
 import { readFileSync, writeFileSync, copyFileSync, mkdirSync } from "node:fs";
 

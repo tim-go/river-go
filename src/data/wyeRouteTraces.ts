@@ -1,7 +1,7 @@
 import type { LatLngTuple } from "../types";
 
 // Generated from OpenStreetMap River Wye waterway geometry via Overpass.
-// Regenerate with: node scripts/generateWyeRouteTraces.mjs
+// Regenerate with: node scripts/build/generateWyeRouteTraces.mjs
 export const wyeRouteTraces: Record<string, LatLngTuple[]> = {
   "wye-glasbury-hay": [
     [

@@ -164,7 +164,7 @@ npm run data:seed:canonical-river-pilots
 ### Reseed rivers on staging
 
 The river seed has no `platform:*:staging` wrapper, and
-`scripts/run-api-runtime-command.mjs` only injects `DATABASE_URL` — it does **not**
+`scripts/dev/run-api-runtime-command.mjs` only injects `DATABASE_URL` — it does **not**
 start a proxy. Staging exposes only `migrationsUrl` (the `github_ci` user, which
 owns the schema and can therefore seed); there is no `adminUrl`. So reseeding means:
 start one Cloud SQL Auth Proxy on **5441**, then run seed → promote → ingest through
@@ -181,11 +181,11 @@ cloud-sql-proxy --gcloud-auth --address 127.0.0.1 --port 5441 \
 
 # 2. In another terminal — seed → promote → levels (all via migrationsUrl → :5441)
 export RIVER_GO_DATABASE_URL_KEY=migrationsUrl
-node scripts/run-api-runtime-command.mjs staging \
+node scripts/dev/run-api-runtime-command.mjs staging \
   npm --prefix api run seed:canonical-river-pilots -- --catalogue paddling --allow-partial-candidates
-node scripts/run-api-runtime-command.mjs staging \
+node scripts/dev/run-api-runtime-command.mjs staging \
   npm --prefix api run repromote:pilot-candidates --
-node scripts/run-api-runtime-command.mjs staging \
+node scripts/dev/run-api-runtime-command.mjs staging \
   npm --prefix api run ingest:observations --
 # then stop the proxy (Ctrl-C)
 ```

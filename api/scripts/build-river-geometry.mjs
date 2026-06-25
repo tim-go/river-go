@@ -10,7 +10,7 @@
 //   - prefix/suffix variants: "North Tyne" -> "River North Tyne", "East Lyn" -> "East Lyn River"
 //   - explicit Welsh/English aliases for the two that need it (Dyfi/Wye)
 //
-// Requires the os_open_rivers table (see scripts/import-os-open-rivers.sh).
+// Requires the os_open_rivers table (see scripts/data/import-os-open-rivers.sh).
 // Run: node api/scripts/build-river-geometry.mjs   (DATABASE_URL overrides the local default)
 import pg from "pg";
 
