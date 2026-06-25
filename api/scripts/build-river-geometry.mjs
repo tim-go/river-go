@@ -21,6 +21,12 @@ const pool = new Pool({
     "postgresql://river_go_admin:river_go@127.0.0.1:5440/river_go",
 });
 
+// Idempotent rebuild: clear all prior geometry first, so a river that no longer
+// matches (renamed, removed from OS, bbox changed) doesn't keep stale geometry.
+await pool.query(
+  "UPDATE canonical_rivers SET matched_geometry = NULL WHERE matched_geometry IS NOT NULL",
+);
+
 const result = await pool.query(`
   WITH cand AS (
     SELECT cr.id AS river_id, cr.bbox,

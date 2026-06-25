@@ -201,6 +201,34 @@ rewrite later.
 - **Amenities** = a *repeatable* OSM import (osmium extract → ≤1km proximity filter vs our
   rivers' matched ways), NOT a one-off seed. Re-run to refresh.
 
+## Data pipeline & re-seeding (runbook)
+
+Every map data layer is built by a **repeatable, idempotent** step. To (re-)seed from a
+fresh database, in order:
+
+1. **Schema** — `npm run api:migrate` (creates all tables incl. `os_open_rivers` (027),
+   `amenities` (025), the `canonical_rivers.matched_geometry` column (026)).
+2. **River centre-lines** — `npm run seed:rivers` (= `import:os-open-rivers` then
+   `build:river-geometry`):
+   - `import:os-open-rivers` downloads the **OS Open Rivers** GB GeoPackage (OGL, no key)
+     and loads named links into `os_open_rivers` (**TRUNCATE + reload**).
+   - `build:river-geometry` **clears then rebuilds** `canonical_rivers.matched_geometry`
+     from `os_open_rivers` by name match (idempotent — re-running converges). 62/62 rivers.
+3. **Waterways layer + amenities** (OSM, heavy ~2GB — only when refreshing OSM):
+   `osm:download-extract` → `osm:prepare-waterways` → `api:import:osm-waterways` (→
+   `watercourses`, ~850k); then `osm:prepare-amenities` → `api:import:osm-amenities`.
+4. **Station coords** — `node api/scripts/backfill-station-geometry.mjs` (EA/SEPA/NRW).
+5. **Rain** — live server proxy, nothing to seed (key in `.config/metoffice_api_key`).
+
+**Sources → tables:** OS Open Rivers → `os_open_rivers` → `canonical_rivers.matched_geometry`
+(the headline lines); OSM → `watercourses` (Waterways layer + amenities proximity only —
+no longer the river-line source) and `amenities`; EA/SEPA/NRW → `observation_stations`.
+
+**Purge / staleness:** all imports are TRUNCATE+reload and `build:river-geometry` clears
+first, so re-running any step is safe and converges. There is **no stale river data to
+purge** — the old OSM-derived `matched_geometry` was overwritten by the OS build; OSM
+`watercourses` is deliberately retained for the Waterways layer + amenities.
+
 ## Open decisions
 - **Controls pattern** (bottom sheet vs top-bar+drawer vs floating) — *next up*.
 - Explore-as-default vs an explicit mode toggle.

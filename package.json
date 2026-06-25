@@ -32,6 +32,7 @@
     "osm:prepare-amenities": "scripts/prepare-osm-amenities.sh",
     "import:os-open-rivers": "scripts/import-os-open-rivers.sh",
     "build:river-geometry": "node api/scripts/build-river-geometry.mjs",
+    "seed:rivers": "npm run import:os-open-rivers && npm run build:river-geometry",
     "platform:import:osm-waterways:staging": "npm --prefix platform run import:osm-waterways:staging --",
     "platform:import:osm-waterways:prod": "npm --prefix platform run import:osm-waterways:prod --",
     "platform:import:osm-amenities:staging": "npm --prefix platform run import:osm-amenities:staging --",
