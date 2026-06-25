@@ -154,6 +154,7 @@ export function RiverMap({
   riverLevelLines,
   riverLevelStates,
   showRain,
+  rainTs,
   globalPois,
   showSelectedRoutePath,
   showKnownRivers,
@@ -211,6 +212,7 @@ export function RiverMap({
   riverLevelLines?: RiverLevelLine[];
   riverLevelStates?: Map<string, RiverLevelState>;
   showRain?: boolean;
+  rainTs?: number;
   globalPois?: MapPoi[];
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
@@ -277,26 +279,36 @@ export function RiverMap({
 
   // Met Office precipitation overlay — kept outside the main layer group (which
   // is cleared on every render) so toggling it doesn't rebuild the map.
+  const rainOverlayRef = useRef<L.ImageOverlay | null>(null);
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !showRain) {
       return;
     }
-    const url = `${getApiBaseUrl()}/api/weather/rain.png?t=${Math.floor(
-      Date.now() / 600000,
-    )}`;
     const overlay = L.imageOverlay(
-      url,
+      `${getApiBaseUrl()}/api/weather/rain.png?ts=${rainTs ?? 0}`,
       [
         [45, -25],
         [63, 15],
       ],
       { opacity: 0.65, interactive: false },
     ).addTo(map);
+    rainOverlayRef.current = overlay;
     return () => {
       overlay.remove();
+      rainOverlayRef.current = null;
     };
+    // rainTs intentionally omitted: frame changes go through setUrl below so the
+    // overlay isn't torn down and recreated on every scrub.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showRain]);
+  useEffect(() => {
+    if (rainOverlayRef.current) {
+      rainOverlayRef.current.setUrl(
+        `${getApiBaseUrl()}/api/weather/rain.png?ts=${rainTs ?? 0}`,
+      );
+    }
+  }, [rainTs]);
   const callbackRef = useRef(onSelectSection);
   const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
   const canonicalRiverContextSelectRef = useRef(onSelectCanonicalRiverContext);

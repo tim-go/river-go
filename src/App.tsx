@@ -59,6 +59,12 @@ import {
   type FilterCategory,
 } from "./components/map/MapFilterControl";
 import { MapActionButton, MapActions } from "./components/map/MapActions";
+import { WeatherTimebar } from "./components/map/WeatherTimebar";
+import {
+  fetchRainFrames,
+  nearestNowFrameIndex,
+  type RainFrameInfo,
+} from "./services/weatherApi";
 import {
   fetchCanonicalRiver,
   fetchCanonicalRivers,
@@ -431,6 +437,25 @@ function App() {
     () => new Set(),
   );
   const [showRain, setShowRain] = useState(false);
+  const [rainFrames, setRainFrames] = useState<RainFrameInfo[]>([]);
+  const [selectedRainTs, setSelectedRainTs] = useState(0);
+  useEffect(() => {
+    if (!showRain || rainFrames.length > 0) return;
+    let cancelled = false;
+    fetchRainFrames()
+      .then((result) => {
+        if (cancelled || result.frames.length === 0) return;
+        setRainFrames(result.frames);
+        const nowIndex = nearestNowFrameIndex(result.frames);
+        setSelectedRainTs(result.frames[nowIndex].ts);
+      })
+      .catch(() => {
+        // No frames available → the timebar simply doesn't render.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showRain, rainFrames.length]);
   const mapLayerCategories = useMemo<FilterCategory[]>(
     () => [
       {
@@ -4259,6 +4284,13 @@ function App() {
           </MapActions>
         </div>
       ) : null}
+      {activeAppSection === "map" && showRain && rainFrames.length > 0 ? (
+        <WeatherTimebar
+          frames={rainFrames}
+          selectedTs={selectedRainTs}
+          onSelect={setSelectedRainTs}
+        />
+      ) : null}
           {activeAppSection === "map" ? (
       <section className="workspace">
         {isLevelLegendOpen ? <MapLevelLegend /> : null}
@@ -4315,6 +4347,7 @@ function App() {
           globalPois={globalPois}
           riverLevelLines={riverLevelLines}
           showRain={showRain}
+          rainTs={selectedRainTs}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
           watercourseFocusId={watercourseFocusId}

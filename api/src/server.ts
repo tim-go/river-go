@@ -142,7 +142,11 @@ import {
   snapRouteToWatercourses,
   type WatercourseSource,
 } from "./watercourses.js";
-import { fetchLatestRainFrame } from "./weather.js";
+import {
+  fetchRainFrame,
+  listRainFrames,
+  RAIN_BOUNDS_TUPLE,
+} from "./weather.js";
 
 async function route(
   requestUrl: string,
@@ -987,6 +991,11 @@ async function route(
     return { status: 200, body: { levelStates } };
   }
 
+  if (method === "GET" && url.pathname === "/api/weather/rain/frames") {
+    const frames = await listRainFrames();
+    return { status: 200, body: { frames, bounds: RAIN_BOUNDS_TUPLE } };
+  }
+
   const sectionObservationsMatch = url.pathname.match(
     /^\/api\/sections\/([^/]+)\/observations$/,
   );
@@ -1065,7 +1074,16 @@ export function createApiServer() {
         method === "GET" &&
         (request.url ?? "").startsWith("/api/weather/rain.png")
       ) {
-        const frame = await fetchLatestRainFrame();
+        const tsParam = new URL(
+          request.url ?? "",
+          "http://localhost",
+        ).searchParams.get("ts");
+        const tsValue = Number(tsParam);
+        const ts =
+          tsParam != null && Number.isFinite(tsValue)
+            ? Math.max(0, Math.trunc(tsValue))
+            : 0;
+        const frame = await fetchRainFrame(ts);
         if (!frame) {
           response.writeHead(503, { "Content-Type": "text/plain; charset=utf-8" });
           response.end("Rain layer unavailable");
