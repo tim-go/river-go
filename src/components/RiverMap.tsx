@@ -34,6 +34,7 @@ import type {
 } from "../types";
 import type { CanonicalRiverSummary } from "../services/canonicalRiverApi";
 import { fetchWatercoursesForBounds, type KnownWatercourse } from "../services/watercourseApi";
+import { getApiBaseUrl } from "../services/apiConfig";
 import type { RouteAdjustment } from "../services/routeAdjustmentApi";
 import type { RouteSuggestion } from "../services/routeSuggestionApi";
 import {
@@ -152,6 +153,7 @@ export function RiverMap({
   sectionLevelStates,
   riverLevelLines,
   riverLevelStates,
+  showRain,
   globalPois,
   showSelectedRoutePath,
   showKnownRivers,
@@ -208,6 +210,7 @@ export function RiverMap({
   sectionLevelStates?: Map<string, SectionLevelState>;
   riverLevelLines?: RiverLevelLine[];
   riverLevelStates?: Map<string, RiverLevelState>;
+  showRain?: boolean;
   globalPois?: MapPoi[];
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
@@ -271,6 +274,29 @@ export function RiverMap({
     );
   }, [selectedRiver]);
   const layerRef = useRef<L.LayerGroup | null>(null);
+
+  // Met Office precipitation overlay — kept outside the main layer group (which
+  // is cleared on every render) so toggling it doesn't rebuild the map.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !showRain) {
+      return;
+    }
+    const url = `${getApiBaseUrl()}/api/weather/rain.png?t=${Math.floor(
+      Date.now() / 600000,
+    )}`;
+    const overlay = L.imageOverlay(
+      url,
+      [
+        [45, -25],
+        [63, 15],
+      ],
+      { opacity: 0.65, interactive: false },
+    ).addTo(map);
+    return () => {
+      overlay.remove();
+    };
+  }, [showRain]);
   const callbackRef = useRef(onSelectSection);
   const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
   const canonicalRiverContextSelectRef = useRef(onSelectCanonicalRiverContext);

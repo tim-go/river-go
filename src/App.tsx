@@ -430,6 +430,7 @@ function App() {
   const [activePoiKinds, setActivePoiKinds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [showRain, setShowRain] = useState(false);
   const mapLayerCategories = useMemo<FilterCategory[]>(
     () => [
       {
@@ -462,6 +463,12 @@ function App() {
           { id: "poi:feature", label: "Features" },
         ],
       },
+      {
+        id: "weather",
+        label: "Weather",
+        color: "#b9a6ee",
+        options: [{ id: "weather:rain", label: "Rain" }],
+      },
     ],
     [],
   );
@@ -474,6 +481,7 @@ function App() {
     if (showKnownRivers) set.add("waterways");
     if (showRoutesLayer) set.add("routes");
     for (const kind of activePoiKinds) set.add(`poi:${kind}`);
+    if (showRain) set.add("weather:rain");
     return set;
   }, [
     riverDisciplineFilter,
@@ -481,6 +489,7 @@ function App() {
     showKnownRivers,
     showRoutesLayer,
     activePoiKinds,
+    showRain,
   ]);
   const toggleMapLayer = (id: string) => {
     if (id === "discipline:whitewater") {
@@ -494,6 +503,7 @@ function App() {
     } else if (id === "rivers") setShowRiverLayer((value) => !value);
     else if (id === "waterways") setShowKnownRivers((value) => !value);
     else if (id === "routes") setShowRoutesLayer((value) => !value);
+    else if (id === "weather:rain") setShowRain((value) => !value);
     else if (id.startsWith("poi:")) {
       const kind = id.slice(4);
       setActivePoiKinds((previous) => {
@@ -513,6 +523,7 @@ function App() {
     setShowKnownRivers(false);
     setShowRoutesLayer(false);
     setActivePoiKinds(new Set());
+    setShowRain(false);
   };
   const [allMapPois, setAllMapPois] = useState<MapPoi[]>([]);
   useEffect(() => {
@@ -4303,6 +4314,7 @@ function App() {
           riverLevelStates={riverLevelStates}
           globalPois={globalPois}
           riverLevelLines={riverLevelLines}
+          showRain={showRain}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
           watercourseFocusId={watercourseFocusId}

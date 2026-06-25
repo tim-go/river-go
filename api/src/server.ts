@@ -142,6 +142,7 @@ import {
   snapRouteToWatercourses,
   type WatercourseSource,
 } from "./watercourses.js";
+import { fetchLatestRainFrame } from "./weather.js";
 
 async function route(
   requestUrl: string,
@@ -1058,6 +1059,23 @@ export function createApiServer() {
         (request.url ?? "").startsWith("/api/dev/email-preview")
       ) {
         sendEmailPreview(response, new URL(request.url ?? "/", "http://localhost"));
+        return;
+      }
+      if (
+        method === "GET" &&
+        (request.url ?? "").startsWith("/api/weather/rain.png")
+      ) {
+        const frame = await fetchLatestRainFrame();
+        if (!frame) {
+          response.writeHead(503, { "Content-Type": "text/plain; charset=utf-8" });
+          response.end("Rain layer unavailable");
+          return;
+        }
+        response.writeHead(200, {
+          "Content-Type": frame.contentType,
+          "Cache-Control": "public, max-age=600",
+        });
+        response.end(frame.bytes);
         return;
       }
       const body = ["PATCH", "POST", "PUT"].includes(method)
