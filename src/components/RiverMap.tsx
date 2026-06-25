@@ -151,6 +151,8 @@ export function RiverMap({
   routeCreateMode,
   markerClickMode,
   showRoutesLayer,
+  showPublicRoutes,
+  approvedRouteSuggestions,
   showRiverLayer,
   sectionLevelStates,
   riverLevelLines,
@@ -211,6 +213,8 @@ export function RiverMap({
   routeCreateMode: RouteCreateMode;
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
+  showPublicRoutes: boolean;
+  approvedRouteSuggestions: RouteSuggestion[];
   showRiverLayer: boolean;
   sectionLevelStates?: Map<string, SectionLevelState>;
   riverLevelLines?: RiverLevelLine[];
@@ -791,9 +795,45 @@ export function RiverMap({
             iconAnchor: [14, 14],
           }),
         });
+        // Resolve the POI's river (via its section) so the popup can open details,
+        // matching the selected-river POI markers rather than a bare hover tooltip.
+        const poiSection = sections.find((section) => section.id === poi.sectionId);
+        const poiRiver = poiSection
+          ? canonicalRivers.find(
+              (river) => river.displayName === poiSection.riverName,
+            )
+          : undefined;
+        const openGlobalPoiDetails = poiRiver
+          ? () => {
+              map.closePopup();
+              poiDetailsRef.current(riverMapPoiToSelectedPoi(poi, poiRiver), {
+                focusMap: true,
+                focusPlacement: "mobile-top-half",
+              });
+            }
+          : undefined;
+
         poiMarker.addTo(layers);
-        poiMarker.bindTooltip(`${poi.title} · ${displayMeta.label}`, {
-          sticky: true,
+        if (markerClickMode === "info") {
+          poiMarker.bindPopup(
+            createMapPopupContent({
+              title: poi.title,
+              subtitle: displayMeta.label,
+              summary: poi.summary,
+              navigationLocation: poi.location,
+              navigationLabel: poi.kind === "access" ? "Directions" : "Maps",
+              navigationMode: poi.kind === "access" ? "directions" : "map",
+              onDetails: openGlobalPoiDetails,
+            }),
+          );
+        }
+        poiMarker.on("click", (event) => {
+          L.DomEvent.stop(event.originalEvent);
+          if (markerClickMode === "info") {
+            poiMarker.openPopup();
+            return;
+          }
+          openGlobalPoiDetails?.();
         });
       });
     }
@@ -816,13 +856,15 @@ export function RiverMap({
       stationMarker.addTo(layers);
       const valueText =
         station.value != null
-          ? ` · ${station.value}${station.unit ?? ""}`
-          : "";
-      stationMarker.bindTooltip(
-        `${station.name} (${station.provider}) — ${
-          LEVEL_BAND_LABELS[station.band]
-        }${valueText}`,
-        { sticky: true },
+          ? `${station.value}${station.unit ?? ""}`
+          : "No recent reading";
+      stationMarker.bindPopup(
+        createMapPopupContent({
+          title: station.name,
+          subtitle: `${station.provider} · ${LEVEL_BAND_LABELS[station.band]}`,
+          summary: valueText,
+          navigationLocation: [station.lat, station.lng],
+        }),
       );
     });
 
@@ -860,9 +902,16 @@ export function RiverMap({
         });
         amenityMarker.addTo(layers);
         const label = amenityName[amenity.category] ?? amenity.category;
-        amenityMarker.bindTooltip(`${amenity.name ?? label} · ${label}`, {
-          sticky: true,
-        });
+        amenityMarker.bindPopup(
+          createMapPopupContent({
+            title: amenity.name ?? label,
+            subtitle: label,
+            summary: "From OpenStreetMap.",
+            navigationLocation: [amenity.lat, amenity.lng],
+            navigationLabel: "Directions",
+            navigationMode: "directions",
+          }),
+        );
       });
     }
 
@@ -1280,6 +1329,41 @@ export function RiverMap({
       }).addTo(layers);
       finishMarker.bindPopup(createRouteAdjustmentPopup(adjustment));
     });
+
+    // Approved public routes (community-contributed, moderator-approved) — solid
+    // green polylines, distinct from the dashed pending suggestions/adjustments.
+    if (showPublicRoutes) {
+      approvedRouteSuggestions.forEach((suggestion) => {
+        if (suggestion.route.length < 2) {
+          return;
+        }
+        const routeSection = sections.find(
+          (section) =>
+            section.sectionName === suggestion.sectionName &&
+            section.riverName === suggestion.riverName,
+        );
+        L.polyline(suggestion.route, {
+          color: "#059669",
+          weight: 4,
+          opacity: 0.85,
+        })
+          .addTo(layers)
+          .bindPopup(
+            createMapPopupContent({
+              title: suggestion.riverName || "Route",
+              subtitle: suggestion.sectionName,
+              summary: suggestion.summary ?? "",
+              navigationLocation: suggestion.route[0],
+              onDetails: routeSection
+                ? () => {
+                    map.closePopup();
+                    routeDetailsRef.current(routeSection);
+                  }
+                : undefined,
+            }),
+          );
+      });
+    }
 
     contributions.forEach((contribution) => {
       if (!contribution.location) {

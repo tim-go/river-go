@@ -344,7 +344,7 @@ function App() {
   const [routeSuggestions, setRouteSuggestions] = useState<RouteSuggestion[]>(
     loadRouteSuggestions,
   );
-  const [, setApprovedRouteSuggestions] = useState<
+  const [approvedRouteSuggestions, setApprovedRouteSuggestions] = useState<
     RouteSuggestion[]
   >([]);
   const [routeAdjustments, setRouteAdjustments] = useState<RouteAdjustment[]>([]);
@@ -431,6 +431,7 @@ function App() {
     loadMarkerClickMode,
   );
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
+  const [showPublicRoutes, setShowPublicRoutes] = useState(false);
   const [showRiverLayer, setShowRiverLayer] = useState(true);
   const [isLevelLegendOpen, setIsLevelLegendOpen] = useState(false);
   const [riverDisciplineFilter, setRiverDisciplineFilter] = useState<
@@ -485,6 +486,7 @@ function App() {
           { id: "rivers", label: "Rivers" },
           { id: "waterways", label: "Waterways" },
           { id: "routes", label: "Routes" },
+          { id: "routes:public", label: "Public routes" },
         ],
       },
       {
@@ -535,6 +537,7 @@ function App() {
     if (showRiverLayer) set.add("rivers");
     if (showKnownRivers) set.add("waterways");
     if (showRoutesLayer) set.add("routes");
+    if (showPublicRoutes) set.add("routes:public");
     for (const kind of activePoiKinds) set.add(`poi:${kind}`);
     for (const kind of activeAmenityKinds) set.add(`amenity:${kind}`);
     if (showRain) set.add("weather:rain");
@@ -546,6 +549,7 @@ function App() {
     showRiverLayer,
     showKnownRivers,
     showRoutesLayer,
+    showPublicRoutes,
     activePoiKinds,
     activeAmenityKinds,
     showRain,
@@ -564,6 +568,7 @@ function App() {
     } else if (id === "rivers") setShowRiverLayer((value) => !value);
     else if (id === "waterways") setShowKnownRivers((value) => !value);
     else if (id === "routes") setShowRoutesLayer((value) => !value);
+    else if (id === "routes:public") setShowPublicRoutes((value) => !value);
     else if (id === "weather:rain") setShowRain((value) => !value);
     else if (id === "stations:paddler")
       setShowPaddlerGauges((value) => !value);
@@ -597,6 +602,7 @@ function App() {
     setShowRiverLayer(false);
     setShowKnownRivers(false);
     setShowRoutesLayer(false);
+    setShowPublicRoutes(false);
     setActivePoiKinds(new Set());
     setActiveAmenityKinds(new Set());
     setShowRain(false);
@@ -4433,6 +4439,8 @@ function App() {
           routeCreateMode={routeCreateMode}
           markerClickMode={markerClickMode}
           showRoutesLayer={showRoutesLayer}
+          showPublicRoutes={showPublicRoutes}
+          approvedRouteSuggestions={approvedRouteSuggestions}
           showRiverLayer={showRiverLayer}
           sectionLevelStates={sectionLevelStates}
           riverLevelStates={riverLevelStates}
