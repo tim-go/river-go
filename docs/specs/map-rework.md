@@ -145,41 +145,56 @@ rewrite later.
 ## Status & backlog (living)
 
 **Done**
-- Filter control (pills + expander, category colours, filter-vs-toggle, "+N" overflow, 2-row wrap).
-- Top-bar migration → filter control + floating actions + section toolbar; dead CSS/code tidied.
-- Honest level state (percentile-vs-own-history) backend for **sections and rivers**.
-- Level colouring: section lines (seed geometry) + **river markers (51/62)**; vibrant
-  blue→teal→yellow→orange palette; legend (toggle) + line tooltips.
-- POI filter layer (Access/Hazards/Features, zoom-gated LOD).
+- **Control = "Layers"** (renamed from "Filters"): pills + expander, category colours,
+  filter-vs-toggle, "+N" overflow, 2-row wrap; top-bar migration → Layers control + floating
+  actions + section toolbar; dead CSS/code tidied.
+- **Honest level state** (percentile-vs-own-90-day-history) for sections + rivers.
+- **River geometry — the finale, precomputed.** Match canonical rivers ↔ OSM ways (exact
+  name within bbox); collated once at full precision into `canonical_rivers.matched_geometry`
+  (`build:river-geometry`); the endpoint reads + simplifies on read (~11m) — no per-request
+  850k-way join. 54/62 rivers, coloured by live band, tooltips, discipline-filtered. Seed
+  network retired.
+- **River markers** coloured by level (51/62).
+- **Discipline filter** (Whitewater/Touring) wired into the live control.
+- **POI layer** (Access/Hazards/Features, zoom-gated).
+- **Stations layer** (paddler-gauges / all-stations, band-coloured) + **station-coordinate
+  backfill** (EA flood-monitoring + SEPA KiWIS = lat/long; NRW = OS grid → ST_Transform) → 52/55.
+- **Rain layer** (Met Office DataHub Map Images, cached server-side proxy) + **timebar**
+  (7-day forecast, 89 frames, play/pause, "now" tick).
+- **Amenities** — repeatable OSM pipeline (osmium extract + ≤1km proximity filter vs our
+  rivers) + layer (Pubs/Car parks/Toilets/Cafés/Shops, zoom-gated).
 
-**Layers still to add**
-- **Rain radar** (Met Office / RainViewer) — *next*.
-- More weather: wind, cloud, temp; **tides** (sea/SUP); discipline-aware surfacing.
-- **Measuring stations**: paddler-gauges vs all-stations; filter by state / agency (EA/NRW/SEPA)
-  / type (level/flow/rainfall); rainfall-as-leading-indicator.
-- **Amenities** (OSM, "near rivers"): pubs, car parks, toilets, shops.
-- **Photos** layer (thumbnails on map); **public routes** layer (snapped polylines).
-- **Discipline filter** (whitewater/touring/sea/SUP + grade) — wire into the live filter.
+**Remaining layers**
+- **Public routes** (renderer exists; needs a toggle + an approved-routes fetch; 0 locally → staging).
+- **Photos** (locate the photos table + per-photo coords; sparse locally).
+- *More weather (wind/cloud/temp/tides) — **on hold**.*
 
-**River geometry (the coloured-lines finale)**
-- Match canonical rivers ↔ OSM waterway geometry (name + bbox) → real river lines for all 61.
-- Resolve the section-geometry ↔ gauge-section ID mismatch; replace the seed network.
-
-**Presentation & scale**
-- Clustering / LOD (supercluster) for POIs + stations; trend arrows on levels; simplified
-  "hydro" basemap; vector tiles at national scale; generalised bounds-based loading.
-
-**UX / interactivity**
-- Saved filter presets; search + "near me"; tap river/line → select/focus; section tools fully
-  into the river panel; mobile polish; wire empty-state semantics (toggles=none, filters=all).
+**Follow-ups / debt**
+- **Clustering / LOD** (supercluster) for POIs + stations + amenities.
+- **Full station network** ingestion (EA ~5k + NRW + SEPA) so "All stations" is genuinely all
+  — today it's only the ~55 curated paddler gauges; needs clustering.
+- **Zoom-based geometry** serving (finer at high zoom) — cheap now that geometry is precomputed.
+- **Run on staging:** migrations + `build:river-geometry` + `import:osm-amenities` + the station
+  backfill; ensure `route_overrides` populated there.
+- Trend arrows; section tools → river panel; mobile polish; presets; search/near-me; seed access
+  POIs; section-toolbar `top:56px` 2-row edge case; pin letter contrast on the "low" band.
 
 **Honest-data future**
-- Community live reports (data-gathering engine) → reference ranges → a separate **runnable**
-  overlay; time/forecast scrubber; trip planning ("runnable near me, now").
+- Community live reports → reference ranges → a separate **runnable** overlay; "runnable near me, now".
 
-**Debt / polish**
-- POI clustering; seed access POIs; section-toolbar `top:56px` edge case (2-row pill wrap);
-  pin letter contrast on the "low" band; deploy to staging (route_overrides → full network).
+## Implementation notes (key decisions)
+- **Level state** = percentile of the latest reading vs that gauge's own 90-day history
+  (low/normal/high/very-high; grey = no live gauge / too little history). Never a "runnable" verdict.
+- **Palette** = vibrant blue → teal → **bright-yellow (high)** → orange; grey = no data.
+- **River geometry is precomputed** (`canonical_rivers.matched_geometry`); re-run
+  `build:river-geometry` after each watercourse import; stored geometry is hand-correctable.
+- **Rain = Met Office DataHub Map Images** (free tier, 1,000/day). Order `o081200335114`,
+  UK-model-extent, Total precipitation rate, hourly→3-hourly→6-hourly to 168h. Proxied + cached
+  server-side (`/api/weather/rain.png?ts=N`, `/api/weather/rain/frames`); **JWT key in the
+  git-ignored `.config/metoffice_api_key`**, never sent to the client. Equirectangular bounds
+  `[[45,-25],[63,15]]`.
+- **Amenities** = a *repeatable* OSM import (osmium extract → ≤1km proximity filter vs our
+  rivers' matched ways), NOT a one-off seed. Re-run to refresh.
 
 ## Open decisions
 - **Controls pattern** (bottom sheet vs top-bar+drawer vs floating) — *next up*.
