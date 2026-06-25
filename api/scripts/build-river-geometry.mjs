@@ -4,9 +4,8 @@
 // OSM names a river inconsistently ("River Dart" vs "Dart") AND routinely maps the
 // SAME channel twice in parallel — typically once as waterway=river and once as
 // waterway=watercourse, offset 60-100m. So we dedupe: order a river's matched ways
-// longest-first, and keep a way only if it adds real new coverage (>50% of it lies
-// beyond 110m of the ways already kept). Longest-first (rather than preferring a
-// waterway type) picks the better-traced line where the two digitisations diverge.
+// by type (proper river/canal first) then longest-first, and keep a way only if it
+// adds real new coverage (>50% of it lies beyond 110m of the ways already kept).
 // Parallel duplicates run within 110m of a kept way → dropped; genuine gap-filling
 // stretches reach beyond it → kept.
 //
@@ -26,7 +25,9 @@ const result = await pool.query(`
     SELECT cr.id AS river_id,
       row_number() OVER (
         PARTITION BY cr.id
-        ORDER BY ST_Length(w.geometry::geography) DESC
+        ORDER BY
+          CASE w.watercourse_type WHEN 'river' THEN 0 WHEN 'canal' THEN 1 ELSE 2 END,
+          ST_Length(w.geometry::geography) DESC
       ) AS rn,
       w.geometry AS g
     FROM canonical_rivers cr
@@ -52,7 +53,7 @@ const result = await pool.query(`
                110
              )::geometry
            )::geography
-         ) > 0.65 * ST_Length(w.g::geography)
+         ) > 0.50 * ST_Length(w.g::geography)
   ),
   agg AS (
     SELECT river_id, ST_Multi(ST_CollectionExtract(ST_Collect(g), 2)) AS geom
