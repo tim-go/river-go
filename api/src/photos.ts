@@ -68,10 +68,7 @@ export async function listRiverPhotos(
 ): Promise<ApiMemberPhoto[]> {
   const result = await pool.query<PhotoRow>(
     `${photoSelectSql()}
-    WHERE p.section_id IN (
-      SELECT section_id FROM canonical_river_section_links
-      WHERE river_id = $1 AND status = 'active'
-    )
+    WHERE c.river_id = $1
       AND c.visibility = 'published'
       AND p.moderation_status NOT IN ('hidden', 'rejected')
     ORDER BY p.created_at DESC
