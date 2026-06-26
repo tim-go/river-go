@@ -122,4 +122,18 @@ proxy), asserting `contributions` + `contribution_photos` counts **identical bef
 
 ## 8. Then (after the model lands)
 - **Camping** — add `camp_site` (+ `caravan_site`) to the amenity filter; arrives already
-  contributable (upsert-stable + indexed + adoptable).
+  contributable (upsert-stable + indexed + adoptable). **Done.**
+
+## 9. Reproducible deploy via seed packs (not dev→staging copy)
+Reference data is shipped as **committed seed files** that loaders read — discover →
+generate the file → seed script imports it. So staging/prod = `migrate` + the seed
+scripts, with no re-download/re-discovery and no copying from the dev DB.
+- `api/seed/observation-stations.json` → `seed:observations` *(done)*
+- `api/seed/river-geometry.json` (62 rivers' matched lines) → `seed:river-geometry`
+- `api/seed/amenities.json` (6,280 incl. camping) → `seed:amenities` (upsert → `pois` trigger)
+
+### Backlog
+- **`watercourses` seed** — ~850k OSM rows are too big to commit to git, so there's no
+  seed file yet. Staging already holds this data, so it's deferred. Future fix: a
+  bucket-backed seed (the discovery uploads the export to GCS; the seed script pulls it)
+  so the Waterways layer + amenity-proximity refresh stays reproducible without git bloat.

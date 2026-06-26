@@ -13,6 +13,8 @@
     "ingest:observations": "tsx src/ingest-observations.ts",
     "backfill:observations": "tsx src/backfill-observations.ts",
     "seed:observations": "tsx src/seed-observations.ts",
+    "seed:river-geometry": "tsx src/seed-river-geometry-run.ts",
+    "seed:amenities": "tsx src/seed-amenities-run.ts",
     "backfill:w3w": "tsx src/backfill-what3words.ts",
     "import:osm-waterways": "tsx src/import-osm-waterways.ts",
     "import:osm-amenities": "tsx src/import-osm-amenities.ts",
