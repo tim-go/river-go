@@ -13,9 +13,15 @@ const ORDER: SectionLevelBand[] = [
   "unknown",
 ];
 
-// Explains the river-line colours. Framed as level *state* (vs each gauge's own
-// history), never a runnable verdict.
-export function MapLevelLegend() {
+// The single map legend: river-line level state (vs each gauge's own history,
+// never a runnable verdict) plus the marker key. Shown as the toggled popout.
+export function MapLevelLegend({
+  showKnownRivers,
+  knownWatercourseStatus,
+}: {
+  showKnownRivers: boolean;
+  knownWatercourseStatus?: string;
+}) {
   return (
     <div className="map-level-legend">
       <span className="map-level-legend__title">River level</span>
@@ -30,6 +36,37 @@ export function MapLevelLegend() {
             {LEVEL_BAND_LABELS[band]}
           </span>
         ))}
+      </div>
+
+      <span className="map-level-legend__title map-level-legend__title--group">
+        Map markers
+      </span>
+      <div className="map-level-legend__items">
+        {showKnownRivers ? (
+          <span
+            className="map-level-legend__item"
+            title={knownWatercourseStatus || undefined}
+          >
+            <i className="legend-line legend-line--known-river" /> Waterways
+            {knownWatercourseStatus ? (
+              <small className="map-level-legend__status">
+                {knownWatercourseStatus}
+              </small>
+            ) : null}
+          </span>
+        ) : null}
+        <span className="map-level-legend__item">
+          <i className="legend-dot legend-dot--section" /> Section
+        </span>
+        <span className="map-level-legend__item">
+          <i className="legend-dot legend-dot--access" /> Access
+        </span>
+        <span className="map-level-legend__item">
+          <i className="legend-dot legend-dot--hazard" /> Hazard
+        </span>
+        <span className="map-level-legend__item">
+          <i className="legend-dot legend-dot--gauge" /> Gauge
+        </span>
       </div>
     </div>
   );

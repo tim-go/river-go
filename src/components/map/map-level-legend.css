@@ -44,3 +44,33 @@
   height: 5px;
   border-radius: 3px;
 }
+
+.map-level-legend__title--group {
+  margin-top: 7px;
+}
+
+.map-level-legend__status {
+  color: #6d7b86;
+  font-size: 0.64rem;
+  font-weight: 600;
+}
+
+/* Surge — dark glass, matching the detail panels */
+[data-theme="surge"] .map-level-legend {
+  border-color: rgba(120, 150, 230, 0.26);
+  background: rgba(11, 17, 38, 0.9);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.42),
+    0 0 22px rgba(47, 107, 255, 0.16);
+  color: #eaf0ff;
+  backdrop-filter: blur(18px);
+}
+[data-theme="surge"] .map-level-legend__note,
+[data-theme="surge"] .map-level-legend__status {
+  color: #8d9bc4;
+}
+
+/* Daybreak — light panel, blue-tinted border */
+[data-theme="daybreak"] .map-level-legend {
+  border-color: #dbe4ff;
+}

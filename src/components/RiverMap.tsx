@@ -20,6 +20,7 @@ import {
   Star,
 } from "lucide-react";
 import { DetailPanel } from "./DetailPanel";
+import { MapLevelLegend } from "./map/MapLevelLegend";
 import type {
   Contribution,
   ContributionOutboxRecord,
@@ -163,6 +164,7 @@ export function RiverMap({
   amenities,
   showSelectedRoutePath,
   showKnownRivers,
+  isLevelLegendOpen,
   watercourseFocusId,
   watercourseFocusNonce,
   onMapClick,
@@ -226,6 +228,7 @@ export function RiverMap({
   amenities?: Amenity[];
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
+  isLevelLegendOpen: boolean;
   watercourseFocusId: string | null;
   watercourseFocusNonce: number;
   onMapClick: (
@@ -2236,30 +2239,12 @@ export function RiverMap({
           </div>
         </DetailPanel>
       ) : null}
-      <div className="map-legend" aria-label="Map legend">
-        {showKnownRivers ? (
-          <span title={knownWatercourseStatus || undefined}>
-            <i className="legend-line legend-line--known-river" /> Waterways
-            {knownWatercourseStatus ? (
-              <small className="map-legend__status">
-                {knownWatercourseStatus}
-              </small>
-            ) : null}
-          </span>
-        ) : null}
-        <span>
-          <i className="legend-dot legend-dot--section" /> Section
-        </span>
-        <span>
-          <i className="legend-dot legend-dot--access" /> Access
-        </span>
-        <span>
-          <i className="legend-dot legend-dot--hazard" /> Hazard
-        </span>
-        <span>
-          <i className="legend-dot legend-dot--gauge" /> Gauge
-        </span>
-      </div>
+      {isLevelLegendOpen ? (
+        <MapLevelLegend
+          showKnownRivers={showKnownRivers}
+          knownWatercourseStatus={knownWatercourseStatus}
+        />
+      ) : null}
     </section>
   );
 }
