@@ -5,54 +5,45 @@
   z-index: 600;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 9px 11px 10px;
-  border-radius: 10px;
+  gap: 3px;
+  padding: 12px 15px 14px;
+  border-radius: 12px;
   border: 1px solid rgba(20, 30, 50, 0.1);
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.16);
   backdrop-filter: blur(8px);
   color: #1a2238;
-  font-size: 0.74rem;
+  font-size: 0.84rem;
 }
 
 .map-level-legend__title {
   font-weight: 750;
+  font-size: 0.94rem;
 }
 
 .map-level-legend__note {
-  margin-bottom: 4px;
+  margin-bottom: 7px;
   color: #6b7689;
-  font-size: 0.64rem;
+  font-size: 0.72rem;
 }
 
 .map-level-legend__items {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 7px;
 }
 
 .map-level-legend__item {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 10px;
 }
 
 .map-level-legend__swatch {
   flex: 0 0 auto;
-  width: 16px;
-  height: 5px;
-  border-radius: 3px;
-}
-
-.map-level-legend__title--group {
-  margin-top: 7px;
-}
-
-.map-level-legend__status {
-  color: #6d7b86;
-  font-size: 0.64rem;
-  font-weight: 600;
+  width: 26px;
+  height: 9px;
+  border-radius: 4px;
 }
 
 /* Surge — dark glass, matching the detail panels */
@@ -65,8 +56,7 @@
   color: #eaf0ff;
   backdrop-filter: blur(18px);
 }
-[data-theme="surge"] .map-level-legend__note,
-[data-theme="surge"] .map-level-legend__status {
+[data-theme="surge"] .map-level-legend__note {
   color: #8d9bc4;
 }
 

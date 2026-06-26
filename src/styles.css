@@ -2137,22 +2137,6 @@ h1 {
 }
 
 
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.legend-line {
-  width: 18px;
-  height: 0;
-  border-top: 2px dashed currentColor;
-}
-
-.legend-line--known-river {
-  color: var(--known-river);
-}
-
 .watercourse-panel__summary {
   display: flex;
   flex-wrap: wrap;
@@ -2281,46 +2265,6 @@ h1 {
   color: var(--muted);
   font-size: var(--text-xs);
   font-weight: 650;
-}
-
-.legend-dot--section {
-  background: var(--river);
-}
-
-.legend-dot--access {
-  background: var(--sky);
-}
-
-.legend-dot--hazard {
-  background: var(--danger);
-}
-
-.legend-dot--rapid {
-  background: #0f766e;
-}
-
-.legend-dot--whitewater {
-  background: #2563eb;
-}
-
-.legend-dot--structure {
-  background: #b42318;
-}
-
-.legend-dot--feature {
-  background: #816533;
-}
-
-.legend-dot--navigation {
-  background: #7c3aed;
-}
-
-.legend-dot--utility {
-  background: #475569;
-}
-
-.legend-dot--amenity {
-  background: #e8b079;
 }
 
 .map-marker {

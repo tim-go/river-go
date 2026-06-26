@@ -347,7 +347,6 @@ export function RiverMap({
   const [knownWatercourses, setKnownWatercourses] = useState<KnownWatercourse[]>(
     [],
   );
-  const [knownWatercourseStatus, setKnownWatercourseStatus] = useState("");
   const POI_MIN_ZOOM = 9;
   const [poiZoomVisible, setPoiZoomVisible] = useState(false);
   const [hiddenPoiCategories, setHiddenPoiCategories] = useState<
@@ -654,7 +653,6 @@ export function RiverMap({
 
     if (!showKnownRivers) {
       setKnownWatercourses([]);
-      setKnownWatercourseStatus("");
       setSelectedWatercourseId(null);
       return;
     }
@@ -668,8 +666,6 @@ export function RiverMap({
         const bounds = map.getBounds();
         const requestId = knownWatercoursesRequestRef.current + 1;
         knownWatercoursesRequestRef.current = requestId;
-        setKnownWatercourseStatus("Loading reference waterways...");
-
         void fetchWatercoursesForBounds(
           {
             minLng: bounds.getWest(),
@@ -688,11 +684,6 @@ export function RiverMap({
             }
 
             setKnownWatercourses(watercourses);
-            setKnownWatercourseStatus(
-              watercourses.length
-                ? `${watercourses.length} known river lines in view`
-                : "No known river lines in this view",
-            );
           })
           .catch(() => {
             if (
@@ -703,7 +694,6 @@ export function RiverMap({
             }
 
             setKnownWatercourses([]);
-            setKnownWatercourseStatus("Reference waterways unavailable in this view");
           });
       }, 180);
     };
@@ -2240,10 +2230,7 @@ export function RiverMap({
         </DetailPanel>
       ) : null}
       {isLevelLegendOpen ? (
-        <MapLevelLegend
-          showKnownRivers={showKnownRivers}
-          knownWatercourseStatus={knownWatercourseStatus}
-        />
+        <MapLevelLegend />
       ) : null}
     </section>
   );
