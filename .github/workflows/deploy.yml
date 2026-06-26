@@ -72,7 +72,9 @@ jobs:
           sudo chmod +x /usr/local/bin/cloud-sql-proxy
 
       - name: Install Firebase CLI
-        run: npm install -g firebase-tools
+        # Pinned: firebase-tools 15.22.2/.3 broke keyless WIF (external-account) auth
+        # for hosting deploys (15.22.1 was the last good one). Bump deliberately.
+        run: npm install -g firebase-tools@15.22.1
 
       - name: Materialise platform config from secrets
         env:
