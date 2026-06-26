@@ -16,12 +16,10 @@ import type { Amenity } from "../services/amenityApi";
 import {
   AlertTriangle,
   MapPin,
-  Maximize2,
-  Minimize2,
   Route,
   Star,
-  X,
 } from "lucide-react";
+import { DetailPanel } from "./DetailPanel";
 import type {
   Contribution,
   ContributionOutboxRecord,
@@ -1840,21 +1838,17 @@ export function RiverMap({
     >
       <div className="map-canvas" ref={mapContainerRef} />
       {selectedCanonicalRiver && isSelectedRiverPanelOpen && !isPoiDetailsOpen ? (
-        <aside
-          className={`watercourse-panel ${
-            isSelectedRiverPanelExpanded ? "watercourse-panel--expanded" : ""
-          }`}
-          aria-label="Selected river"
-        >
-          <div className="watercourse-panel__header">
-            <div>
-              <p className="eyebrow">River</p>
-              <h2>{selectedCanonicalRiver.displayName}</h2>
-              {selectedCanonicalRiver.run ? (
-                <p className="river-run">{selectedCanonicalRiver.run}</p>
-              ) : null}
-            </div>
-            <div className="panel-icon-actions">
+        <DetailPanel
+          ariaLabel="Selected river"
+          className="detail-panel--river"
+          eyebrow="River"
+          title={selectedCanonicalRiver.displayName}
+          subtitle={selectedCanonicalRiver.run || undefined}
+          expanded={isSelectedRiverPanelExpanded}
+          onToggleExpand={onToggleSelectedRiverPanelExpanded}
+          onClose={onCloseSelectedRiverPanel}
+          actions={
+            <>
               <button
                 className={`icon-button icon-button--compact${
                   favouriteRiverIds.includes(selectedCanonicalRiver.id)
@@ -1896,35 +1890,10 @@ export function RiverMap({
               >
                 <AlertTriangle size={16} />
               </button>
-              <button
-                className="icon-button icon-button--compact"
-                type="button"
-                aria-label={
-                  isSelectedRiverPanelExpanded
-                    ? "Collapse river details"
-                    : "Expand river details"
-                }
-                title={isSelectedRiverPanelExpanded ? "Collapse" : "Expand"}
-                onClick={onToggleSelectedRiverPanelExpanded}
-              >
-                {isSelectedRiverPanelExpanded ? (
-                  <Minimize2 size={16} />
-                ) : (
-                  <Maximize2 size={16} />
-                )}
-              </button>
-              <button
-                className="icon-button icon-button--compact"
-                type="button"
-                aria-label="Close river details"
-                title="Close"
-                onClick={onCloseSelectedRiverPanel}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-
+            </>
+          }
+        >
+          <div className="watercourse-body">
           <div className="watercourse-panel__summary">
             {selectedCanonicalRiver.grade ? (
               <span>Grade {selectedCanonicalRiver.grade}</span>
@@ -2162,29 +2131,18 @@ export function RiverMap({
             )}
           </div>
           ) : null}
-        </aside>
+          </div>
+        </DetailPanel>
       ) : null}
       {selectedWatercourse && !selectedCanonicalRiver && !isPoiDetailsOpen ? (
-        <aside
-          className="watercourse-panel"
-          aria-label="Selected waterway stretch"
+        <DetailPanel
+          ariaLabel="Selected waterway stretch"
+          className="detail-panel--stretch"
+          eyebrow="Local stretch"
+          title={selectedWatercourse.name ?? "Unnamed waterway"}
+          onClose={() => setSelectedWatercourseId(null)}
         >
-          <div className="watercourse-panel__header">
-            <div>
-              <p className="eyebrow">Local stretch</p>
-              <h2>{selectedWatercourse.name ?? "Unnamed waterway"}</h2>
-            </div>
-            <button
-              className="icon-button icon-button--compact"
-              type="button"
-              aria-label="Close waterway details"
-              title="Close"
-              onClick={() => setSelectedWatercourseId(null)}
-            >
-              <X size={16} />
-            </button>
-          </div>
-
+          <div className="watercourse-body">
           <div className="watercourse-panel__summary">
             <span>{watercourseTypeLabel(selectedWatercourse.watercourseType)}</span>
             <span>
@@ -2261,7 +2219,8 @@ export function RiverMap({
               <p className="empty-state">No POIs close to this visible stretch yet.</p>
             )}
           </div>
-        </aside>
+          </div>
+        </DetailPanel>
       ) : null}
       <div className="map-legend" aria-label="Map legend">
         {showKnownRivers ? (

@@ -6,15 +6,13 @@ import {
   Flag,
   Map as MapIcon,
   MapPinned,
-  Maximize2,
   MessageSquare,
-  Minimize2,
   Navigation,
   Plus,
   RefreshCw,
   ShieldCheck,
-  X,
 } from "lucide-react";
+import { DetailPanel } from "./DetailPanel";
 import type {
   Contribution,
   MapPoi,
@@ -175,43 +173,23 @@ export function PoiDetailPanel({
   );
 
   return (
-    <section
-      className={`poi-detail-panel ${
-        isExpanded ? "poi-detail-panel--expanded" : ""
-      }`}
-      aria-label="Point of interest details"
+    <DetailPanel
+      ariaLabel="Point of interest details"
+      className="detail-panel--poi"
+      eyebrow={poi.kind}
+      title={poi.title}
+      subtitle={poi.subtitle}
+      badges={
+        poi.status ? (
+          <span className={`status-chip status-chip--${poi.status}`}>
+            {poi.status}
+          </span>
+        ) : undefined
+      }
+      expanded={isExpanded}
+      onToggleExpand={onToggleExpanded}
+      onClose={onClose}
     >
-      <button
-        className="icon-button panel-expand"
-        type="button"
-        aria-label={isExpanded ? "Collapse point details" : "Expand point details"}
-        title={isExpanded ? "Collapse" : "Expand"}
-        onClick={onToggleExpanded}
-      >
-        {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-      </button>
-      <button
-        className="panel-close"
-        type="button"
-        aria-label="Close point of interest details"
-        title="Close"
-        onClick={onClose}
-      >
-        <X size={18} />
-      </button>
-      <div className="poi-detail-panel__header">
-        <p className="eyebrow">{poi.kind}</p>
-        <h2>{poi.title}</h2>
-        <span>{poi.subtitle}</span>
-        {poi.status ? (
-          <div className="poi-detail-panel__badges">
-            <span className={`status-chip status-chip--${poi.status}`}>
-              {poi.status}
-            </span>
-          </div>
-        ) : null}
-      </div>
-      <div className="panel-content panel-content--tabbed">
         <div
           className="segmented-control route-detail-tabs poi-detail-tabs"
           role="tablist"
@@ -686,7 +664,6 @@ export function PoiDetailPanel({
             </section>
           </div>
         ) : null}
-      </div>
-    </section>
+    </DetailPanel>
   );
 }
