@@ -2295,8 +2295,32 @@ h1 {
   background: var(--danger);
 }
 
-.legend-dot--gauge {
-  background: #5356a4;
+.legend-dot--rapid {
+  background: #0f766e;
+}
+
+.legend-dot--whitewater {
+  background: #2563eb;
+}
+
+.legend-dot--structure {
+  background: #b42318;
+}
+
+.legend-dot--feature {
+  background: #816533;
+}
+
+.legend-dot--navigation {
+  background: #7c3aed;
+}
+
+.legend-dot--utility {
+  background: #475569;
+}
+
+.legend-dot--amenity {
+  background: #e8b079;
 }
 
 .map-marker {

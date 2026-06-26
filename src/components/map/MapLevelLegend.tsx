@@ -24,8 +24,10 @@ export function MapLevelLegend({
 }) {
   return (
     <div className="map-level-legend">
-      <span className="map-level-legend__title">River level</span>
-      <span className="map-level-legend__note">vs each gauge's normal</span>
+      <span className="map-level-legend__title">River &amp; gauge level</span>
+      <span className="map-level-legend__note">
+        river lines &amp; gauge dots, vs each gauge's normal
+      </span>
       <div className="map-level-legend__items">
         {ORDER.map((band) => (
           <span className="map-level-legend__item" key={band}>
@@ -65,7 +67,25 @@ export function MapLevelLegend({
           <i className="legend-dot legend-dot--hazard" /> Hazard
         </span>
         <span className="map-level-legend__item">
-          <i className="legend-dot legend-dot--gauge" /> Gauge
+          <i className="legend-dot legend-dot--rapid" /> Rapid
+        </span>
+        <span className="map-level-legend__item">
+          <i className="legend-dot legend-dot--whitewater" /> Whitewater
+        </span>
+        <span className="map-level-legend__item">
+          <i className="legend-dot legend-dot--structure" /> Structure
+        </span>
+        <span className="map-level-legend__item">
+          <i className="legend-dot legend-dot--feature" /> Feature
+        </span>
+        <span className="map-level-legend__item">
+          <i className="legend-dot legend-dot--navigation" /> Navigation
+        </span>
+        <span className="map-level-legend__item">
+          <i className="legend-dot legend-dot--utility" /> Utility
+        </span>
+        <span className="map-level-legend__item">
+          <i className="legend-dot legend-dot--amenity" /> Amenity
         </span>
       </div>
     </div>
