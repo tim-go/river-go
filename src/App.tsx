@@ -4,7 +4,6 @@ import {
   Backpack,
   Camera,
   CheckCircle2,
-  ChevronDown,
   Clock3,
   Droplets,
   ExternalLink,
@@ -46,6 +45,28 @@ import {
   trackProductEvent,
   type AnalyticsConsent,
 } from "./services/analytics";
+import {
+  fetchRiverLevelLines,
+  fetchRiverLevelStates,
+  fetchSectionLevelStates,
+  fetchStations,
+  type RiverLevelLine,
+  type RiverLevelState,
+  type SectionLevelState,
+  type Station,
+} from "./services/levelStateApi";
+import { MapLevelLegend } from "./components/map/MapLevelLegend";
+import {
+  MapFilterControl,
+  type FilterCategory,
+} from "./components/map/MapFilterControl";
+import { MapActionButton, MapActions } from "./components/map/MapActions";
+import { WeatherTimebar } from "./components/map/WeatherTimebar";
+import {
+  fetchRainFrames,
+  nearestNowFrameIndex,
+  type RainFrameInfo,
+} from "./services/weatherApi";
 import {
   fetchCanonicalRiver,
   fetchCanonicalRivers,
@@ -123,6 +144,7 @@ import {
 } from "./services/photoApi";
 import {
   fetchModerationMapPoiReviews,
+  fetchAllMapPois,
   fetchRiverMapPois,
   fetchSectionMapPois,
   reviewMapPoi,
@@ -130,6 +152,7 @@ import {
   type MapPoiCorrectionReview,
   type MapPoiReviewDecision,
 } from "./services/mapPoiApi";
+import { fetchAmenities, type Amenity } from "./services/amenityApi";
 import {
   fetchCoordinatesForWhat3Words,
   fetchWhat3WordsAddress,
@@ -218,7 +241,6 @@ import {
   canonicalRiverOverviewSectionId,
   canonicalRiverToOverviewSection,
   categoryOptions,
-  COMPACT_MAP_CONTROLS_QUERY,
   contributionOptions,
   defaultObservedDate,
   emptyCanonicalOverviewSection,
@@ -322,7 +344,7 @@ function App() {
   const [routeSuggestions, setRouteSuggestions] = useState<RouteSuggestion[]>(
     loadRouteSuggestions,
   );
-  const [, setApprovedRouteSuggestions] = useState<
+  const [approvedRouteSuggestions, setApprovedRouteSuggestions] = useState<
     RouteSuggestion[]
   >([]);
   const [routeAdjustments, setRouteAdjustments] = useState<RouteAdjustment[]>([]);
@@ -330,6 +352,60 @@ function App() {
   const [canonicalRivers, setCanonicalRivers] = useState<CanonicalRiverSummary[]>(
     [],
   );
+  const [sectionLevelStates, setSectionLevelStates] = useState<
+    Map<string, SectionLevelState>
+  >(() => new Map());
+  useEffect(() => {
+    let cancelled = false;
+    fetchSectionLevelStates()
+      .then((states) => {
+        if (!cancelled) {
+          setSectionLevelStates(
+            new Map(states.map((state) => [state.sectionId, state])),
+          );
+        }
+      })
+      .catch(() => {
+        // No level states available → section lines render neutral/grey.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const [riverLevelStates, setRiverLevelStates] = useState<
+    Map<string, RiverLevelState>
+  >(() => new Map());
+  useEffect(() => {
+    let cancelled = false;
+    fetchRiverLevelStates()
+      .then((states) => {
+        if (!cancelled) {
+          setRiverLevelStates(
+            new Map(states.map((state) => [state.riverId, state])),
+          );
+        }
+      })
+      .catch(() => {
+        // No river level states → river markers keep their discipline colour.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const [riverLevelLines, setRiverLevelLines] = useState<RiverLevelLine[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchRiverLevelLines()
+      .then((lines) => {
+        if (!cancelled) setRiverLevelLines(lines);
+      })
+      .catch(() => {
+        // No river lines available → the level network simply isn't drawn.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [selectedCanonicalRiverId, setSelectedCanonicalRiverId] =
     useState<string | null>(null);
   const { selectRiver: selectDiscoveryRiver } = useDiscovery();
@@ -355,10 +431,252 @@ function App() {
     loadMarkerClickMode,
   );
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
+  const [showPublicRoutes, setShowPublicRoutes] = useState(false);
   const [showRiverLayer, setShowRiverLayer] = useState(true);
+  const [isLevelLegendOpen, setIsLevelLegendOpen] = useState(false);
   const [riverDisciplineFilter, setRiverDisciplineFilter] = useState<
     "all" | "whitewater" | "touring"
   >("all");
+  const [activePoiKinds, setActivePoiKinds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [activeAmenityKinds, setActiveAmenityKinds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [showRain, setShowRain] = useState(false);
+  const [rainFrames, setRainFrames] = useState<RainFrameInfo[]>([]);
+  const [selectedRainTs, setSelectedRainTs] = useState(0);
+  const [showPaddlerGauges, setShowPaddlerGauges] = useState(false);
+  const [showAllStations, setShowAllStations] = useState(false);
+  const [stations, setStations] = useState<Station[]>([]);
+  useEffect(() => {
+    if (!showRain || rainFrames.length > 0) return;
+    let cancelled = false;
+    fetchRainFrames()
+      .then((result) => {
+        if (cancelled || result.frames.length === 0) return;
+        setRainFrames(result.frames);
+        const nowIndex = nearestNowFrameIndex(result.frames);
+        setSelectedRainTs(result.frames[nowIndex].ts);
+      })
+      .catch(() => {
+        // No frames available → the timebar simply doesn't render.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showRain, rainFrames.length]);
+  const mapLayerCategories = useMemo<FilterCategory[]>(
+    () => [
+      {
+        id: "discipline",
+        label: "Discipline",
+        color: "#6ed7a6",
+        kind: "filter",
+        options: [
+          { id: "discipline:whitewater", label: "Whitewater" },
+          { id: "discipline:touring", label: "Touring" },
+        ],
+      },
+      {
+        id: "layers",
+        label: "Layers",
+        color: "#7db8f5",
+        options: [
+          { id: "rivers", label: "Rivers" },
+          { id: "waterways", label: "Waterways" },
+          { id: "routes", label: "Routes" },
+          { id: "routes:public", label: "Public routes" },
+        ],
+      },
+      {
+        id: "pois",
+        label: "POIs",
+        color: "#ffce4d",
+        options: [
+          { id: "poi:access", label: "Access" },
+          { id: "poi:hazard", label: "Hazards" },
+          { id: "poi:feature", label: "Features" },
+        ],
+      },
+      {
+        id: "weather",
+        label: "Weather",
+        color: "#b9a6ee",
+        options: [{ id: "weather:rain", label: "Rain" }],
+      },
+      {
+        id: "stations",
+        label: "Stations",
+        color: "#5fd0d9",
+        options: [
+          { id: "stations:paddler", label: "Paddler gauges" },
+          { id: "stations:all", label: "All stations" },
+        ],
+      },
+      {
+        id: "amenities",
+        label: "Amenities",
+        color: "#e8b079",
+        options: [
+          { id: "amenity:pub", label: "Pubs" },
+          { id: "amenity:car_park", label: "Car parks" },
+          { id: "amenity:toilets", label: "Toilets" },
+          { id: "amenity:cafe", label: "Cafés" },
+          { id: "amenity:shop", label: "Shops" },
+        ],
+      },
+    ],
+    [],
+  );
+  const selectedMapLayers = useMemo(() => {
+    const set = new Set<string>();
+    if (riverDisciplineFilter !== "all") {
+      set.add(`discipline:${riverDisciplineFilter}`);
+    }
+    if (showRiverLayer) set.add("rivers");
+    if (showKnownRivers) set.add("waterways");
+    if (showRoutesLayer) set.add("routes");
+    if (showPublicRoutes) set.add("routes:public");
+    for (const kind of activePoiKinds) set.add(`poi:${kind}`);
+    for (const kind of activeAmenityKinds) set.add(`amenity:${kind}`);
+    if (showRain) set.add("weather:rain");
+    if (showPaddlerGauges) set.add("stations:paddler");
+    if (showAllStations) set.add("stations:all");
+    return set;
+  }, [
+    riverDisciplineFilter,
+    showRiverLayer,
+    showKnownRivers,
+    showRoutesLayer,
+    showPublicRoutes,
+    activePoiKinds,
+    activeAmenityKinds,
+    showRain,
+    showPaddlerGauges,
+    showAllStations,
+  ]);
+  const toggleMapLayer = (id: string) => {
+    if (id === "discipline:whitewater") {
+      setRiverDisciplineFilter((current) =>
+        current === "whitewater" ? "all" : "whitewater",
+      );
+    } else if (id === "discipline:touring") {
+      setRiverDisciplineFilter((current) =>
+        current === "touring" ? "all" : "touring",
+      );
+    } else if (id === "rivers") setShowRiverLayer((value) => !value);
+    else if (id === "waterways") setShowKnownRivers((value) => !value);
+    else if (id === "routes") setShowRoutesLayer((value) => !value);
+    else if (id === "routes:public") setShowPublicRoutes((value) => !value);
+    else if (id === "weather:rain") setShowRain((value) => !value);
+    else if (id === "stations:paddler")
+      setShowPaddlerGauges((value) => !value);
+    else if (id === "stations:all") setShowAllStations((value) => !value);
+    else if (id.startsWith("poi:")) {
+      const kind = id.slice(4);
+      setActivePoiKinds((previous) => {
+        const next = new Set(previous);
+        if (next.has(kind)) {
+          next.delete(kind);
+        } else {
+          next.add(kind);
+        }
+        return next;
+      });
+    } else if (id.startsWith("amenity:")) {
+      const kind = id.slice(8);
+      setActiveAmenityKinds((previous) => {
+        const next = new Set(previous);
+        if (next.has(kind)) {
+          next.delete(kind);
+        } else {
+          next.add(kind);
+        }
+        return next;
+      });
+    }
+  };
+  const clearMapLayers = () => {
+    setRiverDisciplineFilter("all");
+    setShowRiverLayer(false);
+    setShowKnownRivers(false);
+    setShowRoutesLayer(false);
+    setShowPublicRoutes(false);
+    setActivePoiKinds(new Set());
+    setActiveAmenityKinds(new Set());
+    setShowRain(false);
+    setShowPaddlerGauges(false);
+    setShowAllStations(false);
+  };
+  const [allMapPois, setAllMapPois] = useState<MapPoi[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchAllMapPois()
+      .then((pois) => {
+        if (!cancelled) setAllMapPois(pois);
+      })
+      .catch(() => {
+        // No global POIs available → POI filters render nothing.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const globalPois = useMemo(
+    () => allMapPois.filter((poi) => activePoiKinds.has(poi.kind)),
+    [allMapPois, activePoiKinds],
+  );
+  const [allAmenities, setAllAmenities] = useState<Amenity[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchAmenities()
+      .then((result) => {
+        if (!cancelled) setAllAmenities(result);
+      })
+      .catch(() => {
+        // No amenities available → the amenity filters render nothing.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const displayedAmenities = useMemo(
+    () =>
+      allAmenities.filter((amenity) =>
+        activeAmenityKinds.has(amenity.category),
+      ),
+    [allAmenities, activeAmenityKinds],
+  );
+  useEffect(() => {
+    let cancelled = false;
+    fetchStations()
+      .then((result) => {
+        if (!cancelled) setStations(result);
+      })
+      .catch(() => {
+        // No stations available → the stations layer renders nothing.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const displayedStations = useMemo(() => {
+    if (showAllStations) return stations;
+    if (showPaddlerGauges) return stations.filter((s) => s.paddlerGauge);
+    return [];
+  }, [stations, showAllStations, showPaddlerGauges]);
+  const mapDisplayRivers = useMemo(
+    () =>
+      riverDisciplineFilter === "all"
+        ? canonicalRivers
+        : canonicalRivers.filter(
+            (river) =>
+              river.discipline === "both" ||
+              river.discipline === riverDisciplineFilter,
+          ),
+    [canonicalRivers, riverDisciplineFilter],
+  );
   const [riverNationFilter, setRiverNationFilter] = useState("all");
   const riverNations = useMemo(() => {
     const nations = new Set<string>();
@@ -412,12 +730,6 @@ function App() {
     null,
   );
   const [routeAdjustmentFocusNonce, setRouteAdjustmentFocusNonce] = useState(0);
-  const [isCompactMapControls, setIsCompactMapControls] = useState(() =>
-    typeof window === "undefined"
-      ? false
-      : window.matchMedia(COMPACT_MAP_CONTROLS_QUERY).matches,
-  );
-  const [areMapControlsExpanded, setAreMapControlsExpanded] = useState(false);
   const [selectedPoi, setSelectedPoi] = useState<SelectedPoi | null>(null);
   const [poiContributions, setPoiContributions] = useState<Contribution[]>([]);
   const [isPoiDetailExpanded, setIsPoiDetailExpanded] = useState(false);
@@ -972,27 +1284,6 @@ function App() {
       }
     };
   }, [photoPreviewUrl]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const mediaQuery = window.matchMedia(COMPACT_MAP_CONTROLS_QUERY);
-    const updateCompactControls = () => {
-      setIsCompactMapControls(mediaQuery.matches);
-      if (!mediaQuery.matches) {
-        setAreMapControlsExpanded(false);
-      }
-    };
-
-    updateCompactControls();
-    mediaQuery.addEventListener("change", updateCompactControls);
-
-    return () => {
-      mediaQuery.removeEventListener("change", updateCompactControls);
-    };
-  }, []);
 
   useEffect(() => {
     if (authState.status === "loading") {
@@ -3935,255 +4226,13 @@ function App() {
         >
       {activeAppSection === "map" ? (
         <section className="topbar" aria-label="Map controls">
-          {/* River banner hidden for now: it tracked activeSection, but
-              sections are temporarily parked while the river-vs-section model
-              is decided, so it pinned to the default first section. Empty
-              lockup kept as a spacer so the controls stay right-aligned. */}
-          <div className="brand-lockup" />
-          <div
-            className={`topbar-actions ${
-              isCompactMapControls && areMapControlsExpanded
-                ? "topbar-actions--expanded"
-                : ""
-            }`}
-          >
-            <button
-              className={`ghost-button map-panel-toggle ${
-                showRiverLayer ? "map-panel-toggle--active" : ""
-              }`}
-              type="button"
-              onClick={() => setShowRiverLayer((current) => !current)}
-              title={showRiverLayer ? "Hide rivers on map" : "Show rivers on map"}
-              aria-label={
-                showRiverLayer ? "Hide rivers on map" : "Show rivers on map"
-              }
-              aria-pressed={showRiverLayer}
-            >
-              <Waves size={16} />
-              Rivers
-            </button>
-            {!isCanonicalRiverOverviewActive ? (
-              <>
-                <button
-                  className={`ghost-button map-panel-toggle ${
-                    showRoutesLayer ? "map-panel-toggle--active" : ""
-                  }`}
-                  type="button"
-                  onClick={() => setShowRoutesLayer((current) => !current)}
-                  title={showRoutesLayer ? "Hide routes" : "Show routes"}
-                  aria-label={showRoutesLayer ? "Hide routes" : "Show routes"}
-                  aria-pressed={showRoutesLayer}
-                >
-                  <MapPinned size={16} />
-                  Routes
-                </button>
-                <button
-                  className={`ghost-button map-panel-toggle ${
-                    isPanelOpen && routeDetailsTab === "levels"
-                      ? "map-panel-toggle--active"
-                      : ""
-                  }`}
-                  type="button"
-                  onClick={() => openCurrentRouteDetailsTab("levels")}
-                  title="View levels"
-                  aria-label="View levels"
-                  aria-pressed={isPanelOpen && routeDetailsTab === "levels"}
-                >
-                  <Droplets size={16} />
-                  Levels
-                </button>
-                <button
-                  className={`ghost-button map-panel-toggle ${
-                    isPanelOpen && routeDetailsTab !== "levels"
-                      ? "map-panel-toggle--active"
-                      : ""
-                  }`}
-                  type="button"
-                  onClick={toggleRouteDetailsPanel}
-                  title="Section details"
-                  aria-label="Section details"
-                  aria-pressed={isPanelOpen && routeDetailsTab !== "levels"}
-                >
-                  <MapPinned size={16} />
-                  Details
-                </button>
-              </>
-            ) : null}
-            <button
-              className={`ghost-button map-panel-toggle topbar-secondary-control ${
-                showKnownRivers ? "map-panel-toggle--active" : ""
-              }`}
-              type="button"
-              onClick={() => setShowKnownRivers((current) => !current)}
-              title="Show reference waterways"
-              aria-label="Show reference waterways"
-              aria-pressed={showKnownRivers}
-            >
-              <Waves size={16} />
-              Waterways
-            </button>
-            <button
-              className={`ghost-button map-panel-toggle topbar-secondary-control ${
-                markerClickMode === "detail" ? "map-panel-toggle--active" : ""
-              }`}
-              type="button"
-              onClick={toggleMarkerClickMode}
-              title={
-                markerClickMode === "info"
-                  ? "Marker clicks show quick info first"
-                  : "Marker clicks open details directly"
-              }
-              aria-label={
-                markerClickMode === "info"
-                  ? "Marker clicks show quick info first"
-                  : "Marker clicks open details directly"
-              }
-              aria-pressed={markerClickMode === "detail"}
-            >
-              <MessageSquare size={16} />
-              Click: {markerClickMode === "info" ? "Info" : "Detail"}
-            </button>
-            {isCompactMapControls ? (
-              <button
-                className={`ghost-button map-panel-toggle topbar-controls-toggle ${
-                  areMapControlsExpanded ? "map-panel-toggle--active" : ""
-                }`}
-                type="button"
-                onClick={() => setAreMapControlsExpanded((current) => !current)}
-                title={
-                  areMapControlsExpanded ? "Hide map controls" : "Show map controls"
-                }
-                aria-label={
-                  areMapControlsExpanded ? "Hide map controls" : "Show map controls"
-                }
-                aria-expanded={areMapControlsExpanded}
-              >
-                <MoreHorizontal size={16} />
-                Controls
-                <ChevronDown size={14} />
-              </button>
-            ) : null}
-            <button
-              className={`icon-button sync-icon-button topbar-secondary-control ${
-                queuedOutboxCount > 0 ? "sync-icon-button--queued" : ""
-              }`}
-              type="button"
-              onClick={syncOutboxNow}
-              disabled={!canSyncOutbox}
-              title={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
-              aria-label={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
-            >
-              <RefreshCw size={16} />
-              <span className="topbar-control-label">Sync</span>
-              {queuedOutboxCount > 0 ? (
-                <span className="sync-badge">{queuedOutboxCount}</span>
-              ) : null}
-            </button>
-            {!isCanonicalRiverOverviewActive ? (
-              <button
-                className={`icon-button topbar-secondary-control ${
-                  isActiveSectionFavourite ? "icon-button--active" : ""
-                }`}
-                type="button"
-                title={
-                  !isSignedIn
-                    ? "Create account to save favourites"
-                    : isActiveSectionFavourite
-                    ? "Remove from favourites"
-                    : "Add to favourites"
-                }
-                aria-label={
-                  !isSignedIn
-                    ? "Create account to save favourites"
-                    : isActiveSectionFavourite
-                    ? "Remove from favourites"
-                    : "Add to favourites"
-                }
-                aria-pressed={isActiveSectionFavourite}
-                onClick={() => toggleFavouriteSection(activeSection)}
-              >
-                <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
-                <span className="topbar-control-label">
-                  {isActiveSectionFavourite ? "Saved" : "Favourite"}
-                </span>
-              </button>
-            ) : null}
-            <button
-              className={`icon-button topbar-secondary-control ${
-                isLiveLocationEnabled ? "icon-button--active" : ""
-              }`}
-              type="button"
-              title={
-                isLiveLocationEnabled
-                  ? "Centre on my live location"
-                  : "Show my live location"
-              }
-              aria-label={
-                isLiveLocationEnabled
-                  ? "Centre on my live location"
-                  : "Show my live location"
-              }
-              aria-pressed={isLiveLocationEnabled}
-              onClick={handleLiveLocationButtonClick}
-              disabled={!isLiveLocationSupported}
-            >
-              <Navigation size={18} />
-              <span className="topbar-control-label">Location</span>
-            </button>
-            {canAccessAdminTools && !isCanonicalRiverOverviewActive ? (
-              <button
-                className={`ghost-button map-panel-toggle topbar-secondary-control ${
-                  routeDraftTarget.type !== "new" ? "map-panel-toggle--active" : ""
-                }`}
-                type="button"
-                title="Edit this route"
-                aria-label="Edit this route"
-                aria-pressed={routeDraftTarget.type !== "new"}
-                onClick={() => startRouteAdjustmentMode(activeSection)}
-              >
-                <Route size={16} />
-                Edit route
-              </button>
-            ) : null}
-            {!isCanonicalRiverOverviewActive ? (
-              <>
-                <button
-                  className={`ghost-button map-panel-toggle topbar-secondary-control ${
-                    routeCreateMode !== "idle" && routeDraftTarget.type === "new"
-                      ? "map-panel-toggle--active"
-                      : ""
-                  }`}
-                  type="button"
-                  title="Suggest a missing route"
-                  aria-label="Suggest a missing route"
-                  aria-pressed={routeCreateMode !== "idle"}
-                  onClick={() => startRouteSuggestionMode()}
-                >
-                  <Route size={16} />
-                  Suggest route
-                </button>
-                <button
-                  className="primary-action topbar-secondary-control"
-                  type="button"
-                  title="Add local knowledge"
-                  onClick={() => requestAddContribution()}
-                >
-                  <Plus size={18} />
-                  Add info
-                </button>
-              </>
-            ) : null}
-            {isCanonicalRiverOverviewActive ? (
-              <button
-                className="primary-action topbar-secondary-control"
-                type="button"
-                title="Add local knowledge"
-                onClick={() => requestAddContribution()}
-              >
-                <Plus size={18} />
-                Add info
-              </button>
-            ) : null}
+          <div className="topbar-actions">
+            <MapFilterControl
+              categories={mapLayerCategories}
+              selected={selectedMapLayers}
+              onToggle={toggleMapLayer}
+              onClear={clearMapLayers}
+            />
             {authMessage || authState.error ? (
               <p className="topbar-message">
                 {authMessage || authState.error}
@@ -4192,8 +4241,157 @@ function App() {
           </div>
         </section>
       ) : null}
+      {activeAppSection === "map" && !isCanonicalRiverOverviewActive ? (
+        <div className="map-section-toolbar">
+          <button
+            className={`ghost-button map-panel-toggle ${
+              isPanelOpen && routeDetailsTab === "levels"
+                ? "map-panel-toggle--active"
+                : ""
+            }`}
+            type="button"
+            onClick={() => openCurrentRouteDetailsTab("levels")}
+            title="View levels"
+            aria-label="View levels"
+            aria-pressed={isPanelOpen && routeDetailsTab === "levels"}
+          >
+            <Droplets size={16} />
+            Levels
+          </button>
+          <button
+            className={`ghost-button map-panel-toggle ${
+              isPanelOpen && routeDetailsTab !== "levels"
+                ? "map-panel-toggle--active"
+                : ""
+            }`}
+            type="button"
+            onClick={toggleRouteDetailsPanel}
+            title="Section details"
+            aria-label="Section details"
+            aria-pressed={isPanelOpen && routeDetailsTab !== "levels"}
+          >
+            <MapPinned size={16} />
+            Details
+          </button>
+          <button
+            className={`icon-button topbar-secondary-control ${
+              isActiveSectionFavourite ? "icon-button--active" : ""
+            }`}
+            type="button"
+            title={
+              !isSignedIn
+                ? "Create account to save favourites"
+                : isActiveSectionFavourite
+                ? "Remove from favourites"
+                : "Add to favourites"
+            }
+            aria-label={
+              !isSignedIn
+                ? "Create account to save favourites"
+                : isActiveSectionFavourite
+                ? "Remove from favourites"
+                : "Add to favourites"
+            }
+            aria-pressed={isActiveSectionFavourite}
+            onClick={() => toggleFavouriteSection(activeSection)}
+          >
+            <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
+            <span className="topbar-control-label">
+              {isActiveSectionFavourite ? "Saved" : "Favourite"}
+            </span>
+          </button>
+          {canAccessAdminTools ? (
+            <button
+              className={`ghost-button map-panel-toggle topbar-secondary-control ${
+                routeDraftTarget.type !== "new" ? "map-panel-toggle--active" : ""
+              }`}
+              type="button"
+              title="Edit this route"
+              aria-label="Edit this route"
+              aria-pressed={routeDraftTarget.type !== "new"}
+              onClick={() => startRouteAdjustmentMode(activeSection)}
+            >
+              <Route size={16} />
+              Edit route
+            </button>
+          ) : null}
+          <button
+            className={`ghost-button map-panel-toggle topbar-secondary-control ${
+              routeCreateMode !== "idle" && routeDraftTarget.type === "new"
+                ? "map-panel-toggle--active"
+                : ""
+            }`}
+            type="button"
+            title="Suggest a missing route"
+            aria-label="Suggest a missing route"
+            aria-pressed={routeCreateMode !== "idle"}
+            onClick={() => startRouteSuggestionMode()}
+          >
+            <Route size={16} />
+            Suggest route
+          </button>
+        </div>
+      ) : null}
+      {activeAppSection === "map" ? (
+        <div className="map-floating-actions">
+          <MapActions>
+            <MapActionButton
+              label={isLevelLegendOpen ? "Hide level key" : "Show level key"}
+              active={isLevelLegendOpen}
+              onClick={() => setIsLevelLegendOpen((value) => !value)}
+            >
+              <Palette size={19} />
+            </MapActionButton>
+            <MapActionButton
+              label={
+                isLiveLocationEnabled
+                  ? "Centre on my location"
+                  : "Show my location"
+              }
+              active={isLiveLocationEnabled}
+              onClick={handleLiveLocationButtonClick}
+            >
+              <Navigation size={19} />
+            </MapActionButton>
+            <MapActionButton
+              label={
+                markerClickMode === "info"
+                  ? "Marker clicks: quick info"
+                  : "Marker clicks: open details"
+              }
+              active={markerClickMode === "detail"}
+              onClick={toggleMarkerClickMode}
+            >
+              <MessageSquare size={19} />
+            </MapActionButton>
+            <MapActionButton
+              label="Add local knowledge"
+              onClick={() => requestAddContribution()}
+            >
+              <Plus size={19} />
+            </MapActionButton>
+            <MapActionButton
+              label={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
+              badge={queuedOutboxCount > 0}
+              onClick={() => {
+                if (canSyncOutbox) syncOutboxNow();
+              }}
+            >
+              <RefreshCw size={18} />
+            </MapActionButton>
+          </MapActions>
+        </div>
+      ) : null}
+      {activeAppSection === "map" && showRain && rainFrames.length > 0 ? (
+        <WeatherTimebar
+          frames={rainFrames}
+          selectedTs={selectedRainTs}
+          onSelect={setSelectedRainTs}
+        />
+      ) : null}
           {activeAppSection === "map" ? (
       <section className="workspace">
+        {isLevelLegendOpen ? <MapLevelLegend /> : null}
         <SyncOutboxBanner
           queuedOutboxCount={queuedOutboxCount}
           failedOutboxCount={failedOutboxCount}
@@ -4208,7 +4406,7 @@ function App() {
         <RiverMap
           sections={appRiverSections}
           activeSection={activeSection}
-          canonicalRivers={canonicalRivers}
+          canonicalRivers={mapDisplayRivers}
           selectedCanonicalRiver={selectedCanonicalRiver}
           isSelectedRiverPanelOpen={isSelectedRiverPanelOpen}
           isSelectedRiverPanelExpanded={isSelectedRiverPanelExpanded}
@@ -4241,7 +4439,17 @@ function App() {
           routeCreateMode={routeCreateMode}
           markerClickMode={markerClickMode}
           showRoutesLayer={showRoutesLayer}
+          showPublicRoutes={showPublicRoutes}
+          approvedRouteSuggestions={approvedRouteSuggestions}
           showRiverLayer={showRiverLayer}
+          sectionLevelStates={sectionLevelStates}
+          riverLevelStates={riverLevelStates}
+          globalPois={globalPois}
+          amenities={displayedAmenities}
+          riverLevelLines={riverLevelLines}
+          showRain={showRain}
+          stations={displayedStations}
+          rainTs={selectedRainTs}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
           watercourseFocusId={watercourseFocusId}

@@ -1,0 +1,46 @@
+.map-proto {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  /* Faint map-ish backdrop so the control reads as floating over a map. */
+  background-color: #b6cfc0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.45) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.45) 1px, transparent 1px),
+    radial-gradient(120% 90% at 30% 20%, rgba(120, 170, 220, 0.35), transparent 55%);
+  background-size: 44px 44px, 44px 44px, cover;
+}
+
+.map-proto__map {
+  position: absolute;
+  inset: 0;
+}
+
+.map-proto__control {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 10;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.map-proto__actions {
+  position: fixed;
+  right: 12px;
+  bottom: 44px;
+  z-index: 10;
+}
+
+.map-proto__note {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  margin: 0;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(20, 45, 30, 0.6);
+}

@@ -43,7 +43,6 @@ export const MOBILE_DETAIL_PANEL_QUERY = "(max-width: 720px)";
 export const NEARBY_POI_MAX_KM = 5;
 export const ROUTE_POINT_DEDUPE_METRES = 3;
 export const ROUTE_SNAP_MAX_AVERAGE_DISTANCE_KM = 1.5;
-export const COMPACT_MAP_CONTROLS_QUERY = "(max-width: 430px)";
 export const ROUTE_IMPACT_CORRIDOR_METRES = 120;
 export const ROUTE_IMPACT_ENDPOINT_WARNING_METRES = 350;
 export const KNOWN_RIVER_FALLBACK_COLOUR = "#b42318";

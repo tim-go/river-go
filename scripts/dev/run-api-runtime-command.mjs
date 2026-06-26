@@ -7,7 +7,7 @@ import process from "node:process";
 const [, , envName = "local", ...command] = process.argv;
 
 if (!command.length) {
-  console.error("Usage: node scripts/run-api-runtime-command.mjs <env> <command...>");
+  console.error("Usage: node scripts/dev/run-api-runtime-command.mjs <env> <command...>");
   process.exit(1);
 }
 

@@ -8,8 +8,9 @@ import {
 } from "../services/locationReferences";
 import { formatLocation } from "./format";
 
-export function markerHtml(kind: string, label: string) {
-  return `<span class="map-marker map-marker--${kind}" aria-hidden="true">${label}</span>`;
+export function markerHtml(kind: string, label: string, styleOverride = "") {
+  const style = styleOverride ? ` style="${styleOverride}"` : "";
+  return `<span class="map-marker map-marker--${kind}"${style} aria-hidden="true">${label}</span>`;
 }
 
 export function createMapPopupContent({
@@ -37,7 +38,7 @@ export function createMapPopupContent({
   navigationLocation?: LatLngTuple;
   navigationLabel?: string;
   navigationMode?: "directions" | "map";
-  onDetails: () => void;
+  onDetails?: () => void;
   selectLabel?: string;
   onSelect?: () => void;
 }) {
@@ -80,17 +81,19 @@ export function createMapPopupContent({
   body.textContent = summary;
 
   const actions = L.DomUtil.create("div", "map-popup-actions", container);
-  const detailsButton = L.DomUtil.create("button", "", actions);
-  detailsButton.type = "button";
-  detailsButton.textContent = detailsLabel;
-  L.DomEvent.on(detailsButton, "click", (event) => {
-    L.DomEvent.stop(event);
-    container
-      .closest(".leaflet-popup")
-      ?.querySelector<HTMLAnchorElement>(".leaflet-popup-close-button")
-      ?.click();
-    onDetails();
-  });
+  if (onDetails) {
+    const detailsButton = L.DomUtil.create("button", "", actions);
+    detailsButton.type = "button";
+    detailsButton.textContent = detailsLabel;
+    L.DomEvent.on(detailsButton, "click", (event) => {
+      L.DomEvent.stop(event);
+      container
+        .closest(".leaflet-popup")
+        ?.querySelector<HTMLAnchorElement>(".leaflet-popup-close-button")
+        ?.click();
+      onDetails();
+    });
+  }
 
   if (onSelect) {
     const selectButton = L.DomUtil.create("button", "", actions);

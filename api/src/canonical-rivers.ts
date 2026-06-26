@@ -226,7 +226,7 @@ export async function listSourceCandidatePois(
       scp.source_url,
       scp.licence,
       scp.candidate_type,
-      scp.title,
+      scp.name AS title,
       scp.status,
       ST_AsGeoJSON(scp.geometry)::json AS geometry_geojson,
       scp.raw_properties,
@@ -235,7 +235,7 @@ export async function listSourceCandidatePois(
     FROM source_candidate_pois scp
     LEFT JOIN canonical_rivers cr ON cr.id = scp.river_id
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-    ORDER BY cr.display_name ASC NULLS LAST, scp.candidate_type ASC, scp.title ASC
+    ORDER BY cr.display_name ASC NULLS LAST, scp.candidate_type ASC, scp.name ASC
     LIMIT $${values.length}`,
     values,
   );
@@ -324,7 +324,7 @@ export async function updateSourceCandidatePoiStatus(
       scp.source_url,
       scp.licence,
       scp.candidate_type,
-      scp.title,
+      scp.name AS title,
       scp.status,
       ST_AsGeoJSON(scp.geometry)::json AS geometry_geojson,
       scp.raw_properties,
@@ -361,7 +361,7 @@ async function promoteSourceCandidateToMapPoi(
       scp.source_url,
       scp.licence,
       scp.candidate_type,
-      scp.title,
+      scp.name AS title,
       scp.status,
       ST_AsGeoJSON(scp.geometry)::json AS geometry_geojson,
       scp.raw_properties,
@@ -423,21 +423,21 @@ async function promoteSourceCandidateToMapPoi(
   };
 
   await client.query(
-    `INSERT INTO map_pois (
+    `INSERT INTO paddling_features (
       id,
       section_id,
-      kind,
+      category,
       geometry,
-      title,
+      name,
       subtitle,
       summary,
-      source_kind,
+      source,
       source_label,
       source_confidence,
       source_updated_at,
       source_url,
       verification_status,
-      payload
+      metadata
     ) VALUES (
       $1,
       $2,
@@ -456,20 +456,20 @@ async function promoteSourceCandidateToMapPoi(
     )
     ON CONFLICT (id) DO UPDATE SET
       section_id = EXCLUDED.section_id,
-      kind = EXCLUDED.kind,
+      category = EXCLUDED.category,
       geometry = EXCLUDED.geometry,
-      title = EXCLUDED.title,
+      name = EXCLUDED.name,
       subtitle = EXCLUDED.subtitle,
       summary = EXCLUDED.summary,
-      source_kind = EXCLUDED.source_kind,
+      source = EXCLUDED.source,
       source_label = EXCLUDED.source_label,
       source_confidence = EXCLUDED.source_confidence,
       source_updated_at = EXCLUDED.source_updated_at,
       source_url = EXCLUDED.source_url,
       verification_status = 'needs-confirmation',
-      payload = EXCLUDED.payload,
+      metadata = EXCLUDED.metadata,
       updated_at = now(),
-      revision = map_pois.revision + 1`,
+      revision = paddling_features.revision + 1`,
     [
       mapPoiId,
       sectionId,
@@ -566,7 +566,7 @@ export async function repromotePilotCandidates(): Promise<{
            WHERE id = $1`,
           [candidate.id],
         );
-        await client.query(`DELETE FROM map_pois WHERE id = $1`, [
+        await client.query(`DELETE FROM paddling_features WHERE id = $1`, [
           `source-candidate:${candidate.id}`,
         ]);
         excluded += 1;

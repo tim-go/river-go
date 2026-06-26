@@ -1,0 +1,37 @@
+.map-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-action {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(20, 30, 50, 0.1);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(10px);
+  color: #1a2238;
+  cursor: pointer;
+}
+
+.map-action--active {
+  border-color: #ffd60a;
+  background: #ffd60a;
+  color: #1a1300;
+}
+
+.map-action__badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #2bb673;
+}

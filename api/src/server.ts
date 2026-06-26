@@ -35,6 +35,7 @@ import {
   isMapPoiReviewAction,
   isMapPoiReviewDecision,
   listMapPoiCorrectionReviews,
+  listAllMapPois,
   listMapPoisForRiver,
   listMapPoisForSection,
   reviewMapPoi,
@@ -119,6 +120,7 @@ import {
   listModerationRouteAdjustments,
 } from "./route-adjustments.js";
 import { listRouteOverrides } from "./route-overrides.js";
+import { listAmenities } from "./amenities.js";
 import { pushSyncOperations } from "./sync.js";
 import {
   lookupCoordinatesForWhat3Words,
@@ -128,16 +130,25 @@ import {
   getRecentObservationIngestionJobRun,
   listObservationJobRuns,
   listObservationsForSection,
+  listRiverLevelStates,
+  listSectionLevelStates,
+  listStations,
   runObservationBackfillJob,
   runObservationIngestionJob,
 } from "./observations.js";
 import {
+  listRiverLevelLines,
   listWatercourseImportStatus,
   listWatercoursesForViewport,
   searchWatercoursesByName,
   snapRouteToWatercourses,
   type WatercourseSource,
 } from "./watercourses.js";
+import {
+  fetchRainFrame,
+  listRainFrames,
+  RAIN_BOUNDS_TUPLE,
+} from "./weather.js";
 
 async function route(
   requestUrl: string,
@@ -688,6 +699,31 @@ async function route(
     return { status: 200, body: { photos } };
   }
 
+  if (method === "GET" && url.pathname === "/api/rivers/level-states") {
+    const riverLevelStates = await listRiverLevelStates();
+    return { status: 200, body: { riverLevelStates } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/stations") {
+    const stations = await listStations();
+    return { status: 200, body: { stations } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/rivers/level-lines") {
+    const riverLevelLines = await listRiverLevelLines();
+    return { status: 200, body: { riverLevelLines } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/map-pois") {
+    const pois = await listAllMapPois();
+    return { status: 200, body: { pois } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/amenities") {
+    const amenities = await listAmenities();
+    return { status: 200, body: { amenities } };
+  }
+
   const riverDetailMatch = url.pathname.match(/^\/api\/rivers\/([^/]+)$/);
   if (method === "GET" && riverDetailMatch) {
     const river = await getCanonicalRiver(decodeURIComponent(riverDetailMatch[1]));
@@ -962,6 +998,16 @@ async function route(
     return { status: 200, body: { contributions } };
   }
 
+  if (method === "GET" && url.pathname === "/api/sections/level-states") {
+    const levelStates = await listSectionLevelStates();
+    return { status: 200, body: { levelStates } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/weather/rain/frames") {
+    const frames = await listRainFrames();
+    return { status: 200, body: { frames, bounds: RAIN_BOUNDS_TUPLE } };
+  }
+
   const sectionObservationsMatch = url.pathname.match(
     /^\/api\/sections\/([^/]+)\/observations$/,
   );
@@ -1034,6 +1080,32 @@ export function createApiServer() {
         (request.url ?? "").startsWith("/api/dev/email-preview")
       ) {
         sendEmailPreview(response, new URL(request.url ?? "/", "http://localhost"));
+        return;
+      }
+      if (
+        method === "GET" &&
+        (request.url ?? "").startsWith("/api/weather/rain.png")
+      ) {
+        const tsParam = new URL(
+          request.url ?? "",
+          "http://localhost",
+        ).searchParams.get("ts");
+        const tsValue = Number(tsParam);
+        const ts =
+          tsParam != null && Number.isFinite(tsValue)
+            ? Math.max(0, Math.trunc(tsValue))
+            : 0;
+        const frame = await fetchRainFrame(ts);
+        if (!frame) {
+          response.writeHead(503, { "Content-Type": "text/plain; charset=utf-8" });
+          response.end("Rain layer unavailable");
+          return;
+        }
+        response.writeHead(200, {
+          "Content-Type": frame.contentType,
+          "Cache-Control": "public, max-age=600",
+        });
+        response.end(frame.bytes);
         return;
       }
       const body = ["PATCH", "POST", "PUT"].includes(method)

@@ -1,6 +1,7 @@
 import type { PoolClient } from "pg";
 import { pool } from "./db.js";
 import { HttpError } from "./http.js";
+import { loadObservationStationsSeed } from "./seed-observation-stations.js";
 
 type ObservationParameter =
   | "river_level"
@@ -31,7 +32,7 @@ type ObservationProvider =
   | "natural-resources-wales"
   | "sepa";
 
-interface SeedObservationMeasure {
+export interface SeedObservationMeasure {
   provider: ObservationProvider;
   providerStationId: string;
   providerMeasureId: string;
@@ -127,381 +128,6 @@ interface ObservationProviderJobOptions {
   windowHours: number;
 }
 
-function gaugeSourceUrl(
-  provider: ObservationProvider,
-  stationId: string,
-  measureId: string,
-): string {
-  if (provider === "environment-agency") {
-    return `https://environment.data.gov.uk/flood-monitoring/id/measures/${measureId}`;
-  }
-  if (provider === "natural-resources-wales") {
-    return `https://rivers-and-seas.naturalresources.wales/Station/${stationId}?lang=en&parameterType=1`;
-  }
-  return `https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=${measureId}&format=html`;
-}
-
-// Research-discovered, live-verified paddler gauges for the catalogue rivers.
-// Attached as primary at nearby-candidate confidence (needs-confirmation). One
-// station may serve several rivers (proxy gauges for ungauged neighbours).
-function paddlingGauge(
-  provider: ObservationProvider,
-  providerStationId: string,
-  providerMeasureId: string,
-  stationName: string,
-  sectionIds: string[],
-): SeedObservationMeasure {
-  return {
-    provider,
-    providerStationId,
-    providerMeasureId,
-    stationName,
-    parameter: "river_level",
-    unit: "m",
-    samplingInterval: "15_min",
-    datum: "stage",
-    sourceUrl: gaugeSourceUrl(provider, providerStationId, providerMeasureId),
-    sectionLinks: sectionIds.map((sectionId) => ({
-      sectionId,
-      relevance: "primary" as const,
-      confidence: "nearby-candidate" as const,
-      notes:
-        "Research-discovered paddler gauge; auto-attached and needs local confirmation.",
-    })),
-  };
-}
-
-const initialObservationMeasures: SeedObservationMeasure[] = [
-  {
-    provider: "natural-resources-wales",
-    providerStationId: "4153",
-    providerMeasureId: "4153:164",
-    stationName: "Tryweryn at Bala Weir X",
-    parameter: "river_level",
-    unit: "m",
-    samplingInterval: "15_min",
-    datum: "stage",
-    sourceUrl:
-      "https://rivers-and-seas.naturalresources.wales/Station/4153?lang=en&parameterType=1",
-    sectionLinks: [
-      {
-        sectionId: "tryweryn-dam-centre",
-        relevance: "downstream",
-        confidence: "nearby-candidate",
-        notes:
-          "NRW Bala Weir X is downstream of the upper Tryweryn section. Useful release/level context, but needs local validation before interpreting conditions near the dam or centre.",
-      },
-      {
-        sectionId: "tryweryn-centre-bala",
-        relevance: "primary",
-        confidence: "section-candidate",
-        notes:
-          "NRW Bala Weir X is a candidate primary level measure for the lower Tryweryn toward Bala. Runnable interpretation needs local validation.",
-      },
-    ],
-  },
-  {
-    provider: "natural-resources-wales",
-    providerStationId: "1018",
-    providerMeasureId: "1018:10113",
-    stationName: "Tryweryn Dam Pluvio and raingauge",
-    parameter: "rainfall",
-    unit: "mm",
-    samplingInterval: "15_min",
-    datum: "rainfall",
-    sourceUrl:
-      "https://rivers-and-seas.naturalresources.wales/Station/1018?lang=en&parameterType=2",
-    sectionLinks: [
-      {
-        sectionId: "tryweryn-dam-centre",
-        relevance: "rainfall_context",
-        confidence: "nearby-candidate",
-        notes:
-          "NRW rainfall measure at Tryweryn Dam provides local catchment context only. Release-managed flow still needs release schedule and local interpretation.",
-      },
-      {
-        sectionId: "tryweryn-centre-bala",
-        relevance: "rainfall_context",
-        confidence: "nearby-candidate",
-        notes:
-          "NRW rainfall measure at Tryweryn Dam provides upstream rainfall context for the lower Tryweryn.",
-      },
-    ],
-  },
-  {
-    provider: "natural-resources-wales",
-    providerStationId: "4014",
-    providerMeasureId: "4014:197",
-    stationName: "Wye at Glasbury",
-    parameter: "river_level",
-    unit: "m",
-    samplingInterval: "15_min",
-    datum: "stage",
-    sourceUrl:
-      "https://rivers-and-seas.naturalresources.wales/Station/4014?lang=en&parameterType=1",
-    sectionLinks: [
-      {
-        sectionId: "wye-glasbury-hay",
-        relevance: "primary",
-        confidence: "section-candidate",
-        notes:
-          "NRW Glasbury is a candidate primary level measure for Glasbury to Hay-on-Wye. Runnable ranges need local validation.",
-      },
-    ],
-  },
-  {
-    provider: "natural-resources-wales",
-    providerStationId: "4016",
-    providerMeasureId: "4016:198",
-    stationName: "Wye at Hay On Wye",
-    parameter: "river_level",
-    unit: "m",
-    samplingInterval: "15_min",
-    datum: "stage",
-    sourceUrl:
-      "https://rivers-and-seas.naturalresources.wales/Station/4016?lang=en&parameterType=1",
-    sectionLinks: [
-      {
-        sectionId: "wye-glasbury-hay",
-        relevance: "downstream",
-        confidence: "section-candidate",
-        notes:
-          "NRW Hay-on-Wye is a downstream candidate for Glasbury to Hay-on-Wye.",
-      },
-      {
-        sectionId: "wye-hay-whitney",
-        relevance: "primary",
-        confidence: "section-candidate",
-        notes:
-          "NRW Hay-on-Wye is a candidate primary level measure for Hay-on-Wye to Whitney Bridge.",
-      },
-    ],
-  },
-  {
-    provider: "natural-resources-wales",
-    providerStationId: "4004",
-    providerMeasureId: "4004:10036",
-    stationName: "Wye at Bredwardine",
-    parameter: "river_level",
-    unit: "m",
-    samplingInterval: "15_min",
-    datum: "stage",
-    sourceUrl:
-      "https://rivers-and-seas.naturalresources.wales/Station/4004?lang=en&parameterType=1",
-    sectionLinks: [
-      {
-        sectionId: "wye-whitney-bredwardine",
-        relevance: "primary",
-        confidence: "section-candidate",
-        notes:
-          "NRW/EA Bredwardine is a candidate primary level measure for Whitney Bridge to Bredwardine.",
-      },
-    ],
-  },
-  {
-    provider: "environment-agency",
-    providerStationId: "055807_TG_320",
-    providerMeasureId: "055807_TG_320-level-stage-i-15_min-mASD",
-    stationName: "Old Wye Bridge",
-    parameter: "river_level",
-    unit: "mASD",
-    samplingInterval: "15_min",
-    datum: "mASD",
-    sourceUrl:
-      "https://environment.data.gov.uk/flood-monitoring/id/measures/055807_TG_320-level-stage-i-15_min-mASD",
-    sectionLinks: [
-      {
-        sectionId: "wye-hoarwithy-ross",
-        relevance: "upstream",
-        confidence: "nearby-candidate",
-        notes:
-          "EA Old Wye Bridge is upstream of Hoarwithy to Ross-on-Wye. Use as context until a better section-specific link is validated.",
-      },
-    ],
-  },
-  {
-    provider: "environment-agency",
-    providerStationId: "055817_TG_323",
-    providerMeasureId: "055817_TG_323-level-stage-i-15_min-mASD",
-    stationName: "Ross On Wye",
-    parameter: "river_level",
-    unit: "mASD",
-    samplingInterval: "15_min",
-    datum: "mASD",
-    sourceUrl:
-      "https://environment.data.gov.uk/flood-monitoring/id/measures/055817_TG_323-level-stage-i-15_min-mASD",
-    sectionLinks: [
-      {
-        sectionId: "wye-hoarwithy-ross",
-        relevance: "downstream",
-        confidence: "section-candidate",
-        notes:
-          "EA Ross-on-Wye is a downstream candidate for Hoarwithy to Ross-on-Wye.",
-      },
-      {
-        sectionId: "wye-ross-kerne",
-        relevance: "primary",
-        confidence: "section-candidate",
-        notes:
-          "EA Ross-on-Wye is a candidate primary level measure for Ross-on-Wye to Kerne Bridge.",
-      },
-      {
-        sectionId: "wye-kerne-symonds-yat",
-        relevance: "upstream",
-        confidence: "section-candidate",
-        notes:
-          "EA Ross-on-Wye is an upstream candidate for Kerne Bridge to Symonds Yat.",
-      },
-    ],
-  },
-  {
-    provider: "environment-agency",
-    providerStationId: "2320",
-    providerMeasureId: "2320-level-stage-i-15_min-mASD",
-    stationName: "Lydbrook LVL",
-    parameter: "river_level",
-    unit: "mASD",
-    samplingInterval: "15_min",
-    datum: "mASD",
-    sourceUrl:
-      "https://environment.data.gov.uk/flood-monitoring/id/measures/2320-level-stage-i-15_min-mASD",
-    sectionLinks: [
-      {
-        sectionId: "wye-ross-kerne",
-        relevance: "downstream",
-        confidence: "section-candidate",
-        notes:
-          "EA Lydbrook is downstream of Ross-on-Wye to Kerne Bridge. Needs local validation before interpreting runnable ranges.",
-      },
-      {
-        sectionId: "wye-kerne-symonds-yat",
-        relevance: "primary",
-        confidence: "section-candidate",
-        notes:
-          "Lower Wye candidate EA level measure. Needs local validation before interpreting runnable ranges.",
-      },
-      {
-        sectionId: "wye-symonds-yat-monmouth",
-        relevance: "primary",
-        confidence: "section-candidate",
-        notes:
-          "Lower Wye candidate EA level measure. Needs local validation before interpreting runnable ranges.",
-      },
-    ],
-  },
-  {
-    provider: "environment-agency",
-    providerStationId: "46122",
-    providerMeasureId: "46122-level-stage-i-15_min-m",
-    stationName: "River Dart at Austins Bridge",
-    parameter: "river_level",
-    unit: "m",
-    samplingInterval: "15_min",
-    datum: "m",
-    sourceUrl:
-      "https://environment.data.gov.uk/flood-monitoring/id/measures/46122-level-stage-i-15_min-m",
-    sectionLinks: [
-      {
-        sectionId: "dart-loop",
-        relevance: "primary",
-        confidence: "section-candidate",
-        notes:
-          "EA Austins Bridge is the standard paddler gauge for the Dart Loop (Newbridge to Buckfastleigh). Runnable ranges need local validation.",
-      },
-    ],
-  },
-  {
-    provider: "natural-resources-wales",
-    providerStationId: "4163",
-    providerMeasureId: "4163:38",
-    stationName: "Dee at Corwen",
-    parameter: "river_level",
-    unit: "m",
-    samplingInterval: "15_min",
-    datum: "stage",
-    sourceUrl:
-      "https://rivers-and-seas.naturalresources.wales/Station/4163?lang=en&parameterType=1",
-    sectionLinks: [
-      {
-        sectionId: "dee-llangollen",
-        relevance: "primary",
-        confidence: "nearby-candidate",
-        notes:
-          "NRW Dee at Corwen is the nearest online gauge upstream of Llangollen (Town Falls/Serpent's Tail); there is no telemetered gauge in Llangollen itself. Runnable ranges need local validation.",
-      },
-    ],
-  },
-  {
-    provider: "sepa",
-    providerStationId: "14935",
-    providerMeasureId: "55173010",
-    stationName: "Tay at Pitnacree",
-    parameter: "river_level",
-    unit: "m",
-    samplingInterval: "15_min",
-    datum: "stage",
-    sourceUrl:
-      "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55173010&format=html",
-    sectionLinks: [
-      {
-        sectionId: "tay-grandtully",
-        relevance: "primary",
-        confidence: "nearby-candidate",
-        notes:
-          "SEPA Pitnacree is the closest gauge (about 2 km downstream) to Grandtully; the de-facto Tay-at-Grandtully level. Runnable ranges need local validation.",
-      },
-    ],
-  },
-  // --- Research-discovered paddler gauges for the 57 catalogue rivers (#2) ---
-  // England (EA)
-  paddlingGauge("environment-agency", "750801", "750801-level-stage-i-15_min-m", "Greta at Riddings Wood", ["river-greta-cumbria-main"]),
-  paddlingGauge("environment-agency", "730511", "730511-level-stage-i-15_min-m", "Kent at Sedgwick", ["river-kent-main"]),
-  paddlingGauge("environment-agency", "735430", "735430-level-stage-i-15_min-m", "Leven at Newby Bridge", ["river-leven-main"]),
-  paddlingGauge("environment-agency", "737537", "737537-level-stage-i-15_min-m", "Crake at Low Nibthwaite", ["river-crake-main"]),
-  paddlingGauge("environment-agency", "740101", "740101-level-stage-i-15_min-m", "Duddon at Ulpha", ["river-duddon-main"]),
-  paddlingGauge("environment-agency", "742006", "742006-level-stage-i-15_min-m", "Esk at Cropple How", ["river-esk-eskdale-main"]),
-  paddlingGauge("environment-agency", "735123", "735123-level-stage-i-15_min-m", "Brathay at Jeffy Knotts", ["river-brathay-main"]),
-  paddlingGauge("environment-agency", "760502", "760502-level-stage-i-15_min-m", "Eden at Temple Sowerby", ["river-eden-cumbria-main"]),
-  paddlingGauge("environment-agency", "722242", "722242-level-stage-i-15_min-m", "Lune at Lunes Bridge", ["river-lune-main"]),
-  paddlingGauge("environment-agency", "723423", "723423-level-stage-i-15_min-m", "Rawthey at Brigflats", ["river-rawthey-main"]),
-  paddlingGauge("environment-agency", "F3505", "F3505-level-stage-i-15_min-m", "Tees at Middleton", ["river-tees-upper-main"]),
-  paddlingGauge("environment-agency", "F2306", "F2306-level-stage-i-15_min-m", "Swale at Catterick Bridge", ["river-swale-main"]),
-  paddlingGauge("environment-agency", "L2208", "L2208-level-stage-i-15_min-m", "Ure at Bainbridge", ["river-ure-main"]),
-  paddlingGauge("environment-agency", "L1907", "L1907-level-stage-i-15_min-m", "Wharfe at Kettlewell", ["river-wharfe-main"]),
-  paddlingGauge("environment-agency", "023003", "023003-level-stage-i-15_min-m", "North Tyne at Reaverhill", ["river-north-tyne-main"]),
-  paddlingGauge("environment-agency", "47135", "47135-level-stage-i-15_min-m", "Tavy at Mary Tavy", ["river-tavy-main"]),
-  paddlingGauge("environment-agency", "45121", "45121-level-stage-i-15_min-m", "Barle at Brushford", ["river-barle-main"]),
-  paddlingGauge("environment-agency", "50150", "50150-level-stage-i-15_min-m", "East Lyn at Brendon", ["river-east-lyn-main"]),
-  // Wales (NRW) — Conwy/Glaslyn serve proxy neighbours
-  paddlingGauge("natural-resources-wales", "4145", "4145:28", "Conwy at Cwmlanerch", ["river-conwy-main", "river-llugwy-main", "river-lledr-main"]),
-  paddlingGauge("natural-resources-wales", "4155", "4155:71", "Glaslyn at Beddgelert", ["river-glaslyn-main", "river-colwyn-main"]),
-  paddlingGauge("natural-resources-wales", "4171", "4171:50", "Dwyfor at Garndolbenmaen", ["river-dwyfor-main"]),
-  paddlingGauge("natural-resources-wales", "4179", "4179:130", "Seiont at Peblic Mill", ["river-seiont-main"]),
-  paddlingGauge("natural-resources-wales", "4150", "4150:102", "Mawddach at Tyddyn Gwladys", ["river-mawddach-main"]),
-  paddlingGauge("natural-resources-wales", "4146", "4146:51", "Dyfi at Dyfi Bridge", ["river-dyfi-main"]),
-  paddlingGauge("natural-resources-wales", "4210", "4210:156", "Teifi at Glan Teifi", ["river-teifi-main"]),
-  paddlingGauge("natural-resources-wales", "4286", "4286:10093", "Usk at Brecon Promenade", ["river-usk-main"]),
-  paddlingGauge("natural-resources-wales", "4010", "4010:84", "Irfon at Cilmery", ["river-irfon-main"]),
-  paddlingGauge("natural-resources-wales", "4196", "4196:169", "Tywi at Dolau Hirion", ["river-tywi-main"]),
-  paddlingGauge("natural-resources-wales", "4091", "4091:152", "Tawe at Craig y Nos", ["river-tawe-main"]),
-  paddlingGauge("natural-resources-wales", "4121", "4121:103", "Mellte at Pontneddfechan", ["river-mellte-main"]),
-  // Scotland (SEPA) — Tummel serves the Perthshire Garry proxy
-  paddlingGauge("sepa", "133087", "52986010", "Orchy at Glen Orchy", ["river-orchy-main"]),
-  paddlingGauge("sepa", "116011", "52539010", "Nevis at Claggan", ["river-nevis-main"]),
-  paddlingGauge("sepa", "234189", "57174010", "Garry at Craigard", ["river-garry-invergarry-main"]),
-  paddlingGauge("sepa", "234262", "57823010", "Moriston at Levishie", ["river-moriston-main"]),
-  paddlingGauge("sepa", "234215", "57395010", "Affric at Fasnakyle", ["river-affric-main"]),
-  paddlingGauge("sepa", "234289", "58017010", "Carron at New Kelso", ["river-carron-wester-ross-main"]),
-  paddlingGauge("sepa", "234306", "58236010", "Findhorn at Shenachie", ["river-findhorn-main"]),
-  paddlingGauge("sepa", "234168", "56932010", "Spey at Boat of Garten", ["river-spey-main"]),
-  paddlingGauge("sepa", "234217", "57411010", "Feshie at Feshie Bridge", ["river-feshie-main"]),
-  paddlingGauge("sepa", "234274", "57912010", "Dee at Mar Lodge", ["river-dee-aberdeenshire-main"]),
-  paddlingGauge("sepa", "14963", "55554010", "Tummel at Pitlochry", ["river-tummel-main", "river-garry-perthshire-main"]),
-  paddlingGauge("sepa", "14951", "55383010", "Lyon at Comrie Bridge", ["river-lyon-main"]),
-  paddlingGauge("sepa", "14956", "55481010", "Ericht at Craighall", ["river-ericht-main"]),
-  paddlingGauge("sepa", "14979", "55822010", "Tweed at Peebles", ["river-tweed-main"]),
-];
-
 export async function runObservationIngestionJob(): Promise<ObservationJobRun> {
   return runObservationProviderJob({
     jobType: "observations.ingest",
@@ -535,7 +161,6 @@ async function runObservationProviderJob({
   let errorCount = 0;
 
   try {
-    await ensureInitialObservationMeasures(client);
     const measures = await listEnabledObservationMeasures(client);
 
     for (const measure of measures) {
@@ -730,7 +355,290 @@ export async function listObservationsForSection(
   return result.rows.map(sectionObservationMeasureRow);
 }
 
-async function ensureInitialObservationMeasures(client: PoolClient) {
+const LEVEL_STATE_HISTORY_DAYS = 90;
+const LEVEL_STATE_MIN_SAMPLES = 20;
+
+export type SectionLevelBand =
+  | "low"
+  | "normal"
+  | "high"
+  | "very-high"
+  | "unknown";
+
+export interface SectionLevelState {
+  sectionId: string;
+  band: SectionLevelBand;
+  parameter: string;
+  unit: string | null;
+  value: number | null;
+  observedAt: string | null;
+  /** Fraction of the gauge's own recent history below the current reading (0..1). */
+  percentile: number | null;
+  sampleSize: number;
+}
+
+function classifyLevelBand(
+  sampleSize: number,
+  percentile: number | null,
+): SectionLevelBand {
+  if (sampleSize < LEVEL_STATE_MIN_SAMPLES || percentile === null) {
+    return "unknown";
+  }
+  if (percentile < 0.25) return "low";
+  if (percentile < 0.75) return "normal";
+  if (percentile < 0.9) return "high";
+  return "very-high";
+}
+
+// Honest level *state* per section: where the primary gauge's current reading sits in
+// its OWN recent history (percentile), not a curated runnable threshold. Sections with
+// no live primary gauge or too little history are omitted (the map renders them grey).
+export async function listSectionLevelStates(): Promise<SectionLevelState[]> {
+  const result = await pool.query(
+    `WITH primary_measure AS (
+       SELECT DISTINCT ON (l.section_id)
+         l.section_id,
+         m.id AS measure_id,
+         m.parameter,
+         m.unit,
+         latest.value AS latest_value,
+         latest.observed_at
+       FROM section_measure_links l
+       JOIN observation_measures m ON m.id = l.measure_id
+       JOIN observation_latest_readings latest ON latest.measure_id = m.id
+       WHERE l.relevance = 'primary'
+         AND m.parameter IN ('river_level', 'river_flow')
+         AND latest.state = 'live'
+         AND latest.value IS NOT NULL
+       ORDER BY l.section_id,
+         CASE m.parameter WHEN 'river_level' THEN 1 ELSE 2 END,
+         m.id
+     ),
+     stats AS (
+       SELECT pm.section_id,
+         pm.parameter,
+         pm.unit,
+         pm.latest_value,
+         pm.observed_at,
+         count(r.*) AS sample_size,
+         count(r.*) FILTER (WHERE r.value < pm.latest_value) AS below
+       FROM primary_measure pm
+       JOIN observation_readings r
+         ON r.measure_id = pm.measure_id
+         AND r.observed_at >= now() - ($1::int * interval '1 day')
+         AND r.value IS NOT NULL
+       GROUP BY pm.section_id, pm.parameter, pm.unit, pm.latest_value, pm.observed_at
+     )
+     SELECT section_id,
+       parameter,
+       unit,
+       latest_value,
+       observed_at,
+       sample_size,
+       CASE WHEN sample_size > 0 THEN below::float8 / sample_size ELSE NULL END
+         AS percentile
+     FROM stats`,
+    [LEVEL_STATE_HISTORY_DAYS],
+  );
+
+  return result.rows.map((row) => {
+    const sampleSize = Number(row.sample_size ?? 0);
+    const percentile =
+      row.percentile === null || row.percentile === undefined
+        ? null
+        : Number(row.percentile);
+    return {
+      sectionId: row.section_id as string,
+      parameter: row.parameter as string,
+      unit: (row.unit as string | null) ?? null,
+      value: row.latest_value === null ? null : Number(row.latest_value),
+      observedAt: row.observed_at
+        ? new Date(row.observed_at).toISOString()
+        : null,
+      percentile,
+      sampleSize,
+      band: classifyLevelBand(sampleSize, percentile),
+    };
+  });
+}
+
+export interface RiverLevelState {
+  riverId: string;
+  band: SectionLevelBand;
+  parameter: string;
+  unit: string | null;
+  value: number | null;
+  observedAt: string | null;
+  percentile: number | null;
+  sampleSize: number;
+}
+
+// Honest level state per canonical river: pick a primary gauge from one of its
+// sections and classify against that gauge's own recent history (percentile).
+// Rivers with no live primary gauge or too little history are omitted (grey).
+export async function listRiverLevelStates(): Promise<RiverLevelState[]> {
+  const result = await pool.query(
+    `WITH primary_measure AS (
+       SELECT DISTINCT ON (crsl.river_id)
+         crsl.river_id,
+         m.id AS measure_id,
+         m.parameter,
+         m.unit,
+         latest.value AS latest_value,
+         latest.observed_at
+       FROM canonical_river_section_links crsl
+       JOIN section_measure_links sml
+         ON sml.section_id = crsl.section_id AND sml.relevance = 'primary'
+       JOIN observation_measures m ON m.id = sml.measure_id
+       JOIN observation_latest_readings latest ON latest.measure_id = m.id
+       WHERE m.parameter IN ('river_level', 'river_flow')
+         AND latest.state = 'live'
+         AND latest.value IS NOT NULL
+       ORDER BY crsl.river_id,
+         CASE m.parameter WHEN 'river_level' THEN 1 ELSE 2 END,
+         m.id
+     ),
+     stats AS (
+       SELECT pm.river_id,
+         pm.parameter,
+         pm.unit,
+         pm.latest_value,
+         pm.observed_at,
+         count(r.*) AS sample_size,
+         count(r.*) FILTER (WHERE r.value < pm.latest_value) AS below
+       FROM primary_measure pm
+       JOIN observation_readings r
+         ON r.measure_id = pm.measure_id
+         AND r.observed_at >= now() - ($1::int * interval '1 day')
+         AND r.value IS NOT NULL
+       GROUP BY pm.river_id, pm.parameter, pm.unit, pm.latest_value, pm.observed_at
+     )
+     SELECT river_id,
+       parameter,
+       unit,
+       latest_value,
+       observed_at,
+       sample_size,
+       CASE WHEN sample_size > 0 THEN below::float8 / sample_size ELSE NULL END
+         AS percentile
+     FROM stats`,
+    [LEVEL_STATE_HISTORY_DAYS],
+  );
+
+  return result.rows.map((row) => {
+    const sampleSize = Number(row.sample_size ?? 0);
+    const percentile =
+      row.percentile === null || row.percentile === undefined
+        ? null
+        : Number(row.percentile);
+    return {
+      riverId: row.river_id as string,
+      parameter: row.parameter as string,
+      unit: (row.unit as string | null) ?? null,
+      value: row.latest_value === null ? null : Number(row.latest_value),
+      observedAt: row.observed_at
+        ? new Date(row.observed_at).toISOString()
+        : null,
+      percentile,
+      sampleSize,
+      band: classifyLevelBand(sampleSize, percentile),
+    };
+  });
+}
+
+export interface Station {
+  stationId: string;
+  name: string;
+  provider: string;
+  parameter: string;
+  lat: number;
+  lng: number;
+  value: number | null;
+  unit: string | null;
+  observedAt: string | null;
+  band: SectionLevelBand;
+  percentile: number | null;
+  sampleSize: number;
+  paddlerGauge: boolean;
+}
+
+// Every observation station with a live reading, classified honestly by where its
+// current reading sits in its own recent history. paddlerGauge = linked to a section.
+export async function listStations(): Promise<Station[]> {
+  const result = await pool.query(
+    `WITH station_measure AS (
+       SELECT DISTINCT ON (s.id)
+         s.id AS station_id,
+         s.name,
+         s.provider,
+         ST_Y(s.geometry) AS lat,
+         ST_X(s.geometry) AS lng,
+         m.id AS measure_id,
+         m.parameter,
+         m.unit,
+         latest.value AS latest_value,
+         latest.observed_at,
+         EXISTS (
+           SELECT 1 FROM section_measure_links sml WHERE sml.measure_id = m.id
+         ) AS paddler_gauge
+       FROM observation_stations s
+       JOIN observation_measures m ON m.station_id = s.id
+       JOIN observation_latest_readings latest ON latest.measure_id = m.id
+       WHERE latest.state = 'live' AND latest.value IS NOT NULL
+         AND s.geometry IS NOT NULL AND NOT ST_IsEmpty(s.geometry)
+       ORDER BY s.id,
+         CASE m.parameter WHEN 'river_level' THEN 1 WHEN 'river_flow' THEN 2 ELSE 3 END,
+         m.id
+     ),
+     stats AS (
+       SELECT sm.station_id, sm.name, sm.provider, sm.lat, sm.lng,
+         sm.parameter, sm.unit, sm.latest_value, sm.observed_at, sm.paddler_gauge,
+         count(r.*) AS sample_size,
+         count(r.*) FILTER (WHERE r.value < sm.latest_value) AS below
+       FROM station_measure sm
+       LEFT JOIN observation_readings r
+         ON r.measure_id = sm.measure_id
+         AND r.observed_at >= now() - ($1::int * interval '1 day')
+         AND r.value IS NOT NULL
+       GROUP BY sm.station_id, sm.name, sm.provider, sm.lat, sm.lng,
+         sm.parameter, sm.unit, sm.latest_value, sm.observed_at, sm.paddler_gauge
+     )
+     SELECT station_id, name, provider, lat, lng, parameter, unit,
+       latest_value, observed_at, paddler_gauge, sample_size,
+       CASE WHEN sample_size > 0 THEN below::float8 / sample_size ELSE NULL END
+         AS percentile
+     FROM stats`,
+    [LEVEL_STATE_HISTORY_DAYS],
+  );
+
+  return result.rows.map((row) => {
+    const sampleSize = Number(row.sample_size ?? 0);
+    const percentile =
+      row.percentile === null || row.percentile === undefined
+        ? null
+        : Number(row.percentile);
+    return {
+      stationId: row.station_id as string,
+      name: row.name as string,
+      provider: row.provider as string,
+      parameter: row.parameter as string,
+      lat: Number(row.lat),
+      lng: Number(row.lng),
+      value: row.latest_value === null ? null : Number(row.latest_value),
+      unit: (row.unit as string | null) ?? null,
+      observedAt: row.observed_at
+        ? new Date(row.observed_at).toISOString()
+        : null,
+      band: classifyLevelBand(sampleSize, percentile),
+      percentile,
+      sampleSize,
+      paddlerGauge: Boolean(row.paddler_gauge),
+    };
+  });
+}
+
+export async function ensureInitialObservationMeasures(client: PoolClient) {
+  const initialObservationMeasures = loadObservationStationsSeed();
   for (const seed of initialObservationMeasures) {
     const stationResult = await client.query<{ id: string }>(
       `INSERT INTO observation_stations (

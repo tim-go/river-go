@@ -1,6 +1,10 @@
 import type { PoolClient } from "pg";
 import { pool } from "./db.js";
 import { HttpError } from "./http.js";
+import {
+  listRiverLevelStates,
+  type SectionLevelBand,
+} from "./observations.js";
 
 export type LatLngTuple = [number, number];
 export type WatercourseSource = "osm_waterway";
@@ -297,6 +301,56 @@ export async function listWatercoursesForViewport(
           sourceVersion: row.source_version,
           source: row.source,
         },
+      },
+    ];
+  });
+}
+
+export interface RiverLevelLine {
+  riverId: string;
+  band: SectionLevelBand;
+  value: number | null;
+  unit: string | null;
+  lines: LatLngTuple[][];
+}
+
+// Real river lines from OSM geometry, coloured by the river's live level. Matches
+// OSM ways by exact name within each canonical river's bbox, aggregates + simplifies,
+// then joins the per-river level band. Rivers with no name+bbox match are omitted.
+export async function listRiverLevelLines(): Promise<RiverLevelLine[]> {
+  const geomResult = await pool.query<{
+    river_id: string;
+    geometry_geojson:
+      | { type: "LineString" | "MultiLineString"; coordinates: unknown }
+      | null;
+  }>(
+    // Read the precomputed per-river geometry (populated by build:river-geometry
+    // from the watercourse match) and simplify it cheaply on read — no 850k-way
+    // join per request. 0.0001 deg (~11m) hugs the river far closer than the old
+    // live 0.0006 (~67m).
+    `SELECT id AS river_id,
+       ST_AsGeoJSON(ST_SimplifyPreserveTopology(matched_geometry, 0.0001))::json
+         AS geometry_geojson
+     FROM canonical_rivers
+     WHERE matched_geometry IS NOT NULL AND NOT ST_IsEmpty(matched_geometry)`,
+  );
+
+  const states = await listRiverLevelStates();
+  const stateByRiver = new Map(states.map((state) => [state.riverId, state]));
+
+  return geomResult.rows.flatMap((row) => {
+    const lines = routesFromGeoJson(row.geometry_geojson);
+    if (!lines.length) {
+      return [];
+    }
+    const state = stateByRiver.get(row.river_id);
+    return [
+      {
+        riverId: row.river_id,
+        band: state?.band ?? "unknown",
+        value: state?.value ?? null,
+        unit: state?.unit ?? null,
+        lines,
       },
     ];
   });

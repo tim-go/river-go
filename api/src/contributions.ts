@@ -128,7 +128,7 @@ export async function listContributionsForSection(
           AND c.moderation_status = 'pending'
         )
       )
-      AND c.map_poi_id IS NULL
+      AND c.poi_id IS NULL
     ORDER BY c.created_at DESC`,
     [sectionId, viewerMemberId],
   );

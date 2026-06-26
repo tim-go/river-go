@@ -89,6 +89,27 @@ export async function fetchSectionMapPois(sectionId: string): Promise<MapPoi[]> 
   }, []);
 }
 
+export async function fetchAllMapPois(): Promise<MapPoi[]> {
+  const response = await fetch(`${getApiBaseUrl()}/api/map-pois`, {
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Map POI API failed with HTTP ${response.status}`);
+  }
+
+  const result = (await response.json()) as { pois?: ApiMapPoi[] };
+  return (result.pois ?? []).reduce<MapPoi[]>((pois, apiPoi) => {
+    const poi = mapApiMapPoi(apiPoi);
+
+    if (poi) {
+      pois.push(poi);
+    }
+
+    return pois;
+  }, []);
+}
+
 export async function fetchRiverMapPois(riverId: string): Promise<MapPoi[]> {
   const authToken = await getCurrentUserIdToken();
   const headers: Record<string, string> = {};

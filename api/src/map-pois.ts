@@ -122,20 +122,20 @@ export async function listMapPoisForSection(
       ${locationBackedMapPoiSelectColumnsSql(viewerMemberId)}
     FROM pois lp
     JOIN poi_route_links prl ON prl.poi_id = lp.id
-    JOIN map_pois p ON p.id = lp.source_entity_id
-    WHERE lp.source_entity_type = 'map_poi'
+    JOIN paddling_features p ON p.id = lp.source_entity_id
+    WHERE lp.source_entity_type = 'paddling_feature'
       AND lp.status != 'hidden'
       AND prl.route_source = 'section_fixture'
       AND prl.route_id = $1
       AND prl.status = 'active'
     ORDER BY
-      CASE p.kind
+      CASE p.category
         WHEN 'gauge' THEN 1
         WHEN 'access' THEN 2
         WHEN 'hazard' THEN 3
         ELSE 4
       END,
-      p.title ASC`,
+      p.name ASC`,
     viewerMemberId ? [sectionId, viewerMemberId] : [sectionId],
   );
 
@@ -150,15 +150,30 @@ export async function listMapPoisForRiver(
   const result = await client.query<MapPoiRow>(
     `SELECT DISTINCT ON (p.id)
       ${mapPoiSelectColumnsSql(viewerMemberId)}
-    FROM map_pois p
+    FROM paddling_features p
     JOIN canonical_river_section_links crsl
       ON crsl.section_id = p.section_id
       AND crsl.route_source = 'section_fixture'
       AND crsl.status = 'active'
     WHERE crsl.river_id = $1
       AND p.verification_status IN ('confirmed', 'needs-confirmation')
-    ORDER BY p.id, p.kind ASC, p.title ASC`,
+    ORDER BY p.id, p.category ASC, p.name ASC`,
     viewerMemberId ? [riverId, viewerMemberId] : [riverId],
+  );
+
+  return result.rows.map(mapPoiRow);
+}
+
+// All curated map POIs, location-agnostic and public — for the global POI map layer.
+export async function listAllMapPois(
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiMapPoi[]> {
+  const result = await client.query<MapPoiRow>(
+    `SELECT DISTINCT ON (p.id)
+      ${mapPoiSelectColumnsSql(null)}
+    FROM paddling_features p
+    WHERE p.verification_status IN ('confirmed', 'needs-confirmation')
+    ORDER BY p.id, p.category ASC, p.name ASC`,
   );
 
   return result.rows.map(mapPoiRow);
@@ -168,7 +183,7 @@ function locationBackedMapPoiSelectColumnsSql(viewerMemberId?: string | null) {
   return `
     p.id,
     prl.route_id AS section_id,
-    p.kind,
+    p.category AS kind,
     ST_AsGeoJSON(lp.geometry)::json AS geometry,
     lp.title,
     p.subtitle,
@@ -231,7 +246,7 @@ export async function listMapPoiCorrectionReviews(
       COALESCE(m.public_name, m.display_name) AS reviewer_display_name,
       m.email AS reviewer_email,
       m.trust_level AS reviewer_trust_level
-    FROM map_pois p
+    FROM paddling_features p
     JOIN map_poi_reviews r ON r.poi_id = p.id
     LEFT JOIN members m ON m.id = r.member_id
     WHERE r.decision = 'correction'
@@ -321,7 +336,7 @@ export async function updateMapPoiVerificationStatus(
   client: PoolClient | typeof pool = pool,
 ): Promise<ApiMapPoi> {
   const result = await client.query(
-    `UPDATE map_pois
+    `UPDATE paddling_features
     SET verification_status = $2,
       updated_at = now(),
       revision = revision + 1
@@ -347,21 +362,21 @@ export async function upsertMapPoiSeeds(
     const source = seed.source ?? {};
 
     await client.query(
-      `INSERT INTO map_pois (
+      `INSERT INTO paddling_features (
         id,
         section_id,
-        kind,
+        category,
         geometry,
-        title,
+        name,
         subtitle,
         summary,
-        source_kind,
+        source,
         source_label,
         source_confidence,
         source_updated_at,
         source_url,
         verification_status,
-        payload
+        metadata
       ) VALUES (
         $1,
         $2,
@@ -380,19 +395,19 @@ export async function upsertMapPoiSeeds(
       )
       ON CONFLICT (id) DO UPDATE SET
         section_id = EXCLUDED.section_id,
-        kind = EXCLUDED.kind,
+        category = EXCLUDED.category,
         geometry = EXCLUDED.geometry,
-        title = EXCLUDED.title,
+        name = EXCLUDED.name,
         subtitle = EXCLUDED.subtitle,
         summary = EXCLUDED.summary,
-        source_kind = EXCLUDED.source_kind,
+        source = EXCLUDED.source,
         source_label = EXCLUDED.source_label,
         source_confidence = EXCLUDED.source_confidence,
         source_updated_at = EXCLUDED.source_updated_at,
         source_url = EXCLUDED.source_url,
-        payload = EXCLUDED.payload,
+        metadata = EXCLUDED.metadata,
         updated_at = now(),
-        revision = map_pois.revision + 1`,
+        revision = paddling_features.revision + 1`,
       [
         seed.id,
         seed.sectionId,
@@ -444,7 +459,7 @@ async function refreshMapPoiVerificationStatus(
   client: PoolClient | typeof pool,
 ): Promise<void> {
   await client.query(
-    `UPDATE map_pois
+    `UPDATE paddling_features
     SET verification_status = CASE
         WHEN EXISTS (
           SELECT 1 FROM map_poi_reviews
@@ -466,7 +481,7 @@ async function refreshMapPoiVerificationStatus(
 function mapPoiSelectSql(viewerMemberId?: string | null) {
   return `SELECT
     ${mapPoiSelectColumnsSql(viewerMemberId, "$2")}
-  FROM map_pois p`;
+  FROM paddling_features p`;
 }
 
 function mapPoiSelectColumnsSql(
@@ -476,18 +491,18 @@ function mapPoiSelectColumnsSql(
   return `
     p.id,
     p.section_id,
-    p.kind,
+    p.category AS kind,
     ST_AsGeoJSON(p.geometry)::json AS geometry,
-    p.title,
+    p.name AS title,
     p.subtitle,
     p.summary,
-    p.source_kind,
+    p.source AS source_kind,
     p.source_label,
     p.source_confidence,
     p.source_updated_at,
     p.source_url,
     p.verification_status,
-    p.payload,
+    p.metadata AS payload,
     p.revision,
     p.updated_at,
     COALESCE((

@@ -32,7 +32,7 @@ The seed data is draft and unverified. It should not be treated as published tri
 - `/docs/specs/discovery/river-section-map.md`
 - `/src/data/riverWyeSeed.ts`
 - `/src/data/wyeRouteTraces.ts`
-- `/scripts/generateWyeRouteTraces.mjs`
+- `/scripts/build/generateWyeRouteTraces.mjs`
 
 ## Requirements
 

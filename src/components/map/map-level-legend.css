@@ -1,0 +1,46 @@
+.map-level-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 84px;
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 11px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(20, 30, 50, 0.1);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.16);
+  backdrop-filter: blur(8px);
+  color: #1a2238;
+  font-size: 0.74rem;
+}
+
+.map-level-legend__title {
+  font-weight: 750;
+}
+
+.map-level-legend__note {
+  margin-bottom: 4px;
+  color: #6b7689;
+  font-size: 0.64rem;
+}
+
+.map-level-legend__items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.map-level-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.map-level-legend__swatch {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 5px;
+  border-radius: 3px;
+}

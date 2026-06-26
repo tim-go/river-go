@@ -5,6 +5,15 @@ import { ObservationCard } from "./ObservationCard";
 import { RiverPhotoGallery } from "./RiverPhotoGallery";
 import { useDiscovery } from "../discovery/DiscoveryContext";
 import {
+  LEVEL_BAND_LABELS,
+  levelBandColor,
+  type RiverLevelLine,
+  type RiverLevelState,
+  type SectionLevelState,
+  type Station,
+} from "../services/levelStateApi";
+import type { Amenity } from "../services/amenityApi";
+import {
   AlertTriangle,
   MapPin,
   Maximize2,
@@ -27,6 +36,7 @@ import type {
 } from "../types";
 import type { CanonicalRiverSummary } from "../services/canonicalRiverApi";
 import { fetchWatercoursesForBounds, type KnownWatercourse } from "../services/watercourseApi";
+import { getApiBaseUrl } from "../services/apiConfig";
 import type { RouteAdjustment } from "../services/routeAdjustmentApi";
 import type { RouteSuggestion } from "../services/routeSuggestionApi";
 import {
@@ -141,7 +151,17 @@ export function RiverMap({
   routeCreateMode,
   markerClickMode,
   showRoutesLayer,
+  showPublicRoutes,
+  approvedRouteSuggestions,
   showRiverLayer,
+  sectionLevelStates,
+  riverLevelLines,
+  riverLevelStates,
+  showRain,
+  rainTs,
+  globalPois,
+  stations,
+  amenities,
   showSelectedRoutePath,
   showKnownRivers,
   watercourseFocusId,
@@ -193,7 +213,17 @@ export function RiverMap({
   routeCreateMode: RouteCreateMode;
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
+  showPublicRoutes: boolean;
+  approvedRouteSuggestions: RouteSuggestion[];
   showRiverLayer: boolean;
+  sectionLevelStates?: Map<string, SectionLevelState>;
+  riverLevelLines?: RiverLevelLine[];
+  riverLevelStates?: Map<string, RiverLevelState>;
+  showRain?: boolean;
+  rainTs?: number;
+  globalPois?: MapPoi[];
+  stations?: Station[];
+  amenities?: Amenity[];
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
   watercourseFocusId: string | null;
@@ -256,6 +286,39 @@ export function RiverMap({
     );
   }, [selectedRiver]);
   const layerRef = useRef<L.LayerGroup | null>(null);
+
+  // Met Office precipitation overlay — kept outside the main layer group (which
+  // is cleared on every render) so toggling it doesn't rebuild the map.
+  const rainOverlayRef = useRef<L.ImageOverlay | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !showRain) {
+      return;
+    }
+    const overlay = L.imageOverlay(
+      `${getApiBaseUrl()}/api/weather/rain.png?ts=${rainTs ?? 0}`,
+      [
+        [45, -25],
+        [63, 15],
+      ],
+      { opacity: 0.65, interactive: false },
+    ).addTo(map);
+    rainOverlayRef.current = overlay;
+    return () => {
+      overlay.remove();
+      rainOverlayRef.current = null;
+    };
+    // rainTs intentionally omitted: frame changes go through setUrl below so the
+    // overlay isn't torn down and recreated on every scrub.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showRain]);
+  useEffect(() => {
+    if (rainOverlayRef.current) {
+      rainOverlayRef.current.setUrl(
+        `${getApiBaseUrl()}/api/weather/rain.png?ts=${rainTs ?? 0}`,
+      );
+    }
+  }, [rainTs]);
   const callbackRef = useRef(onSelectSection);
   const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
   const canonicalRiverContextSelectRef = useRef(onSelectCanonicalRiverContext);
@@ -282,6 +345,8 @@ export function RiverMap({
     [],
   );
   const [knownWatercourseStatus, setKnownWatercourseStatus] = useState("");
+  const POI_MIN_ZOOM = 9;
+  const [poiZoomVisible, setPoiZoomVisible] = useState(false);
   const [hiddenPoiCategories, setHiddenPoiCategories] = useState<
     Set<MapPoiDisplayCategory>
   >(() => new Set());
@@ -546,6 +611,12 @@ export function RiverMap({
       }
     };
     map.on("moveend zoomend", persistMapView);
+    const updatePoiZoom = () => {
+      const visible = map.getZoom() >= POI_MIN_ZOOM;
+      setPoiZoomVisible((previous) => (previous === visible ? previous : visible));
+    };
+    updatePoiZoom();
+    map.on("zoomend", updatePoiZoom);
 
     const resizeObserver = new ResizeObserver(() => {
       window.requestAnimationFrame(() => {
@@ -680,6 +751,170 @@ export function RiverMap({
 
     layers.clearLayers();
 
+    // River network coloured by live level (real OSM geometry) — part of the
+    // "Rivers" layer alongside the markers; grey where there's no gauge. Filtered
+    // to the displayed rivers so the discipline filter applies here too.
+    const displayedRiverIds = new Set(canonicalRivers.map((river) => river.id));
+    const riverNameById = new Map(
+      canonicalRivers.map((river) => [river.id, river.displayName]),
+    );
+    (showRiverLayer ? (riverLevelLines ?? []) : [])
+      .filter((river) => displayedRiverIds.has(river.riverId))
+      .forEach((river) => {
+        const bandLabel = LEVEL_BAND_LABELS[river.band];
+        const valueText =
+          river.value != null ? ` · ${river.value}${river.unit ?? ""}` : "";
+        const riverName = riverNameById.get(river.riverId) ?? river.riverId;
+        river.lines.forEach((segment) => {
+          if (segment.length < 2) {
+            return;
+          }
+          const line = L.polyline(segment, {
+            color: levelBandColor(river.band),
+            weight: 5,
+            opacity: 0.9,
+            interactive: true,
+          }).addTo(layers);
+          line.bindTooltip(`${riverName} — ${bandLabel}${valueText}`, {
+            sticky: true,
+          });
+        });
+      });
+
+    // Global POI layer — zoom-gated (>= POI_MIN_ZOOM) so the national view isn't
+    // flooded by 600+ pins. The user zooms in to reveal them.
+    if (poiZoomVisible) {
+      (globalPois ?? []).forEach((poi) => {
+        const displayMeta = mapPoiDisplayMeta(poi);
+        const poiMarker = L.marker(poi.location, {
+          bubblingMouseEvents: false,
+          icon: L.divIcon({
+            className: "",
+            html: markerHtml(displayMeta.markerKind, displayMeta.markerLabel),
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          }),
+        });
+        // Resolve the POI's river (via its section) so the popup can open details,
+        // matching the selected-river POI markers rather than a bare hover tooltip.
+        const poiSection = sections.find((section) => section.id === poi.sectionId);
+        const poiRiver = poiSection
+          ? canonicalRivers.find(
+              (river) => river.displayName === poiSection.riverName,
+            )
+          : undefined;
+        const openGlobalPoiDetails = poiRiver
+          ? () => {
+              map.closePopup();
+              poiDetailsRef.current(riverMapPoiToSelectedPoi(poi, poiRiver), {
+                focusMap: true,
+                focusPlacement: "mobile-top-half",
+              });
+            }
+          : undefined;
+
+        poiMarker.addTo(layers);
+        if (markerClickMode === "info") {
+          poiMarker.bindPopup(
+            createMapPopupContent({
+              title: poi.title,
+              subtitle: displayMeta.label,
+              summary: poi.summary,
+              navigationLocation: poi.location,
+              navigationLabel: poi.kind === "access" ? "Directions" : "Maps",
+              navigationMode: poi.kind === "access" ? "directions" : "map",
+              onDetails: openGlobalPoiDetails,
+            }),
+          );
+        }
+        poiMarker.on("click", (event) => {
+          L.DomEvent.stop(event.originalEvent);
+          if (markerClickMode === "info") {
+            poiMarker.openPopup();
+            return;
+          }
+          openGlobalPoiDetails?.();
+        });
+      });
+    }
+
+    (stations ?? []).forEach((station) => {
+      const bandColor = levelBandColor(station.band);
+      const stationMarker = L.marker([station.lat, station.lng], {
+        bubblingMouseEvents: false,
+        icon: L.divIcon({
+          className: "",
+          html: markerHtml(
+            "gauge",
+            "",
+            `background:${bandColor};border-color:${bandColor};`,
+          ),
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        }),
+      });
+      stationMarker.addTo(layers);
+      const valueText =
+        station.value != null
+          ? `${station.value}${station.unit ?? ""}`
+          : "No recent reading";
+      stationMarker.bindPopup(
+        createMapPopupContent({
+          title: station.name,
+          subtitle: `${station.provider} · ${LEVEL_BAND_LABELS[station.band]}`,
+          summary: valueText,
+          navigationLocation: [station.lat, station.lng],
+        }),
+      );
+    });
+
+    // Riverside amenities (OSM) — same zoom gate as the POIs.
+    if (poiZoomVisible) {
+      const amenityLetter: Record<string, string> = {
+        pub: "P",
+        car_park: "C",
+        toilets: "T",
+        cafe: "F",
+        drinking_water: "W",
+        shop: "S",
+      };
+      const amenityName: Record<string, string> = {
+        pub: "Pub",
+        car_park: "Car park",
+        toilets: "Toilets",
+        cafe: "Café",
+        drinking_water: "Drinking water",
+        shop: "Shop",
+      };
+      (amenities ?? []).forEach((amenity) => {
+        const amenityMarker = L.marker([amenity.lat, amenity.lng], {
+          bubblingMouseEvents: false,
+          icon: L.divIcon({
+            className: "",
+            html: markerHtml(
+              "amenity",
+              amenityLetter[amenity.category] ?? "•",
+              "background:#e8b079;border-color:#e8b079;color:#3a2613;",
+            ),
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+          }),
+        });
+        amenityMarker.addTo(layers);
+        const label = amenityName[amenity.category] ?? amenity.category;
+        amenityMarker.bindPopup(
+          createMapPopupContent({
+            title: amenity.name ?? label,
+            subtitle: label,
+            summary: "From OpenStreetMap.",
+            navigationLocation: [amenity.lat, amenity.lng],
+            navigationLabel: "Directions",
+            navigationMode: "directions",
+          }),
+        );
+      });
+    }
+
     (showRiverLayer ? canonicalRivers : []).forEach((river) => {
       const isSelected = selectedCanonicalRiver?.id === river.id;
       const label = riverMarkerInitial(river.displayName);
@@ -693,11 +928,22 @@ export function RiverMap({
             : river.discipline === "both"
               ? "river-both"
               : "river";
+      const riverBand = riverLevelStates?.get(river.id)?.band;
+      const levelStyle =
+        riverBand && !isSelected
+          ? `background:${levelBandColor(riverBand)};border-color:${levelBandColor(
+              riverBand,
+            )};color:#102a43;`
+          : "";
       const marker = L.marker(river.centre, {
         bubblingMouseEvents: false,
         icon: L.divIcon({
           className: "",
-          html: markerHtml(isSelected ? "river-active" : disciplineKind, label),
+          html: markerHtml(
+            isSelected ? "river-active" : disciplineKind,
+            label,
+            levelStyle,
+          ),
           iconSize: [36, 36],
           iconAnchor: [18, 18],
         }),
@@ -846,20 +1092,18 @@ export function RiverMap({
     renderedSections.forEach((section) => {
       const isActive = section.id === activeSection.id;
       const isCandidate = isCandidateSection(section);
-      const color =
-        isCandidate
-          ? "#7c3aed"
-          : section.levelBand === "good"
-          ? "#1f8a70"
-          : section.levelBand === "high"
-            ? "#b54708"
-            : section.levelBand === "too-low"
-              ? "#7c5c1d"
-              : "#52606d";
+      const levelBand = sectionLevelStates?.get(section.id)?.band;
+      const color = isCandidate ? "#7c3aed" : levelBandColor(levelBand);
       const defaultRouteStyle: L.PolylineOptions = {
         color,
-        weight: isActive ? 4 : 3,
-        opacity: isActive ? 0.5 : 0.26,
+        weight: isActive ? (isCandidate ? 4 : 5) : isCandidate ? 3 : 4,
+        opacity: isCandidate
+          ? isActive
+            ? 0.5
+            : 0.26
+          : isActive
+            ? 0.95
+            : 0.7,
         dashArray: isCandidate ? "8 6" : undefined,
       };
       const highlightedRouteStyle: L.PolylineOptions = {
@@ -1085,6 +1329,41 @@ export function RiverMap({
       }).addTo(layers);
       finishMarker.bindPopup(createRouteAdjustmentPopup(adjustment));
     });
+
+    // Approved public routes (community-contributed, moderator-approved) — solid
+    // green polylines, distinct from the dashed pending suggestions/adjustments.
+    if (showPublicRoutes) {
+      approvedRouteSuggestions.forEach((suggestion) => {
+        if (suggestion.route.length < 2) {
+          return;
+        }
+        const routeSection = sections.find(
+          (section) =>
+            section.sectionName === suggestion.sectionName &&
+            section.riverName === suggestion.riverName,
+        );
+        L.polyline(suggestion.route, {
+          color: "#059669",
+          weight: 4,
+          opacity: 0.85,
+        })
+          .addTo(layers)
+          .bindPopup(
+            createMapPopupContent({
+              title: suggestion.riverName || "Route",
+              subtitle: suggestion.sectionName,
+              summary: suggestion.summary ?? "",
+              navigationLocation: suggestion.route[0],
+              onDetails: routeSection
+                ? () => {
+                    map.closePopup();
+                    routeDetailsRef.current(routeSection);
+                  }
+                : undefined,
+            }),
+          );
+      });
+    }
 
     contributions.forEach((contribution) => {
       if (!contribution.location) {
@@ -1409,6 +1688,13 @@ export function RiverMap({
     sections,
     showRoutesLayer,
     showRiverLayer,
+    sectionLevelStates,
+    riverLevelLines,
+    riverLevelStates,
+    globalPois,
+    stations,
+    amenities,
+    poiZoomVisible,
     showSelectedRoutePath,
     showKnownRivers,
     onOpenPhoto,
