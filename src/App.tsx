@@ -438,7 +438,8 @@ function App() {
     "all" | "whitewater" | "touring"
   >("all");
   const [activePoiKinds, setActivePoiKinds] = useState<Set<string>>(
-    () => new Set(),
+    // POIs are a normal layer, on by default; the Layers control owns visibility.
+    () => new Set(["access", "hazard", "feature"]),
   );
   const [activeAmenityKinds, setActiveAmenityKinds] = useState<Set<string>>(
     () => new Set(),
@@ -4445,6 +4446,7 @@ function App() {
           sectionLevelStates={sectionLevelStates}
           riverLevelStates={riverLevelStates}
           globalPois={globalPois}
+          activePoiKinds={activePoiKinds}
           amenities={displayedAmenities}
           riverLevelLines={riverLevelLines}
           showRain={showRain}

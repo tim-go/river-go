@@ -158,6 +158,7 @@ export function RiverMap({
   showRain,
   rainTs,
   globalPois,
+  activePoiKinds,
   stations,
   amenities,
   showSelectedRoutePath,
@@ -220,6 +221,7 @@ export function RiverMap({
   showRain?: boolean;
   rainTs?: number;
   globalPois?: MapPoi[];
+  activePoiKinds: Set<string>;
   stations?: Station[];
   amenities?: Amenity[];
   showSelectedRoutePath: boolean;
@@ -436,6 +438,10 @@ export function RiverMap({
   const visibleSelectedRiverMapPois = useMemo(
     () =>
       selectedRiverMapPois.filter((poi) => {
+        // Layers control stays authoritative even while a river is selected.
+        if (!activePoiKinds.has(poi.kind)) {
+          return false;
+        }
         const category = mapPoiDisplayMeta(poi).category;
         if (hiddenPoiCategories.has(category)) {
           return false;
@@ -449,6 +455,7 @@ export function RiverMap({
         return true;
       }),
     [
+      activePoiKinds,
       hiddenPoiCategories,
       selectedRiverMapPois,
       tabPoiCategories,
@@ -782,7 +789,13 @@ export function RiverMap({
     // Global POI layer — zoom-gated (>= POI_MIN_ZOOM) so the national view isn't
     // flooded by 600+ pins. The user zooms in to reveal them.
     if (poiZoomVisible) {
+      // A selected river's own POIs are owned by the selected-river path (its panel
+      // tabs/chips), so don't double-render them here.
+      const selectedRiverPoiIds = selectedCanonicalRiver
+        ? new Set(selectedRiverMapPois.map((poi) => poi.id))
+        : null;
       (globalPois ?? []).forEach((poi) => {
+        if (selectedRiverPoiIds?.has(poi.id)) return;
         const displayMeta = mapPoiDisplayMeta(poi);
         const poiMarker = L.marker(poi.location, {
           bubblingMouseEvents: false,
@@ -801,15 +814,15 @@ export function RiverMap({
               (river) => river.displayName === poiSection.riverName,
             )
           : undefined;
-        const openGlobalPoiDetails = poiRiver
-          ? () => {
-              map.closePopup();
-              poiDetailsRef.current(riverMapPoiToSelectedPoi(poi, poiRiver), {
-                focusMap: true,
-                focusPlacement: "mobile-top-half",
-              });
-            }
-          : undefined;
+        // Details works for every POI, river-selected or not — the river is just
+        // context (its name when we can resolve it, else the POI's section).
+        const openGlobalPoiDetails = () => {
+          map.closePopup();
+          poiDetailsRef.current(
+            riverMapPoiToSelectedPoi(poi, poiRiver, poiSection?.riverName),
+            { focusMap: true, focusPlacement: "mobile-top-half" },
+          );
+        };
 
         poiMarker.addTo(layers);
         if (markerClickMode === "info") {
@@ -1677,6 +1690,7 @@ export function RiverMap({
     selectedLocation,
     selectedCanonicalRiver,
     selectedWatercourse,
+    selectedRiverMapPois,
     visibleSelectedRiverMapPois,
     isAddMode,
     routeCreateMode,
