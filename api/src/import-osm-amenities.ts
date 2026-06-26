@@ -63,9 +63,14 @@ async function main() {
   let inserted = 0;
 
   try {
-    // Repeatable refresh: clear, then re-insert only what survives the proximity
-    // filter. (DELETE+reinsert, not a one-off seed.)
-    await client.query("DELETE FROM amenities WHERE source = 'osm_amenity'");
+    // Upsert refresh (not DELETE+reinsert): amenities are keyed on (source,
+    // source_id), so their ids — and the pois rows + contributions pointing at
+    // them — survive a refresh. Mark this run's start; any amenity not re-touched
+    // below is "gone from OSM" and gets reconciled (adopt-or-prune) at the end.
+    const runStartResult = await client.query<{ now: string }>(
+      "SELECT now() AS now",
+    );
+    const runStart = runStartResult.rows[0].now;
 
     // Build "our rivers" geometry once — the OSM watercourse ways that match a
     // featured canonical river (same match the level-lines use) — indexed, so the
@@ -95,6 +100,40 @@ async function main() {
     if (batch.length) {
       inserted += await insertBatch(client, batch, options.bufferMetres);
     }
+
+    // Reconcile amenities not re-touched this run (gone from OSM). Contributed
+    // ones are adopted — their durable pois snapshot survives the source loss; the
+    // rest are pruned. The pois rows are handled here explicitly (no delete-cascade
+    // from the amenities delete), so a contribution is never orphaned.
+    const adopted = await client.query(
+      `UPDATE pois p SET status = 'adopted', updated_at = now()
+       WHERE p.source_entity_type = 'amenity'
+         AND p.source_entity_id IN (
+           SELECT a.source_id FROM amenities a
+           WHERE a.source = 'osm_amenity' AND a.updated_at < $1
+         )
+         AND EXISTS (SELECT 1 FROM contributions c WHERE c.poi_id = p.id)`,
+      [runStart],
+    );
+    const pruned = await client.query(
+      `DELETE FROM pois p
+       WHERE p.source_entity_type = 'amenity'
+         AND p.source_entity_id IN (
+           SELECT a.source_id FROM amenities a
+           WHERE a.source = 'osm_amenity' AND a.updated_at < $1
+         )
+         AND NOT EXISTS (SELECT 1 FROM contributions c WHERE c.poi_id = p.id)`,
+      [runStart],
+    );
+    const removed = await client.query(
+      `DELETE FROM amenities WHERE source = 'osm_amenity' AND updated_at < $1`,
+      [runStart],
+    );
+    console.log(
+      `Reconcile: ${adopted.rowCount ?? 0} adopted, ${pruned.rowCount ?? 0} pruned, ${
+        removed.rowCount ?? 0
+      } stale amenity rows removed.`,
+    );
   } finally {
     client.release();
   }
