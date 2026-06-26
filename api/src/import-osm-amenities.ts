@@ -53,6 +53,9 @@ function categorise(tags: Record<string, unknown>): string | null {
   if (amenity === "toilets") return "toilets";
   if (amenity === "cafe") return "cafe";
   if (amenity === "drinking_water") return "drinking_water";
+  const tourism = typeof tags.tourism === "string" ? tags.tourism : "";
+  if (tourism === "camp_site") return "camp_site";
+  if (tourism === "caravan_site") return "caravan_site";
   if (typeof tags.shop === "string" && tags.shop) return "shop";
   return null;
 }

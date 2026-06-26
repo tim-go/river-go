@@ -31,6 +31,7 @@ fi
 # Keep amenity points/areas we care about + all shops (nodes, ways, relations).
 osmium tags-filter "$SOURCE_PBF" \
   nwr/amenity=pub,bar,parking,toilets,cafe,drinking_water \
+  nwr/tourism=camp_site,caravan_site \
   nwr/shop \
   -o "$FILTERED_PBF" \
   --overwrite
