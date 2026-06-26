@@ -928,13 +928,14 @@ export function RiverMap({
             : river.discipline === "both"
               ? "river-both"
               : "river";
-      const riverBand = riverLevelStates?.get(river.id)?.band;
-      const levelStyle =
-        riverBand && !isSelected
-          ? `background:${levelBandColor(riverBand)};border-color:${levelBandColor(
-              riverBand,
-            )};color:#102a43;`
-          : "";
+      // Pins read by live level state — grey when there's no gauge, matching the
+      // grey river line. Gauged rivers show their band colour.
+      const riverBand = riverLevelStates?.get(river.id)?.band ?? "unknown";
+      const levelStyle = !isSelected
+        ? `background:${levelBandColor(riverBand)};border-color:${levelBandColor(
+            riverBand,
+          )};color:#102a43;`
+        : "";
       const marker = L.marker(river.centre, {
         bubblingMouseEvents: false,
         icon: L.divIcon({
