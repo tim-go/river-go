@@ -1428,7 +1428,8 @@ export function mapPoiToSelectedPoi(poi: MapPoi, section: RiverSection): Selecte
 
 export function riverMapPoiToSelectedPoi(
   poi: MapPoi,
-  river: CanonicalRiverSummary,
+  river?: CanonicalRiverSummary | null,
+  riverNameFallback?: string,
 ): SelectedPoi {
   const displayMeta = mapPoiDisplayMeta(poi);
   return {
@@ -1439,7 +1440,7 @@ export function riverMapPoiToSelectedPoi(
       ? `${displayMeta.label} · ${poi.subtitle}`
       : `${displayMeta.label} · ${poi.subtitle}`,
     summary: poi.summary,
-    sectionLabel: river.displayName,
+    sectionLabel: river?.displayName ?? riverNameFallback ?? poi.subtitle,
     location: poi.location,
     status: poi.verificationStatus,
     sourceLabel: poi.source?.label,

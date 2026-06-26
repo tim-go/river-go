@@ -13,13 +13,16 @@ const ORDER: SectionLevelBand[] = [
   "unknown",
 ];
 
-// Explains the river-line colours. Framed as level *state* (vs each gauge's own
-// history), never a runnable verdict.
+// The map legend: river-line + gauge level state (vs each gauge's own history,
+// never a runnable verdict). Shown as the toggled popout. Markers are left
+// unlabelled — they read clearly enough on the map on their own.
 export function MapLevelLegend() {
   return (
     <div className="map-level-legend">
-      <span className="map-level-legend__title">River level</span>
-      <span className="map-level-legend__note">vs each gauge's normal</span>
+      <span className="map-level-legend__title">River &amp; gauge level</span>
+      <span className="map-level-legend__note">
+        river lines &amp; gauge dots, vs each gauge's normal
+      </span>
       <div className="map-level-legend__items">
         {ORDER.map((band) => (
           <span className="map-level-legend__item" key={band}>

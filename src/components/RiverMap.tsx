@@ -16,12 +16,11 @@ import type { Amenity } from "../services/amenityApi";
 import {
   AlertTriangle,
   MapPin,
-  Maximize2,
-  Minimize2,
   Route,
   Star,
-  X,
 } from "lucide-react";
+import { DetailPanel } from "./DetailPanel";
+import { MapLevelLegend } from "./map/MapLevelLegend";
 import type {
   Contribution,
   ContributionOutboxRecord,
@@ -160,10 +159,12 @@ export function RiverMap({
   showRain,
   rainTs,
   globalPois,
+  activePoiKinds,
   stations,
   amenities,
   showSelectedRoutePath,
   showKnownRivers,
+  isLevelLegendOpen,
   watercourseFocusId,
   watercourseFocusNonce,
   onMapClick,
@@ -222,10 +223,12 @@ export function RiverMap({
   showRain?: boolean;
   rainTs?: number;
   globalPois?: MapPoi[];
+  activePoiKinds: Set<string>;
   stations?: Station[];
   amenities?: Amenity[];
   showSelectedRoutePath: boolean;
   showKnownRivers: boolean;
+  isLevelLegendOpen: boolean;
   watercourseFocusId: string | null;
   watercourseFocusNonce: number;
   onMapClick: (
@@ -344,7 +347,6 @@ export function RiverMap({
   const [knownWatercourses, setKnownWatercourses] = useState<KnownWatercourse[]>(
     [],
   );
-  const [knownWatercourseStatus, setKnownWatercourseStatus] = useState("");
   const POI_MIN_ZOOM = 9;
   const [poiZoomVisible, setPoiZoomVisible] = useState(false);
   const [hiddenPoiCategories, setHiddenPoiCategories] = useState<
@@ -438,6 +440,10 @@ export function RiverMap({
   const visibleSelectedRiverMapPois = useMemo(
     () =>
       selectedRiverMapPois.filter((poi) => {
+        // Layers control stays authoritative even while a river is selected.
+        if (!activePoiKinds.has(poi.kind)) {
+          return false;
+        }
         const category = mapPoiDisplayMeta(poi).category;
         if (hiddenPoiCategories.has(category)) {
           return false;
@@ -451,6 +457,7 @@ export function RiverMap({
         return true;
       }),
     [
+      activePoiKinds,
       hiddenPoiCategories,
       selectedRiverMapPois,
       tabPoiCategories,
@@ -646,7 +653,6 @@ export function RiverMap({
 
     if (!showKnownRivers) {
       setKnownWatercourses([]);
-      setKnownWatercourseStatus("");
       setSelectedWatercourseId(null);
       return;
     }
@@ -660,8 +666,6 @@ export function RiverMap({
         const bounds = map.getBounds();
         const requestId = knownWatercoursesRequestRef.current + 1;
         knownWatercoursesRequestRef.current = requestId;
-        setKnownWatercourseStatus("Loading reference waterways...");
-
         void fetchWatercoursesForBounds(
           {
             minLng: bounds.getWest(),
@@ -680,11 +684,6 @@ export function RiverMap({
             }
 
             setKnownWatercourses(watercourses);
-            setKnownWatercourseStatus(
-              watercourses.length
-                ? `${watercourses.length} known river lines in view`
-                : "No known river lines in this view",
-            );
           })
           .catch(() => {
             if (
@@ -695,7 +694,6 @@ export function RiverMap({
             }
 
             setKnownWatercourses([]);
-            setKnownWatercourseStatus("Reference waterways unavailable in this view");
           });
       }, 180);
     };
@@ -784,7 +782,13 @@ export function RiverMap({
     // Global POI layer — zoom-gated (>= POI_MIN_ZOOM) so the national view isn't
     // flooded by 600+ pins. The user zooms in to reveal them.
     if (poiZoomVisible) {
+      // A selected river's own POIs are owned by the selected-river path (its panel
+      // tabs/chips), so don't double-render them here.
+      const selectedRiverPoiIds = selectedCanonicalRiver
+        ? new Set(selectedRiverMapPois.map((poi) => poi.id))
+        : null;
       (globalPois ?? []).forEach((poi) => {
+        if (selectedRiverPoiIds?.has(poi.id)) return;
         const displayMeta = mapPoiDisplayMeta(poi);
         const poiMarker = L.marker(poi.location, {
           bubblingMouseEvents: false,
@@ -803,15 +807,15 @@ export function RiverMap({
               (river) => river.displayName === poiSection.riverName,
             )
           : undefined;
-        const openGlobalPoiDetails = poiRiver
-          ? () => {
-              map.closePopup();
-              poiDetailsRef.current(riverMapPoiToSelectedPoi(poi, poiRiver), {
-                focusMap: true,
-                focusPlacement: "mobile-top-half",
-              });
-            }
-          : undefined;
+        // Details works for every POI, river-selected or not — the river is just
+        // context (its name when we can resolve it, else the POI's section).
+        const openGlobalPoiDetails = () => {
+          map.closePopup();
+          poiDetailsRef.current(
+            riverMapPoiToSelectedPoi(poi, poiRiver, poiSection?.riverName),
+            { focusMap: true, focusPlacement: "mobile-top-half" },
+          );
+        };
 
         poiMarker.addTo(layers);
         if (markerClickMode === "info") {
@@ -928,13 +932,14 @@ export function RiverMap({
             : river.discipline === "both"
               ? "river-both"
               : "river";
-      const riverBand = riverLevelStates?.get(river.id)?.band;
-      const levelStyle =
-        riverBand && !isSelected
-          ? `background:${levelBandColor(riverBand)};border-color:${levelBandColor(
-              riverBand,
-            )};color:#102a43;`
-          : "";
+      // Pins read by live level state — grey when there's no gauge, matching the
+      // grey river line. Gauged rivers show their band colour.
+      const riverBand = riverLevelStates?.get(river.id)?.band ?? "unknown";
+      const levelStyle = !isSelected
+        ? `background:${levelBandColor(riverBand)};border-color:${levelBandColor(
+            riverBand,
+          )};color:#102a43;`
+        : "";
       const marker = L.marker(river.centre, {
         bubblingMouseEvents: false,
         icon: L.divIcon({
@@ -1678,6 +1683,7 @@ export function RiverMap({
     selectedLocation,
     selectedCanonicalRiver,
     selectedWatercourse,
+    selectedRiverMapPois,
     visibleSelectedRiverMapPois,
     isAddMode,
     routeCreateMode,
@@ -1839,21 +1845,17 @@ export function RiverMap({
     >
       <div className="map-canvas" ref={mapContainerRef} />
       {selectedCanonicalRiver && isSelectedRiverPanelOpen && !isPoiDetailsOpen ? (
-        <aside
-          className={`watercourse-panel ${
-            isSelectedRiverPanelExpanded ? "watercourse-panel--expanded" : ""
-          }`}
-          aria-label="Selected river"
-        >
-          <div className="watercourse-panel__header">
-            <div>
-              <p className="eyebrow">River</p>
-              <h2>{selectedCanonicalRiver.displayName}</h2>
-              {selectedCanonicalRiver.run ? (
-                <p className="river-run">{selectedCanonicalRiver.run}</p>
-              ) : null}
-            </div>
-            <div className="panel-icon-actions">
+        <DetailPanel
+          ariaLabel="Selected river"
+          className="detail-panel--river"
+          eyebrow="River"
+          title={selectedCanonicalRiver.displayName}
+          subtitle={selectedCanonicalRiver.run || undefined}
+          expanded={isSelectedRiverPanelExpanded}
+          onToggleExpand={onToggleSelectedRiverPanelExpanded}
+          onClose={onCloseSelectedRiverPanel}
+          actions={
+            <>
               <button
                 className={`icon-button icon-button--compact${
                   favouriteRiverIds.includes(selectedCanonicalRiver.id)
@@ -1895,35 +1897,10 @@ export function RiverMap({
               >
                 <AlertTriangle size={16} />
               </button>
-              <button
-                className="icon-button icon-button--compact"
-                type="button"
-                aria-label={
-                  isSelectedRiverPanelExpanded
-                    ? "Collapse river details"
-                    : "Expand river details"
-                }
-                title={isSelectedRiverPanelExpanded ? "Collapse" : "Expand"}
-                onClick={onToggleSelectedRiverPanelExpanded}
-              >
-                {isSelectedRiverPanelExpanded ? (
-                  <Minimize2 size={16} />
-                ) : (
-                  <Maximize2 size={16} />
-                )}
-              </button>
-              <button
-                className="icon-button icon-button--compact"
-                type="button"
-                aria-label="Close river details"
-                title="Close"
-                onClick={onCloseSelectedRiverPanel}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-
+            </>
+          }
+        >
+          <div className="watercourse-body">
           <div className="watercourse-panel__summary">
             {selectedCanonicalRiver.grade ? (
               <span>Grade {selectedCanonicalRiver.grade}</span>
@@ -2161,29 +2138,18 @@ export function RiverMap({
             )}
           </div>
           ) : null}
-        </aside>
+          </div>
+        </DetailPanel>
       ) : null}
       {selectedWatercourse && !selectedCanonicalRiver && !isPoiDetailsOpen ? (
-        <aside
-          className="watercourse-panel"
-          aria-label="Selected waterway stretch"
+        <DetailPanel
+          ariaLabel="Selected waterway stretch"
+          className="detail-panel--stretch"
+          eyebrow="Local stretch"
+          title={selectedWatercourse.name ?? "Unnamed waterway"}
+          onClose={() => setSelectedWatercourseId(null)}
         >
-          <div className="watercourse-panel__header">
-            <div>
-              <p className="eyebrow">Local stretch</p>
-              <h2>{selectedWatercourse.name ?? "Unnamed waterway"}</h2>
-            </div>
-            <button
-              className="icon-button icon-button--compact"
-              type="button"
-              aria-label="Close waterway details"
-              title="Close"
-              onClick={() => setSelectedWatercourseId(null)}
-            >
-              <X size={16} />
-            </button>
-          </div>
-
+          <div className="watercourse-body">
           <div className="watercourse-panel__summary">
             <span>{watercourseTypeLabel(selectedWatercourse.watercourseType)}</span>
             <span>
@@ -2260,32 +2226,12 @@ export function RiverMap({
               <p className="empty-state">No POIs close to this visible stretch yet.</p>
             )}
           </div>
-        </aside>
+          </div>
+        </DetailPanel>
       ) : null}
-      <div className="map-legend" aria-label="Map legend">
-        {showKnownRivers ? (
-          <span title={knownWatercourseStatus || undefined}>
-            <i className="legend-line legend-line--known-river" /> Waterways
-            {knownWatercourseStatus ? (
-              <small className="map-legend__status">
-                {knownWatercourseStatus}
-              </small>
-            ) : null}
-          </span>
-        ) : null}
-        <span>
-          <i className="legend-dot legend-dot--section" /> Section
-        </span>
-        <span>
-          <i className="legend-dot legend-dot--access" /> Access
-        </span>
-        <span>
-          <i className="legend-dot legend-dot--hazard" /> Hazard
-        </span>
-        <span>
-          <i className="legend-dot legend-dot--gauge" /> Gauge
-        </span>
-      </div>
+      {isLevelLegendOpen ? (
+        <MapLevelLegend />
+      ) : null}
     </section>
   );
 }

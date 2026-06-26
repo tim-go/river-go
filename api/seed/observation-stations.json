@@ -1109,5 +1109,24 @@
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
       }
     ]
+  },
+  {
+    "provider": "sepa",
+    "providerStationId": "37426",
+    "providerMeasureId": "57960010",
+    "stationName": "Conon at Moy Bridge",
+    "parameter": "river_level",
+    "unit": "m",
+    "samplingInterval": "15_min",
+    "datum": "stage",
+    "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57960010&format=html",
+    "sectionLinks": [
+      {
+        "sectionId": "river-conon-main",
+        "relevance": "primary",
+        "confidence": "nearby-candidate",
+        "notes": "SEPA Conon at Moy Bridge — closest live gauge to the paddled Conon (Moy/Luichart). Dam-influenced (Conon hydro scheme); runnable ranges need local validation."
+      }
+    ]
   }
 ]

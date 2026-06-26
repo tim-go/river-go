@@ -55,7 +55,6 @@ import {
   type SectionLevelState,
   type Station,
 } from "./services/levelStateApi";
-import { MapLevelLegend } from "./components/map/MapLevelLegend";
 import {
   MapFilterControl,
   type FilterCategory,
@@ -438,7 +437,8 @@ function App() {
     "all" | "whitewater" | "touring"
   >("all");
   const [activePoiKinds, setActivePoiKinds] = useState<Set<string>>(
-    () => new Set(),
+    // POIs are a normal layer, on by default; the Layers control owns visibility.
+    () => new Set(["access", "hazard", "feature"]),
   );
   const [activeAmenityKinds, setActiveAmenityKinds] = useState<Set<string>>(
     () => new Set(),
@@ -4336,7 +4336,7 @@ function App() {
         <div className="map-floating-actions">
           <MapActions>
             <MapActionButton
-              label={isLevelLegendOpen ? "Hide level key" : "Show level key"}
+              label={isLevelLegendOpen ? "Hide legend" : "Show legend"}
               active={isLevelLegendOpen}
               onClick={() => setIsLevelLegendOpen((value) => !value)}
             >
@@ -4391,7 +4391,6 @@ function App() {
       ) : null}
           {activeAppSection === "map" ? (
       <section className="workspace">
-        {isLevelLegendOpen ? <MapLevelLegend /> : null}
         <SyncOutboxBanner
           queuedOutboxCount={queuedOutboxCount}
           failedOutboxCount={failedOutboxCount}
@@ -4445,6 +4444,7 @@ function App() {
           sectionLevelStates={sectionLevelStates}
           riverLevelStates={riverLevelStates}
           globalPois={globalPois}
+          activePoiKinds={activePoiKinds}
           amenities={displayedAmenities}
           riverLevelLines={riverLevelLines}
           showRain={showRain}
@@ -4452,6 +4452,7 @@ function App() {
           rainTs={selectedRainTs}
           showSelectedRoutePath={showSelectedRoutePath}
           showKnownRivers={showKnownRivers}
+          isLevelLegendOpen={isLevelLegendOpen}
           watercourseFocusId={watercourseFocusId}
           watercourseFocusNonce={watercourseFocusNonce}
           onMapClick={handleMapClick}
