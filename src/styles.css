@@ -3143,26 +3143,6 @@ h1 {
   gap: 10px;
 }
 
-.detail-panel {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 1080;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  width: min(398px, calc(100vw - 44px));
-  height: calc(100% - 32px);
-  max-height: calc(100% - 32px);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  pointer-events: none;
-  transform: translateX(calc(100% + 30px));
-  transition: transform 180ms ease;
-}
-
 /* Shared shell for every map detail panel (POI, selected river, waterway stretch). */
 .detail-panel {
   position: absolute;
@@ -3397,15 +3377,15 @@ h1 {
   background: #fbf4e7;
 }
 
-[data-theme="surge"] .detail-panel--river .river-safety-toggle {
+[data-theme="surge"] .detail-panel .river-safety-toggle {
   color: #ffce4d;
 }
-[data-theme="surge"] .detail-panel--river .river-safety-toggle[aria-expanded="true"] {
+[data-theme="surge"] .detail-panel .river-safety-toggle[aria-expanded="true"] {
   border-color: rgba(255, 206, 77, 0.6);
   background: rgba(255, 196, 60, 0.18);
   color: #ffdd80;
 }
-[data-theme="surge"] .detail-panel--river .source-note.river-safety-note {
+[data-theme="surge"] .detail-panel .source-note.river-safety-note {
   border-color: rgba(255, 196, 60, 0.42);
   background: rgba(255, 196, 60, 0.12);
   color: #f6e7c2;
@@ -6249,14 +6229,14 @@ input[type="file"]::file-selector-button:hover {
   font-size: 0.76rem;
 }
 
-[data-theme="surge"] .detail-panel--river h2,
-[data-theme="daybreak"] .detail-panel--river h2 {
+[data-theme="surge"] .detail-panel h2,
+[data-theme="daybreak"] .detail-panel h2 {
   font-family: "Sora", sans-serif;
   letter-spacing: -0.02em;
 }
 
 /* SURGE — dark glass HUD */
-[data-theme="surge"] .detail-panel--river {
+[data-theme="surge"] .detail-panel {
   --ink: #eaf0ff;
   --muted: #8d9bc4;
   --line: rgba(120, 150, 230, 0.2);
@@ -6274,45 +6254,45 @@ input[type="file"]::file-selector-button:hover {
     0 0 0 1px rgba(47, 107, 255, 0.18);
   backdrop-filter: blur(18px);
 }
-[data-theme="surge"] .detail-panel--river .watercourse-panel__summary span {
+[data-theme="surge"] .detail-panel .watercourse-panel__summary span {
   background: rgba(47, 107, 255, 0.18);
   border-color: rgba(77, 139, 255, 0.4);
   color: #9cc0ff;
 }
-[data-theme="surge"] .detail-panel--river .observation-card {
+[data-theme="surge"] .detail-panel .observation-card {
   background: rgba(16, 24, 52, 0.6);
   border-color: var(--line);
 }
-[data-theme="surge"] .detail-panel--river .observation-chart {
+[data-theme="surge"] .detail-panel .observation-chart {
   background: rgba(8, 14, 34, 0.5);
 }
-[data-theme="surge"] .detail-panel--river .watercourse-list-row {
+[data-theme="surge"] .detail-panel .watercourse-list-row {
   background: rgba(16, 24, 52, 0.55);
   border-color: var(--line);
   color: var(--ink);
 }
-[data-theme="surge"] .detail-panel--river .watercourse-list-row:hover {
+[data-theme="surge"] .detail-panel .watercourse-list-row:hover {
   background: rgba(30, 42, 84, 0.72);
   border-color: rgba(255, 214, 10, 0.35);
 }
-[data-theme="surge"] .detail-panel--river .observation-range-toggle button {
+[data-theme="surge"] .detail-panel .observation-range-toggle button {
   background: var(--surface);
   border-color: var(--line);
   color: var(--muted);
 }
-[data-theme="surge"] .detail-panel--river .observation-range-toggle button.active {
+[data-theme="surge"] .detail-panel .observation-range-toggle button.active {
   background: rgba(47, 107, 255, 0.3);
   border-color: rgba(77, 139, 255, 0.5);
   color: #fff;
 }
-[data-theme="surge"] .detail-panel--river .river-run,
-[data-theme="surge"] .detail-panel--river .source-note,
-[data-theme="surge"] .detail-panel--river .empty-state {
+[data-theme="surge"] .detail-panel .river-run,
+[data-theme="surge"] .detail-panel .source-note,
+[data-theme="surge"] .detail-panel .empty-state {
   color: var(--muted);
 }
 
 /* DAYBREAK — light panel, blue accents */
-[data-theme="daybreak"] .detail-panel--river {
+[data-theme="daybreak"] .detail-panel {
   --river: #1e57ff;
   --river-dark: #1e57ff;
   --sky: #1e57ff;
@@ -6320,34 +6300,34 @@ input[type="file"]::file-selector-button:hover {
   --level-glow: none;
   border-color: #dbe4ff;
 }
-[data-theme="daybreak"] .detail-panel--river .watercourse-panel__summary span {
+[data-theme="daybreak"] .detail-panel .watercourse-panel__summary span {
   background: rgba(30, 87, 255, 0.1);
   border-color: rgba(30, 87, 255, 0.25);
   color: #0b3bd6;
 }
 
 /* panel tabs (Levels/Rapids/…) need a themed active state */
-[data-theme="surge"] .detail-panel--river .segmented-control button {
+[data-theme="surge"] .detail-panel .segmented-control button {
   background: var(--surface);
   border-color: var(--line);
   color: var(--muted);
 }
-[data-theme="surge"] .detail-panel--river .segmented-control button.active {
+[data-theme="surge"] .detail-panel .segmented-control button.active {
   background: rgba(47, 107, 255, 0.24);
   border-color: rgba(77, 139, 255, 0.5);
   color: #ffffff;
 }
-[data-theme="surge"] .detail-panel--river .poi-filter-chip {
+[data-theme="surge"] .detail-panel .poi-filter-chip {
   background: var(--surface);
   border-color: var(--line);
   color: var(--muted);
 }
-[data-theme="surge"] .detail-panel--river .poi-filter-chip--active {
+[data-theme="surge"] .detail-panel .poi-filter-chip--active {
   background: rgba(47, 107, 255, 0.24);
   border-color: rgba(77, 139, 255, 0.5);
   color: #ffffff;
 }
-[data-theme="daybreak"] .detail-panel--river .segmented-control button.active {
+[data-theme="daybreak"] .detail-panel .segmented-control button.active {
   background: rgba(30, 87, 255, 0.12);
   border-color: rgba(30, 87, 255, 0.4);
   color: #1e57ff;

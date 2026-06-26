@@ -33,9 +33,12 @@ export function DetailPanel({
 }) {
   return (
     <section
-      className={`detail-panel${expanded ? " detail-panel--expanded" : ""}${
-        className ? ` ${className}` : ""
-      }`}
+      // Panels are conditionally mounted (rendered only when open), so a mounted
+      // panel is always open — carry --open so the shared shell is visible at every
+      // breakpoint (the slide/visibility rules are keyed off it).
+      className={`detail-panel detail-panel--open${
+        expanded ? " detail-panel--expanded" : ""
+      }${className ? ` ${className}` : ""}`}
       aria-label={ariaLabel}
     >
       <header className="detail-panel__header">
