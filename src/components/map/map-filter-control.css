@@ -224,7 +224,14 @@
   background: rgba(22, 32, 66, 0.7);
   color: #eaf0ff;
 }
-/* --on keeps its yellow */
+/* Restate the active pill: the base .map-filter__option--on (0,1,0) loses to the
+   surge .map-filter__option rule above (0,2,0), which was tinting its text light on
+   the yellow. Keep it brand-yellow with dark text. */
+[data-theme="surge"] .map-filter__option--on {
+  border-color: #ffd60a;
+  background: #ffd60a;
+  color: #1a1300;
+}
 
 /* Daybreak — light panel, blue-tinted border */
 [data-theme="daybreak"] .map-filter__panel {
