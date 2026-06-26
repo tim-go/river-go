@@ -176,8 +176,7 @@ the river-go gcloud config active (an account with `cloudsql.client` on
 
 ```bash
 # 1. Start the Cloud SQL Auth Proxy on :5441 (leave running in its own terminal)
-cloud-sql-proxy --gcloud-auth --address 127.0.0.1 --port 5441 \
-  river-go-staging:europe-west2:river-go-db-staging
+cloud-sql-proxy --gcloud-auth --address 127.0.0.1 --port 5441 river-go-staging:europe-west2:river-go-db-staging
 
 # 2. In another terminal — seed → promote → levels (all via migrationsUrl → :5441)
 export RIVER_GO_DATABASE_URL_KEY=migrationsUrl
@@ -220,6 +219,66 @@ npm run data:seed:canonical-river-pilots -- --river river-tay-grandtully
 ```
 
 The 2026-06-05 local seed created 5 canonical rivers, 12 section links, 116 source features/source links, and 116 review-needed OSM candidate POIs.
+
+## Reproducible Seed Packs
+
+Reference data that was *discovered* once (heavy OS/OSM downloads and processing) is
+committed to the repo as a small JSON **seed pack** and loaded by a `seed:*` script.
+The model is **discover → generate the file → seed script imports it**, so
+staging/prod seed straight from the repo — no re-download, no copying from the dev
+database.
+
+| Pack | File | Loader | Populates |
+| --- | --- | --- | --- |
+| Observation stations | `api/seed/observation-stations.json` | `seed:observations` | `observation_stations` (+ measures) |
+| River geometry | `api/seed/river-geometry.json` (62 matched lines) | `seed:river-geometry` | `canonical_rivers.matched_geometry` |
+| Amenities incl. camping | `api/seed/amenities.json` (~6.3k) | `seed:amenities` | `amenities` → `pois` via trigger |
+
+Unlike the canonical-river reseed above, these have **`platform:seed:*:staging`
+wrappers that start and tear down their own Cloud SQL Auth Proxy on 5441**. So do
+**not** run a manual proxy alongside them — it collides on the port and the wrapper
+reports `Cloud SQL Auth Proxy did not start`. Run them one at a time:
+
+```bash
+npm run platform:seed:river-geometry:staging
+npm run platform:seed:amenities:staging
+npm run platform:seed:observations:staging
+```
+
+Each is idempotent: `river-geometry` updates matched lines in place; `amenities`
+**upserts and never deletes** (so adopted/contributed rows survive); `observations`
+upserts the curated station set. `watercourses` is **not** a pack (~850k rows, too
+big for git) — staging already holds it, and a refresh uses the OSM Waterway Import
+above. (Backlog: a bucket-backed `watercourses` seed.)
+
+### After a staging deploy — verify
+
+A merge to `main` auto-deploys staging (migrate → Cloud Run API → Firebase Hosting).
+After that, and after running the seed packs, validate against staging. Queries are
+not wrapped, so start one manual proxy on 5441 (and do **not** run a
+`platform:seed:*` wrapper while it holds the port), then read via `migrationsUrl` so
+the password never prints:
+
+```bash
+# proxy in its own terminal:
+cloud-sql-proxy --gcloud-auth --address 127.0.0.1 --port 5441 \
+  river-go-staging:europe-west2:river-go-db-staging
+
+# photo/contribution gate — additive migrations must preserve these; backfills complete:
+psql "$(jq -r '.staging.database.migrationsUrl' platform/.config/river-go-runtime.json)" -c "
+  SELECT (SELECT count(*) FROM contributions)                                                 AS contributions,
+         (SELECT count(*) FROM contribution_photos)                                           AS photos,
+         (SELECT count(*) FROM contributions WHERE map_poi_id IS NOT NULL AND poi_id IS NULL)   AS poi_unbackfilled,
+         (SELECT count(*) FROM contributions WHERE section_id IS NOT NULL AND river_id IS NULL) AS river_unbackfilled;"
+
+# what's in the unified index (confirms which packs have run):
+psql "$(jq -r '.staging.database.migrationsUrl' platform/.config/river-go-runtime.json)" -c "
+  SELECT source_entity_type, count(*) FROM pois GROUP BY 1 ORDER BY 2 DESC;"
+```
+
+`poi_unbackfilled` and `river_unbackfilled` must be **0**, and
+`contributions`/`photos` must match their pre-deploy values — the data-model
+migrations are additive and never delete contribution data.
 
 The first non-OS implementation pass should:
 
