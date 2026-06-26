@@ -108,6 +108,7 @@ SERVER_SA_EMAIL="$SERVER_SA_NAME@$GCP_PROJECT.iam.gserviceaccount.com"
 DATABASE_URL="$(runtime_value ".$ENV.database.url")"
 ADMIN_EMAILS="$(jq -er ".$ENV.auth.adminEmails // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 WHAT3WORDS_API_KEY="$(jq -er ".$ENV.integrations.what3words.apiKey // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
+METOFFICE_API_KEY="$(jq -er ".$ENV.integrations.metoffice.apiKey // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 OBSERVATION_JOB_OIDC_AUDIENCE="$(jq -er ".$ENV.jobs.observationOidcAudience // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 OBSERVATION_JOB_SERVICE_ACCOUNT="$(jq -er ".$ENV.jobs.observationServiceAccount // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
 RESEND_API_KEY="$(jq -er ".$ENV.integrations.email.apiKey // \"\"" "$RUNTIME_CONFIG_PATH" 2>/dev/null || true)"
@@ -141,6 +142,12 @@ if [[ -n "$WHAT3WORDS_API_KEY" && "$WHAT3WORDS_API_KEY" != *"<"* && "$WHAT3WORDS
   SET_SECRETS="$SET_SECRETS,WHAT3WORDS_API_KEY=WHAT3WORDS_API_KEY:latest"
 else
   info "what3words API key not configured; location lookup endpoint will report configured=false"
+fi
+if [[ -n "$METOFFICE_API_KEY" && "$METOFFICE_API_KEY" != *"<"* && "$METOFFICE_API_KEY" != *">"* ]]; then
+  write_secret "METOFFICE_API_KEY" "$METOFFICE_API_KEY"
+  SET_SECRETS="$SET_SECRETS,METOFFICE_API_KEY=METOFFICE_API_KEY:latest"
+else
+  info "Met Office API key not configured; the rain layer will be unavailable"
 fi
 if [[ -n "$OBSERVATION_JOB_OIDC_AUDIENCE" && -n "$OBSERVATION_JOB_SERVICE_ACCOUNT" ]]; then
   info "Observation ingestion: Cloud Scheduler OIDC enabled for $OBSERVATION_JOB_SERVICE_ACCOUNT"
