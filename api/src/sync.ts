@@ -227,7 +227,9 @@ async function insertContribution(
       sync_source,
       payload,
       map_poi_id,
-      visibility
+      visibility,
+      poi_id,
+      river_id
     ) VALUES (
       $1,
       $2,
@@ -243,7 +245,37 @@ async function insertContribution(
       $11,
       $12::jsonb,
       $13,
-      $14
+      $14,
+      -- POI-linked contributions carry a namespaced poi_id so they're treated as
+      -- point-scoped (surfaced via the POI's photo badge) rather than re-rendered
+      -- in the section feed.
+      CASE WHEN $13 IS NOT NULL THEN 'map_poi:' || $13 ELSE NULL END,
+      -- Stamp the owning river at write time (was previously only ever backfilled
+      -- from a POI by migration) so a new photo shows in the river's Photos tab
+      -- immediately. Derive from the linked POI's section, else the section.
+      COALESCE(
+        (SELECT crsl.river_id
+         FROM paddling_features pf
+         JOIN canonical_river_section_links crsl
+           ON crsl.section_id = pf.section_id
+           AND crsl.route_source = 'section_fixture'
+           AND crsl.status = 'active'
+         WHERE pf.id = $13
+         LIMIT 1),
+        (SELECT crsl.river_id
+         FROM canonical_river_section_links crsl
+         WHERE crsl.section_id = $3
+           AND crsl.route_source = 'section_fixture'
+           AND crsl.status = 'active'
+         LIMIT 1),
+        -- A contribution added straight from a river overview carries the
+        -- canonical-river pseudo-section id, whose slug IS the river id.
+        CASE
+          WHEN $3 LIKE 'canonical-river:%'
+            THEN substring($3 FROM length('canonical-river:') + 1)
+          ELSE NULL
+        END
+      )
     )
     ON CONFLICT (id) DO UPDATE SET
       updated_at = now()

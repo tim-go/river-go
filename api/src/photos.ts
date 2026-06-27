@@ -18,6 +18,10 @@ export interface ApiMemberPhoto {
   displayPath: string | null;
   thumbnailPath: string | null;
   originalName: string | null;
+  // Map placement + POI link, so the river photo layer can draw standalone
+  // photos as pins (POI-linked ones are surfaced via the POI's badge instead).
+  mapPoiId: string | null;
+  geometry: { type: "Point"; coordinates: [number, number] } | null;
   createdAt: string;
   author: {
     id: string | null;
@@ -41,6 +45,8 @@ interface PhotoRow {
   display_path: string | null;
   thumbnail_path: string | null;
   original_name: string | null;
+  map_poi_id: string | null;
+  geometry: { type: "Point"; coordinates: [number, number] } | null;
   created_at: Date;
   member_id: string | null;
   display_name: string | null;
@@ -154,6 +160,11 @@ function photoSelectSql() {
     p.display_path,
     p.thumbnail_path,
     p.original_name,
+    c.map_poi_id,
+    CASE
+      WHEN c.geometry IS NULL THEN NULL
+      ELSE ST_AsGeoJSON(c.geometry)::json
+    END AS geometry,
     p.created_at,
     p.member_id,
     COALESCE(m.public_name, m.display_name) AS display_name,
@@ -179,6 +190,8 @@ function mapPhotoRow(row: PhotoRow): ApiMemberPhoto {
     displayPath: row.display_path,
     thumbnailPath: row.thumbnail_path,
     originalName: row.original_name,
+    mapPoiId: row.map_poi_id,
+    geometry: row.geometry,
     createdAt: row.created_at.toISOString(),
     author: {
       id: row.member_id,
