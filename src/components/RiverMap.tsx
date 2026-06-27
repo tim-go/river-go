@@ -45,6 +45,11 @@ import {
 } from "../lib/format";
 import { riverMarkerInitial } from "../lib/riverName";
 import {
+  segmentIntersectsBounds,
+  simplifyPath,
+  toleranceForZoom,
+} from "../lib/riverGeometry";
+import {
   createLiveLocationPopup,
   createMapPopupContent,
   createRouteAdjustmentPopup,
@@ -289,6 +294,13 @@ export function RiverMap({
     );
   }, [selectedRiver]);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  // The river-level-lines are the heaviest vector layer, so they get their own
+  // layer group + canvas renderer and are redrawn (viewport-culled, zoom-
+  // simplified) independently of the marker layer — see the dedicated effect
+  // below. Keeping them out of the main layer group means a GPS tick or a POI
+  // toggle no longer tears down and rebuilds every river polyline.
+  const riverLinesLayerRef = useRef<L.LayerGroup | null>(null);
+  const riverRendererRef = useRef<L.Canvas | null>(null);
 
   // Met Office precipitation overlay — kept outside the main layer group (which
   // is cleared on every render) so toggling it doesn't rebuild the map.
@@ -558,6 +570,11 @@ export function RiverMap({
       center: savedView ? [savedView.lat, savedView.lng] : [52.6, -2.9],
       zoom: savedView ? savedView.zoom : 6,
       zoomControl: false,
+      // Render vector layers (river lines, routes, gauge circles) to a <canvas>
+      // instead of one SVG <path> per line. The river network alone is ~370
+      // polylines; as SVG that's 370 DOM nodes reprojected on every pan/zoom,
+      // which is what makes the Rivers layer crawl on mobile.
+      preferCanvas: true,
     });
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -575,8 +592,15 @@ export function RiverMap({
     });
 
     const layers = L.layerGroup().addTo(map);
+    // Dedicated renderer + group for the river-level-lines. A wider padding than
+    // the default (0.1) means a short pan reuses already-drawn canvas instead of
+    // re-culling immediately; the moveend handler re-culls once the pan settles.
+    const riverRenderer = L.canvas({ padding: 0.5 });
+    const riverLines = L.layerGroup().addTo(map);
     mapRef.current = map;
     layerRef.current = layers;
+    riverRendererRef.current = riverRenderer;
+    riverLinesLayerRef.current = riverLines;
 
     if (savedView) {
       // Honor the restored view over the load-time auto-fit-to-active-section,
@@ -641,6 +665,8 @@ export function RiverMap({
       map.remove();
       mapRef.current = null;
       layerRef.current = null;
+      riverLinesLayerRef.current = null;
+      riverRendererRef.current = null;
     };
   }, []);
 
@@ -739,6 +765,85 @@ export function RiverMap({
     setSelectedWatercourseId(matchedWatercourse.id);
   }, [knownWatercourses, watercourseFocusId, watercourseFocusNonce]);
 
+  // River-level-lines layer — the heaviest vector content, kept on its own
+  // canvas group. It's redrawn only when the river data/visibility changes or
+  // the map settles after a pan/zoom (moveend/zoomend), at which point each
+  // segment is culled to the padded viewport and simplified to the zoom. This
+  // is deliberately decoupled from the marker effect below, whose ~35 deps
+  // (live location, POI zoom, drafts…) otherwise rebuilt every river line.
+  useEffect(() => {
+    const map = mapRef.current;
+    const riverLines = riverLinesLayerRef.current;
+    const renderer = riverRendererRef.current;
+
+    if (!map || !riverLines) {
+      return;
+    }
+
+    const displayedRiverIds = new Set(canonicalRivers.map((river) => river.id));
+    const riverNameById = new Map(
+      canonicalRivers.map((river) => [river.id, river.displayName]),
+    );
+    const visibleRivers = (showRiverLayer ? (riverLevelLines ?? []) : []).filter(
+      (river) => displayedRiverIds.has(river.riverId),
+    );
+
+    const draw = () => {
+      riverLines.clearLayers();
+      if (visibleRivers.length === 0) {
+        return;
+      }
+
+      const mapBounds = map.getBounds().pad(0.25);
+      const viewport = {
+        minLat: mapBounds.getSouth(),
+        minLng: mapBounds.getWest(),
+        maxLat: mapBounds.getNorth(),
+        maxLng: mapBounds.getEast(),
+      };
+      const tolerance = toleranceForZoom(map.getZoom());
+
+      visibleRivers.forEach((river) => {
+        const bandLabel = LEVEL_BAND_LABELS[river.band];
+        const valueText =
+          river.value != null ? ` · ${river.value}${river.unit ?? ""}` : "";
+        const riverName = riverNameById.get(river.riverId) ?? river.riverId;
+        river.lines.forEach((segment) => {
+          if (segment.length < 2) {
+            return;
+          }
+          // Skip whole segments outside the view, then thin the survivors to the
+          // detail the current zoom can actually show.
+          if (!segmentIntersectsBounds(segment, viewport)) {
+            return;
+          }
+          const points = simplifyPath(segment, tolerance);
+          if (points.length < 2) {
+            return;
+          }
+          const line = L.polyline(points, {
+            color: levelBandColor(river.band),
+            weight: 5,
+            opacity: 0.9,
+            interactive: true,
+            renderer: renderer ?? undefined,
+          }).addTo(riverLines);
+          line.bindTooltip(`${riverName} — ${bandLabel}${valueText}`, {
+            sticky: true,
+          });
+        });
+      });
+    };
+
+    draw();
+    map.on("moveend zoomend", draw);
+
+    return () => {
+      map.off("moveend zoomend", draw);
+      riverLines.clearLayers();
+    };
+  }, [showRiverLayer, riverLevelLines, canonicalRivers]);
+
   useEffect(() => {
     const map = mapRef.current;
     const layers = layerRef.current;
@@ -749,35 +854,9 @@ export function RiverMap({
 
     layers.clearLayers();
 
-    // River network coloured by live level (real OSM geometry) — part of the
-    // "Rivers" layer alongside the markers; grey where there's no gauge. Filtered
-    // to the displayed rivers so the discipline filter applies here too.
-    const displayedRiverIds = new Set(canonicalRivers.map((river) => river.id));
-    const riverNameById = new Map(
-      canonicalRivers.map((river) => [river.id, river.displayName]),
-    );
-    (showRiverLayer ? (riverLevelLines ?? []) : [])
-      .filter((river) => displayedRiverIds.has(river.riverId))
-      .forEach((river) => {
-        const bandLabel = LEVEL_BAND_LABELS[river.band];
-        const valueText =
-          river.value != null ? ` · ${river.value}${river.unit ?? ""}` : "";
-        const riverName = riverNameById.get(river.riverId) ?? river.riverId;
-        river.lines.forEach((segment) => {
-          if (segment.length < 2) {
-            return;
-          }
-          const line = L.polyline(segment, {
-            color: levelBandColor(river.band),
-            weight: 5,
-            opacity: 0.9,
-            interactive: true,
-          }).addTo(layers);
-          line.bindTooltip(`${riverName} — ${bandLabel}${valueText}`, {
-            sticky: true,
-          });
-        });
-      });
+    // The river-level-lines are drawn by their own effect (canvas-rendered,
+    // viewport-culled, zoom-simplified) so they're not rebuilt on every marker/
+    // GPS/POI change that re-runs this effect.
 
     // Global POI layer — zoom-gated (>= POI_MIN_ZOOM) so the national view isn't
     // flooded by 600+ pins. The user zooms in to reveal them.
@@ -1695,7 +1774,6 @@ export function RiverMap({
     showRoutesLayer,
     showRiverLayer,
     sectionLevelStates,
-    riverLevelLines,
     riverLevelStates,
     globalPois,
     stations,
