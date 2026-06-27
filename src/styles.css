@@ -2360,6 +2360,10 @@ h1 {
   background: #303a47;
 }
 
+.map-marker--photo {
+  background: #7048e8;
+}
+
 .map-marker--search {
   background: #277da1;
   outline: 5px solid rgba(39, 125, 161, 0.22);

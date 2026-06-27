@@ -434,6 +434,9 @@ function App() {
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
   const [showPublicRoutes, setShowPublicRoutes] = useState(false);
   const [showRiverLayer, setShowRiverLayer] = useState(true);
+  // Community photo points are a normal layer, on by default; the Layers control
+  // owns visibility. Distinct from POI kinds — these are photo-type contributions.
+  const [showPhotoLayer, setShowPhotoLayer] = useState(true);
   const [isLevelLegendOpen, setIsLevelLegendOpen] = useState(false);
   const [riverDisciplineFilter, setRiverDisciplineFilter] = useState<
     "all" | "whitewater" | "touring"
@@ -499,6 +502,7 @@ function App() {
           { id: "poi:access", label: "Access" },
           { id: "poi:hazard", label: "Hazards" },
           { id: "poi:feature", label: "Features" },
+          { id: "photos", label: "Photos" },
         ],
       },
       {
@@ -543,6 +547,7 @@ function App() {
     if (showKnownRivers) set.add("waterways");
     if (showRoutesLayer) set.add("routes");
     if (showPublicRoutes) set.add("routes:public");
+    if (showPhotoLayer) set.add("photos");
     for (const kind of activePoiKinds) set.add(`poi:${kind}`);
     for (const kind of activeAmenityKinds) set.add(`amenity:${kind}`);
     if (showRain) set.add("weather:rain");
@@ -556,6 +561,7 @@ function App() {
     showKnownRivers,
     showRoutesLayer,
     showPublicRoutes,
+    showPhotoLayer,
     activePoiKinds,
     activeAmenityKinds,
     showRain,
@@ -578,6 +584,7 @@ function App() {
     else if (id === "waterways") setShowKnownRivers((value) => !value);
     else if (id === "routes") setShowRoutesLayer((value) => !value);
     else if (id === "routes:public") setShowPublicRoutes((value) => !value);
+    else if (id === "photos") setShowPhotoLayer((value) => !value);
     else if (id === "weather:rain") setShowRain((value) => !value);
     else if (id === "stations:paddler")
       setShowPaddlerGauges((value) => !value);
@@ -613,6 +620,7 @@ function App() {
     setShowKnownRivers(false);
     setShowRoutesLayer(false);
     setShowPublicRoutes(false);
+    setShowPhotoLayer(false);
     setActivePoiKinds(new Set());
     setActiveAmenityKinds(new Set());
     setShowRain(false);
@@ -4478,6 +4486,7 @@ function App() {
           riverLevelStates={riverLevelStates}
           globalPois={globalPois}
           activePoiKinds={activePoiKinds}
+          showPhotoLayer={showPhotoLayer}
           amenities={displayedAmenities}
           riverLevelLines={riverLevelLines}
           showRain={showRain}
