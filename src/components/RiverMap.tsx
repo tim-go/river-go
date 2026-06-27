@@ -94,6 +94,13 @@ import {
   type RiverPoiTab,
 } from "../lib/riverPoiTabs";
 
+// A small camera glyph so photo pins read at a glance and don't compete with the
+// lettered contribution markers. Injected as the marker label (innerHTML) and
+// inherits the marker's white text colour.
+const PHOTO_MARKER_GLYPH =
+  '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true">' +
+  '<path d="M9 4l-1.2 1.6H4.5A1.5 1.5 0 0 0 3 7.1v10.4A1.5 1.5 0 0 0 4.5 19h15a1.5 1.5 0 0 0 1.5-1.5V7.1a1.5 1.5 0 0 0-1.5-1.5h-3.3L15 4H9zm3 3.8a4.4 4.4 0 1 1 0 8.8 4.4 4.4 0 0 1 0-8.8zm0 2a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z"/></svg>';
+
 type RiverDetailTab =
   | "levels"
   | "rapids"
@@ -901,11 +908,6 @@ export function RiverMap({
       drinking_water: "Drinking water",
       shop: "Shop",
     };
-    // A small camera glyph so photo pins read at a glance and don't compete with
-    // the lettered POI/amenity markers. Inherits the marker's white text colour.
-    const photoGlyph =
-      '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true">' +
-      '<path d="M9 4l-1.2 1.6H4.5A1.5 1.5 0 0 0 3 7.1v10.4A1.5 1.5 0 0 0 4.5 19h15a1.5 1.5 0 0 0 1.5-1.5V7.1a1.5 1.5 0 0 0-1.5-1.5h-3.3L15 4H9zm3 3.8a4.4 4.4 0 1 1 0 8.8 4.4 4.4 0 0 1 0-8.8zm0 2a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z"/></svg>';
 
     // Markers currently on the map, keyed by a stable id, so a redraw can diff
     // against the previous view instead of rebuilding everything.
@@ -1032,99 +1034,6 @@ export function RiverMap({
           );
           rendered.set(key, amenityMarker);
         });
-
-        // Community photo points — photo-type contributions surfaced as their
-        // own toggleable, camera-pinned layer. The river "Photos" tab renders
-        // photos inline instead, so this global layer steps aside there to avoid
-        // double pins.
-        if (showPhotoLayer && !tabPhotosOnly) {
-          contributions.forEach((contribution) => {
-            if (contribution.type !== "photo" || !contribution.location) {
-              return;
-            }
-            if (!bounds.contains(contribution.location)) {
-              return;
-            }
-            const key = `photo:${contribution.id}`;
-            next.add(key);
-            if (rendered.has(key)) {
-              return;
-            }
-            const syncStatus = outboxByContributionId.get(
-              contribution.id,
-            )?.syncStatus;
-            // A still-syncing/failed upload keeps its outbox colour so the
-            // contributor can see it hasn't landed yet; settled photos get the
-            // camera pin.
-            const markerKind =
-              syncStatus === "failed"
-                ? "failed"
-                : syncStatus && syncStatus !== "synced"
-                  ? "queued"
-                  : "photo";
-            const photoMarker = L.marker(contribution.location, {
-              bubblingMouseEvents: false,
-              icon: L.divIcon({
-                className: "",
-                html: markerHtml(
-                  markerKind,
-                  markerKind === "photo" ? photoGlyph : "P",
-                ),
-                iconSize: [24, 24],
-                iconAnchor: [12, 12],
-              }),
-            });
-            const openPhotoDetails = () => {
-              map.closePopup();
-              poiDetailsRef.current(
-                contributionToSelectedPoi(
-                  contribution,
-                  sections.find(
-                    (section) => section.id === contribution.sectionId,
-                  ) ?? activeSection,
-                  syncStatus,
-                ),
-                { focusMap: true, focusPlacement: "mobile-top-half" },
-              );
-            };
-            const photo = contribution.photos?.[0];
-            const photoThumb = photo?.thumbnailUrl || photo?.displayUrl;
-            const photoFull = photo?.displayUrl || photoThumb;
-            const photoTitle = photo?.caption || contribution.title;
-            photoMarker.addTo(poiMarkers);
-            if (markerClickMode === "info") {
-              photoMarker.bindPopup(
-                createMapPopupContent({
-                  title: contribution.title,
-                  subtitle: `Photo · ${contributionStatusLabel(contribution.status)}`,
-                  summary: contribution.detail,
-                  imageUrl: photoThumb,
-                  imageAlt: photoTitle,
-                  onImageClick: photoFull
-                    ? () =>
-                        onOpenPhoto({
-                          src: photoFull,
-                          title: photoTitle,
-                          caption: photo?.originalName || contribution.detail,
-                          alt: photoTitle,
-                        })
-                    : undefined,
-                  navigationLocation: contribution.location,
-                  onDetails: openPhotoDetails,
-                }),
-              );
-            }
-            photoMarker.on("click", (event) => {
-              L.DomEvent.stop(event.originalEvent);
-              if (markerClickMode === "info") {
-                photoMarker.openPopup();
-                return;
-              }
-              openPhotoDetails();
-            });
-            rendered.set(key, photoMarker);
-          });
-        }
       }
 
       // Drop markers that scrolled out of view (or all of them when zoomed
@@ -1150,12 +1059,6 @@ export function RiverMap({
     poiZoomVisible,
     globalPois,
     amenities,
-    contributions,
-    showPhotoLayer,
-    tabPhotosOnly,
-    onOpenPhoto,
-    outboxByContributionId,
-    activeSection,
     selectedCanonicalRiver,
     selectedRiverMapPois,
     markerClickMode,
@@ -1662,10 +1565,10 @@ export function RiverMap({
       if (!contribution.location) {
         return;
       }
-      // Photo-type contributions are owned by the dedicated, viewport-culled
-      // Photos layer (see the poiMarkers effect). The river "Photos" tab is the
-      // exception: its focus view still renders them inline here.
-      if (contribution.type === "photo" && !tabPhotosOnly) {
+      // The Photos layer toggle hides/shows photo pins; the river "Photos" tab
+      // always shows them (it's an explicit focus that overrides the toggle).
+      const isPhoto = contribution.type === "photo";
+      if (isPhoto && !tabPhotosOnly && !showPhotoLayer) {
         return;
       }
       // Photos tab: keep only contributions that carry photos, so the map shows
@@ -1682,12 +1585,18 @@ export function RiverMap({
             ? "queued"
             : contribution.type === "hazard"
               ? "hazard"
-              : "community";
+              : isPhoto
+                ? "photo"
+                : "community";
+      // A settled photo gets the camera glyph; a still-syncing/failed one keeps
+      // the "P" letter so the outbox colour reads clearly.
       const label =
         contribution.type === "hazard"
           ? "!"
-          : contribution.type === "photo"
-            ? "P"
+          : isPhoto
+            ? kind === "photo"
+              ? PHOTO_MARKER_GLYPH
+              : "P"
             : contribution.type === "feature"
               ? "*"
               : contribution.type === "access"
@@ -1962,6 +1871,7 @@ export function RiverMap({
     canonicalRivers,
     contributions,
     tabPhotosOnly,
+    showPhotoLayer,
     focusNonce,
     liveLocation,
     markerClickMode,
