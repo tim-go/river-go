@@ -116,7 +116,20 @@ jobs:
             echo "channel=preview-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Capture live release before deploy
+        id: prevlive
+        if: steps.fb.outputs.channel == 'live'
+        run: |
+          token="$(gcloud auth print-access-token)"
+          v="$(curl -sS -H "Authorization: Bearer $token" \
+            "https://firebasehosting.googleapis.com/v1beta1/sites/${{ steps.fb.outputs.target }}/channels/live" \
+            | jq -r '.release.version.name // ""')"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Live version before deploy: ${v:-<none>}"
+
       - name: Deploy web to Firebase Hosting
+        id: deploy
+        continue-on-error: true
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
@@ -124,3 +137,38 @@ jobs:
           projectId: ${{ steps.fb.outputs.project }}
           channelId: ${{ steps.fb.outputs.channel }}
           target: ${{ steps.fb.outputs.target }}
+
+      - name: Confirm Hosting deploy
+        env:
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          CHANNEL: ${{ steps.fb.outputs.channel }}
+          SITE: ${{ steps.fb.outputs.target }}
+          PREV_VERSION: ${{ steps.prevlive.outputs.version }}
+        run: |
+          if [ "$DEPLOY_OUTCOME" = "success" ]; then
+            echo "Deploy action succeeded."
+            exit 0
+          fi
+          # A preview-channel failure is real (the live release-retry quirk below
+          # only affects the live channel).
+          if [ "$CHANNEL" != "live" ]; then
+            echo "::error::Firebase Hosting preview deploy failed."
+            exit 1
+          fi
+          # Known false-failure: the action releases the new version to live, then
+          # firebase-tools retries the release POST after a "premature close" network
+          # error and the retry fails with FAILED_PRECONDITION because the version is
+          # already active from the successful first attempt. Confirm the live release
+          # actually advanced to a new version; if so the deploy genuinely succeeded.
+          token="$(gcloud auth print-access-token)"
+          now="$(curl -sS -H "Authorization: Bearer $token" \
+            "https://firebasehosting.googleapis.com/v1beta1/sites/$SITE/channels/live" \
+            | jq -r '.release.version.name // ""')"
+          echo "Live version before: ${PREV_VERSION:-<none>}"
+          echo "Live version after:  ${now:-<none>}"
+          if [ -n "$now" ] && [ "$now" != "$PREV_VERSION" ]; then
+            echo "::notice::Deploy action reported failure, but the live release advanced — the new build is live (firebase-tools release-retry false-failure). Treating as success."
+            exit 0
+          fi
+          echo "::error::Firebase Hosting deploy failed and the live release did not advance."
+          exit 1
