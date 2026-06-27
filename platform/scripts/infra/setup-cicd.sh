@@ -246,6 +246,38 @@ setup_environment() {
     warn "Runtime config not found ($RUNTIME_FILE); set RIVER_GO_RUNTIME_CONFIG secret manually"
   fi
 
+  # --- 7. Service-account key (only when auth.serviceAccountKeys = true) ---
+  # WIF is the default, but firebase-tools can't authenticate with WIF external-
+  # account credentials (firebase/firebase-tools#10726), so the firebase deploy step
+  # needs a real SA key. Gated on auth.serviceAccountKeys, which in turn requires the
+  # org policy iam.disableServiceAccountKeyCreation to be relaxed for this project.
+  local sa_keys_enabled; sa_keys_enabled="$(json_value ".environments.$env.auth.serviceAccountKeys")"
+  if [[ "$sa_keys_enabled" == "true" ]]; then
+    section "Service-account key - $env"
+    local sa_key_rel; sa_key_rel="$(json_value ".environments.$env.files.gcpSaKeyFile")"
+    if [[ -z "$sa_key_rel" ]]; then
+      warn "auth.serviceAccountKeys is true but files.gcpSaKeyFile is unset; skipping SA key"
+    else
+      local sa_key_path="$PLATFORM_ROOT/$sa_key_rel"
+      mkdir -p "$(dirname "$sa_key_path")"
+      if [[ -s "$sa_key_path" ]] && jq -e '.type == "service_account" and (.private_key | length) > 0' "$sa_key_path" >/dev/null 2>&1; then
+        pass "Reusing existing SA key: $sa_key_rel (a service account caps at 10 keys)"
+      else
+        rm -f "$sa_key_path"   # clear any placeholder/invalid file so the create won't refuse
+        run gcloud iam service-accounts keys create "$sa_key_path" \
+          --iam-account="$CI_SA_EMAIL" \
+          --project="$GCP_PROJECT" \
+          && pass "Created SA key for $CI_SA_EMAIL -> $sa_key_rel" \
+          || fail "Could not create SA key — is org policy iam.disableServiceAccountKeyCreation relaxed for $GCP_PROJECT?"
+      fi
+      if [[ -s "$sa_key_path" ]] || $DRY_RUN; then
+        set_env_secret "GCP_SA_KEY" "$sa_key_path" --from-file
+      fi
+    fi
+  else
+    info "auth.serviceAccountKeys is false for $env; Workload Identity Federation only"
+  fi
+
   if [[ "$env" == "staging" ]]; then
     section "Enable staging auto-deploy"
     if $DRY_RUN; then
