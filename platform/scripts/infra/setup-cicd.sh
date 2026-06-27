@@ -260,9 +260,10 @@ setup_environment() {
     else
       local sa_key_path="$PLATFORM_ROOT/$sa_key_rel"
       mkdir -p "$(dirname "$sa_key_path")"
-      if [[ -s "$sa_key_path" ]] && jq empty "$sa_key_path" >/dev/null 2>&1; then
+      if [[ -s "$sa_key_path" ]] && jq -e '.type == "service_account" and (.private_key | length) > 0' "$sa_key_path" >/dev/null 2>&1; then
         pass "Reusing existing SA key: $sa_key_rel (a service account caps at 10 keys)"
       else
+        rm -f "$sa_key_path"   # clear any placeholder/invalid file so the create won't refuse
         run gcloud iam service-accounts keys create "$sa_key_path" \
           --iam-account="$CI_SA_EMAIL" \
           --project="$GCP_PROJECT" \
