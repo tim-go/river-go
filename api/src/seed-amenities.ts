@@ -16,6 +16,10 @@ export interface AmenitySeedEntry {
   category: string;
   name: string | null;
   wkbHex: string;
+  // The nearest featured river (canonical_rivers.id), pre-derived where
+  // watercourses exist (§10a). Nullable: an amenity with no featured river in
+  // range, or an older pack generated before river_id existed, is allowed.
+  riverId?: string | null;
   rawProperties: Record<string, unknown>;
   sourceMetadata: Record<string, unknown>;
 }
@@ -58,6 +62,16 @@ export function loadAmenitiesSeed(): AmenitySeedEntry[] {
     requireObject(entry?.sourceMetadata, `${at}.sourceMetadata`);
     if (entry?.name !== null && typeof entry?.name !== "string") {
       throw new Error(`amenities seed: "${at}.name" must be a string or null`);
+    }
+    // riverId is optional (absent in pre-river_id packs) and nullable.
+    if (
+      entry?.riverId !== undefined &&
+      entry?.riverId !== null &&
+      (typeof entry?.riverId !== "string" || entry.riverId.trim() === "")
+    ) {
+      throw new Error(
+        `amenities seed: "${at}.riverId" must be a non-empty string, null, or absent`,
+      );
     }
   });
 

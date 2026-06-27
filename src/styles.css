@@ -2298,13 +2298,8 @@ h1 {
   outline: 4px solid rgba(124, 58, 237, 0.25);
 }
 
-.map-marker--river,
-.map-marker--river-active {
+.map-marker--river {
   background: #1f6f8b;
-}
-
-.map-marker--river-active {
-  outline: 5px solid rgba(31, 111, 139, 0.24);
 }
 
 .map-marker--river-whitewater {

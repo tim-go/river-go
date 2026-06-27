@@ -6,6 +6,9 @@ export interface Amenity {
   name: string | null;
   lat: number;
   lng: number;
+  // Nearest featured river (canonical_rivers.id); used to scope amenities to a
+  // focused river. Null if none in range.
+  riverId: string | null;
 }
 
 export async function fetchAmenities(): Promise<Amenity[]> {

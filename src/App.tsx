@@ -533,6 +533,9 @@ function App() {
   );
   const selectedMapLayers = useMemo(() => {
     const set = new Set<string>();
+    if (selectedCanonicalRiverId) {
+      set.add(`river:${selectedCanonicalRiverId}`);
+    }
     if (riverDisciplineFilter !== "all") {
       set.add(`discipline:${riverDisciplineFilter}`);
     }
@@ -547,6 +550,7 @@ function App() {
     if (showAllStations) set.add("stations:all");
     return set;
   }, [
+    selectedCanonicalRiverId,
     riverDisciplineFilter,
     showRiverLayer,
     showKnownRivers,
@@ -559,7 +563,10 @@ function App() {
     showAllStations,
   ]);
   const toggleMapLayer = (id: string) => {
-    if (id === "discipline:whitewater") {
+    if (id.startsWith("river:")) {
+      // The "River: <name>" focus pill — removing/toggling it exits focus.
+      setSelectedCanonicalRiverId(null);
+    } else if (id === "discipline:whitewater") {
       setRiverDisciplineFilter((current) =>
         current === "whitewater" ? "all" : "whitewater",
       );
@@ -600,6 +607,7 @@ function App() {
     }
   };
   const clearMapLayers = () => {
+    setSelectedCanonicalRiverId(null);
     setRiverDisciplineFilter("all");
     setShowRiverLayer(false);
     setShowKnownRivers(false);
@@ -924,6 +932,29 @@ function App() {
           null
         : null,
     [canonicalRivers, selectedCanonicalRiverId],
+  );
+  // Selecting a river puts it on the layers bar as the first, removable "River"
+  // filter pill (the focus chip). Removing it exits focus — see toggleMapLayer.
+  const mapLayerCategoriesWithRiver = useMemo<FilterCategory[]>(
+    () =>
+      selectedCanonicalRiver
+        ? [
+            {
+              id: "river",
+              label: "River",
+              color: "#3f7cac",
+              kind: "filter",
+              options: [
+                {
+                  id: `river:${selectedCanonicalRiver.id}`,
+                  label: selectedCanonicalRiver.displayName,
+                },
+              ],
+            },
+            ...mapLayerCategories,
+          ]
+        : mapLayerCategories,
+    [mapLayerCategories, selectedCanonicalRiver],
   );
   const observationSectionIdRef = useRef(activeSection.id);
 
@@ -4230,7 +4261,7 @@ function App() {
         <section className="topbar" aria-label="Map controls">
           <div className="topbar-actions">
             <MapFilterControl
-              categories={mapLayerCategories}
+              categories={mapLayerCategoriesWithRiver}
               selected={selectedMapLayers}
               onToggle={toggleMapLayer}
               onClear={clearMapLayers}
