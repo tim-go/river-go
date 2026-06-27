@@ -137,6 +137,15 @@ fi
 section "Build web app"
 run npm --prefix "$REPO_DIR" run build
 
+# Stamp the build so every deploy is a distinct Firebase Hosting version. Without a
+# unique marker, re-deploying byte-identical content makes Hosting reject the release
+# as already the current active version (FAILED_PRECONDITION) — which the deploy
+# action surfaces as a job failure. The short git sha + UTC build time guarantee a
+# fresh version each run, while a genuine build/upload failure still fails.
+printf '{"sha":"%s","builtAt":"%s"}\n' \
+  "$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)" \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$REPO_DIR/dist/build-info.json"
+
 # CI builds with --build-only and lets FirebaseExtended/action-hosting-deploy do the
 # deploy (it bundles its own firebase-tools + handles SA-key auth, sidestepping
 # firebase/firebase-tools#10726 where the CLI ignores GOOGLE_APPLICATION_CREDENTIALS).
