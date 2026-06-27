@@ -301,6 +301,10 @@ export function RiverMap({
   // toggle no longer tears down and rebuilds every river polyline.
   const riverLinesLayerRef = useRef<L.LayerGroup | null>(null);
   const riverRendererRef = useRef<L.Canvas | null>(null);
+  // The high-volume marker sets (global POIs, riverside amenities — thousands of
+  // pins nationally) get their own layer group + viewport-culled effect, so only
+  // on-screen pins become DOM nodes and a GPS tick can't rebuild them all.
+  const poiLayerRef = useRef<L.LayerGroup | null>(null);
 
   // Met Office precipitation overlay — kept outside the main layer group (which
   // is cleared on every render) so toggling it doesn't rebuild the map.
@@ -597,10 +601,12 @@ export function RiverMap({
     // re-culling immediately; the moveend handler re-culls once the pan settles.
     const riverRenderer = L.canvas({ padding: 0.5 });
     const riverLines = L.layerGroup().addTo(map);
+    const poiMarkers = L.layerGroup().addTo(map);
     mapRef.current = map;
     layerRef.current = layers;
     riverRendererRef.current = riverRenderer;
     riverLinesLayerRef.current = riverLines;
+    poiLayerRef.current = poiMarkers;
 
     if (savedView) {
       // Honor the restored view over the load-time auto-fit-to-active-section,
@@ -667,6 +673,7 @@ export function RiverMap({
       layerRef.current = null;
       riverLinesLayerRef.current = null;
       riverRendererRef.current = null;
+      poiLayerRef.current = null;
     };
   }, []);
 
@@ -844,30 +851,66 @@ export function RiverMap({
     };
   }, [showRiverLayer, riverLevelLines, canonicalRivers]);
 
+  // High-volume marker layer — global POIs (~800) plus riverside amenities
+  // (~6,000+ nationally). Like the river lines, these get their own group and
+  // are redrawn only on a data change or once the map settles after a pan/zoom;
+  // only pins inside the padded viewport become DOM nodes. This keeps the live
+  // marker DOM count to what's on screen and out of the GPS-tick rebuild churn.
   useEffect(() => {
     const map = mapRef.current;
-    const layers = layerRef.current;
+    const poiMarkers = poiLayerRef.current;
 
-    if (!map || !layers) {
+    if (!map || !poiMarkers) {
       return;
     }
 
-    layers.clearLayers();
+    // Build the section/river lookups once, rather than an O(n) find per POI.
+    const sectionById = new Map(
+      sections.map((section) => [section.id, section]),
+    );
+    const riverByName = new Map(
+      canonicalRivers.map((river) => [river.displayName, river]),
+    );
+    // A selected river's own POIs are owned by the selected-river path (its
+    // panel tabs/chips), so don't double-render them here.
+    const selectedRiverPoiIds = selectedCanonicalRiver
+      ? new Set(selectedRiverMapPois.map((poi) => poi.id))
+      : null;
 
-    // The river-level-lines are drawn by their own effect (canvas-rendered,
-    // viewport-culled, zoom-simplified) so they're not rebuilt on every marker/
-    // GPS/POI change that re-runs this effect.
+    const amenityLetter: Record<string, string> = {
+      pub: "P",
+      car_park: "C",
+      toilets: "T",
+      cafe: "F",
+      drinking_water: "W",
+      shop: "S",
+    };
+    const amenityName: Record<string, string> = {
+      pub: "Pub",
+      car_park: "Car park",
+      toilets: "Toilets",
+      cafe: "Café",
+      drinking_water: "Drinking water",
+      shop: "Shop",
+    };
 
-    // Global POI layer — zoom-gated (>= POI_MIN_ZOOM) so the national view isn't
-    // flooded by 600+ pins. The user zooms in to reveal them.
-    if (poiZoomVisible) {
-      // A selected river's own POIs are owned by the selected-river path (its panel
-      // tabs/chips), so don't double-render them here.
-      const selectedRiverPoiIds = selectedCanonicalRiver
-        ? new Set(selectedRiverMapPois.map((poi) => poi.id))
-        : null;
+    const draw = () => {
+      poiMarkers.clearLayers();
+      // Zoom-gated: the national view isn't flooded with pins — the user zooms
+      // in to reveal them.
+      if (!poiZoomVisible) {
+        return;
+      }
+
+      const bounds = map.getBounds().pad(0.25);
+
       (globalPois ?? []).forEach((poi) => {
-        if (selectedRiverPoiIds?.has(poi.id)) return;
+        if (selectedRiverPoiIds?.has(poi.id)) {
+          return;
+        }
+        if (!bounds.contains(poi.location)) {
+          return;
+        }
         const displayMeta = mapPoiDisplayMeta(poi);
         const poiMarker = L.marker(poi.location, {
           bubblingMouseEvents: false,
@@ -878,13 +921,14 @@ export function RiverMap({
             iconAnchor: [14, 14],
           }),
         });
-        // Resolve the POI's river (via its section) so the popup can open details,
-        // matching the selected-river POI markers rather than a bare hover tooltip.
-        const poiSection = sections.find((section) => section.id === poi.sectionId);
+        // Resolve the POI's river (via its section) so the popup can open
+        // details, matching the selected-river POI markers rather than a bare
+        // hover tooltip.
+        const poiSection = poi.sectionId
+          ? sectionById.get(poi.sectionId)
+          : undefined;
         const poiRiver = poiSection
-          ? canonicalRivers.find(
-              (river) => river.displayName === poiSection.riverName,
-            )
+          ? riverByName.get(poiSection.riverName)
           : undefined;
         // Details works for every POI, river-selected or not — the river is just
         // context (its name when we can resolve it, else the POI's section).
@@ -896,7 +940,7 @@ export function RiverMap({
           );
         };
 
-        poiMarker.addTo(layers);
+        poiMarker.addTo(poiMarkers);
         if (markerClickMode === "info") {
           poiMarker.bindPopup(
             createMapPopupContent({
@@ -916,10 +960,77 @@ export function RiverMap({
             poiMarker.openPopup();
             return;
           }
-          openGlobalPoiDetails?.();
+          openGlobalPoiDetails();
         });
       });
+
+      (amenities ?? []).forEach((amenity) => {
+        if (!bounds.contains([amenity.lat, amenity.lng])) {
+          return;
+        }
+        const amenityMarker = L.marker([amenity.lat, amenity.lng], {
+          bubblingMouseEvents: false,
+          icon: L.divIcon({
+            className: "",
+            html: markerHtml(
+              "amenity",
+              amenityLetter[amenity.category] ?? "•",
+              "background:#e8b079;border-color:#e8b079;color:#3a2613;",
+            ),
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+          }),
+        });
+        amenityMarker.addTo(poiMarkers);
+        const label = amenityName[amenity.category] ?? amenity.category;
+        amenityMarker.bindPopup(
+          createMapPopupContent({
+            title: amenity.name ?? label,
+            subtitle: label,
+            summary: "From OpenStreetMap.",
+            navigationLocation: [amenity.lat, amenity.lng],
+            navigationLabel: "Directions",
+            navigationMode: "directions",
+          }),
+        );
+      });
+    };
+
+    draw();
+    map.on("moveend zoomend", draw);
+
+    return () => {
+      map.off("moveend zoomend", draw);
+      poiMarkers.clearLayers();
+    };
+  }, [
+    poiZoomVisible,
+    globalPois,
+    amenities,
+    selectedCanonicalRiver,
+    selectedRiverMapPois,
+    markerClickMode,
+    sections,
+    canonicalRivers,
+  ]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const layers = layerRef.current;
+
+    if (!map || !layers) {
+      return;
     }
+
+    layers.clearLayers();
+
+    // The river-level-lines are drawn by their own effect (canvas-rendered,
+    // viewport-culled, zoom-simplified) so they're not rebuilt on every marker/
+    // GPS/POI change that re-runs this effect.
+
+    // Global POIs and riverside amenities — the high-volume marker sets — are
+    // drawn by their own viewport-culled effect (see below), so this effect no
+    // longer rebuilds thousands of pins on every GPS/marker change.
 
     (stations ?? []).forEach((station) => {
       const bandColor = levelBandColor(station.band);
@@ -951,52 +1062,6 @@ export function RiverMap({
       );
     });
 
-    // Riverside amenities (OSM) — same zoom gate as the POIs.
-    if (poiZoomVisible) {
-      const amenityLetter: Record<string, string> = {
-        pub: "P",
-        car_park: "C",
-        toilets: "T",
-        cafe: "F",
-        drinking_water: "W",
-        shop: "S",
-      };
-      const amenityName: Record<string, string> = {
-        pub: "Pub",
-        car_park: "Car park",
-        toilets: "Toilets",
-        cafe: "Café",
-        drinking_water: "Drinking water",
-        shop: "Shop",
-      };
-      (amenities ?? []).forEach((amenity) => {
-        const amenityMarker = L.marker([amenity.lat, amenity.lng], {
-          bubblingMouseEvents: false,
-          icon: L.divIcon({
-            className: "",
-            html: markerHtml(
-              "amenity",
-              amenityLetter[amenity.category] ?? "•",
-              "background:#e8b079;border-color:#e8b079;color:#3a2613;",
-            ),
-            iconSize: [22, 22],
-            iconAnchor: [11, 11],
-          }),
-        });
-        amenityMarker.addTo(layers);
-        const label = amenityName[amenity.category] ?? amenity.category;
-        amenityMarker.bindPopup(
-          createMapPopupContent({
-            title: amenity.name ?? label,
-            subtitle: label,
-            summary: "From OpenStreetMap.",
-            navigationLocation: [amenity.lat, amenity.lng],
-            navigationLabel: "Directions",
-            navigationMode: "directions",
-          }),
-        );
-      });
-    }
 
     (showRiverLayer ? canonicalRivers : []).forEach((river) => {
       const isSelected = selectedCanonicalRiver?.id === river.id;
@@ -1775,10 +1840,7 @@ export function RiverMap({
     showRiverLayer,
     sectionLevelStates,
     riverLevelStates,
-    globalPois,
     stations,
-    amenities,
-    poiZoomVisible,
     showSelectedRoutePath,
     showKnownRivers,
     onOpenPhoto,
