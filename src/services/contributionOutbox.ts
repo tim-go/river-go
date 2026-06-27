@@ -11,7 +11,7 @@ const DB_VERSION = 1;
 const STORE_NAME = "contribution-outbox";
 const FALLBACK_STORAGE_KEY = "river-go-contribution-outbox-v1";
 const DEVICE_ID_STORAGE_KEY = "river-go-device-id";
-const APP_VERSION = "0.1.0";
+const APP_VERSION = __APP_VERSION__;
 
 export interface ContributionOutboxStore {
   list(): Promise<ContributionOutboxRecord[]>;

@@ -1,11 +1,44 @@
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+
+function gitOutput(args: string, fallback: string): string {
+  try {
+    return execSync(`git ${args}`, { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+  } catch {
+    return fallback;
+  }
+}
+
+// Baked into the bundle at build time and shown on the About screen. The sha and
+// commit time are per-COMMIT (not per-build), so rebuilding the same commit yields
+// an identical bundle — no spurious PWA "update available" prompts on re-deploys.
+const pkg = JSON.parse(
+  readFileSync(join(process.cwd(), "package.json"), "utf8"),
+) as { version: string };
+const appVersion = pkg.version;
+const appGitSha = process.env.GITHUB_SHA
+  ? process.env.GITHUB_SHA.slice(0, 7)
+  : gitOutput("rev-parse --short HEAD", "dev");
+const appBuiltAt = gitOutput(
+  "show -s --format=%cI HEAD",
+  new Date().toISOString(),
+);
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
   return {
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion),
+      __APP_GIT_SHA__: JSON.stringify(appGitSha),
+      __APP_BUILT_AT__: JSON.stringify(appBuiltAt),
+    },
     plugins: [
       react(),
       VitePWA({

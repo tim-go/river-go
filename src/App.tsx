@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Flag,
   Heart,
+  Info,
   LogIn,
   LogOut,
   Map as MapIcon,
@@ -163,6 +164,7 @@ import { SyncOutboxBanner } from "./components/SyncOutboxBanner";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
 import { AppBrandPanel } from "./components/AppBrandPanel";
+import { AboutScreen } from "./components/AboutScreen";
 import { PaddleHistoryPanel } from "./components/PaddleHistoryPanel";
 import { KitInventoryPanel } from "./components/KitInventoryPanel";
 import { SkillsPanel } from "./components/SkillsPanel";
@@ -6903,6 +6905,17 @@ function App() {
                   </span>
                   <RefreshCw size={18} />
                 </button>
+                <button
+                  className="placeholder-row"
+                  type="button"
+                  onClick={() => setActiveAppSection("about")}
+                >
+                  <span>
+                    <strong>About</strong>
+                    <small>App version and info</small>
+                  </span>
+                  <Info size={18} />
+                </button>
                 <section className="settings-panel" aria-label="Settings">
                   <div className="settings-panel__header">
                     <span>
@@ -6996,6 +7009,8 @@ function App() {
                 </section>
               </div>
             </PlaceholderPage>
+          ) : activeAppSection === "about" ? (
+            <AboutScreen onBack={() => setActiveAppSection("more")} />
           ) : (
             <PlaceholderPage section="admin" title="Admin">
               {canAccessAdminTools ? (
