@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Filter, X } from "lucide-react";
 import "./map-filter-control.css";
 
@@ -42,8 +42,27 @@ export function MapFilterControl({
   onClear,
 }: MapFilterControlProps) {
   const [expanded, setExpanded] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const pillsRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
+
+  // Collapse the expanded panel when the user interacts anywhere outside it
+  // (e.g. tapping the map). Pointerdown in the capture phase fires before the
+  // map's own click handling, and covers both touch and mouse.
+  useEffect(() => {
+    if (!expanded) {
+      return;
+    }
+    const handlePointerDown = (event: PointerEvent) => {
+      const root = rootRef.current;
+      if (root && !root.contains(event.target as Node)) {
+        setExpanded(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () =>
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [expanded]);
 
   const { optionById, colorByOptionId, filterOptionIds } = useMemo(() => {
     const byId = new Map<string, FilterOption>();
@@ -182,7 +201,10 @@ export function MapFilterControl({
   const displayCategories = categories.filter((c) => c.kind !== "filter");
 
   return (
-    <div className={`map-filter ${expanded ? "map-filter--expanded" : ""}`}>
+    <div
+      ref={rootRef}
+      className={`map-filter ${expanded ? "map-filter--expanded" : ""}`}
+    >
       <div className="map-filter__bar">
         <div className="map-filter__pills" ref={pillsRef}>
           {activeIds.length === 0 ? (
