@@ -77,13 +77,15 @@ export default defineConfig(({ mode }) => {
           // SW. Runtime caching of API GETs / map tiles / remote images is P2
           // (see docs/specs/pwa-installable.md).
           globPatterns: ["**/*.{js,css,html,svg,woff2,png,ico}"],
-          // Keep the heavy zxcvbn dictionary out of the precache — it's a
-          // separate chunk lazy-loaded only on the online-only sign-up / reset
-          // password fields.
+          // Keep online-only, lazy-loaded chunks out of the precache: the heavy
+          // zxcvbn dictionary (sign-up / reset password) and the Firebase
+          // analytics (consent-gated) and storage (photo upload) SDKs.
           globIgnores: [
             "**/apple-splash-*.png",
             "**/images/**",
             "**/zxcvbn-*.js",
+            "**/firebase-analytics-*.js",
+            "**/firebase-storage-*.js",
           ],
           navigateFallback: "/index.html",
           // Never serve the SPA shell for /api/* or Firebase's reserved /__/*
@@ -107,9 +109,34 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          // Name the zxcvbn chunk so the PWA precache can exclude it.
+          // Split large, slow-changing vendors into their own chunks. They're
+          // cached independently of the app code (which changes every deploy)
+          // and download in parallel, so the entry chunk stays small. The
+          // zxcvbn chunk is named so the PWA precache can exclude it.
           manualChunks(id) {
             if (id.includes("@zxcvbn-ts")) return "zxcvbn";
+            if (!id.includes("node_modules")) return undefined;
+            // analytics (consent-gated) and storage (photo upload) are
+            // dynamically imported. Give them stable names — they stay lazy
+            // (only reachable via import()), but the name lets the PWA precache
+            // exclude these online-only chunks, as it does for zxcvbn.
+            if (id.includes("firebase/analytics") || id.includes("@firebase/analytics")) {
+              return "firebase-analytics";
+            }
+            if (id.includes("firebase/storage") || id.includes("@firebase/storage")) {
+              return "firebase-storage";
+            }
+            if (id.includes("/firebase/") || id.includes("@firebase/")) {
+              return "firebase";
+            }
+            if (id.includes("/leaflet/")) return "leaflet";
+            if (
+              id.includes("/react/") ||
+              id.includes("/react-dom/") ||
+              id.includes("/scheduler/")
+            ) {
+              return "react";
+            }
             return undefined;
           },
         },

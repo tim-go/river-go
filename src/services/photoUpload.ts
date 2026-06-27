@@ -1,4 +1,3 @@
-import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import type { ContributionPhoto } from "../types";
 import { getClientAuth } from "./firebaseAuth";
 import type { ProcessedContributionPhoto } from "./imageProcessing";
@@ -19,6 +18,12 @@ export async function uploadContributionPhoto(
   if (!navigator.onLine) {
     throw new Error("Photo upload needs a network connection for this version.");
   }
+
+  // Lazy-loaded: firebase/storage is only needed when a contributor actually
+  // uploads a photo, so it stays out of the first-paint bundle.
+  const { getDownloadURL, getStorage, ref, uploadBytes } = await import(
+    "firebase/storage"
+  );
 
   const photoId = generateUuid();
   const basePath = `contribution-photos/${user.uid}/${contributionId}/${photoId}`;
