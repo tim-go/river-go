@@ -853,9 +853,15 @@ export function RiverMap({
 
   // High-volume marker layer — global POIs (~800) plus riverside amenities
   // (~6,000+ nationally). Like the river lines, these get their own group and
-  // are redrawn only on a data change or once the map settles after a pan/zoom;
-  // only pins inside the padded viewport become DOM nodes. This keeps the live
-  // marker DOM count to what's on screen and out of the GPS-tick rebuild churn.
+  // are redrawn once the map settles after a pan/zoom; only pins inside the
+  // padded viewport become DOM nodes, keeping the live count to what's on screen
+  // and out of the GPS-tick rebuild churn.
+  //
+  // The redraw is incremental — it keeps markers already in view, adds ones that
+  // scrolled in, and removes ones that scrolled out. A wholesale clear-and-
+  // rebuild would also destroy the marker whose popup the user just opened:
+  // opening a popup autoPans the map, which fires moveend → redraw. Keeping
+  // still-visible markers untouched lets the open popup survive.
   useEffect(() => {
     const map = mapRef.current;
     const poiMarkers = poiLayerRef.current;
@@ -894,105 +900,141 @@ export function RiverMap({
       shop: "Shop",
     };
 
+    // Markers currently on the map, keyed by a stable id, so a redraw can diff
+    // against the previous view instead of rebuilding everything.
+    const rendered = new Map<string, L.Marker>();
+
     const draw = () => {
-      poiMarkers.clearLayers();
-      // Zoom-gated: the national view isn't flooded with pins — the user zooms
-      // in to reveal them.
-      if (!poiZoomVisible) {
-        return;
-      }
+      const next = new Set<string>();
 
-      const bounds = map.getBounds().pad(0.25);
+      // Zoom-gated so the national view isn't flooded with pins — EXCEPT when a
+      // river is focused: it's already a narrow scope, so show its pins at any
+      // zoom (the selection flies the map to the river).
+      if (poiZoomVisible || selectedCanonicalRiver) {
+        const bounds = map.getBounds().pad(0.25);
 
-      (globalPois ?? []).forEach((poi) => {
-        if (selectedRiverPoiIds?.has(poi.id)) {
-          return;
-        }
-        if (!bounds.contains(poi.location)) {
-          return;
-        }
-        const displayMeta = mapPoiDisplayMeta(poi);
-        const poiMarker = L.marker(poi.location, {
-          bubblingMouseEvents: false,
-          icon: L.divIcon({
-            className: "",
-            html: markerHtml(displayMeta.markerKind, displayMeta.markerLabel),
-            iconSize: [28, 28],
-            iconAnchor: [14, 14],
-          }),
-        });
-        // Resolve the POI's river (via its section) so the popup can open
-        // details, matching the selected-river POI markers rather than a bare
-        // hover tooltip.
-        const poiSection = poi.sectionId
-          ? sectionById.get(poi.sectionId)
-          : undefined;
-        const poiRiver = poiSection
-          ? riverByName.get(poiSection.riverName)
-          : undefined;
-        // Details works for every POI, river-selected or not — the river is just
-        // context (its name when we can resolve it, else the POI's section).
-        const openGlobalPoiDetails = () => {
-          map.closePopup();
-          poiDetailsRef.current(
-            riverMapPoiToSelectedPoi(poi, poiRiver, poiSection?.riverName),
-            { focusMap: true, focusPlacement: "mobile-top-half" },
-          );
-        };
-
-        poiMarker.addTo(poiMarkers);
-        if (markerClickMode === "info") {
-          poiMarker.bindPopup(
-            createMapPopupContent({
-              title: poi.title,
-              subtitle: displayMeta.label,
-              summary: poi.summary,
-              navigationLocation: poi.location,
-              navigationLabel: poi.kind === "access" ? "Directions" : "Maps",
-              navigationMode: poi.kind === "access" ? "directions" : "map",
-              onDetails: openGlobalPoiDetails,
-            }),
-          );
-        }
-        poiMarker.on("click", (event) => {
-          L.DomEvent.stop(event.originalEvent);
-          if (markerClickMode === "info") {
-            poiMarker.openPopup();
+        // When a river is focused, the global paddling-feature layer steps aside:
+        // the focused river's own features render via the selected-river path
+        // (panel), and other rivers' features are filtered out of focus.
+        (selectedCanonicalRiver ? [] : (globalPois ?? [])).forEach((poi) => {
+          if (selectedRiverPoiIds?.has(poi.id)) {
             return;
           }
-          openGlobalPoiDetails();
-        });
-      });
+          if (!bounds.contains(poi.location)) {
+            return;
+          }
+          const key = `poi:${poi.id}`;
+          next.add(key);
+          if (rendered.has(key)) {
+            return;
+          }
+          const displayMeta = mapPoiDisplayMeta(poi);
+          const poiMarker = L.marker(poi.location, {
+            bubblingMouseEvents: false,
+            icon: L.divIcon({
+              className: "",
+              html: markerHtml(displayMeta.markerKind, displayMeta.markerLabel),
+              iconSize: [28, 28],
+              iconAnchor: [14, 14],
+            }),
+          });
+          // Resolve the POI's river (via its section) so the popup can open
+          // details, matching the selected-river POI markers rather than a bare
+          // hover tooltip.
+          const poiSection = poi.sectionId
+            ? sectionById.get(poi.sectionId)
+            : undefined;
+          const poiRiver = poiSection
+            ? riverByName.get(poiSection.riverName)
+            : undefined;
+          // Details works for every POI, river-selected or not — the river is
+          // just context (its name when we can resolve it, else the section).
+          const openGlobalPoiDetails = () => {
+            map.closePopup();
+            poiDetailsRef.current(
+              riverMapPoiToSelectedPoi(poi, poiRiver, poiSection?.riverName),
+              { focusMap: true, focusPlacement: "mobile-top-half" },
+            );
+          };
 
-      (amenities ?? []).forEach((amenity) => {
-        if (!bounds.contains([amenity.lat, amenity.lng])) {
-          return;
-        }
-        const amenityMarker = L.marker([amenity.lat, amenity.lng], {
-          bubblingMouseEvents: false,
-          icon: L.divIcon({
-            className: "",
-            html: markerHtml(
-              "amenity",
-              amenityLetter[amenity.category] ?? "•",
-              "background:#e8b079;border-color:#e8b079;color:#3a2613;",
-            ),
-            iconSize: [22, 22],
-            iconAnchor: [11, 11],
-          }),
+          poiMarker.addTo(poiMarkers);
+          if (markerClickMode === "info") {
+            poiMarker.bindPopup(
+              createMapPopupContent({
+                title: poi.title,
+                subtitle: displayMeta.label,
+                summary: poi.summary,
+                navigationLocation: poi.location,
+                navigationLabel: poi.kind === "access" ? "Directions" : "Maps",
+                navigationMode: poi.kind === "access" ? "directions" : "map",
+                onDetails: openGlobalPoiDetails,
+              }),
+            );
+          }
+          poiMarker.on("click", (event) => {
+            L.DomEvent.stop(event.originalEvent);
+            if (markerClickMode === "info") {
+              poiMarker.openPopup();
+              return;
+            }
+            openGlobalPoiDetails();
+          });
+          rendered.set(key, poiMarker);
         });
-        amenityMarker.addTo(poiMarkers);
-        const label = amenityName[amenity.category] ?? amenity.category;
-        amenityMarker.bindPopup(
-          createMapPopupContent({
-            title: amenity.name ?? label,
-            subtitle: label,
-            summary: "From OpenStreetMap.",
-            navigationLocation: [amenity.lat, amenity.lng],
-            navigationLabel: "Directions",
-            navigationMode: "directions",
-          }),
-        );
+
+        (amenities ?? []).forEach((amenity) => {
+          // Focused river: show only its amenities (pre-derived riverId, §5).
+          if (
+            selectedCanonicalRiver &&
+            amenity.riverId !== selectedCanonicalRiver.id
+          ) {
+            return;
+          }
+          if (!bounds.contains([amenity.lat, amenity.lng])) {
+            return;
+          }
+          const key = `amenity:${amenity.id}`;
+          next.add(key);
+          if (rendered.has(key)) {
+            return;
+          }
+          const amenityMarker = L.marker([amenity.lat, amenity.lng], {
+            bubblingMouseEvents: false,
+            icon: L.divIcon({
+              className: "",
+              html: markerHtml(
+                "amenity",
+                amenityLetter[amenity.category] ?? "•",
+                "background:#e8b079;border-color:#e8b079;color:#3a2613;",
+              ),
+              iconSize: [22, 22],
+              iconAnchor: [11, 11],
+            }),
+          });
+          amenityMarker.addTo(poiMarkers);
+          const label = amenityName[amenity.category] ?? amenity.category;
+          amenityMarker.bindPopup(
+            createMapPopupContent({
+              title: amenity.name ?? label,
+              subtitle: label,
+              summary: "From OpenStreetMap.",
+              navigationLocation: [amenity.lat, amenity.lng],
+              navigationLabel: "Directions",
+              navigationMode: "directions",
+            }),
+          );
+          rendered.set(key, amenityMarker);
+        });
+      }
+
+      // Drop markers that scrolled out of view (or all of them when zoomed
+      // out). Markers still in view are left in place so an open popup isn't
+      // torn down by the moveend that autoPan fired when it opened.
+      rendered.forEach((marker, key) => {
+        if (!next.has(key)) {
+          poiMarkers.removeLayer(marker);
+          rendered.delete(key);
+        }
       });
     };
 
@@ -1002,6 +1044,7 @@ export function RiverMap({
     return () => {
       map.off("moveend zoomend", draw);
       poiMarkers.clearLayers();
+      rendered.clear();
     };
   }, [
     poiZoomVisible,
@@ -1064,7 +1107,6 @@ export function RiverMap({
 
 
     (showRiverLayer ? canonicalRivers : []).forEach((river) => {
-      const isSelected = selectedCanonicalRiver?.id === river.id;
       const label = riverMarkerInitial(river.displayName);
       // Colour pins by discipline using the same --discipline-* tokens as the
       // search chips, so the map and Search read with one colour language.
@@ -1076,23 +1118,19 @@ export function RiverMap({
             : river.discipline === "both"
               ? "river-both"
               : "river";
-      // Pins read by live level state — grey when there's no gauge, matching the
-      // grey river line. Gauged rivers show their band colour.
+      // Pins read by live level state — grey where there's no gauge, matching
+      // the grey river line; gauged rivers show their band colour. The colour
+      // stays the same when selected (the opened panel is the selection cue), so
+      // the pin doesn't jump to a different colour on tap.
       const riverBand = riverLevelStates?.get(river.id)?.band ?? "unknown";
-      const levelStyle = !isSelected
-        ? `background:${levelBandColor(riverBand)};border-color:${levelBandColor(
-            riverBand,
-          )};color:#102a43;`
-        : "";
+      const levelStyle = `background:${levelBandColor(
+        riverBand,
+      )};border-color:${levelBandColor(riverBand)};color:#102a43;`;
       const marker = L.marker(river.centre, {
         bubblingMouseEvents: false,
         icon: L.divIcon({
           className: "",
-          html: markerHtml(
-            isSelected ? "river-active" : disciplineKind,
-            label,
-            levelStyle,
-          ),
+          html: markerHtml(disciplineKind, label, levelStyle),
           iconSize: [36, 36],
           iconAnchor: [18, 18],
         }),
