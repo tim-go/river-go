@@ -22,19 +22,21 @@ async function upsertBatch(
          category text,
          name text,
          "wkbHex" text,
+         "riverId" text,
          "rawProperties" jsonb,
          "sourceMetadata" jsonb
        )
      )
-     INSERT INTO amenities (source, source_id, category, name, geometry, raw_properties, source_metadata)
+     INSERT INTO amenities (source, source_id, category, name, geometry, river_id, raw_properties, source_metadata)
      SELECT 'osm_amenity', i."sourceId", i.category, i.name,
        ST_SetSRID(ST_GeomFromWKB(decode(i."wkbHex", 'hex')), 4326),
-       i."rawProperties", i."sourceMetadata"
+       i."riverId", i."rawProperties", i."sourceMetadata"
      FROM input i
      ON CONFLICT (source, source_id) DO UPDATE SET
        category = EXCLUDED.category,
        name = EXCLUDED.name,
        geometry = EXCLUDED.geometry,
+       river_id = EXCLUDED.river_id,
        raw_properties = EXCLUDED.raw_properties,
        source_metadata = EXCLUDED.source_metadata,
        updated_at = now()`,

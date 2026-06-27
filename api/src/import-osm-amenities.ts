@@ -79,7 +79,7 @@ async function main() {
     // featured canonical river (same match the level-lines use) — indexed, so the
     // proximity test is fast. Temp table lives for this client session.
     await client.query(`CREATE TEMP TABLE our_rivers AS
-      SELECT w.geometry
+      SELECT cr.id AS river_id, w.geometry
       FROM watercourses w
       JOIN canonical_rivers cr
         ON lower(w.name) IN (
@@ -311,24 +311,31 @@ async function insertBatch(
          ST_Centroid(ST_SetSRID(ST_GeomFromGeoJSON(geometry::text), 4326)) AS geom
        FROM input
      )
-     INSERT INTO amenities (source, source_id, category, name, geometry, raw_properties, source_metadata)
-     SELECT 'osm_amenity', p.source_id, p.category, p.name, p.geom, p.raw_properties,
+     INSERT INTO amenities (source, source_id, category, name, geometry, river_id, raw_properties, source_metadata)
+     SELECT 'osm_amenity', p.source_id, p.category, p.name, p.geom, nearest.river_id, p.raw_properties,
        jsonb_build_object(
          'source', 'OpenStreetMap',
          'licence', 'Open Database Licence',
          'role', 'Reference amenity near a featured river — shown as-is from OpenStreetMap'
        )
      FROM pts p
+     -- LATERAL nearest-river join: same proximity filter as before (no match → no
+     -- row, so the amenity is dropped exactly as the old EXISTS did) AND captures
+     -- the nearest featured river's id for amenities.river_id (§5).
+     CROSS JOIN LATERAL (
+       SELECT r.river_id
+       FROM our_rivers r
+       WHERE ST_DWithin(r.geometry, p.geom, $2)
+         AND ST_DWithin(r.geometry::geography, p.geom::geography, $3)
+       ORDER BY ST_Distance(r.geometry::geography, p.geom::geography)
+       LIMIT 1
+     ) AS nearest
      WHERE p.geom IS NOT NULL AND NOT ST_IsEmpty(p.geom)
-       AND EXISTS (
-         SELECT 1 FROM our_rivers r
-         WHERE ST_DWithin(r.geometry, p.geom, $2)
-           AND ST_DWithin(r.geometry::geography, p.geom::geography, $3)
-       )
      ON CONFLICT (source, source_id) DO UPDATE SET
        category = EXCLUDED.category,
        name = EXCLUDED.name,
        geometry = EXCLUDED.geometry,
+       river_id = EXCLUDED.river_id,
        raw_properties = EXCLUDED.raw_properties,
        source_metadata = EXCLUDED.source_metadata,
        updated_at = now()`,
