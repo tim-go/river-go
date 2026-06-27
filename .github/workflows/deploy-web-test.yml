@@ -1,0 +1,103 @@
+name: Deploy Web (test)
+
+# Standalone Firebase Hosting deploy, manual-dispatch only, for fast iteration on the
+# web-deploy authentication (which keeps failing). It drops migrate, the Cloud Run API
+# deploy, and the Cloud SQL proxy — it does ONLY the web build + firebase hosting deploy,
+# using the same SA-key auth and env secrets as the main Deploy workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, prod]
+        default: staging
+
+concurrency:
+  group: deploy-web-test-${{ github.event.inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-web:
+    name: Deploy web ${{ github.event.inputs.environment || 'staging' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    env:
+      DEPLOY_ENV: ${{ github.event.inputs.environment || 'staging' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Authenticate to Google Cloud (service account key)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools@15.22.1
+
+      - name: Materialise platform config from secrets
+        env:
+          PLATFORM_JSON: ${{ secrets.RIVER_GO_PLATFORM_CONFIG }}
+          RUNTIME_JSON: ${{ secrets.RIVER_GO_RUNTIME_CONFIG }}
+        run: |
+          if [ -z "$PLATFORM_JSON" ] || [ -z "$RUNTIME_JSON" ]; then
+            echo "::error::RIVER_GO_PLATFORM_CONFIG / RIVER_GO_RUNTIME_CONFIG secrets are not set for the '$DEPLOY_ENV' environment. See docs/development/deployment.md."
+            exit 1
+          fi
+          mkdir -p platform/.config
+          printf '%s' "$PLATFORM_JSON" > platform/.config/river-go-platform.json
+          printf '%s' "$RUNTIME_JSON" > platform/.config/river-go-runtime.json
+
+      - name: Auth diagnostics
+        continue-on-error: true
+        run: |
+          echo "--- gcloud access token (the SA key's token; not printed) ---"
+          if tok="$(gcloud auth print-access-token 2>/dev/null)"; then
+            echo "gcloud print-access-token: OK (length ${#tok})"
+          else
+            echo "gcloud print-access-token: FAIL"
+          fi
+          echo ""
+          echo "--- firebase projects:list WITHOUT a token (expected to fail; firebase-tools#10726 ignores GOOGLE_APPLICATION_CREDENTIALS) ---"
+          firebase projects:list 2>&1 | tail -6 || true
+          echo ""
+          echo "--- firebase projects:list WITH an explicit --token (does the gcloud token work?) ---"
+          firebase projects:list --token "$(gcloud auth print-access-token)" 2>&1 | tail -8 || true
+
+      - name: Build web app
+        run: npm run "platform:deploy-web:$DEPLOY_ENV" -- --build-only
+
+      - name: Resolve Firebase project + target
+        id: fb
+        run: |
+          echo "project=$(jq -r ".environments.$DEPLOY_ENV.firebaseProject" platform/.config/river-go-platform.json)" >> "$GITHUB_OUTPUT"
+          echo "target=$(jq -r ".environments.$DEPLOY_ENV.firebaseHostingSite" platform/.config/river-go-platform.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
+          projectId: ${{ steps.fb.outputs.project }}
+          channelId: live
+          target: ${{ steps.fb.outputs.target }}

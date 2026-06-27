@@ -36,6 +36,8 @@ jobs:
     environment: ${{ github.event.inputs.environment || 'staging' }}
     permissions:
       contents: read
+      checks: write
+      pull-requests: write
     env:
       DEPLOY_ENV: ${{ github.event.inputs.environment || 'staging' }}
       LIVE: ${{ github.event.inputs.live }}
@@ -99,11 +101,26 @@ jobs:
       - name: Deploy API to Cloud Run
         run: npm run "platform:deploy-api:$DEPLOY_ENV"
 
-      - name: Deploy web to Firebase Hosting
+      - name: Build web app
+        run: npm run "platform:deploy-web:$DEPLOY_ENV" -- --build-only
+
+      - name: Resolve Firebase project, target, channel
+        id: fb
         run: |
-          # Push-to-main deploys staging live; manual runs honour the `live` input.
+          echo "project=$(jq -r ".environments.$DEPLOY_ENV.firebaseProject" platform/.config/river-go-platform.json)" >> "$GITHUB_OUTPUT"
+          echo "target=$(jq -r ".environments.$DEPLOY_ENV.firebaseHostingSite" platform/.config/river-go-platform.json)" >> "$GITHUB_OUTPUT"
+          # Push-to-main / live input deploys live; otherwise a per-run preview channel.
           if [ "$GITHUB_EVENT_NAME" = "push" ] || [ "${LIVE:-false}" = "true" ]; then
-            npm run "platform:deploy-web:$DEPLOY_ENV"
+            echo "channel=live" >> "$GITHUB_OUTPUT"
           else
-            npm run "platform:deploy-web-preview:$DEPLOY_ENV"
+            echo "channel=preview-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Deploy web to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
+          projectId: ${{ steps.fb.outputs.project }}
+          channelId: ${{ steps.fb.outputs.channel }}
+          target: ${{ steps.fb.outputs.target }}

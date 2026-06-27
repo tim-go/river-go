@@ -12,6 +12,7 @@ ENV="${1:-}"
 MODE=""
 CHANNEL_ID="${CHANNEL_ID:-api-e2e-test}"
 DRY_RUN=false
+BUILD_ONLY=false
 
 shift || true
 while [[ "$#" -gt 0 ]]; do
@@ -29,6 +30,9 @@ while [[ "$#" -gt 0 ]]; do
     --dry-run)
       DRY_RUN=true
       ;;
+    --build-only)
+      BUILD_ONLY=true
+      ;;
     *)
       fail "Unknown argument: $1"
       print_summary "Firebase Hosting deploy"
@@ -44,7 +48,7 @@ if [[ "$ENV" != "staging" && "$ENV" != "prod" ]]; then
   exit 1
 fi
 
-if [[ -z "$MODE" ]]; then
+if [[ "$BUILD_ONLY" != true && -z "$MODE" ]]; then
   fail "Choose --preview or --live. Live deploy is intentionally explicit."
   print_summary "Firebase Hosting deploy"
   exit 1
@@ -132,6 +136,15 @@ fi
 
 section "Build web app"
 run npm --prefix "$REPO_DIR" run build
+
+# CI builds with --build-only and lets FirebaseExtended/action-hosting-deploy do the
+# deploy (it bundles its own firebase-tools + handles SA-key auth, sidestepping
+# firebase/firebase-tools#10726 where the CLI ignores GOOGLE_APPLICATION_CREDENTIALS).
+if [[ "$BUILD_ONLY" == true ]]; then
+  pass "Build complete (--build-only); skipping firebase deploy"
+  print_summary "Firebase Hosting deploy"
+  exit 0
+fi
 
 section "Deploy Firebase Hosting"
 if [[ "$MODE" == "preview" ]]; then
