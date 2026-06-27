@@ -250,6 +250,7 @@ import {
   formatSourceCandidateValue,
   getObservationRangeOption,
   hasAdminAccess,
+  distanceMetersToRoute,
   hasModeratorAccess,
   isCandidateSection,
   isCanonicalOverviewSection,
@@ -298,6 +299,13 @@ import {
   watercourseCentre,
   watercourseTypeLabel,
 } from "./appCore";
+
+// When a contribution is added from a river overview, link it to the nearest POI
+// only if that POI is within this distance — beyond it, the contribution still
+// lands on the POI's section (so it's loadable) but isn't misattributed to a
+// far-off point. ~1km comfortably covers typical access/rapid spacing on a reach
+// while rejecting a photo dropped on a different river than the one focused.
+const NEAREST_POI_ATTACH_METERS = 1000;
 
 function App() {
   const outboxStore = useMemo(() => createContributionOutboxStore(), []);
@@ -1913,10 +1921,40 @@ function App() {
       }
     }
 
+    // A contribution added from a canonical-river overview otherwise inherits the
+    // overview's pseudo-section id, which the map never loads — orphaning it. When
+    // there's no explicit POI target, anchor it to the focused river's nearest POI
+    // so it lands on a real, loadable section (and, when the POI is close enough,
+    // links to it so the photo surfaces via that point's badge).
+    let resolvedSectionId = activeSection.id;
+    let resolvedMapPoiId = addModeTargetPoiId ?? undefined;
+    if (
+      !resolvedMapPoiId &&
+      location &&
+      isCanonicalOverviewSection(activeSection) &&
+      selectedRiverMapPois.length > 0
+    ) {
+      let nearestPoi: MapPoi | null = null;
+      let nearestMeters = Infinity;
+      for (const poi of selectedRiverMapPois) {
+        const meters = distanceMetersToRoute(location, [poi.location]);
+        if (meters < nearestMeters) {
+          nearestMeters = meters;
+          nearestPoi = poi;
+        }
+      }
+      if (nearestPoi) {
+        resolvedSectionId = nearestPoi.sectionId;
+        if (nearestMeters <= NEAREST_POI_ATTACH_METERS) {
+          resolvedMapPoiId = nearestPoi.id;
+        }
+      }
+    }
+
     const nextContribution: Contribution = {
       id: contributionId,
-      sectionId: activeSection.id,
-      mapPoiId: addModeTargetPoiId ?? undefined,
+      sectionId: resolvedSectionId,
+      mapPoiId: resolvedMapPoiId,
       type: contributionType,
       title: safeTitle,
       detail: safeDetail,

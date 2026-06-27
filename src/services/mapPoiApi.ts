@@ -27,6 +27,7 @@ interface ApiMapPoi {
   verificationStatus: MapPoiVerificationStatus;
   confirmations: number;
   corrections: number;
+  hasPhotos: boolean;
   viewerReview?: {
     confirmed: boolean;
     suggestedCorrection: boolean;
@@ -276,6 +277,7 @@ function mapApiMapPoi(poi: ApiMapPoi): MapPoi | null {
     verificationStatus: poi.verificationStatus,
     confirmations: poi.confirmations,
     corrections: poi.corrections,
+    hasPhotos: Boolean(poi.hasPhotos),
     viewerReview: poi.viewerReview,
     payload: poi.payload ?? {},
     revision: poi.revision,

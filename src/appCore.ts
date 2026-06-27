@@ -1147,6 +1147,7 @@ export function fallbackMapPoisForSection(section: RiverSection): MapPoi[] {
       verificationStatus: "needs-confirmation",
       confirmations: 0,
       corrections: 0,
+      hasPhotos: false,
       viewerReview: {
         confirmed: false,
         suggestedCorrection: false,
@@ -1171,6 +1172,7 @@ export function fallbackMapPoisForSection(section: RiverSection): MapPoi[] {
       verificationStatus: "needs-confirmation",
       confirmations: 0,
       corrections: 0,
+      hasPhotos: false,
       viewerReview: {
         confirmed: false,
         suggestedCorrection: false,
@@ -1194,6 +1196,7 @@ export function fallbackMapPoisForSection(section: RiverSection): MapPoi[] {
         hazard.status === "resolved" ? "resolved" : "needs-confirmation",
       confirmations: 0,
       corrections: 0,
+      hasPhotos: false,
       viewerReview: {
         confirmed: false,
         suggestedCorrection: false,
@@ -1219,6 +1222,7 @@ export function fallbackMapPoisForSection(section: RiverSection): MapPoi[] {
       verificationStatus: "needs-confirmation",
       confirmations: 0,
       corrections: 0,
+      hasPhotos: false,
       viewerReview: {
         confirmed: false,
         suggestedCorrection: false,

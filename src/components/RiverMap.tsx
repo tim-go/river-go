@@ -35,6 +35,7 @@ import type {
 } from "../types";
 import type { CanonicalRiverSummary } from "../services/canonicalRiverApi";
 import { fetchWatercoursesForBounds, type KnownWatercourse } from "../services/watercourseApi";
+import { fetchRiverPhotos, type RiverPhoto } from "../services/riverPhotoApi";
 import { getApiBaseUrl } from "../services/apiConfig";
 import type { RouteAdjustment } from "../services/routeAdjustmentApi";
 import type { RouteSuggestion } from "../services/routeSuggestionApi";
@@ -94,12 +95,25 @@ import {
   type RiverPoiTab,
 } from "../lib/riverPoiTabs";
 
-// A small camera glyph so photo pins read at a glance and don't compete with the
-// lettered contribution markers. Injected as the marker label (innerHTML) and
-// inherits the marker's white text colour.
-const PHOTO_MARKER_GLYPH =
-  '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true">' +
-  '<path d="M9 4l-1.2 1.6H4.5A1.5 1.5 0 0 0 3 7.1v10.4A1.5 1.5 0 0 0 4.5 19h15a1.5 1.5 0 0 0 1.5-1.5V7.1a1.5 1.5 0 0 0-1.5-1.5h-3.3L15 4H9zm3 3.8a4.4 4.4 0 1 1 0 8.8 4.4 4.4 0 0 1 0-8.8zm0 2a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z"/></svg>';
+// A camera SVG path, reused by the standalone photo pin (large) and the photo
+// attachment badge (small).
+const CAMERA_SVG_PATH =
+  '<path d="M9 4l-1.2 1.6H4.5A1.5 1.5 0 0 0 3 7.1v10.4A1.5 1.5 0 0 0 4.5 19h15a1.5 1.5 0 0 0 1.5-1.5V7.1a1.5 1.5 0 0 0-1.5-1.5h-3.3L15 4H9zm3 3.8a4.4 4.4 0 1 1 0 8.8 4.4 4.4 0 0 1 0-8.8zm0 2a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z"/>';
+
+// A small camera glyph so standalone photo pins read at a glance and don't
+// compete with the lettered contribution markers. Injected as the marker label
+// (innerHTML) and inherits the marker's white text colour.
+const PHOTO_MARKER_GLYPH = `<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true">${CAMERA_SVG_PATH}</svg>`;
+
+const PHOTO_BADGE_HTML = `<span class="map-marker__badge map-marker__badge--photo"><svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden="true">${CAMERA_SVG_PATH}</svg></span>`;
+
+// A corner badge row flagging which attachments a point carries (photos now,
+// notes/levels later) without turning it into a dedicated pin — "the attachment
+// is an addition to the point". Returns "" when the point carries nothing.
+function attachmentBadgesHtml(opts: { photo?: boolean }): string {
+  const badges = opts.photo ? PHOTO_BADGE_HTML : "";
+  return badges ? `<span class="map-marker__badges">${badges}</span>` : "";
+}
 
 type RiverDetailTab =
   | "levels"
@@ -476,7 +490,11 @@ export function RiverMap({
         if (tabPoiCategories && !tabPoiCategories.has(category)) {
           return false;
         }
-        if (tabPhotosOnly && !poiIdsWithPhotos.has(poi.id)) {
+        if (
+          tabPhotosOnly &&
+          !poi.hasPhotos &&
+          !poiIdsWithPhotos.has(poi.id)
+        ) {
           return false;
         }
         return true;
@@ -490,6 +508,21 @@ export function RiverMap({
       poiIdsWithPhotos,
     ],
   );
+  // The POI ids this component will actually draw markers for in the current
+  // view — section POIs always, plus the focused river's POIs when focused, else
+  // the global POI set. A photo attached to one of these is represented by that
+  // POI's camera badge, so its own pin is suppressed; a photo whose POI isn't
+  // drawn here keeps its standalone pin so it never vanishes.
+  const renderedPoiIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const poi of mapPois) ids.add(poi.id);
+    if (selectedCanonicalRiver) {
+      for (const poi of visibleSelectedRiverMapPois) ids.add(poi.id);
+    } else {
+      for (const poi of globalPois ?? []) ids.add(poi.id);
+    }
+    return ids;
+  }, [mapPois, selectedCanonicalRiver, visibleSelectedRiverMapPois, globalPois]);
   const tabPoiCounts = useMemo(
     () =>
       tabPoiCategories
@@ -518,11 +551,30 @@ export function RiverMap({
   }, [selectedRiverPoiCategoryCounts]);
   // Points that carry at least one photo — advertised on the Photos tab label and
   // used to filter the map when that tab is active.
-  const riverPhotoPoiCount = useMemo(
-    () =>
-      contributions.filter((contribution) => contribution.photos?.length).length,
-    [contributions],
-  );
+  // A focused river's published photos (rolled up by river_id). Drives both the
+  // Photos tab count and the map's standalone photo pins — the loaded section
+  // contributions exclude POI- and river-overview-attached photos, so they can't
+  // be the source for either.
+  const [riverPhotos, setRiverPhotos] = useState<RiverPhoto[]>([]);
+  useEffect(() => {
+    const riverId = selectedCanonicalRiver?.id;
+    if (!riverId) {
+      setRiverPhotos([]);
+      return;
+    }
+    let active = true;
+    fetchRiverPhotos(riverId)
+      .then((photos) => {
+        if (active) setRiverPhotos(photos);
+      })
+      .catch(() => {
+        if (active) setRiverPhotos([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedCanonicalRiver?.id]);
+  const riverPhotoCount = riverPhotos.length;
 
   useEffect(() => {
     setRiverTab("levels");
@@ -942,7 +994,14 @@ export function RiverMap({
             bubblingMouseEvents: false,
             icon: L.divIcon({
               className: "",
-              html: markerHtml(displayMeta.markerKind, displayMeta.markerLabel),
+              html: markerHtml(
+                displayMeta.markerKind,
+                displayMeta.markerLabel,
+                "",
+                attachmentBadgesHtml({
+                  photo: showPhotoLayer && poiIdsWithPhotos.has(poi.id),
+                }),
+              ),
               iconSize: [28, 28],
               iconAnchor: [14, 14],
             }),
@@ -1059,6 +1118,8 @@ export function RiverMap({
     poiZoomVisible,
     globalPois,
     amenities,
+    showPhotoLayer,
+    poiIdsWithPhotos,
     selectedCanonicalRiver,
     selectedRiverMapPois,
     markerClickMode,
@@ -1192,7 +1253,16 @@ export function RiverMap({
           bubblingMouseEvents: false,
           icon: L.divIcon({
             className: "",
-            html: markerHtml(displayMeta.markerKind, displayMeta.markerLabel),
+            html: markerHtml(
+              displayMeta.markerKind,
+              displayMeta.markerLabel,
+              "",
+              attachmentBadgesHtml({
+                photo:
+                  showPhotoLayer &&
+                  (poi.hasPhotos || poiIdsWithPhotos.has(poi.id)),
+              }),
+            ),
             iconSize: [markerSize, markerSize],
             iconAnchor: [markerSize / 2, markerSize / 2],
           }),
@@ -1410,7 +1480,16 @@ export function RiverMap({
           bubblingMouseEvents: false,
           icon: L.divIcon({
             className: "",
-            html: markerHtml(displayMeta.markerKind, displayMeta.markerLabel),
+            html: markerHtml(
+              displayMeta.markerKind,
+              displayMeta.markerLabel,
+              "",
+              attachmentBadgesHtml({
+                photo:
+                  showPhotoLayer &&
+                  (poi.hasPhotos || poiIdsWithPhotos.has(poi.id)),
+              }),
+            ),
             iconSize: [markerSize, markerSize],
             iconAnchor: [markerSize / 2, markerSize / 2],
           }),
@@ -1565,9 +1644,21 @@ export function RiverMap({
       if (!contribution.location) {
         return;
       }
-      // The Photos layer toggle hides/shows photo pins; the river "Photos" tab
-      // always shows them (it's an explicit focus that overrides the toggle).
       const isPhoto = contribution.type === "photo";
+      // A photo attached to a POI that's drawn in this view is surfaced as a
+      // camera badge on that POI (see the POI render paths), so drop its
+      // overlapping pin. If the linked POI isn't drawn here (e.g. a focused
+      // river whose POI set doesn't include it), keep the pin so the photo never
+      // disappears from the map.
+      if (
+        isPhoto &&
+        contribution.mapPoiId &&
+        renderedPoiIds.has(contribution.mapPoiId)
+      ) {
+        return;
+      }
+      // The Photos layer toggle hides/shows standalone photo pins; the river
+      // "Photos" tab always shows them (an explicit focus overriding the toggle).
       if (isPhoto && !tabPhotosOnly && !showPhotoLayer) {
         return;
       }
@@ -1602,11 +1693,17 @@ export function RiverMap({
               : contribution.type === "access"
                 ? "A"
                 : "N";
+      // A non-photo point that carries photos (e.g. a hazard report with a
+      // photo) gets a camera badge so the Photos layer surfaces it for clicking,
+      // without turning it into a photo pin.
+      const badges = attachmentBadgesHtml({
+        photo: showPhotoLayer && !isPhoto && Boolean(contribution.photos?.length),
+      });
       const marker = L.marker(contribution.location, {
         bubblingMouseEvents: false,
         icon: L.divIcon({
           className: "",
-          html: markerHtml(kind, label),
+          html: markerHtml(kind, label, "", badges),
           iconSize: [30, 30],
           iconAnchor: [15, 15],
         }),
@@ -1662,6 +1759,69 @@ export function RiverMap({
         openContributionDetails();
       });
     });
+
+    // A focused river's standalone photos (no POI, so no badge) draw as camera
+    // pins at their location — this is the only path that surfaces photos added
+    // from the river overview, which never load into the section contributions.
+    // POI-linked photos are skipped here (their POI carries the badge), as are
+    // any already drawn above from the loaded contributions.
+    if (selectedCanonicalRiver && showPhotoLayer) {
+      const loadedContributionIds = new Set(
+        contributions.map((contribution) => contribution.id),
+      );
+      riverPhotos.forEach((photo) => {
+        if (
+          photo.mapPoiId ||
+          !photo.location ||
+          loadedContributionIds.has(photo.contributionId)
+        ) {
+          return;
+        }
+        const thumb = photo.thumbnailUrl || photo.displayUrl;
+        const full = photo.displayUrl || thumb;
+        const title = photo.caption || "River photo";
+        const openPhoto = full
+          ? () =>
+              onOpenPhoto({
+                src: full,
+                title,
+                caption: photo.originalName || "",
+                alt: title,
+              })
+          : undefined;
+        const photoMarker = L.marker(photo.location, {
+          bubblingMouseEvents: false,
+          icon: L.divIcon({
+            className: "",
+            html: markerHtml("photo", PHOTO_MARKER_GLYPH),
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+          }),
+        });
+        photoMarker.addTo(layers);
+        if (markerClickMode === "info") {
+          photoMarker.bindPopup(
+            createMapPopupContent({
+              title,
+              subtitle: "Photo",
+              summary: "",
+              imageUrl: thumb ?? undefined,
+              imageAlt: title,
+              onImageClick: openPhoto,
+              navigationLocation: photo.location,
+            }),
+          );
+        }
+        photoMarker.on("click", (event) => {
+          L.DomEvent.stop(event.originalEvent);
+          if (markerClickMode === "info") {
+            photoMarker.openPopup();
+            return;
+          }
+          openPhoto?.();
+        });
+      });
+    }
 
     if (searchFocusLocation && showSearchFocusMarker) {
       L.marker(searchFocusLocation, {
@@ -1872,6 +2032,9 @@ export function RiverMap({
     contributions,
     tabPhotosOnly,
     showPhotoLayer,
+    poiIdsWithPhotos,
+    renderedPoiIds,
+    riverPhotos,
     focusNonce,
     liveLocation,
     markerClickMode,
@@ -2134,7 +2297,7 @@ export function RiverMap({
                 tab.id === "access"
                   ? riverTabPoiTotals[tab.id]
                   : tab.id === "photos"
-                    ? riverPhotoPoiCount
+                    ? riverPhotoCount
                     : null;
               return (
                 <button

@@ -2268,6 +2268,7 @@ h1 {
 }
 
 .map-marker {
+  position: relative;
   display: grid;
   width: 100%;
   height: 100%;
@@ -2278,6 +2279,32 @@ h1 {
   color: white;
   font-size: 0.8rem;
   font-weight: 750;
+}
+
+/* Corner row of attachment badges (photos now; notes/levels later) flagging
+   that a point carries something extra, without it becoming its own pin. */
+.map-marker__badges {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.map-marker__badge {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(23, 33, 43, 0.4);
+  color: white;
+}
+
+.map-marker__badge--photo {
+  background: #7048e8;
 }
 
 .map-marker--section,

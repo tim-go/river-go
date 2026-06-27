@@ -33,6 +33,10 @@ export interface ApiMapPoi {
   verificationStatus: MapPoiVerificationStatus;
   confirmations: number;
   corrections: number;
+  // Whether this POI has at least one viewer-visible photo attached (drives the
+  // map's camera badge). Viewer-aware: public sees published photos, the
+  // uploader also sees their own pending ones.
+  hasPhotos: boolean;
   viewerReview?: {
     confirmed: boolean;
     suggestedCorrection: boolean;
@@ -94,6 +98,7 @@ interface MapPoiRow {
   verification_status: MapPoiVerificationStatus;
   confirmations: string;
   corrections: string;
+  has_photos: boolean;
   viewer_confirmed?: boolean | null;
   viewer_suggested_correction?: boolean | null;
   viewer_correction_note?: string | null;
@@ -204,7 +209,8 @@ function locationBackedMapPoiSelectColumnsSql(viewerMemberId?: string | null) {
     COALESCE((
       SELECT count(*) FROM map_poi_reviews r
       WHERE r.poi_id = p.id AND r.decision = 'correction'
-    ), 0) AS corrections${
+    ), 0) AS corrections,
+    ${poiHasPhotosSql(viewerMemberId, "$2")}${
       viewerMemberId
         ? `,
     EXISTS (
@@ -484,6 +490,29 @@ function mapPoiSelectSql(viewerMemberId?: string | null) {
   FROM paddling_features p`;
 }
 
+// Whether a paddling-feature POI (aliased `p`) has a viewer-visible photo
+// attached. Mirrors listContributionsForPoi's visibility rules so the badge
+// agrees with what opening the POI actually shows: published photos for
+// everyone, plus the viewer's own still-pending uploads. Keyed on the indexed
+// contributions.map_poi_id column and short-circuits via EXISTS.
+function poiHasPhotosSql(
+  viewerMemberId: string | null | undefined,
+  viewerMemberParam: string,
+) {
+  const ownPending = viewerMemberId
+    ? ` OR (pc.member_id = ${viewerMemberParam} AND pc.moderation_status = 'pending')`
+    : "";
+  return `EXISTS (
+      SELECT 1
+      FROM contributions pc
+      JOIN contribution_photos pp
+        ON pp.contribution_id = pc.id
+        AND pp.moderation_status NOT IN ('hidden', 'rejected')
+      WHERE pc.map_poi_id = p.id
+        AND (pc.visibility = 'published'${ownPending})
+    ) AS has_photos`;
+}
+
 function mapPoiSelectColumnsSql(
   viewerMemberId?: string | null,
   viewerMemberParam = "$2",
@@ -512,7 +541,8 @@ function mapPoiSelectColumnsSql(
     COALESCE((
       SELECT count(*) FROM map_poi_reviews r
       WHERE r.poi_id = p.id AND r.decision = 'correction'
-    ), 0) AS corrections${
+    ), 0) AS corrections,
+    ${poiHasPhotosSql(viewerMemberId, viewerMemberParam)}${
       viewerMemberId
         ? `,
     EXISTS (
@@ -560,6 +590,7 @@ function mapPoiRow(row: MapPoiRow): ApiMapPoi {
     verificationStatus: row.verification_status,
     confirmations: Number(row.confirmations),
     corrections: Number(row.corrections),
+    hasPhotos: Boolean(row.has_photos),
     viewerReview:
       typeof row.viewer_confirmed === "boolean" ||
       typeof row.viewer_suggested_correction === "boolean"

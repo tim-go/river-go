@@ -184,6 +184,10 @@ export interface MapPoi {
   verificationStatus: MapPoiVerificationStatus;
   confirmations: number;
   corrections: number;
+  // True when the POI has a viewer-visible photo attached — drives the map's
+  // camera badge. Sourced from the backend so it reflects persisted photos, not
+  // just ones added this session.
+  hasPhotos: boolean;
   viewerReview?: {
     confirmed: boolean;
     suggestedCorrection: boolean;
