@@ -36,7 +36,6 @@ jobs:
     environment: ${{ github.event.inputs.environment || 'staging' }}
     permissions:
       contents: read
-      id-token: write   # required for Workload Identity Federation
     env:
       DEPLOY_ENV: ${{ github.event.inputs.environment || 'staging' }}
       LIVE: ${{ github.event.inputs.live }}
@@ -56,17 +55,16 @@ jobs:
           npm ci
           npm --prefix api ci
 
-      - name: Authenticate to Google Cloud (Workload Identity Federation)
+      - name: Authenticate to Google Cloud (service account key)
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          # Also mint a short-lived OAuth access token (alongside the default ADC
-          # credential file that gcloud / migrate / Cloud Run deploy use). firebase
-          # -tools cannot do the WIF external-account token exchange itself, so the
-          # web-deploy step below hands it this token directly. Keyless — no key.
-          token_format: access_token
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          # SA-key auth. firebase-tools can't use WIF external-account credentials
+          # (firebase/firebase-tools#10726), but it accepts a real SA key via the
+          # GOOGLE_APPLICATION_CREDENTIALS the auth action exports — which gcloud,
+          # migrate, the Cloud Run deploy, and firebase deploy then all use. Interim,
+          # while keyless WIF for firebase-tools is unsupported upstream.
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
@@ -78,10 +76,8 @@ jobs:
           sudo chmod +x /usr/local/bin/cloud-sql-proxy
 
       - name: Install Firebase CLI
-        # Pinned for reproducible CI. (The keyless WIF auth is handled by passing a
-        # minted access token via FIREBASE_TOKEN in the web-deploy step, not by the
-        # firebase-tools version — firebase-tools can't exchange the WIF external-
-        # account credential itself: firebase/firebase-tools#4522.)
+        # Pinned for reproducible CI. Auth is the SA-key GOOGLE_APPLICATION_CREDENTIALS
+        # exported by the auth step (firebase-tools accepts a real SA key).
         run: npm install -g firebase-tools@15.22.1
 
       - name: Materialise platform config from secrets
@@ -104,11 +100,6 @@ jobs:
         run: npm run "platform:deploy-api:$DEPLOY_ENV"
 
       - name: Deploy web to Firebase Hosting
-        env:
-          # Keyless: a short-lived access token minted by the auth step (no service
-          # account key). firebase-tools accepts it as the bearer token; it just
-          # can't mint one from the WIF external-account credential file itself.
-          FIREBASE_TOKEN: ${{ steps.auth.outputs.access_token }}
         run: |
           # Push-to-main deploys staging live; manual runs honour the `live` input.
           if [ "$GITHUB_EVENT_NAME" = "push" ] || [ "${LIVE:-false}" = "true" ]; then
