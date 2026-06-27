@@ -45,6 +45,21 @@ info "Setting RIVER_GO_PLATFORM_CONFIG"
 gh secret set RIVER_GO_PLATFORM_CONFIG --repo "$REPO" --env "$ENV" < "$PLATFORM_CONFIG"
 info "Setting RIVER_GO_RUNTIME_CONFIG"
 gh secret set RIVER_GO_RUNTIME_CONFIG --repo "$REPO" --env "$ENV" < "$RUNTIME_CONFIG"
+
+# When this env authenticates with a service-account key (vs WIF), refresh the
+# GCP_SA_KEY secret too — lets you rotate the key without a full setup:cicd re-run.
+# (The key file is created by setup-cicd.sh.)
+if [[ "$(jq -r ".environments.$ENV.auth.serviceAccountKeys // false" "$PLATFORM_CONFIG")" == "true" ]]; then
+  sa_key_rel="$(jq -r ".environments.$ENV.files.gcpSaKeyFile // empty" "$PLATFORM_CONFIG")"
+  sa_key_file="$PLATFORM_DIR/$sa_key_rel"
+  if [[ -n "$sa_key_rel" && -s "$sa_key_file" ]]; then
+    info "Setting GCP_SA_KEY"
+    gh secret set GCP_SA_KEY --repo "$REPO" --env "$ENV" < "$sa_key_file"
+  else
+    warn "$ENV uses service-account-key auth but the SA key file is missing ($sa_key_file); run platform:setup:cicd:$ENV to create it"
+  fi
+fi
+
 pass "Synced platform + runtime config to the '$ENV' environment"
 
 print_summary "Config secret sync"

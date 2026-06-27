@@ -24,8 +24,8 @@
       "artifactRegistryRepository": "river-go",
       "githubEnvironment": "staging",
       "auth": {
-        "serviceAccountKeys": false,
-        "workloadIdentityFederation": true,
+        "serviceAccountKeys": true,
+        "workloadIdentityFederation": false,
         "workloadIdentityPool": "github-pool",
         "workloadIdentityProvider": "github"
       },
