@@ -1,29 +1,40 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   ChevronLeft,
+  Link2,
   LogOut,
   Plus,
   UserPlus,
   UsersRound,
+  X,
 } from "lucide-react";
 import type {
   Group,
   GroupDetail,
   GroupDiscipline,
   GroupKind,
+  GroupMember,
+  GroupPending,
+  GroupPublic,
+  GroupRole,
   GroupSession,
-  InvitableMember,
 } from "../types";
 import {
   createGroup,
   createSession,
   fetchGroup,
   fetchGroups,
+  fetchPending,
   fetchSessions,
-  inviteGroupMember,
+  inviteByEmail,
   leaveGroup,
+  removeMember,
+  requestToJoin,
   respondToGroupInvite,
-  searchMembers,
+  respondToRequest,
+  setMemberRole,
+  transferOwnership,
+  updateGroupSettings,
 } from "../services/groupsApi";
 import { SessionDetailPanel } from "./SessionDetailPanel";
 
@@ -37,6 +48,13 @@ const GROUP_KIND_LABELS: Record<GroupKind, string> = {
   subgroup: "Subgroup",
   friends: "Friends",
   trip: "Trip",
+};
+
+const GROUP_ROLE_LABELS: Record<GroupRole, string> = {
+  owner: "Owner",
+  organiser: "Organiser",
+  leader: "Leader",
+  member: "Member",
 };
 
 function errorMessage(value: unknown, fallback: string): string {
@@ -64,6 +82,8 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
     null,
   );
   const [groupDetail, setGroupDetail] = useState<GroupDetail | null>(null);
+  const [publicGroup, setPublicGroup] = useState<GroupPublic | null>(null);
+  const [pending, setPending] = useState<GroupPending | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -74,17 +94,10 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
     "",
   );
 
-  const [inviteQuery, setInviteQuery] = useState("");
-  const [inviteResults, setInviteResults] = useState<InvitableMember[]>([]);
-  const inviteSearchTimer = useRef<number | null>(null);
-  useEffect(
-    () => () => {
-      if (inviteSearchTimer.current) {
-        window.clearTimeout(inviteSearchTimer.current);
-      }
-    },
-    [],
-  );
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteNotice, setInviteNotice] = useState("");
+  const [handleDraft, setHandleDraft] = useState("");
+  const [isEditingHandle, setIsEditingHandle] = useState(false);
 
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [sessionTitle, setSessionTitle] = useState("");
@@ -121,13 +134,24 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
   useEffect(() => {
     if (!selectedGroupId) {
       setGroupDetail(null);
+      setPublicGroup(null);
+      setPending(null);
       return;
     }
     let active = true;
+    setInviteNotice("");
+    setIsEditingHandle(false);
     fetchGroup(selectedGroupId)
-      .then((detail) => {
-        if (active) {
-          setGroupDetail(detail);
+      .then((view) => {
+        if (!active) {
+          return;
+        }
+        if (view.access === "member") {
+          setGroupDetail(view.group);
+          setPublicGroup(null);
+        } else {
+          setPublicGroup(view.group);
+          setGroupDetail(null);
         }
       })
       .catch((detailError) => {
@@ -139,6 +163,46 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
       active = false;
     };
   }, [selectedGroupId]);
+
+  // Membership managers see pending invites/requests.
+  const canManage =
+    groupDetail?.myRole === "owner" || groupDetail?.myRole === "organiser";
+  const isOwner = groupDetail?.myRole === "owner";
+
+  useEffect(() => {
+    if (!selectedGroupId || !canManage) {
+      setPending(null);
+      return;
+    }
+    let active = true;
+    fetchPending(selectedGroupId)
+      .then((result) => {
+        if (active) {
+          setPending(result);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setPending(null);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedGroupId, canManage, groupDetail?.memberCount]);
+
+  async function reloadGroup() {
+    if (!selectedGroupId) {
+      return;
+    }
+    const view = await fetchGroup(selectedGroupId);
+    if (view.access === "member") {
+      setGroupDetail(view.group);
+    }
+    if (canManage) {
+      setPending(await fetchPending(selectedGroupId).catch(() => null));
+    }
+  }
 
   async function handleCreateGroup(event: FormEvent) {
     event.preventDefault();
@@ -159,37 +223,80 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
     }
   }
 
-  // Debounced so we don't fire a request per keystroke; only search once the
-  // query reaches the backend's 3-char minimum.
-  function handleSearchMembers(query: string) {
-    setInviteQuery(query);
-    if (inviteSearchTimer.current) {
-      window.clearTimeout(inviteSearchTimer.current);
-    }
-    if (query.trim().length < 3) {
-      setInviteResults([]);
+  async function handleInviteByEmail(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedGroupId || !inviteEmail.trim()) {
       return;
     }
-    inviteSearchTimer.current = window.setTimeout(() => {
-      void searchMembers(query)
-        .then(setInviteResults)
-        .catch(() => setInviteResults([]));
-    }, 250);
+    setError("");
+    setInviteNotice("");
+    try {
+      await inviteByEmail(selectedGroupId, inviteEmail.trim());
+      setInviteEmail("");
+      // Neutral confirmation — we never reveal whether the email is registered.
+      setInviteNotice(
+        "If they have a RiverLaunch account, they'll see the invite.",
+      );
+      await reloadGroup();
+    } catch (inviteError) {
+      setError(errorMessage(inviteError, "Could not send the invite."));
+    }
   }
 
-  async function handleInvite(memberId: string) {
+  async function runGroupAction(
+    action: () => Promise<unknown>,
+    fallback: string,
+  ) {
     if (!selectedGroupId) {
       return;
     }
     setError("");
     try {
-      await inviteGroupMember(selectedGroupId, memberId);
-      setInviteQuery("");
-      setInviteResults([]);
-      setGroupDetail(await fetchGroup(selectedGroupId));
-    } catch (inviteError) {
-      setError(errorMessage(inviteError, "Could not send the invite."));
+      await action();
+      await reloadGroup();
+    } catch (actionError) {
+      setError(errorMessage(actionError, fallback));
     }
+  }
+
+  async function handleRequestToJoin() {
+    if (!selectedGroupId) {
+      return;
+    }
+    setError("");
+    try {
+      await requestToJoin(selectedGroupId);
+      const view = await fetchGroup(selectedGroupId);
+      if (view.access === "public") {
+        setPublicGroup(view.group);
+      }
+    } catch (requestError) {
+      setError(errorMessage(requestError, "Could not send the request."));
+    }
+  }
+
+  async function handleSaveHandle() {
+    await runGroupAction(async () => {
+      const updated = await updateGroupSettings(selectedGroupId!, {
+        handle: handleDraft.trim().toLowerCase(),
+      });
+      setGroupDetail(updated);
+      setIsEditingHandle(false);
+    }, "Could not update the link.");
+  }
+
+  async function handleTransfer(member: GroupMember) {
+    if (
+      !window.confirm(
+        `Make ${member.publicName} the owner? You'll become an organiser.`,
+      )
+    ) {
+      return;
+    }
+    await runGroupAction(
+      () => transferOwnership(selectedGroupId!, member.memberId),
+      "Could not transfer ownership.",
+    );
   }
 
   async function handleRespond(accept: boolean) {
@@ -200,7 +307,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
       await respondToGroupInvite(selectedGroupId, accept);
       await loadGroups();
       if (accept) {
-        setGroupDetail(await fetchGroup(selectedGroupId));
+        await reloadGroup();
       } else {
         setSelectedGroupId(null);
       }
@@ -283,10 +390,8 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
     );
   }
 
-  const canManage =
-    groupDetail?.myRole === "owner" ||
-    groupDetail?.myRole === "organiser" ||
-    groupDetail?.myRole === "leader";
+  // Leaders can manage sessions but not membership.
+  const canManageSessions = canManage || groupDetail?.myRole === "leader";
   const groupSessions = selectedGroupId
     ? sessions.filter((session) => session.groupId === selectedGroupId)
     : [];
@@ -347,6 +452,126 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
             </div>
           ) : null}
 
+          {canManage ? (
+            <div className="group-detail__section">
+              <h3>Invite link</h3>
+              <div className="group-invite-link">
+                {isEditingHandle ? (
+                  <span className="group-invite-link__edit">
+                    <span className="group-invite-link__prefix">/g/</span>
+                    <input
+                      value={handleDraft}
+                      onChange={(event) => setHandleDraft(event.target.value)}
+                      placeholder="tryweryn-paddlers"
+                    />
+                    <button
+                      type="button"
+                      className="primary-action primary-action--compact"
+                      onClick={() => void handleSaveHandle()}
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-button ghost-button--compact"
+                      onClick={() => setIsEditingHandle(false)}
+                    >
+                      Cancel
+                    </button>
+                  </span>
+                ) : (
+                  <span className="group-invite-link__view">
+                    <Link2 size={15} />
+                    <code>/g/{groupDetail.handle ?? groupDetail.id}</code>
+                    <button
+                      type="button"
+                      className="ghost-button ghost-button--compact"
+                      onClick={() => {
+                        setHandleDraft(groupDetail.handle ?? "");
+                        setIsEditingHandle(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </span>
+                )}
+              </div>
+              <label className="group-access-mode">
+                Joining
+                <select
+                  value={groupDetail.accessMode}
+                  onChange={(event) =>
+                    void runGroupAction(
+                      () =>
+                        updateGroupSettings(groupDetail.id, {
+                          accessMode: event.target
+                            .value as GroupDetail["accessMode"],
+                        }).then(setGroupDetail),
+                      "Could not update access mode.",
+                    )
+                  }
+                >
+                  <option value="request_to_join">
+                    Anyone with the link can request to join
+                  </option>
+                  <option value="invite_only">Invite only</option>
+                </select>
+              </label>
+            </div>
+          ) : null}
+
+          {canManage && pending && pending.requests.length ? (
+            <div className="group-detail__section">
+              <h3>Join requests</h3>
+              <ul className="group-member-list">
+                {pending.requests.map((request) => (
+                  <li key={request.memberId} className="group-member-row">
+                    <span>
+                      <strong>{request.publicName}</strong>
+                      <small>wants to join</small>
+                    </span>
+                    <span className="group-member-row__actions">
+                      <button
+                        type="button"
+                        className="primary-action primary-action--compact"
+                        onClick={() =>
+                          void runGroupAction(
+                            () =>
+                              respondToRequest(
+                                groupDetail.id,
+                                request.memberId,
+                                true,
+                              ),
+                            "Could not approve the request.",
+                          )
+                        }
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost-button ghost-button--compact"
+                        onClick={() =>
+                          void runGroupAction(
+                            () =>
+                              respondToRequest(
+                                groupDetail.id,
+                                request.memberId,
+                                false,
+                              ),
+                            "Could not decline the request.",
+                          )
+                        }
+                      >
+                        Decline
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="group-detail__section">
             <h3>Members</h3>
             <ul className="group-member-list">
@@ -354,49 +579,92 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
                 <li key={member.id} className="group-member-row">
                   <span>
                     <strong>{member.publicName}</strong>
-                    <small>{member.role}</small>
+                    <small>{GROUP_ROLE_LABELS[member.role]}</small>
                   </span>
-                  {member.status === "invited" ? (
-                    <span className="status-chip">invited</span>
+                  {canManage && member.role !== "owner" ? (
+                    <span className="group-member-row__actions">
+                      {isOwner ? (
+                        <select
+                          value={member.role}
+                          onChange={(event) =>
+                            void runGroupAction(
+                              () =>
+                                setMemberRole(
+                                  groupDetail.id,
+                                  member.memberId,
+                                  event.target.value as GroupRole,
+                                ),
+                              "Could not change the role.",
+                            )
+                          }
+                        >
+                          <option value="organiser">Organiser</option>
+                          <option value="leader">Leader</option>
+                          <option value="member">Member</option>
+                        </select>
+                      ) : null}
+                      {isOwner ? (
+                        <button
+                          type="button"
+                          className="ghost-button ghost-button--compact"
+                          onClick={() => void handleTransfer(member)}
+                        >
+                          Make owner
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="ghost-button ghost-button--compact"
+                        onClick={() =>
+                          void runGroupAction(
+                            () => removeMember(groupDetail.id, member.memberId),
+                            "Could not remove the member.",
+                          )
+                        }
+                        aria-label={`Remove ${member.publicName}`}
+                      >
+                        <X size={14} />
+                      </button>
+                    </span>
                   ) : null}
                 </li>
               ))}
             </ul>
 
             {canManage ? (
-              <div className="group-invite">
+              <form className="group-invite" onSubmit={handleInviteByEmail}>
                 <label>
-                  <UserPlus size={15} /> Invite a member
+                  <UserPlus size={15} /> Invite by email
                   <input
-                    value={inviteQuery}
-                    onChange={(event) =>
-                      void handleSearchMembers(event.target.value)
-                    }
-                    placeholder="Search by name"
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(event) => setInviteEmail(event.target.value)}
+                    placeholder="paddler@example.com"
                   />
                 </label>
-                {inviteResults.length ? (
-                  <ul className="group-invite__results">
-                    {inviteResults.map((candidate) => (
-                      <li key={candidate.id}>
-                        <button
-                          type="button"
-                          onClick={() => void handleInvite(candidate.id)}
-                        >
-                          {candidate.publicName}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                <button
+                  type="submit"
+                  className="primary-action primary-action--compact"
+                >
+                  Send invite
+                </button>
+                {pending && pending.invitedCount ? (
+                  <p className="group-invite__count">
+                    {pending.invitedCount} invite
+                    {pending.invitedCount === 1 ? "" : "s"} pending
+                  </p>
                 ) : null}
-              </div>
+                {inviteNotice ? (
+                  <p className="group-invite__notice">{inviteNotice}</p>
+                ) : null}
+              </form>
             ) : null}
           </div>
 
           <div className="group-detail__section">
             <div className="group-detail__section-head">
               <h3>Sessions</h3>
-              {canManage ? (
+              {canManageSessions ? (
                 <button
                   type="button"
                   className="ghost-button ghost-button--compact"
@@ -492,6 +760,47 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
               </ul>
             ) : (
               <p className="empty-state">No sessions planned yet.</p>
+            )}
+          </div>
+        </div>
+      ) : publicGroup && selectedGroupId ? (
+        <div className="group-detail">
+          <div className="group-detail__head">
+            <button
+              type="button"
+              className="ghost-button ghost-button--compact"
+              onClick={() => setSelectedGroupId(null)}
+            >
+              <ChevronLeft size={16} /> Groups
+            </button>
+          </div>
+          <header className="group-detail__title">
+            <h2>{publicGroup.name}</h2>
+            <p>
+              {GROUP_KIND_LABELS[publicGroup.kind]} · {publicGroup.memberCount}{" "}
+              member{publicGroup.memberCount === 1 ? "" : "s"}
+            </p>
+          </header>
+          {publicGroup.description ? (
+            <p className="group-detail__description">{publicGroup.description}</p>
+          ) : null}
+          <div className="group-detail__section">
+            {publicGroup.myStatus === "requested" ? (
+              <p className="group-invite__notice">
+                Your request to join is pending approval.
+              </p>
+            ) : publicGroup.accessMode === "request_to_join" ? (
+              <button
+                type="button"
+                className="primary-action"
+                onClick={() => void handleRequestToJoin()}
+              >
+                Request to join
+              </button>
+            ) : (
+              <p className="empty-state">
+                This group is invite only. Ask a member to invite you.
+              </p>
             )}
           </div>
         </div>

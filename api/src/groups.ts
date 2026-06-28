@@ -4,37 +4,96 @@ import { HttpError } from "./http.js";
 
 export type GroupKind = "club" | "subgroup" | "friends" | "trip";
 export type GroupVisibility = "private" | "members" | "public";
-export type GroupRole = "owner" | "organiser" | "leader" | "member" | "guest";
-export type GroupMemberStatus = "invited" | "active" | "left";
+export type GroupRole = "owner" | "organiser" | "leader" | "member";
+export type GroupMemberStatus =
+  | "invited"
+  | "requested"
+  | "active"
+  | "left"
+  | "removed"
+  | "declined";
 export type GroupDiscipline = "whitewater" | "touring" | "both";
+export type GroupAccessMode = "request_to_join" | "invite_only";
 
 const GROUP_KINDS: GroupKind[] = ["club", "subgroup", "friends", "trip"];
 const GROUP_VISIBILITIES: GroupVisibility[] = ["private", "members", "public"];
-const GROUP_ROLES: GroupRole[] = [
-  "owner",
-  "organiser",
-  "leader",
-  "member",
-  "guest",
-];
 const GROUP_DISCIPLINES: GroupDiscipline[] = ["whitewater", "touring", "both"];
-// Roles allowed to manage a group (edit, invite, set roles, run sessions).
-const GROUP_MANAGER_ROLES: GroupRole[] = ["owner", "organiser", "leader"];
+const GROUP_ACCESS_MODES: GroupAccessMode[] = [
+  "request_to_join",
+  "invite_only",
+];
+// Membership managers can invite, approve/decline requests, remove members, and
+// edit group settings. Only the owner sets roles + transfers ownership. Leaders
+// manage sessions (see SESSION_MANAGER_ROLES in group-sessions.ts) but NOT
+// membership.
+const MEMBERSHIP_MANAGER_ROLES: GroupRole[] = ["owner", "organiser"];
+// Roles a member can be promoted/demoted between (owner is set via transfer).
+const ASSIGNABLE_ROLES: GroupRole[] = ["organiser", "leader", "member"];
+
+// Handle (GINV-B4): lowercase [a-z0-9-], 3–30 chars, not a reserved word.
+const HANDLE_RE = /^[a-z0-9-]{3,30}$/;
+const RESERVED_HANDLES = new Set([
+  "new",
+  "edit",
+  "admin",
+  "api",
+  "join",
+  "groups",
+  "group",
+  "settings",
+  "me",
+]);
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 30);
+}
 
 export interface ApiGroup {
   id: string;
   name: string;
+  handle: string | null;
   kind: GroupKind;
   parentGroupId: string | null;
   description: string | null;
   discipline: GroupDiscipline | null;
   visibility: GroupVisibility;
+  accessMode: GroupAccessMode;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
   memberCount: number;
   myRole: GroupRole | null;
   myStatus: GroupMemberStatus | null;
+}
+
+/** A limited public view of a group for non-members (no member list/sessions). */
+export interface ApiGroupPublic {
+  id: string;
+  name: string;
+  handle: string | null;
+  kind: GroupKind;
+  description: string | null;
+  discipline: GroupDiscipline | null;
+  visibility: GroupVisibility;
+  accessMode: GroupAccessMode;
+  memberCount: number;
+  myStatus: GroupMemberStatus | null;
+}
+
+/** A pending join request, shown to membership managers with the requester. */
+export interface ApiJoinRequest {
+  memberId: string;
+  publicName: string;
+  requestedAt: string;
+}
+
+export interface ApiGroupPending {
+  requests: ApiJoinRequest[];
+  invitedCount: number;
 }
 
 export interface ApiGroupMember {
@@ -62,11 +121,13 @@ export interface GroupInput {
 interface GroupRow {
   id: string;
   name: string;
+  handle: string | null;
   kind: GroupKind;
   parent_group_id: string | null;
   description: string | null;
   discipline: GroupDiscipline | null;
   visibility: GroupVisibility;
+  access_mode: GroupAccessMode;
   created_by: string;
   created_at: Date;
   updated_at: Date;
@@ -97,11 +158,13 @@ function mapGroupRow(row: GroupRow): ApiGroup {
   return {
     id: row.id,
     name: row.name,
+    handle: row.handle,
     kind: row.kind,
     parentGroupId: row.parent_group_id,
     description: row.description,
     discipline: row.discipline,
     visibility: row.visibility,
+    accessMode: row.access_mode,
     createdBy: row.created_by,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -120,6 +183,37 @@ function mapGroupMemberRow(row: GroupMemberRow): ApiGroupMember {
     status: row.status,
     joinedAt: row.joined_at.toISOString(),
   };
+}
+
+/** Append a membership audit row (GINV-F13). Never throws into the caller. */
+async function recordMembershipEvent(
+  client: PoolClient | typeof pool,
+  groupId: string,
+  actorMemberId: string | null,
+  targetMemberId: string | null,
+  action: string,
+): Promise<void> {
+  await client.query(
+    `INSERT INTO group_membership_events
+       (group_id, actor_member_id, target_member_id, action)
+     VALUES ($1, $2, $3, $4)`,
+    [groupId, actorMemberId, targetMemberId, action],
+  );
+}
+
+/** Validate a group handle (GINV-B4); throws 400 on bad input. */
+function normaliseHandle(value: unknown): string {
+  const handle = readString(value).toLowerCase();
+  if (!HANDLE_RE.test(handle)) {
+    throw new HttpError(
+      400,
+      "Handle must be 3–30 characters: lowercase letters, numbers, or hyphens.",
+    );
+  }
+  if (RESERVED_HANDLES.has(handle)) {
+    throw new HttpError(400, "That handle is reserved — choose another.");
+  }
+  return handle;
 }
 
 export function parseGroupInput(body: unknown): GroupInput {
@@ -198,6 +292,28 @@ export async function requireGroupRole(
   }
 }
 
+/** A handle unique against existing groups, derived from a base slug. */
+async function uniqueHandle(
+  base: string,
+  client: PoolClient | typeof pool,
+): Promise<string> {
+  let candidate = base.length >= 3 ? base : `group-${base}`.slice(0, 30);
+  let suffix = 1;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const taken = await client.query(
+      `SELECT 1 FROM groups WHERE lower(handle) = $1`,
+      [candidate],
+    );
+    if (!taken.rowCount) {
+      return candidate;
+    }
+    suffix += 1;
+    const tag = `-${suffix}`;
+    candidate = `${base.slice(0, 30 - tag.length)}${tag}`;
+  }
+}
+
 export async function createGroup(
   memberId: string,
   input: GroupInput,
@@ -205,15 +321,18 @@ export async function createGroup(
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    const handle = await uniqueHandle(slugify(input.name) || "group", client);
     const inserted = await client.query<GroupRow>(
       `INSERT INTO groups (
-         name, kind, parent_group_id, description, discipline, visibility,
-         created_by
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, name, kind, parent_group_id, description, discipline,
-                 visibility, created_by, created_at, updated_at`,
+         name, handle, kind, parent_group_id, description, discipline,
+         visibility, created_by
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, name, handle, kind, parent_group_id, description,
+                 discipline, visibility, access_mode, created_by, created_at,
+                 updated_at`,
       [
         input.name,
+        handle,
         input.kind,
         input.parentGroupId,
         input.description,
@@ -228,6 +347,7 @@ export async function createGroup(
        VALUES ($1, $2, 'owner', 'active')`,
       [group.id, memberId],
     );
+    await recordMembershipEvent(client, group.id, memberId, memberId, "create");
     await client.query("COMMIT");
     return mapGroupRow({
       ...group,
@@ -248,8 +368,9 @@ export async function listGroupsForMember(
   client: PoolClient | typeof pool = pool,
 ): Promise<ApiGroup[]> {
   const result = await client.query<GroupRow>(
-    `SELECT g.id, g.name, g.kind, g.parent_group_id, g.description,
-            g.discipline, g.visibility, g.created_by, g.created_at, g.updated_at,
+    `SELECT g.id, g.name, g.handle, g.kind, g.parent_group_id, g.description,
+            g.discipline, g.visibility, g.access_mode, g.created_by,
+            g.created_at, g.updated_at,
             (SELECT count(*) FROM group_members gm2
                WHERE gm2.group_id = g.id AND gm2.status = 'active')
               AS member_count,
@@ -270,8 +391,9 @@ export async function getGroupForMember(
   client: PoolClient | typeof pool = pool,
 ): Promise<ApiGroupDetail> {
   const result = await client.query<GroupRow>(
-    `SELECT g.id, g.name, g.kind, g.parent_group_id, g.description,
-            g.discipline, g.visibility, g.created_by, g.created_at, g.updated_at,
+    `SELECT g.id, g.name, g.handle, g.kind, g.parent_group_id, g.description,
+            g.discipline, g.visibility, g.access_mode, g.created_by,
+            g.created_at, g.updated_at,
             (SELECT count(*) FROM group_members gm2
                WHERE gm2.group_id = g.id AND gm2.status = 'active')
               AS member_count,
@@ -294,11 +416,13 @@ export async function getGroupForMember(
     throw new HttpError(404, "Group not found.");
   }
 
+  // Only active members are listed by identity — pending invites are count-only
+  // (GINV-B1) and join requests surface via the manager-only pending endpoint.
   const members = await client.query<GroupMemberRow>(
     `SELECT gm.id, gm.member_id, m.public_name, gm.role, gm.status, gm.joined_at
      FROM group_members gm
      JOIN members m ON m.id = gm.member_id
-     WHERE gm.group_id = $1 AND gm.status <> 'left'
+     WHERE gm.group_id = $1 AND gm.status = 'active'
      ORDER BY
        CASE gm.role
          WHEN 'owner' THEN 0 WHEN 'organiser' THEN 1 WHEN 'leader' THEN 2
@@ -313,39 +437,58 @@ export async function getGroupForMember(
   };
 }
 
-export async function addGroupMember(
+/**
+ * Invite an existing member by exact email (GINV-F2). Membership-manager only.
+ * Returns a NEUTRAL result that does not reveal whether the email matched an
+ * existing account (GINV-B1) — never echoes the invitee's name/id.
+ */
+export async function inviteMemberByEmail(
   actingMemberId: string,
   groupId: string,
-  targetMemberId: string,
-  role: GroupRole = "member",
-): Promise<ApiGroupMember> {
-  if (!GROUP_ROLES.includes(role) || role === "owner") {
-    throw new HttpError(400, "Choose a valid role to invite.");
-  }
-  await requireGroupRole(actingMemberId, groupId, GROUP_MANAGER_ROLES);
+  email: string,
+): Promise<{ ok: true }> {
+  await requireGroupRole(actingMemberId, groupId, MEMBERSHIP_MANAGER_ROLES);
 
-  const result = await pool.query<GroupMemberRow>(
-    `INSERT INTO group_members (group_id, member_id, role, status)
-     VALUES ($1, $2, $3, 'invited')
-     ON CONFLICT (group_id, member_id) DO UPDATE
-       SET status = CASE WHEN group_members.status = 'left'
-                         THEN 'invited' ELSE group_members.status END,
-           updated_at = now()
-     RETURNING id, member_id, role, status, joined_at`,
-    [groupId, targetMemberId, role],
+  const normalised = email.trim().toLowerCase();
+  if (!normalised || !normalised.includes("@")) {
+    throw new HttpError(400, "Enter a valid email address.");
+  }
+  // TODO(GINV-B3): rate-limit invites per actor.
+  const found = await pool.query<{ id: string }>(
+    `SELECT id FROM members WHERE lower(email) = $1`,
+    [normalised],
   );
-  const inserted = result.rows[0];
-  const named = await pool.query<{ public_name: string | null }>(
-    `SELECT public_name FROM members WHERE id = $1`,
-    [targetMemberId],
-  );
-  return mapGroupMemberRow({
-    ...inserted,
-    public_name: named.rows[0]?.public_name ?? null,
-  });
+  const target = found.rows[0];
+  if (target && target.id !== actingMemberId) {
+    // Upsert an invite. Don't resurrect a sticky `declined` row, and leave an
+    // already-active member untouched.
+    const upserted = await pool.query<{ status: GroupMemberStatus }>(
+      `INSERT INTO group_members (group_id, member_id, role, status)
+       VALUES ($1, $2, 'member', 'invited')
+       ON CONFLICT (group_id, member_id) DO UPDATE
+         SET status = CASE
+               WHEN group_members.status IN ('left', 'removed') THEN 'invited'
+               ELSE group_members.status END,
+             updated_at = now()
+       WHERE group_members.status NOT IN ('declined', 'active')
+       RETURNING status`,
+      [groupId, target.id],
+    );
+    if (upserted.rowCount) {
+      await recordMembershipEvent(
+        pool,
+        groupId,
+        actingMemberId,
+        target.id,
+        "invite",
+      );
+    }
+  }
+  // Always the same response, whether or not the email resolved.
+  return { ok: true };
 }
 
-/** An invited member accepts (status active) or declines (status left). */
+/** An invited member accepts (→ active) or declines (→ sticky declined). */
 export async function respondToGroupInvite(
   memberId: string,
   groupId: string,
@@ -357,11 +500,392 @@ export async function respondToGroupInvite(
                                        ELSE joined_at END,
          updated_at = now()
      WHERE group_id = $1 AND member_id = $2 AND status = 'invited'`,
-    [groupId, memberId, accept ? "active" : "left"],
+    [groupId, memberId, accept ? "active" : "declined"],
   );
   if (!result.rowCount) {
     throw new HttpError(404, "No pending invite for this group.");
   }
+  await recordMembershipEvent(
+    pool,
+    groupId,
+    memberId,
+    memberId,
+    accept ? "accept" : "decline",
+  );
+}
+
+/** Request to join a group whose access mode allows it (GINV-F3/F4). */
+export async function requestToJoin(
+  memberId: string,
+  groupId: string,
+): Promise<void> {
+  const group = await pool.query<{ access_mode: GroupAccessMode }>(
+    `SELECT access_mode FROM groups WHERE id = $1`,
+    [groupId],
+  );
+  if (!group.rowCount) {
+    throw new HttpError(404, "Group not found.");
+  }
+  if (group.rows[0].access_mode !== "request_to_join") {
+    throw new HttpError(403, "This group is invite only.");
+  }
+  const existing = await getGroupMembership(memberId, groupId);
+  if (existing) {
+    if (existing.status === "active") {
+      throw new HttpError(400, "You are already a member.");
+    }
+    if (existing.status === "declined") {
+      throw new HttpError(403, "You can't request to join this group.");
+    }
+    if (existing.status === "requested" || existing.status === "invited") {
+      return; // idempotent — already pending
+    }
+  }
+  // TODO(GINV-B3): rate-limit join requests per actor.
+  await pool.query(
+    `INSERT INTO group_members (group_id, member_id, role, status)
+     VALUES ($1, $2, 'member', 'requested')
+     ON CONFLICT (group_id, member_id) DO UPDATE
+       SET status = 'requested', updated_at = now()
+       WHERE group_members.status IN ('left', 'removed')`,
+    [groupId, memberId],
+  );
+  await recordMembershipEvent(pool, groupId, memberId, memberId, "request");
+}
+
+/** Membership manager approves (→ active) or declines (→ sticky) a request. */
+export async function respondToJoinRequest(
+  actingMemberId: string,
+  groupId: string,
+  targetMemberId: string,
+  approve: boolean,
+): Promise<void> {
+  await requireGroupRole(actingMemberId, groupId, MEMBERSHIP_MANAGER_ROLES);
+  const result = await pool.query(
+    `UPDATE group_members
+     SET status = $3, joined_at = CASE WHEN $3 = 'active' THEN now()
+                                       ELSE joined_at END,
+         updated_at = now()
+     WHERE group_id = $1 AND member_id = $2 AND status = 'requested'`,
+    [groupId, targetMemberId, approve ? "active" : "declined"],
+  );
+  if (!result.rowCount) {
+    throw new HttpError(404, "No pending request for this member.");
+  }
+  await recordMembershipEvent(
+    pool,
+    groupId,
+    actingMemberId,
+    targetMemberId,
+    approve ? "approve" : "decline-request",
+  );
+}
+
+/**
+ * Cancel a pending invite (manager) or withdraw your own pending request/invite.
+ * Returns the row to a non-pending, non-sticky state so it can recur later.
+ */
+export async function cancelInviteOrWithdraw(
+  actingMemberId: string,
+  groupId: string,
+  targetMemberId: string,
+): Promise<void> {
+  const self = actingMemberId === targetMemberId;
+  if (!self) {
+    await requireGroupRole(actingMemberId, groupId, MEMBERSHIP_MANAGER_ROLES);
+  }
+  const result = await pool.query(
+    `UPDATE group_members
+     SET status = 'left', updated_at = now()
+     WHERE group_id = $1 AND member_id = $2
+       AND status IN ('invited', 'requested')`,
+    [groupId, targetMemberId],
+  );
+  if (!result.rowCount) {
+    throw new HttpError(404, "No pending invite or request to cancel.");
+  }
+  await recordMembershipEvent(
+    pool,
+    groupId,
+    actingMemberId,
+    targetMemberId,
+    self ? "withdraw" : "cancel-invite",
+  );
+}
+
+/** Remove (kick) a member. Membership-manager only; not the owner, not self. */
+export async function removeMember(
+  actingMemberId: string,
+  groupId: string,
+  targetMemberId: string,
+): Promise<void> {
+  await requireGroupRole(actingMemberId, groupId, MEMBERSHIP_MANAGER_ROLES);
+  if (actingMemberId === targetMemberId) {
+    throw new HttpError(400, "Use leave to remove yourself.");
+  }
+  const target = await getGroupMembership(targetMemberId, groupId);
+  if (!target || target.status === "left" || target.status === "removed") {
+    throw new HttpError(404, "That member is not in this group.");
+  }
+  if (target.role === "owner") {
+    throw new HttpError(400, "The owner can't be removed.");
+  }
+  await pool.query(
+    `UPDATE group_members SET status = 'removed', updated_at = now()
+     WHERE group_id = $1 AND member_id = $2`,
+    [groupId, targetMemberId],
+  );
+  await recordMembershipEvent(
+    pool,
+    groupId,
+    actingMemberId,
+    targetMemberId,
+    "remove",
+  );
+}
+
+/** Set a member's role (promote/demote). OWNER ONLY (GINV-B7). */
+export async function setMemberRole(
+  actingMemberId: string,
+  groupId: string,
+  targetMemberId: string,
+  role: GroupRole,
+): Promise<void> {
+  await requireGroupRole(actingMemberId, groupId, ["owner"]);
+  if (!ASSIGNABLE_ROLES.includes(role)) {
+    throw new HttpError(400, "Choose a valid role.");
+  }
+  if (actingMemberId === targetMemberId) {
+    throw new HttpError(400, "Transfer ownership to change the owner's role.");
+  }
+  const target = await getGroupMembership(targetMemberId, groupId);
+  if (!target || target.status !== "active") {
+    throw new HttpError(404, "That member is not active in this group.");
+  }
+  if (target.role === "owner") {
+    throw new HttpError(400, "Transfer ownership to change the owner's role.");
+  }
+  await pool.query(
+    `UPDATE group_members SET role = $3, updated_at = now()
+     WHERE group_id = $1 AND member_id = $2`,
+    [groupId, targetMemberId, role],
+  );
+  await recordMembershipEvent(
+    pool,
+    groupId,
+    actingMemberId,
+    targetMemberId,
+    `role:${role}`,
+  );
+}
+
+/** Transfer ownership to another active member. OWNER ONLY (GINV-F9). */
+export async function transferOwnership(
+  actingMemberId: string,
+  groupId: string,
+  targetMemberId: string,
+): Promise<void> {
+  await requireGroupRole(actingMemberId, groupId, ["owner"]);
+  if (actingMemberId === targetMemberId) {
+    throw new HttpError(400, "You are already the owner.");
+  }
+  const target = await getGroupMembership(targetMemberId, groupId);
+  if (!target || target.status !== "active") {
+    throw new HttpError(404, "Choose an active member to transfer ownership to.");
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    // Demote the current owner first so the one-owner partial index is satisfied.
+    await client.query(
+      `UPDATE group_members SET role = 'organiser', updated_at = now()
+       WHERE group_id = $1 AND member_id = $2`,
+      [groupId, actingMemberId],
+    );
+    await client.query(
+      `UPDATE group_members SET role = 'owner', updated_at = now()
+       WHERE group_id = $1 AND member_id = $2`,
+      [groupId, targetMemberId],
+    );
+    await recordMembershipEvent(
+      client,
+      groupId,
+      actingMemberId,
+      targetMemberId,
+      "transfer-ownership",
+    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/** Update group settings incl. handle + access mode. Membership-manager only. */
+export async function updateGroupSettings(
+  actingMemberId: string,
+  groupId: string,
+  patch: Record<string, unknown>,
+): Promise<ApiGroupDetail> {
+  await requireGroupRole(actingMemberId, groupId, MEMBERSHIP_MANAGER_ROLES);
+
+  const sets: string[] = [];
+  const values: unknown[] = [];
+  const add = (column: string, value: unknown) => {
+    values.push(value);
+    sets.push(`${column} = $${values.length + 1}`);
+  };
+
+  if ("name" in patch) {
+    const name = readString(patch.name);
+    if (name.length < 2 || name.length > 120) {
+      throw new HttpError(400, "Enter a group name of 2–120 characters.");
+    }
+    add("name", name);
+  }
+  if ("handle" in patch) {
+    const handle = normaliseHandle(patch.handle);
+    const taken = await pool.query(
+      `SELECT 1 FROM groups WHERE lower(handle) = $1 AND id <> $2`,
+      [handle, groupId],
+    );
+    if (taken.rowCount) {
+      throw new HttpError(409, "That handle is already taken.");
+    }
+    add("handle", handle);
+  }
+  if ("accessMode" in patch) {
+    const mode = readString(patch.accessMode) as GroupAccessMode;
+    if (!GROUP_ACCESS_MODES.includes(mode)) {
+      throw new HttpError(400, "Choose a valid access mode.");
+    }
+    add("access_mode", mode);
+  }
+  if ("visibility" in patch) {
+    const visibility = readString(patch.visibility) as GroupVisibility;
+    if (!GROUP_VISIBILITIES.includes(visibility)) {
+      throw new HttpError(400, "Choose a valid visibility.");
+    }
+    add("visibility", visibility);
+  }
+  if ("description" in patch) {
+    add("description", readOptionalString(patch.description));
+  }
+
+  if (sets.length) {
+    await pool.query(
+      `UPDATE groups SET ${sets.join(", ")}, updated_at = now() WHERE id = $1`,
+      [groupId, ...values],
+    );
+    await recordMembershipEvent(
+      pool,
+      groupId,
+      actingMemberId,
+      null,
+      "settings-change",
+    );
+  }
+  return getGroupForMember(actingMemberId, groupId);
+}
+
+/**
+ * Resolve a group by id OR handle. Members get the full detail; non-members of a
+ * non-public group get a LIMITED public view (no member list, no sessions).
+ */
+export async function getGroupByIdOrHandle(
+  idOrHandle: string,
+  viewerMemberId: string,
+): Promise<
+  | { access: "member"; group: ApiGroupDetail }
+  | { access: "public"; group: ApiGroupPublic }
+> {
+  const isUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      idOrHandle,
+    );
+  const lookup = await pool.query<{
+    id: string;
+    my_status: GroupMemberStatus | null;
+  }>(
+    `SELECT g.id, gm.status AS my_status
+     FROM groups g
+     LEFT JOIN group_members gm ON gm.group_id = g.id AND gm.member_id = $2
+     WHERE ${isUuid ? "g.id = $1" : "lower(g.handle) = lower($1)"}`,
+    [idOrHandle, viewerMemberId],
+  );
+  const found = lookup.rows[0];
+  if (!found) {
+    throw new HttpError(404, "Group not found.");
+  }
+  const isMember =
+    found.my_status === "active" || found.my_status === "invited";
+  if (isMember) {
+    return {
+      access: "member",
+      group: await getGroupForMember(viewerMemberId, found.id),
+    };
+  }
+  const publicRow = await pool.query<GroupRow>(
+    `SELECT g.id, g.name, g.handle, g.kind, g.parent_group_id, g.description,
+            g.discipline, g.visibility, g.access_mode, g.created_by,
+            g.created_at, g.updated_at,
+            (SELECT count(*) FROM group_members gm2
+               WHERE gm2.group_id = g.id AND gm2.status = 'active')
+              AS member_count
+     FROM groups g WHERE g.id = $1`,
+    [found.id],
+  );
+  const row = publicRow.rows[0];
+  return {
+    access: "public",
+    group: {
+      id: row.id,
+      name: row.name,
+      handle: row.handle,
+      kind: row.kind,
+      description: row.description,
+      discipline: row.discipline,
+      visibility: row.visibility,
+      accessMode: row.access_mode,
+      memberCount: row.member_count != null ? Number(row.member_count) : 0,
+      myStatus: found.my_status ?? null,
+    },
+  };
+}
+
+/** Manager view of pending invites (count) and join requests (with identity). */
+export async function listPending(
+  actingMemberId: string,
+  groupId: string,
+): Promise<ApiGroupPending> {
+  await requireGroupRole(actingMemberId, groupId, MEMBERSHIP_MANAGER_ROLES);
+  const requests = await pool.query<{
+    member_id: string;
+    public_name: string | null;
+    updated_at: Date;
+  }>(
+    `SELECT gm.member_id, m.public_name, gm.updated_at
+     FROM group_members gm
+     JOIN members m ON m.id = gm.member_id
+     WHERE gm.group_id = $1 AND gm.status = 'requested'
+     ORDER BY gm.updated_at ASC`,
+    [groupId],
+  );
+  const invited = await pool.query<{ count: string }>(
+    `SELECT count(*) FROM group_members
+     WHERE group_id = $1 AND status = 'invited'`,
+    [groupId],
+  );
+  return {
+    requests: requests.rows.map((row) => ({
+      memberId: row.member_id,
+      publicName: row.public_name ?? "RiverLaunch member",
+      requestedAt: row.updated_at.toISOString(),
+    })),
+    invitedCount: Number(invited.rows[0]?.count ?? 0),
+  };
 }
 
 export async function leaveGroup(
@@ -390,32 +914,5 @@ export async function leaveGroup(
      WHERE group_id = $1 AND member_id = $2`,
     [groupId, memberId],
   );
-}
-
-/** Lightweight member lookup for inviting people to a group. */
-export async function searchInvitableMembers(
-  query: string,
-  excludeMemberId: string,
-): Promise<{ id: string; publicName: string }[]> {
-  // Cap the input length, and require >=3 chars so this is a name lookup, not a
-  // directory dump from a 1-2 char fragment.
-  const term = query.trim().slice(0, 60);
-  if (term.length < 3) {
-    return [];
-  }
-  // Escape LIKE wildcards so `%`/`_` are matched literally — otherwise a query
-  // like "%%" expands to a match-everything pattern and enumerates all members.
-  const escaped = term.replace(/[\\%_]/g, "\\$&");
-  const result = await pool.query<{ id: string; public_name: string | null }>(
-    `SELECT id, public_name FROM members
-     WHERE id <> $2 AND public_name IS NOT NULL
-       AND public_name ILIKE '%' || $1 || '%' ESCAPE '\\'
-     ORDER BY public_name ASC
-     LIMIT 10`,
-    [escaped, excludeMemberId],
-  );
-  return result.rows.map((row) => ({
-    id: row.id,
-    publicName: row.public_name ?? "RiverLaunch member",
-  }));
+  await recordMembershipEvent(pool, groupId, memberId, memberId, "leave");
 }

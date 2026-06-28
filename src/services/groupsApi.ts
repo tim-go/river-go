@@ -1,13 +1,14 @@
 import type {
   Group,
+  GroupAccessMode,
   GroupDetail,
   GroupDiscipline,
   GroupKind,
-  GroupMember,
+  GroupPending,
   GroupRole,
   GroupSession,
+  GroupView,
   GroupVisibility,
-  InvitableMember,
   Rsvp,
   SessionDetail,
   SessionStatus,
@@ -84,23 +85,117 @@ export async function createGroup(draft: GroupDraft): Promise<Group> {
   return result.group;
 }
 
-export async function fetchGroup(groupId: string): Promise<GroupDetail> {
-  const result = await authedFetch<{ group: GroupDetail }>(
-    `/api/groups/${encodeURIComponent(groupId)}`,
-  );
-  return result.group;
+/** Resolve a group by id or handle. Member access returns full detail. */
+export async function fetchGroup(idOrHandle: string): Promise<GroupView> {
+  const result = await authedFetch<{
+    group: GroupView["group"];
+    access: GroupView["access"];
+  }>(`/api/groups/${encodeURIComponent(idOrHandle)}`);
+  return { access: result.access, group: result.group } as GroupView;
 }
 
-export async function inviteGroupMember(
+/** Invite an existing member by exact email. Neutral response (GINV-B1). */
+export async function inviteByEmail(
+  groupId: string,
+  email: string,
+): Promise<void> {
+  await authedFetch(`/api/groups/${encodeURIComponent(groupId)}/invites`, {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+/** Cancel a pending invite (manager) / withdraw your own request. */
+export async function cancelInviteOrWithdraw(
   groupId: string,
   memberId: string,
-  role: GroupRole = "member",
-): Promise<GroupMember> {
-  const result = await authedFetch<{ member: GroupMember }>(
-    `/api/groups/${encodeURIComponent(groupId)}/members`,
-    { method: "POST", body: JSON.stringify({ memberId, role }) },
+): Promise<void> {
+  await authedFetch(
+    `/api/groups/${encodeURIComponent(groupId)}/invites/${encodeURIComponent(
+      memberId,
+    )}`,
+    { method: "DELETE" },
   );
-  return result.member;
+}
+
+export async function requestToJoin(groupId: string): Promise<void> {
+  await authedFetch(`/api/groups/${encodeURIComponent(groupId)}/requests`, {
+    method: "POST",
+  });
+}
+
+export async function respondToRequest(
+  groupId: string,
+  memberId: string,
+  approve: boolean,
+): Promise<void> {
+  await authedFetch(
+    `/api/groups/${encodeURIComponent(groupId)}/requests/${encodeURIComponent(
+      memberId,
+    )}`,
+    { method: "POST", body: JSON.stringify({ approve }) },
+  );
+}
+
+export async function fetchPending(groupId: string): Promise<GroupPending> {
+  const result = await authedFetch<{ pending: GroupPending }>(
+    `/api/groups/${encodeURIComponent(groupId)}/pending`,
+  );
+  return result.pending;
+}
+
+export async function removeMember(
+  groupId: string,
+  memberId: string,
+): Promise<void> {
+  await authedFetch(
+    `/api/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(
+      memberId,
+    )}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function setMemberRole(
+  groupId: string,
+  memberId: string,
+  role: GroupRole,
+): Promise<void> {
+  await authedFetch(
+    `/api/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(
+      memberId,
+    )}`,
+    { method: "PATCH", body: JSON.stringify({ role }) },
+  );
+}
+
+export async function transferOwnership(
+  groupId: string,
+  memberId: string,
+): Promise<void> {
+  await authedFetch(
+    `/api/groups/${encodeURIComponent(groupId)}/transfer-ownership`,
+    { method: "POST", body: JSON.stringify({ memberId }) },
+  );
+}
+
+export interface GroupSettingsPatch {
+  name?: string;
+  handle?: string;
+  accessMode?: GroupAccessMode;
+  visibility?: GroupVisibility;
+  description?: string | null;
+}
+
+export async function updateGroupSettings(
+  groupId: string,
+  patch: GroupSettingsPatch,
+): Promise<GroupDetail> {
+  const result = await authedFetch<{ group: GroupDetail }>(
+    `/api/groups/${encodeURIComponent(groupId)}`,
+    { method: "PATCH", body: JSON.stringify(patch) },
+  );
+  return result.group;
 }
 
 export async function respondToGroupInvite(
@@ -117,16 +212,6 @@ export async function leaveGroup(groupId: string): Promise<void> {
   await authedFetch(`/api/groups/${encodeURIComponent(groupId)}/leave`, {
     method: "POST",
   });
-}
-
-export async function searchMembers(query: string): Promise<InvitableMember[]> {
-  if (query.trim().length < 2) {
-    return [];
-  }
-  const result = await authedFetch<{ members?: InvitableMember[] }>(
-    `/api/members/search?q=${encodeURIComponent(query.trim())}`,
-  );
-  return result.members ?? [];
 }
 
 // --- Sessions ---
