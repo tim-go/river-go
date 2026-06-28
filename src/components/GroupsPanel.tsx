@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ChevronLeft,
   LogOut,
@@ -76,6 +76,15 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
 
   const [inviteQuery, setInviteQuery] = useState("");
   const [inviteResults, setInviteResults] = useState<InvitableMember[]>([]);
+  const inviteSearchTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (inviteSearchTimer.current) {
+        window.clearTimeout(inviteSearchTimer.current);
+      }
+    },
+    [],
+  );
 
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [sessionTitle, setSessionTitle] = useState("");
@@ -150,13 +159,22 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
     }
   }
 
-  async function handleSearchMembers(query: string) {
+  // Debounced so we don't fire a request per keystroke; only search once the
+  // query reaches the backend's 3-char minimum.
+  function handleSearchMembers(query: string) {
     setInviteQuery(query);
-    try {
-      setInviteResults(await searchMembers(query));
-    } catch {
-      setInviteResults([]);
+    if (inviteSearchTimer.current) {
+      window.clearTimeout(inviteSearchTimer.current);
     }
+    if (query.trim().length < 3) {
+      setInviteResults([]);
+      return;
+    }
+    inviteSearchTimer.current = window.setTimeout(() => {
+      void searchMembers(query)
+        .then(setInviteResults)
+        .catch(() => setInviteResults([]));
+    }, 250);
   }
 
   async function handleInvite(memberId: string) {

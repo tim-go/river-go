@@ -397,17 +397,22 @@ export async function searchInvitableMembers(
   query: string,
   excludeMemberId: string,
 ): Promise<{ id: string; publicName: string }[]> {
-  const term = query.trim();
-  if (term.length < 2) {
+  // Cap the input length, and require >=3 chars so this is a name lookup, not a
+  // directory dump from a 1-2 char fragment.
+  const term = query.trim().slice(0, 60);
+  if (term.length < 3) {
     return [];
   }
+  // Escape LIKE wildcards so `%`/`_` are matched literally — otherwise a query
+  // like "%%" expands to a match-everything pattern and enumerates all members.
+  const escaped = term.replace(/[\\%_]/g, "\\$&");
   const result = await pool.query<{ id: string; public_name: string | null }>(
     `SELECT id, public_name FROM members
      WHERE id <> $2 AND public_name IS NOT NULL
-       AND public_name ILIKE '%' || $1 || '%'
+       AND public_name ILIKE '%' || $1 || '%' ESCAPE '\\'
      ORDER BY public_name ASC
      LIMIT 10`,
-    [term, excludeMemberId],
+    [escaped, excludeMemberId],
   );
   return result.rows.map((row) => ({
     id: row.id,
