@@ -4281,6 +4281,20 @@ select {
   padding: 0 10px;
 }
 
+/* Checkboxes and radios must escape the text-input sizing above — otherwise they
+   inherit width:100% + height:40px and render as a full-width box that swamps
+   their label. Reset to native size and theme the tick via accent-color. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  accent-color: var(--river);
+}
+
 textarea {
   resize: vertical;
   padding: 10px;
@@ -5554,6 +5568,9 @@ input[type="file"]::file-selector-button:hover {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
+  /* Without this the button falls back to the UA black `buttontext`, which reads
+     as black-on-dark on the Surge theme's dark surface. */
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -5629,9 +5646,16 @@ input[type="file"]::file-selector-button:hover {
   font-size: 0.92rem;
 }
 
+/* Emergency-contact consent: an "important info" callout. Uses the app's sky
+   accent so it reads as notable and trustworthy, distinct from the amber used
+   for warnings/cautions elsewhere. */
 .session-block--ice {
-  border-color: #e7b561;
-  background: #fbf4e7;
+  border-color: rgba(39, 125, 161, 0.34);
+  background: rgba(39, 125, 161, 0.08);
+}
+
+.session-block--ice h3 {
+  color: var(--sky);
 }
 
 .session-note {
@@ -5675,10 +5699,18 @@ input[type="file"]::file-selector-button:hover {
 
 .toggle-line {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
   font-size: 0.84rem;
   font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.toggle-line input[type="checkbox"] {
+  flex: 0 0 auto;
+  /* Nudge the box onto the first text line when the label wraps. */
+  margin-top: 1px;
 }
 
 .coverage-list,
@@ -6583,7 +6615,6 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .notice,
 [data-theme="surge"] .confirm-panel,
 [data-theme="surge"] .inline-admin-control,
-[data-theme="surge"] .session-block--ice,
 [data-theme="surge"] .kit-item__flag,
 [data-theme="surge"] .coverage-item--gap,
 [data-theme="surge"] .status-chip--pending,
@@ -6591,6 +6622,15 @@ input[type="file"]::file-selector-button:hover {
   border-color: rgba(255, 196, 60, 0.42);
   background: rgba(255, 196, 60, 0.12);
   color: #ffd27a;
+}
+
+/* Emergency-contact callout: blue "important info", not an amber warning. */
+[data-theme="surge"] .session-block--ice {
+  border-color: rgba(90, 160, 255, 0.4);
+  background: rgba(77, 139, 255, 0.13);
+}
+[data-theme="surge"] .session-block--ice h3 {
+  color: #8fb6ff;
 }
 [data-theme="surge"] .confirm-panel p,
 [data-theme="surge"] .participant-ice,
