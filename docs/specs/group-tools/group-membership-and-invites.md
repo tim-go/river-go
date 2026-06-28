@@ -111,8 +111,75 @@ declines** the request.
   or revoke codes, and approve/decline requests.
 - Any signed-in member may use an invite link or request to join.
 - Membership states extend the existing model: `invited` (manager-initiated),
-  `requested` (member-initiated, awaiting approval), `active`, `left`,
-  `declined`/`blocked` (terminal, blocks silent re-invite/re-request).
+  `requested` (member-initiated, awaiting approval), `active`, `left`
+  (self-removed), `removed` (manager-removed), `declined`/`blocked` (terminal,
+  blocks silent re-invite/re-request).
+- "Admin" in this spec means a manager role (organiser/leader per GROUP-F1);
+  "owner" is the single group owner. Managers act as admins.
+
+### Membership & Role Management
+
+#### Ownership
+
+- A group has **exactly one owner**. The owner is the only role that can
+  transfer ownership, delete/archive the group, and demote other managers.
+- **Transfer ownership:** the owner can transfer to another **active** member,
+  who becomes the new owner; the previous owner is demoted to admin. There is
+  never zero or more than one owner.
+- **Owner succession:** the owner **cannot leave or be removed while sole
+  owner** — they must transfer ownership first (or delete the group). The UI
+  blocks the action and prompts to transfer.
+
+#### Roles
+
+- The owner (and, where allowed, admins) can **promote** a member to admin and
+  **demote** an admin back to member.
+- An admin cannot remove, demote, or override the owner, nor promote someone to
+  owner (only transfer-ownership does that). Self-demotion is allowed; the owner
+  cannot self-demote without transferring ownership.
+
+#### Removing & Leaving
+
+- **Remove a member (kick):** a manager can remove an `active` member or revoke
+  an `invited`/`requested` row. You **cannot remove the owner**, and you cannot
+  remove **yourself** via this action (use leave). A removed member loses access
+  immediately and any session participation tied to membership ends.
+- **Leave:** any member can leave (existing behaviour); the owner must transfer
+  ownership first.
+- **Re-join after removal (GINV-B6):** by default a removed member is simply
+  removed and may be re-invited or re-request; a manager may instead **block**
+  them, which prevents re-invite/re-request until unblocked.
+
+#### Cancelling Invites & Requests
+
+- A manager can **cancel a pending invite**; the (group, member) row returns to a
+  non-pending state and the invitee is not notified-spammed.
+- A member can **withdraw their own pending join request**.
+- Cancelling/withdrawing is distinct from declining: it does not set the sticky
+  `declined` state, so the person can be invited or request again later.
+
+#### Permission Matrix
+
+| Action | Owner | Admin | Member |
+| --- | --- | --- | --- |
+| Invite by email / generate-revoke code | ✓ | ✓ | — |
+| Approve/decline join requests | ✓ | ✓ | — |
+| Cancel a pending invite | ✓ | ✓ | — |
+| Withdraw own request | n/a | n/a | ✓ |
+| Remove a member | ✓ | ✓ (not owner) | — |
+| Promote/demote admin | ✓ | decision (GINV-B7) | — |
+| Transfer ownership | ✓ | — | — |
+| Leave group | ✓ (transfer first) | ✓ | ✓ |
+| Delete/archive group | ✓ | — | — |
+| Edit group settings (name, visibility, join policy) | ✓ | ✓ | — |
+
+#### Audit & Notifications
+
+- Membership changes — invite, accept, decline, cancel, remove, role change,
+  ownership transfer, code rotation — are recorded with **actor + timestamp**
+  (supports trust-and-moderation review).
+- Affected members get a **light notification** for relevant changes (you were
+  promoted/removed, your invite was cancelled), throttled to avoid spam.
 
 ### Anti-Abuse
 
@@ -141,17 +208,27 @@ is bounded to in-app clutter, but must still be controlled:
 | `POST` | `/api/groups/:id/requests` | Request to join a reachable group. |
 | `POST` | `/api/groups/:id/requests/:memberId` | Approve/decline a join request (manager-only). |
 | `GET` | `/api/groups/:id/pending` | Manager view of pending invites/requests. |
+| `DELETE` | `/api/groups/:id/invites/:memberId` | Cancel a pending invite (manager) / withdraw own request. |
+| `DELETE` | `/api/groups/:id/members/:memberId` | Remove a member, or leave when it's yourself. |
+| `PATCH` | `/api/groups/:id/members/:memberId` | Set a member's role (promote/demote admin); manager-only. |
+| `POST` | `/api/groups/:id/transfer-ownership` | Transfer ownership to another active member (owner-only). |
 | ~~`GET`~~ | ~~`/api/members/search`~~ | **Removed** — the enumeration hole this spec closes. |
 
 ## Data Shape
 
 - Reuse `group_members` with an extended `status`: `invited`, `requested`,
-  `active`, `left`, `declined`. Keep the unique `(group_id, member_id)`.
+  `active`, `left`, `removed`, `declined`/`blocked`. Keep the unique
+  `(group_id, member_id)` and the `role` column (owner/admin/member).
+- Enforce **exactly one owner** per group (partial unique index on
+  `(group_id)` where `role = 'owner'`); ownership transfer is a single
+  transaction that swaps the two roles.
 - New `group_invite_codes` (or columns on `groups`): `group_id`, `code`
   (hashed/opaque), `created_by`, `expires_at` (nullable), `max_uses` (nullable),
   `uses`, `revoked_at`.
 - Optional `groups.join_policy`: `approval` (default for private) | `auto`.
-- Record who invited/approved and when for audit.
+- `group_membership_events` audit rows: `group_id`, `actor_member_id`,
+  `target_member_id`, `action` (invite/accept/decline/cancel/remove/role-change/
+  transfer/code-rotate), `created_at`. Record who did what, and when.
 
 ## Open Questions
 
@@ -162,6 +239,8 @@ is bounded to in-app clutter, but must still be controlled:
   later? (GINV-F8)
 - What's the rate-limit shape given Cloud Run runs multiple instances (needs a
   shared store)? (GINV-B3)
+- Is a removed member simply removed (re-invitable) or hard-blocked? (GINV-B6)
+- Can admins manage other admins' roles, or is that owner-only? (GINV-B7)
 
 ## Decisions
 
@@ -187,6 +266,11 @@ is bounded to in-app clutter, but must still be controlled:
 | GINV-F6 | Anti-abuse controls | Backend | Proposed | Soon | — | Dedupe (have it), sticky decline, rate-limit, pending-invite cap, code hygiene. |
 | GINV-F7 | Invite non-members by email | Groups/email | Parked | Later | — | Email a signup invite that resolves on account creation. Needs email infra + spam controls. |
 | GINV-F8 | Discoverable/public groups | Groups | Parked | Later | — | Optional per-group: browse + request to join, per `groups.visibility`. |
+| GINV-F9 | Transfer ownership + succession | Groups | Proposed | Soon | — | Exactly one owner; owner can transfer to an active member; can't leave/be removed while sole owner. |
+| GINV-F10 | Promote/demote admins | Groups | Proposed | Soon | — | Owner (and admins per GINV-B7) set member↔admin roles; admins can't touch the owner. |
+| GINV-F11 | Remove a member | Groups | Proposed | Soon | — | Manager removes active/invited/requested rows; not the owner, not self (use leave). |
+| GINV-F12 | Cancel invite / withdraw request | Groups | Proposed | Soon | — | Manager cancels a pending invite; member withdraws own request; not sticky-declined. |
+| GINV-F13 | Membership audit + notifications | Backend/Groups | Proposed | Soon | — | `group_membership_events` audit; light, throttled notifications for affected members. |
 
 ### Backlog
 
@@ -198,9 +282,13 @@ is bounded to in-app clutter, but must still be controlled:
 | GINV-B3 | dependency | Rate-limit infra | Open | Soon | Cloud Run scales horizontally — needs a shared store (Postgres counter/Redis), not in-memory. |
 | GINV-B4 | decision | Invite-code policy | Open | Soon | Code entropy/format; default expiry + max-uses. |
 | GINV-B5 | decision | Join policy per group | Open | Soon | Auto-join on valid code vs request+approval; default approval for private. |
+| GINV-B6 | decision | Re-join after removal | Open | Soon | Removed member re-invitable by default vs hard-blocked until unblocked. |
+| GINV-B7 | decision | Who can manage roles | Open | Soon | Can admins promote/demote other admins, or owner-only? |
+| GINV-B8 | dependency | Group delete/archive | Open | Later | Owner-only lifecycle (members, sessions, codes) — likely its own spec. |
 
 ## Change Log
 
 | Date | Change |
 | --- | --- |
 | 2026-06-28 | Created from the decision to drop global member search (privacy/enumeration risk) in favour of email-exact invites, invite codes/links, and request-to-join + approval. Supersedes GROUP-F2 invite-by-name. |
+| 2026-06-28 | Added membership management: ownership transfer + succession, promote/demote admins, remove member, cancel invite / withdraw request, permission matrix, audit + notifications. |
