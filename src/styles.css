@@ -1112,7 +1112,9 @@ h1 {
   height: 170px;
   margin-bottom: 16px;
   border-radius: 14px;
-  background-color: var(--surface-muted, #e7ecea);
+  /* Themed muted surface (shows for the empty/loading state; image covers it
+     otherwise). --surface-strong is defined per theme, so it stays dark in Surge. */
+  background-color: var(--surface-strong, #e7ecea);
   background-size: cover;
   background-repeat: no-repeat;
   background-position: 50% 50%;
@@ -1132,7 +1134,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--muted-strong, #6b7a76);
+  color: var(--muted);
   font-size: 0.85rem;
 }
 .group-cover-position {
@@ -1288,6 +1290,61 @@ h1 {
 
 .entity-toolbar input {
   max-width: 320px;
+}
+
+/* Entity page: cap the whole page to a readable width (rather than stretching
+   to the full wide canvas) so the main column sits next to the 320px gutter
+   with no awkward gap, and fields don't run silly-wide. */
+.entity-page {
+  max-width: 1120px;
+}
+.content-columns__main input:not([type="range"]),
+.content-columns__main select,
+.content-columns__main textarea {
+  max-width: 560px;
+  width: 100%;
+}
+.content-columns__main .entity-toolbar input {
+  max-width: 320px;
+}
+.content-columns__main form button.primary-action {
+  justify-self: start;
+  width: auto;
+}
+
+/* Right-gutter cards (stats + contextual controls). */
+.content-columns__aside .group-detail__section {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+button.group-detail__section {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.group-aside-stat__num {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--river);
+}
+.group-aside-stat__label,
+.group-aside-facts {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted-strong, #6b7a76);
+}
+.group-aside-next {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.content-columns__aside .group-invite-link code {
+  font-size: 0.78rem;
 }
 
 .search-panel,

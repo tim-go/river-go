@@ -26,6 +26,8 @@ interface EntityPageProps {
   onTabChange: (id: string) => void;
   /** Active tab panel body. */
   children: ReactNode;
+  /** Optional persistent right gutter (stats + contextual controls). */
+  aside?: ReactNode;
 }
 
 /**
@@ -46,6 +48,7 @@ export function EntityPage({
   activeTab,
   onTabChange,
   children,
+  aside,
 }: EntityPageProps) {
   return (
     <div className="entity-page">
@@ -102,7 +105,16 @@ export function EntityPage({
         ))}
       </nav>
 
-      <div className="entity-page__body">{children}</div>
+      <div className="entity-page__body">
+        {aside ? (
+          <div className="content-columns">
+            <div className="content-columns__main">{children}</div>
+            <aside className="content-columns__aside">{aside}</aside>
+          </div>
+        ) : (
+          children
+        )}
+      </div>
     </div>
   );
 }

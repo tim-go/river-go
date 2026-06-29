@@ -1044,8 +1044,7 @@ export function GroupsPanel({
         </form>
 
         <div className="group-detail__section">
-          <h3>Invite link</h3>
-          {inviteLinkBlock}
+          <h3>Joining &amp; visibility</h3>
           <label className="group-access-mode">
             Joining
             <select
@@ -1094,6 +1093,10 @@ export function GroupsPanel({
           onSubmit={handleInviteByEmail}
         >
           <h3>Invite a member</h3>
+          <p className="source-note">
+            Sends an in-app invite if they're already on RiverLaunch. To invite
+            someone new, share your group invite link.
+          </p>
           <label>
             <UserPlus size={15} /> By email
             <input
@@ -1141,6 +1144,94 @@ export function GroupsPanel({
     { id: "sessions", label: "Sessions" },
     ...(canManage ? [{ id: "settings", label: "Settings" }] : []),
   ];
+
+  // Right gutter: club stats + contextual controls (member + public views).
+  const nextGroupSession = upcomingGroupSessions[0];
+  const memberAside = gd ? (
+    <>
+      <button
+        type="button"
+        className="group-detail__section group-aside-stat"
+        onClick={() => setGroupTab("members")}
+      >
+        <span className="group-aside-stat__num">{gd.memberCount}</span>
+        <span className="group-aside-stat__label">
+          member{gd.memberCount === 1 ? "" : "s"}
+        </span>
+        {/* future: member avatars */}
+      </button>
+      <button
+        type="button"
+        className="group-detail__section group-aside-card"
+        onClick={() => setGroupTab("sessions")}
+      >
+        <h3>Next session</h3>
+        {nextGroupSession ? (
+          <span className="group-aside-next">
+            <strong>{nextGroupSession.title}</strong>
+            <small>{formatWhen(nextGroupSession.scheduledFor)}</small>
+          </span>
+        ) : (
+          <span className="empty-state">None planned</span>
+        )}
+      </button>
+      <div className="group-detail__section">
+        <h3>About this group</h3>
+        <p className="group-aside-facts">
+          {GROUP_KIND_LABELS[gd.kind]}
+          {gd.discipline ? ` · ${gd.discipline}` : ""} · {gd.visibility}
+        </p>
+      </div>
+      {canManage ? (
+        <div className="group-detail__section">
+          <h3>Invite link</h3>
+          {inviteLinkBlock}
+        </div>
+      ) : null}
+    </>
+  ) : null;
+
+  const publicAside = publicGroup ? (
+    <>
+      <div className="group-detail__section group-aside-stat">
+        <span className="group-aside-stat__num">{publicGroup.memberCount}</span>
+        <span className="group-aside-stat__label">
+          member{publicGroup.memberCount === 1 ? "" : "s"}
+        </span>
+      </div>
+      <div className="group-detail__section">
+        <h3>About this group</h3>
+        <p className="group-aside-facts">
+          {GROUP_KIND_LABELS[publicGroup.kind]}
+          {publicGroup.discipline ? ` · ${publicGroup.discipline}` : ""}
+        </p>
+      </div>
+      <div className="group-detail__section">
+        <h3>Join</h3>
+        {!isSignedIn ? (
+          <button type="button" className="primary-action" onClick={onSignIn}>
+            Sign in to join
+          </button>
+        ) : publicGroup.myStatus === "requested" ? (
+          <p className="group-invite__notice">
+            Your request to join is pending approval.
+          </p>
+        ) : publicGroup.accessMode === "request_to_join" ? (
+          <button
+            type="button"
+            className="primary-action"
+            onClick={() => void handleRequestToJoin()}
+          >
+            Request to join
+          </button>
+        ) : (
+          <p className="empty-state">
+            Invite only — ask a member to invite you.
+          </p>
+        )}
+      </div>
+    </>
+  ) : null;
 
   return (
     <section className="groups-panel">
@@ -1193,6 +1284,7 @@ export function GroupsPanel({
           tabs={groupTabs}
           activeTab={groupTab}
           onTabChange={setGroupTab}
+          aside={memberAside}
         >
           {groupDetail.myStatus === "invited" ? (
             <div className="group-invite-banner">
@@ -1270,6 +1362,7 @@ export function GroupsPanel({
           ]}
           activeTab={groupTab === "about" ? "about" : "overview"}
           onTabChange={setGroupTab}
+          aside={publicAside}
         >
           {groupTab === "about" ? (
             <>
@@ -1292,31 +1385,10 @@ export function GroupsPanel({
             </>
           ) : (
             <div className="group-detail__section">
-              {publicGroup.description ? <p>{publicGroup.description}</p> : null}
-              {!isSignedIn ? (
-                <button
-                  type="button"
-                  className="primary-action"
-                  onClick={onSignIn}
-                >
-                  Sign in to join
-                </button>
-              ) : publicGroup.myStatus === "requested" ? (
-                <p className="group-invite__notice">
-                  Your request to join is pending approval.
-                </p>
-              ) : publicGroup.accessMode === "request_to_join" ? (
-                <button
-                  type="button"
-                  className="primary-action"
-                  onClick={() => void handleRequestToJoin()}
-                >
-                  Request to join
-                </button>
+              {publicGroup.description ? (
+                <p>{publicGroup.description}</p>
               ) : (
-                <p className="empty-state">
-                  This group is invite only. Ask a member to invite you.
-                </p>
+                <p className="empty-state">No description yet.</p>
               )}
             </div>
           )}
