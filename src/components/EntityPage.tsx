@@ -1,0 +1,96 @@
+import type { ReactNode } from "react";
+import { ChevronLeft } from "lucide-react";
+
+export interface EntityTab {
+  id: string;
+  label: string;
+}
+
+interface EntityPageProps {
+  /** Identity icon/avatar shown beside the title. */
+  icon?: ReactNode;
+  title: string;
+  /** e.g. a @handle line. */
+  subtitle?: ReactNode;
+  /** A meta/chips line under the title. */
+  meta?: ReactNode;
+  /** Right-aligned header actions (buttons, menu). */
+  actions?: ReactNode;
+  /** Optional subtle breadcrumb-style back link above the identity. */
+  backLabel?: string;
+  onBack?: () => void;
+  tabs: EntityTab[];
+  activeTab: string;
+  onTabChange: (id: string) => void;
+  /** Active tab panel body. */
+  children: ReactNode;
+}
+
+/**
+ * A reusable "entity page" shell: an identity header + a horizontal tab bar +
+ * the active tab's body. Presentational and generic — used for the group page
+ * now, and for paddler profiles later.
+ */
+export function EntityPage({
+  icon,
+  title,
+  subtitle,
+  meta,
+  actions,
+  backLabel,
+  onBack,
+  tabs,
+  activeTab,
+  onTabChange,
+  children,
+}: EntityPageProps) {
+  return (
+    <div className="entity-page">
+      <header className="entity-page__header">
+        <div className="entity-page__identity">
+          {onBack ? (
+            <button
+              type="button"
+              className="entity-page__back"
+              onClick={onBack}
+            >
+              <ChevronLeft size={15} /> {backLabel ?? "Back"}
+            </button>
+          ) : null}
+          <div className="entity-page__heading">
+            {icon ? <span className="entity-page__icon">{icon}</span> : null}
+            <div className="entity-page__titles">
+              <h2>{title}</h2>
+              {subtitle ? (
+                <p className="entity-page__subtitle">{subtitle}</p>
+              ) : null}
+              {meta ? <p className="entity-page__meta">{meta}</p> : null}
+            </div>
+          </div>
+        </div>
+        {actions ? (
+          <div className="entity-page__actions">{actions}</div>
+        ) : null}
+      </header>
+
+      <nav className="entity-page__tabs" role="tablist">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={tab.id === activeTab}
+            className={`entity-page__tab${
+              tab.id === activeTab ? " entity-page__tab--active" : ""
+            }`}
+            onClick={() => onTabChange(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="entity-page__body">{children}</div>
+    </div>
+  );
+}
