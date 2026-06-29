@@ -62,6 +62,17 @@ export async function createMemberSkill(
   return result.skill;
 }
 
+export async function updateMemberSkill(
+  id: string,
+  draft: MemberSkillDraft,
+): Promise<MemberSkill> {
+  const result = await authedFetch<{ skill: MemberSkill }>(
+    `/api/me/skills/${encodeURIComponent(id)}`,
+    { method: "PATCH", body: JSON.stringify(draft) },
+  );
+  return result.skill;
+}
+
 export async function deleteMemberSkill(id: string): Promise<void> {
   await authedFetch(`/api/me/skills/${encodeURIComponent(id)}`, {
     method: "DELETE",

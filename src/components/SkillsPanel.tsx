@@ -4,6 +4,7 @@ import {
   createMemberSkill,
   deleteMemberSkill,
   fetchMemberSkills,
+  updateMemberSkill,
 } from "../services/skillsApi";
 
 const SKILL_CATEGORIES = [
@@ -40,6 +41,7 @@ export function SkillsPanel() {
   const [error, setError] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [category, setCategory] = useState("");
   const [name, setName] = useState("");
@@ -85,6 +87,23 @@ export function SkillsPanel() {
     setExpiresOn("");
   }
 
+  function closeForm() {
+    resetForm();
+    setEditingId(null);
+    setIsFormOpen(false);
+  }
+
+  function startEdit(skill: MemberSkill) {
+    setEditingId(skill.id);
+    setCategory(skill.category);
+    setName(skill.name);
+    setDetail(skill.detail ?? "");
+    setAttainedOn(skill.attainedOn ?? "");
+    setExpiresOn(skill.expiresOn ?? "");
+    setIsFormOpen(true);
+    setError("");
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!category || !name.trim()) {
@@ -94,15 +113,19 @@ export function SkillsPanel() {
     setIsSaving(true);
     setError("");
     try {
-      await createMemberSkill({
+      const draft = {
         category,
         name: name.trim(),
         detail: detail.trim() || null,
         attainedOn: attainedOn || null,
         expiresOn: expiresOn || null,
-      });
-      resetForm();
-      setIsFormOpen(false);
+      };
+      if (editingId) {
+        await updateMemberSkill(editingId, draft);
+      } else {
+        await createMemberSkill(draft);
+      }
+      closeForm();
       await load();
     } catch (saveError) {
       setError(
@@ -142,7 +165,7 @@ export function SkillsPanel() {
         <button
           type="button"
           className="skills-panel__add"
-          onClick={() => setIsFormOpen((open) => !open)}
+          onClick={() => (isFormOpen ? closeForm() : setIsFormOpen(true))}
         >
           {isFormOpen ? "Cancel" : "Add skill"}
         </button>
@@ -209,7 +232,11 @@ export function SkillsPanel() {
             className="skills-form__submit"
             disabled={isSaving}
           >
-            {isSaving ? "Saving…" : "Save skill"}
+            {isSaving
+              ? "Saving…"
+              : editingId
+                ? "Save changes"
+                : "Save skill"}
           </button>
         </form>
       ) : null}
@@ -250,13 +277,22 @@ export function SkillsPanel() {
                         ) : null}
                       </div>
                     ) : null}
-                    <button
-                      type="button"
-                      className="skill-item__delete"
-                      onClick={() => handleDelete(skill.id)}
-                    >
-                      Remove
-                    </button>
+                    <div className="skill-item__actions">
+                      <button
+                        type="button"
+                        className="skill-item__edit"
+                        onClick={() => startEdit(skill)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="skill-item__delete"
+                        onClick={() => handleDelete(skill.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

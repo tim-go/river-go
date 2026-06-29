@@ -153,6 +153,41 @@ export async function createPaddleLog(
   return mapPaddleLogRow(result.rows[0]);
 }
 
+export async function updatePaddleLog(
+  memberId: string,
+  id: string,
+  input: PaddleLogInput,
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiPaddleLog> {
+  const result = await client.query<PaddleLogRow>(
+    `UPDATE paddle_logs SET
+      river_id = $3, section_id = $4, venue = $5, title = $6,
+      paddled_on = $7, level_note = $8, craft_type = $9, companions = $10,
+      notes = $11, updated_at = now()
+    WHERE id = $1 AND member_id = $2
+    RETURNING ${PADDLE_LOG_COLUMNS}`,
+    [
+      id,
+      memberId,
+      input.riverId,
+      input.sectionId,
+      input.venue,
+      input.title,
+      input.paddledOn,
+      input.levelNote,
+      input.craftType,
+      input.companions,
+      input.notes,
+    ],
+  );
+
+  if (!result.rowCount) {
+    throw new HttpError(404, "Paddle log not found.");
+  }
+
+  return mapPaddleLogRow(result.rows[0]);
+}
+
 export async function listPaddleLogs(
   memberId: string,
   options: { riverId?: string | null } = {},

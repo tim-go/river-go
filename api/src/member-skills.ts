@@ -130,6 +130,36 @@ export async function createMemberSkill(
   return mapMemberSkillRow(result.rows[0]);
 }
 
+export async function updateMemberSkill(
+  memberId: string,
+  id: string,
+  input: MemberSkillInput,
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiMemberSkill> {
+  const result = await client.query<MemberSkillRow>(
+    `UPDATE member_skills SET
+      category = $3, name = $4, detail = $5, attained_on = $6,
+      expires_on = $7, updated_at = now()
+    WHERE id = $1 AND member_id = $2
+    RETURNING ${MEMBER_SKILL_COLUMNS}`,
+    [
+      id,
+      memberId,
+      input.category,
+      input.name,
+      input.detail,
+      input.attainedOn,
+      input.expiresOn,
+    ],
+  );
+
+  if (!result.rowCount) {
+    throw new HttpError(404, "Skill not found.");
+  }
+
+  return mapMemberSkillRow(result.rows[0]);
+}
+
 export async function listMemberSkills(
   memberId: string,
   client: PoolClient | typeof pool = pool,

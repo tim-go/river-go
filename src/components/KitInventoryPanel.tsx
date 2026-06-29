@@ -1,6 +1,11 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { KitItem } from "../types";
-import { createKitItem, deleteKitItem, fetchKitItems } from "../services/kitApi";
+import {
+  createKitItem,
+  deleteKitItem,
+  fetchKitItems,
+  updateKitItem,
+} from "../services/kitApi";
 
 const KIT_CATEGORIES = [
   "Boat",
@@ -45,6 +50,7 @@ export function KitInventoryPanel() {
   const [error, setError] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [category, setCategory] = useState("");
   const [name, setName] = useState("");
@@ -92,6 +98,24 @@ export function KitInventoryPanel() {
     setSerial("");
   }
 
+  function closeForm() {
+    resetForm();
+    setEditingId(null);
+    setIsFormOpen(false);
+  }
+
+  function startEdit(item: KitItem) {
+    setEditingId(item.id);
+    setCategory(item.category);
+    setName(item.name);
+    setNotes(item.notes ?? "");
+    setPurchasedOn(item.purchasedOn ?? "");
+    setReplaceOn(item.replaceOn ?? "");
+    setSerial(item.serial ?? "");
+    setIsFormOpen(true);
+    setError("");
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!category || !name.trim()) {
@@ -101,16 +125,20 @@ export function KitInventoryPanel() {
     setIsSaving(true);
     setError("");
     try {
-      await createKitItem({
+      const draft = {
         category,
         name: name.trim(),
         notes: notes.trim() || null,
         purchasedOn: purchasedOn || null,
         replaceOn: replaceOn || null,
         serial: serial.trim() || null,
-      });
-      resetForm();
-      setIsFormOpen(false);
+      };
+      if (editingId) {
+        await updateKitItem(editingId, draft);
+      } else {
+        await createKitItem(draft);
+      }
+      closeForm();
       await load();
     } catch (saveError) {
       setError(
@@ -149,7 +177,7 @@ export function KitInventoryPanel() {
         <button
           type="button"
           className="kit-inventory__add"
-          onClick={() => setIsFormOpen((open) => !open)}
+          onClick={() => (isFormOpen ? closeForm() : setIsFormOpen(true))}
         >
           {isFormOpen ? "Cancel" : "Add kit"}
         </button>
@@ -223,7 +251,11 @@ export function KitInventoryPanel() {
             className="kit-form__submit"
             disabled={isSaving}
           >
-            {isSaving ? "Saving…" : "Save kit"}
+            {isSaving
+              ? "Saving…"
+              : editingId
+                ? "Save changes"
+                : "Save kit"}
           </button>
         </form>
       ) : null}
@@ -263,13 +295,22 @@ export function KitInventoryPanel() {
                         ) : null}
                       </div>
                     ) : null}
-                    <button
-                      type="button"
-                      className="kit-item__delete"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Remove
-                    </button>
+                    <div className="kit-item__actions">
+                      <button
+                        type="button"
+                        className="kit-item__edit"
+                        onClick={() => startEdit(item)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="kit-item__delete"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

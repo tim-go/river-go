@@ -72,6 +72,17 @@ export async function createPaddleLog(
   return result.paddleLog;
 }
 
+export async function updatePaddleLog(
+  id: string,
+  draft: PaddleLogDraft,
+): Promise<PaddleLog> {
+  const result = await authedFetch<{ paddleLog: PaddleLog }>(
+    `/api/me/paddle-logs/${encodeURIComponent(id)}`,
+    { method: "PATCH", body: JSON.stringify(draft) },
+  );
+  return result.paddleLog;
+}
+
 export async function deletePaddleLog(id: string): Promise<void> {
   await authedFetch(`/api/me/paddle-logs/${encodeURIComponent(id)}`, {
     method: "DELETE",

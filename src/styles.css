@@ -5659,6 +5659,12 @@ input[type="file"]::file-selector-button:hover {
 .skill-item__delete { display: block; margin: 6px 0 0 auto; border: none; background: none; color: var(--muted); font-size: 0.72rem; cursor: pointer; padding: 0; }
 .skill-item__delete:hover { color: #b4321f; }
 
+/* Edit + Remove row for kit / skill / paddle-log items. */
+.kit-item__actions, .skill-item__actions, .paddle-log__actions { display: flex; justify-content: flex-end; gap: 14px; margin-top: 8px; }
+.kit-item__actions button, .skill-item__actions button, .paddle-log__actions button { margin: 0; }
+.kit-item__edit, .skill-item__edit, .paddle-log__edit { border: none; background: none; color: var(--muted); font-size: 0.72rem; cursor: pointer; padding: 0; }
+.kit-item__edit:hover, .skill-item__edit:hover, .paddle-log__edit:hover { color: var(--river); }
+
 /* River discipline/nation filter + grade pill (discovery #1a) */
 .river-filters { display: flex; gap: 8px; align-items: center; padding: 8px 10px 4px; }
 .segmented-control.river-discipline-filter { display: flex; flex: 1; gap: 2px; background: #eef2f0; border-radius: 999px; padding: 3px; }

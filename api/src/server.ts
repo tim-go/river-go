@@ -68,6 +68,7 @@ import {
   getPaddleStats,
   listPaddleLogs,
   parsePaddleLogInput,
+  updatePaddleLog,
 } from "./paddle-logs.js";
 import {
   cancelInviteOrWithdraw,
@@ -104,12 +105,14 @@ import {
   deleteKitItem,
   listKitItems,
   parseKitItemInput,
+  updateKitItem,
 } from "./kit-items.js";
 import {
   createMemberSkill,
   deleteMemberSkill,
   listMemberSkills,
   parseMemberSkillInput,
+  updateMemberSkill,
 } from "./member-skills.js";
 import {
   applyRouteSuggestionDecision,
@@ -280,6 +283,17 @@ async function route(
       decodeURIComponent(paddleLogDeleteMatch[1]),
     );
     return { status: 200, body: { ok: true } };
+  }
+
+  if (method === "PATCH" && paddleLogDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const paddleLog = await updatePaddleLog(
+      member.id,
+      decodeURIComponent(paddleLogDeleteMatch[1]),
+      parsePaddleLogInput(body),
+    );
+    return { status: 200, body: { paddleLog } };
   }
 
   // --- Group Paddle Sessions: groups & membership (GROUP-F1/F2) ---
@@ -593,6 +607,17 @@ async function route(
     return { status: 200, body: { ok: true } };
   }
 
+  if (method === "PATCH" && kitItemDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const kitItem = await updateKitItem(
+      member.id,
+      decodeURIComponent(kitItemDeleteMatch[1]),
+      parseKitItemInput(body),
+    );
+    return { status: 200, body: { kitItem } };
+  }
+
   if (method === "GET" && url.pathname === "/api/me/skills") {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
@@ -616,6 +641,17 @@ async function route(
     const member = await upsertMemberFromAuth(authContext);
     await deleteMemberSkill(member.id, decodeURIComponent(skillDeleteMatch[1]));
     return { status: 200, body: { ok: true } };
+  }
+
+  if (method === "PATCH" && skillDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const skill = await updateMemberSkill(
+      member.id,
+      decodeURIComponent(skillDeleteMatch[1]),
+      parseMemberSkillInput(body),
+    );
+    return { status: 200, body: { skill } };
   }
 
   if (method === "GET" && url.pathname === "/api/me/emergency-profile") {

@@ -133,6 +133,37 @@ export async function createKitItem(
   return mapKitItemRow(result.rows[0]);
 }
 
+export async function updateKitItem(
+  memberId: string,
+  id: string,
+  input: KitItemInput,
+  client: PoolClient | typeof pool = pool,
+): Promise<ApiKitItem> {
+  const result = await client.query<KitItemRow>(
+    `UPDATE kit_items SET
+      category = $3, name = $4, notes = $5, purchased_on = $6,
+      replace_on = $7, serial = $8, updated_at = now()
+    WHERE id = $1 AND member_id = $2
+    RETURNING ${KIT_ITEM_COLUMNS}`,
+    [
+      id,
+      memberId,
+      input.category,
+      input.name,
+      input.notes,
+      input.purchasedOn,
+      input.replaceOn,
+      input.serial,
+    ],
+  );
+
+  if (!result.rowCount) {
+    throw new HttpError(404, "Kit item not found.");
+  }
+
+  return mapKitItemRow(result.rows[0]);
+}
+
 export async function listKitItems(
   memberId: string,
   client: PoolClient | typeof pool = pool,
