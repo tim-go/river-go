@@ -1108,6 +1108,52 @@ h1 {
   gap: 0;
 }
 
+.entity-page__cover {
+  height: 170px;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  background-color: var(--surface-muted, #e7ecea);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+}
+
+@media (max-width: 640px) {
+  .entity-page__cover {
+    height: 120px;
+    border-radius: 10px;
+  }
+}
+
+.group-cover-preview {
+  margin-bottom: 10px;
+}
+.group-cover-preview--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-strong, #6b7a76);
+  font-size: 0.85rem;
+}
+.group-cover-position {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+}
+.group-cover-position input[type="range"] {
+  flex: 1;
+}
+.group-cover-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.group-cover-actions label {
+  cursor: pointer;
+}
+
 .entity-page__header {
   display: flex;
   align-items: flex-start;

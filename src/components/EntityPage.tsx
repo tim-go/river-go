@@ -19,6 +19,8 @@ interface EntityPageProps {
   /** Optional subtle breadcrumb-style back link above the identity. */
   backLabel?: string;
   onBack?: () => void;
+  /** Optional cover banner shown above the header. position = vertical % crop. */
+  cover?: { url: string; position: number };
   tabs: EntityTab[];
   activeTab: string;
   onTabChange: (id: string) => void;
@@ -39,6 +41,7 @@ export function EntityPage({
   actions,
   backLabel,
   onBack,
+  cover,
   tabs,
   activeTab,
   onTabChange,
@@ -46,6 +49,15 @@ export function EntityPage({
 }: EntityPageProps) {
   return (
     <div className="entity-page">
+      {cover ? (
+        <div
+          className="entity-page__cover"
+          style={{
+            backgroundImage: `url(${cover.url})`,
+            backgroundPosition: `50% ${cover.position}%`,
+          }}
+        />
+      ) : null}
       <header className="entity-page__header">
         <div className="entity-page__identity">
           {onBack ? (

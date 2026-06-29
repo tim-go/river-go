@@ -187,6 +187,9 @@ export interface GroupSettingsPatch {
   accessMode?: GroupAccessMode;
   visibility?: GroupVisibility;
   description?: string | null;
+  coverImageUrl?: string | null;
+  coverImagePath?: string | null;
+  coverPosition?: number;
 }
 
 export async function updateGroupSettings(

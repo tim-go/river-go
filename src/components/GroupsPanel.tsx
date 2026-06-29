@@ -1,4 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import {
   Check,
   Copy,
@@ -36,6 +41,7 @@ import {
   transferOwnership,
   updateGroupSettings,
 } from "../services/groupsApi";
+import { uploadGroupCover } from "../services/groupCoverUpload";
 import { SessionDetailPanel } from "./SessionDetailPanel";
 import { EntityPage, type EntityTab } from "./EntityPage";
 
@@ -139,6 +145,8 @@ export function GroupsPanel({
   const [showAllMembers, setShowAllMembers] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [coverPositionDraft, setCoverPositionDraft] = useState(50);
+  const [coverUploading, setCoverUploading] = useState(false);
 
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [sessionTitle, setSessionTitle] = useState("");
@@ -244,6 +252,7 @@ export function GroupsPanel({
   useEffect(() => {
     setNameDraft(groupDetail?.name ?? "");
     setDescriptionDraft(groupDetail?.description ?? "");
+    setCoverPositionDraft(groupDetail?.coverPosition ?? 50);
   }, [groupDetail?.id]);
 
   async function reloadGroup() {
@@ -352,6 +361,49 @@ export function GroupsPanel({
       });
       setGroupDetail(updated);
     }, "Could not save the group details.");
+  }
+
+  async function handleCoverUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !selectedGroupId) {
+      return;
+    }
+    setError("");
+    setCoverUploading(true);
+    try {
+      const { url, path } = await uploadGroupCover(selectedGroupId, file);
+      const updated = await updateGroupSettings(selectedGroupId, {
+        coverImageUrl: url,
+        coverImagePath: path,
+      });
+      setGroupDetail(updated);
+    } catch (uploadError) {
+      setError(errorMessage(uploadError, "Could not upload the cover photo."));
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  async function handleSaveCoverPosition(position: number) {
+    await runGroupAction(
+      () =>
+        updateGroupSettings(selectedGroupId!, {
+          coverPosition: position,
+        }).then(setGroupDetail),
+      "Could not update the cover position.",
+    );
+  }
+
+  async function handleRemoveCover() {
+    await runGroupAction(
+      () =>
+        updateGroupSettings(selectedGroupId!, {
+          coverImageUrl: null,
+          coverImagePath: null,
+        }).then(setGroupDetail),
+      "Could not remove the cover photo.",
+    );
   }
 
   async function handleTransfer(member: GroupMember) {
@@ -898,6 +950,68 @@ export function GroupsPanel({
   const settingsPanel =
     gd && canManage ? (
       <>
+        <div className="group-detail__section">
+          <h3>Cover photo</h3>
+          {gd.coverImageUrl ? (
+            <div
+              className="entity-page__cover group-cover-preview"
+              style={{
+                backgroundImage: `url(${gd.coverImageUrl})`,
+                backgroundPosition: `50% ${coverPositionDraft}%`,
+              }}
+            />
+          ) : (
+            <div className="entity-page__cover group-cover-preview group-cover-preview--empty">
+              No cover photo yet
+            </div>
+          )}
+          {gd.coverImageUrl ? (
+            <label className="group-cover-position">
+              Position
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={coverPositionDraft}
+                onChange={(event) =>
+                  setCoverPositionDraft(Number(event.target.value))
+                }
+                onMouseUp={() =>
+                  void handleSaveCoverPosition(coverPositionDraft)
+                }
+                onTouchEnd={() =>
+                  void handleSaveCoverPosition(coverPositionDraft)
+                }
+              />
+            </label>
+          ) : null}
+          <div className="group-cover-actions">
+            <label className="ghost-button ghost-button--compact">
+              {coverUploading
+                ? "Uploading…"
+                : gd.coverImageUrl
+                  ? "Replace"
+                  : "Upload cover"}
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                disabled={coverUploading}
+                onChange={(event) => void handleCoverUpload(event)}
+              />
+            </label>
+            {gd.coverImageUrl ? (
+              <button
+                type="button"
+                className="ghost-button ghost-button--compact"
+                onClick={() => void handleRemoveCover()}
+              >
+                Remove
+              </button>
+            ) : null}
+          </div>
+        </div>
+
         <form className="group-detail__section" onSubmit={handleSaveAbout}>
           <h3>About</h3>
           <label>
@@ -1049,6 +1163,14 @@ export function GroupsPanel({
           icon={<UsersRound size={22} />}
           title={groupDetail.name}
           subtitle={`@${groupDetail.handle ?? groupDetail.id}`}
+          cover={
+            groupDetail.coverImageUrl
+              ? {
+                  url: groupDetail.coverImageUrl,
+                  position: groupDetail.coverPosition,
+                }
+              : undefined
+          }
           meta={
             <>
               {GROUP_KIND_LABELS[groupDetail.kind]}
@@ -1101,6 +1223,14 @@ export function GroupsPanel({
           icon={<UsersRound size={22} />}
           title={publicGroup.name}
           subtitle={`@${publicGroup.handle ?? publicGroup.id}`}
+          cover={
+            publicGroup.coverImageUrl
+              ? {
+                  url: publicGroup.coverImageUrl,
+                  position: publicGroup.coverPosition,
+                }
+              : undefined
+          }
           meta={
             <>
               {GROUP_KIND_LABELS[publicGroup.kind]}

@@ -413,6 +413,8 @@ export interface Group {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  coverImageUrl: string | null;
+  coverPosition: number;
   memberCount: number;
   myRole: GroupRole | null;
   myStatus: GroupMemberStatus | null;
@@ -427,6 +429,8 @@ export interface GroupPublic {
   discipline: GroupDiscipline | null;
   visibility: GroupVisibility;
   accessMode: GroupAccessMode;
+  coverImageUrl: string | null;
+  coverPosition: number;
   memberCount: number;
   myStatus: GroupMemberStatus | null;
 }
