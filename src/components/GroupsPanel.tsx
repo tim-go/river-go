@@ -66,6 +66,27 @@ function errorMessage(value: unknown, fallback: string): string {
   return value instanceof Error ? value.message : fallback;
 }
 
+// The async clipboard API is unavailable in insecure contexts (e.g. http on a
+// LAN IP), so fall back to a hidden-textarea + execCommand copy.
+async function copyToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  const ok = document.execCommand("copy");
+  document.body.removeChild(textarea);
+  if (!ok) {
+    throw new Error("Copy failed");
+  }
+}
+
 function formatWhen(iso: string | null): string {
   if (!iso) {
     return "Date TBC";
@@ -542,10 +563,12 @@ export function GroupsPanel({
                 type="button"
                 className="ghost-button ghost-button--compact"
                 onClick={() => {
-                  void navigator.clipboard?.writeText(inviteUrl).then(() => {
-                    setLinkCopied(true);
-                    window.setTimeout(() => setLinkCopied(false), 1800);
-                  });
+                  void copyToClipboard(inviteUrl)
+                    .then(() => {
+                      setLinkCopied(true);
+                      window.setTimeout(() => setLinkCopied(false), 1800);
+                    })
+                    .catch(() => setError("Could not copy the link."));
                 }}
               >
                 {linkCopied ? <Check size={14} /> : <Copy size={14} />}

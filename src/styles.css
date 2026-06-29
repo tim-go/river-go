@@ -1194,7 +1194,14 @@ h1 {
   gap: 2px;
   margin-bottom: 18px;
   overflow-x: auto;
+  /* overflow-x:auto forces overflow-y to auto too (CSS spec), which adds a
+     spurious vertical scrollbar — pin it shut. */
+  overflow-y: hidden;
+  scrollbar-width: none;
   border-bottom: 1px solid var(--line);
+}
+.entity-page__tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .entity-page__tab {

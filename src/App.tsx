@@ -314,7 +314,11 @@ function parseGroupRoute(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
-  const match = window.location.pathname.match(/^\/g\/([^/]+)\/?$/);
+  // /g/ is the canonical (short, shareable) form; /group/ and /groups/ are
+  // accepted aliases.
+  const match = window.location.pathname.match(
+    /^\/(?:g|group|groups)\/([^/]+)\/?$/,
+  );
   return match ? decodeURIComponent(match[1]) : null;
 }
 
