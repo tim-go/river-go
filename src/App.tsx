@@ -1140,11 +1140,15 @@ function App() {
     requireEmailVerification: REQUIRE_EMAIL_VERIFICATION,
   });
   const isLiveLocationSupported =
-    typeof navigator !== "undefined" && "geolocation" in navigator;
+    typeof navigator !== "undefined" &&
+    "geolocation" in navigator &&
+    // Browsers block geolocation on insecure origins (e.g. http on a LAN IP),
+    // where it would otherwise surface as a misleading "permission denied".
+    (typeof window === "undefined" || window.isSecureContext);
   const liveLocationAlert =
-    liveLocationStatus === "denied" ||
-    liveLocationStatus === "unavailable" ||
-    liveLocationStatus === "error"
+    // Only nag for runtime failures (denied/error). "unavailable" is
+    // environmental (no geolocation / insecure origin) — shown inline, not toasted.
+    liveLocationStatus === "denied" || liveLocationStatus === "error"
       ? liveLocationMessage
       : "";
   const canSyncOutbox =
@@ -1321,7 +1325,11 @@ function App() {
     if (!isLiveLocationSupported) {
       setLiveLocation(null);
       setLiveLocationStatus("unavailable");
-      setLiveLocationMessage("Location sharing is not available in this browser.");
+      setLiveLocationMessage(
+        typeof window !== "undefined" && !window.isSecureContext
+          ? "Live location needs a secure (HTTPS) connection — unavailable on this address."
+          : "Location sharing is not available in this browser.",
+      );
       return;
     }
 
@@ -2452,7 +2460,11 @@ function App() {
   function enableLiveLocation(shouldFocus = false) {
     if (!isLiveLocationSupported) {
       setLiveLocationStatus("unavailable");
-      setLiveLocationMessage("Location sharing is not available in this browser.");
+      setLiveLocationMessage(
+        typeof window !== "undefined" && !window.isSecureContext
+          ? "Live location needs a secure (HTTPS) connection — unavailable on this address."
+          : "Location sharing is not available in this browser.",
+      );
       return;
     }
 
