@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
+  Check,
   ChevronLeft,
+  Copy,
   Link2,
   LogOut,
   Plus,
@@ -98,6 +100,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
   const [inviteNotice, setInviteNotice] = useState("");
   const [handleDraft, setHandleDraft] = useState("");
   const [isEditingHandle, setIsEditingHandle] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [sessionTitle, setSessionTitle] = useState("");
@@ -480,20 +483,45 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
                     </button>
                   </span>
                 ) : (
-                  <span className="group-invite-link__view">
-                    <Link2 size={15} />
-                    <code>/g/{groupDetail.handle ?? groupDetail.id}</code>
-                    <button
-                      type="button"
-                      className="ghost-button ghost-button--compact"
-                      onClick={() => {
-                        setHandleDraft(groupDetail.handle ?? "");
-                        setIsEditingHandle(true);
-                      }}
-                    >
-                      Edit
-                    </button>
-                  </span>
+                  (() => {
+                    const inviteUrl = `${window.location.origin}/g/${
+                      groupDetail.handle ?? groupDetail.id
+                    }`;
+                    return (
+                      <span className="group-invite-link__view">
+                        <Link2 size={15} className="group-invite-link__icon" />
+                        <code title={inviteUrl}>{inviteUrl}</code>
+                        <button
+                          type="button"
+                          className="ghost-button ghost-button--compact"
+                          onClick={() => {
+                            void navigator.clipboard
+                              ?.writeText(inviteUrl)
+                              .then(() => {
+                                setLinkCopied(true);
+                                window.setTimeout(
+                                  () => setLinkCopied(false),
+                                  1800,
+                                );
+                              });
+                          }}
+                        >
+                          {linkCopied ? <Check size={14} /> : <Copy size={14} />}
+                          {linkCopied ? "Copied" : "Copy"}
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-button ghost-button--compact"
+                          onClick={() => {
+                            setHandleDraft(groupDetail.handle ?? "");
+                            setIsEditingHandle(true);
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </span>
+                    );
+                  })()
                 )}
               </div>
               <label className="group-access-mode">
