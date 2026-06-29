@@ -137,6 +137,8 @@ export function GroupsPanel({
   const [groupTab, setGroupTab] = useState("overview");
   const [memberQuery, setMemberQuery] = useState("");
   const [showAllMembers, setShowAllMembers] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
 
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [sessionTitle, setSessionTitle] = useState("");
@@ -206,7 +208,9 @@ export function GroupsPanel({
     return () => {
       active = false;
     };
-  }, [routeGroup]);
+    // Re-fetch on auth change too: a guest viewing the public view who signs in
+    // should upgrade to the member view (and vice versa).
+  }, [routeGroup, isSignedIn]);
 
   // Membership managers see pending invites/requests.
   const canManage =
@@ -234,6 +238,13 @@ export function GroupsPanel({
       active = false;
     };
   }, [selectedGroupId, canManage, groupDetail?.memberCount]);
+
+  // Seed the editable About fields when a different group loads (kept across
+  // in-place reloads, which preserve the id).
+  useEffect(() => {
+    setNameDraft(groupDetail?.name ?? "");
+    setDescriptionDraft(groupDetail?.description ?? "");
+  }, [groupDetail?.id]);
 
   async function reloadGroup() {
     if (!routeGroup) {
@@ -327,6 +338,20 @@ export function GroupsPanel({
       setGroupDetail(updated);
       setIsEditingHandle(false);
     }, "Could not update the link.");
+  }
+
+  async function handleSaveAbout(event: FormEvent) {
+    event.preventDefault();
+    if (!nameDraft.trim()) {
+      return;
+    }
+    await runGroupAction(async () => {
+      const updated = await updateGroupSettings(selectedGroupId!, {
+        name: nameDraft.trim(),
+        description: descriptionDraft.trim() || null,
+      });
+      setGroupDetail(updated);
+    }, "Could not save the group details.");
   }
 
   async function handleTransfer(member: GroupMember) {
@@ -873,6 +898,37 @@ export function GroupsPanel({
   const settingsPanel =
     gd && canManage ? (
       <>
+        <form className="group-detail__section" onSubmit={handleSaveAbout}>
+          <h3>About</h3>
+          <label>
+            Name
+            <input
+              value={nameDraft}
+              onChange={(event) => setNameDraft(event.target.value)}
+              required
+            />
+          </label>
+          <label>
+            Description
+            <textarea
+              value={descriptionDraft}
+              onChange={(event) => setDescriptionDraft(event.target.value)}
+              rows={3}
+              placeholder="What's this group about? Where and when do you paddle?"
+            />
+          </label>
+          <button
+            type="submit"
+            className="primary-action primary-action--compact"
+            disabled={
+              nameDraft.trim() === (gd.name ?? "") &&
+              descriptionDraft.trim() === (gd.description ?? "")
+            }
+          >
+            Save
+          </button>
+        </form>
+
         <div className="group-detail__section">
           <h3>Invite link</h3>
           {inviteLinkBlock}
