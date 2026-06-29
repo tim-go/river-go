@@ -19,9 +19,11 @@ import { getCurrentUserIdToken } from "./firebaseAuth";
 async function authedFetch<T>(
   path: string,
   options: RequestInit = {},
+  // Public endpoints (e.g. viewing a group entity page signed-out) send no auth.
+  allowAnonymous = false,
 ): Promise<T> {
   const authToken = await getCurrentUserIdToken();
-  if (!authToken) {
+  if (!authToken && !allowAnonymous) {
     throw new Error("Sign in to use groups.");
   }
 
@@ -30,7 +32,7 @@ async function authedFetch<T>(
     method: options.method ?? "GET",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${authToken}`,
+      ...(authToken ? { authorization: `Bearer ${authToken}` } : {}),
     },
   });
 
@@ -90,7 +92,7 @@ export async function fetchGroup(idOrHandle: string): Promise<GroupView> {
   const result = await authedFetch<{
     group: GroupView["group"];
     access: GroupView["access"];
-  }>(`/api/groups/${encodeURIComponent(idOrHandle)}`);
+  }>(`/api/groups/${encodeURIComponent(idOrHandle)}`, {}, true);
   return { access: result.access, group: result.group } as GroupView;
 }
 

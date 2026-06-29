@@ -45,6 +45,7 @@ interface GroupsPanelProps {
   // for the "My groups" list. Driven by App routing, not internal state.
   routeGroup: string | null;
   onOpenGroup: (idOrHandle: string | null) => void;
+  onSignIn: () => void;
   rivers: { id: string; displayName: string }[];
 }
 
@@ -104,6 +105,7 @@ export function GroupsPanel({
   isSignedIn,
   routeGroup,
   onOpenGroup,
+  onSignIn,
   rivers,
 }: GroupsPanelProps) {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -401,7 +403,9 @@ export function GroupsPanel({
     }
   }
 
-  if (!isSignedIn) {
+  // Signed-out visitors can still view a group entity page (public view) when
+  // they arrive via its URL; only the "My groups" list needs sign-in.
+  if (!isSignedIn && !routeGroup) {
     return (
       <section className="groups-panel">
         <div className="sign-in-card">
@@ -1050,7 +1054,15 @@ export function GroupsPanel({
             </>
           }
           actions={
-            publicGroup.myStatus === "requested" ? (
+            !isSignedIn ? (
+              <button
+                type="button"
+                className="primary-action primary-action--compact"
+                onClick={onSignIn}
+              >
+                Sign in to join
+              </button>
+            ) : publicGroup.myStatus === "requested" ? (
               <span className="status-chip">request pending</span>
             ) : publicGroup.accessMode === "request_to_join" ? (
               <button
@@ -1094,23 +1106,27 @@ export function GroupsPanel({
             </>
           ) : (
             <div className="group-detail__section">
-              {publicGroup.myStatus === "requested" ? (
+              {publicGroup.description ? <p>{publicGroup.description}</p> : null}
+              {!isSignedIn ? (
+                <button
+                  type="button"
+                  className="primary-action"
+                  onClick={onSignIn}
+                >
+                  Sign in to join
+                </button>
+              ) : publicGroup.myStatus === "requested" ? (
                 <p className="group-invite__notice">
                   Your request to join is pending approval.
                 </p>
               ) : publicGroup.accessMode === "request_to_join" ? (
-                <>
-                  {publicGroup.description ? (
-                    <p>{publicGroup.description}</p>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="primary-action"
-                    onClick={() => void handleRequestToJoin()}
-                  >
-                    Request to join
-                  </button>
-                </>
+                <button
+                  type="button"
+                  className="primary-action"
+                  onClick={() => void handleRequestToJoin()}
+                >
+                  Request to join
+                </button>
               ) : (
                 <p className="empty-state">
                   This group is invite only. Ask a member to invite you.

@@ -796,7 +796,8 @@ export async function updateGroupSettings(
  */
 export async function getGroupByIdOrHandle(
   idOrHandle: string,
-  viewerMemberId: string,
+  // null for a signed-out visitor — they always get the public view.
+  viewerMemberId: string | null,
 ): Promise<
   | { access: "member"; group: ApiGroupDetail }
   | { access: "public"; group: ApiGroupPublic }
@@ -821,7 +822,7 @@ export async function getGroupByIdOrHandle(
   }
   const isMember =
     found.my_status === "active" || found.my_status === "invited";
-  if (isMember) {
+  if (isMember && viewerMemberId) {
     return {
       access: "member",
       group: await getGroupForMember(viewerMemberId, found.id),

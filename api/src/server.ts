@@ -432,19 +432,26 @@ async function route(
 
   // Group detail by id or handle (GINV-F3): full for members, limited otherwise.
   const groupDetailMatch = url.pathname.match(/^\/api\/groups\/([^/]+)$/);
-  if (groupDetailMatch && (method === "GET" || method === "PATCH")) {
+  if (groupDetailMatch && method === "PATCH") {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
     const idOrHandle = decodeURIComponent(groupDetailMatch[1]);
-    if (method === "PATCH") {
-      const group = await updateGroupSettings(
-        member.id,
-        idOrHandle,
-        (body ?? {}) as Record<string, unknown>,
-      );
-      return { status: 200, body: { group, access: "member" } };
-    }
-    const resolved = await getGroupByIdOrHandle(idOrHandle, member.id);
+    const group = await updateGroupSettings(
+      member.id,
+      idOrHandle,
+      (body ?? {}) as Record<string, unknown>,
+    );
+    return { status: 200, body: { group, access: "member" } };
+  }
+  if (groupDetailMatch && method === "GET") {
+    // Optional auth: a group entity page is viewable by anyone — signed-out
+    // visitors get the limited public view, members get the full detail.
+    const authContext = await getOptionalAuthContext(headers);
+    const member = authContext
+      ? await upsertMemberFromAuth(authContext)
+      : null;
+    const idOrHandle = decodeURIComponent(groupDetailMatch[1]);
+    const resolved = await getGroupByIdOrHandle(idOrHandle, member?.id ?? null);
     return {
       status: 200,
       body: { group: resolved.group, access: resolved.access },

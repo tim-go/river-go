@@ -6246,7 +6246,7 @@ function App() {
             </PlaceholderPage>
           ) : activeAppSection === "groups" ? (
             <PlaceholderPage section="groups" title="Groups" wide>
-              {!isSignedIn ? (
+              {!isSignedIn && !groupRoute ? (
                 <SignedOutNotice
                   message="Sign in to create and join paddling groups."
                   onSignIn={handleSignIn}
@@ -6256,6 +6256,7 @@ function App() {
                   isSignedIn={isSignedIn}
                   routeGroup={groupRoute}
                   onOpenGroup={openGroup}
+                  onSignIn={handleSignIn}
                   rivers={canonicalRivers.map((river) => ({
                     id: river.id,
                     displayName: river.displayName,
