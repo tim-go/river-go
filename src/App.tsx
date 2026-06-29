@@ -307,10 +307,57 @@ import {
 // while rejecting a photo dropped on a different river than the one focused.
 const NEAREST_POI_ATTACH_METERS = 1000;
 
+// A group is a first-class, addressable entity: /g/<handle-or-id>. This is the
+// only routed entity for now (paddler profiles, /p/<handle>, will follow the
+// same shape). Everything else is the section-based nav.
+function parseGroupRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const match = window.location.pathname.match(/^\/g\/([^/]+)\/?$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 function App() {
   const outboxStore = useMemo(() => createContributionOutboxStore(), []);
-  const [activeAppSection, setActiveAppSection] =
-    useState<AppSection>("map");
+  const [activeAppSection, setActiveAppSection] = useState<AppSection>(() =>
+    parseGroupRoute() ? "groups" : "map",
+  );
+  const [groupRoute, setGroupRoute] = useState<string | null>(() =>
+    parseGroupRoute(),
+  );
+  // Open a group entity page by handle or id (pushes /g/<token>); null returns
+  // to the section view. Clicking a nav section leaves any open group.
+  const openGroup = (idOrHandle: string | null) => {
+    if (idOrHandle) {
+      window.history.pushState({}, "", `/g/${encodeURIComponent(idOrHandle)}`);
+      setGroupRoute(idOrHandle);
+      setActiveAppSection("groups");
+    } else {
+      if (parseGroupRoute()) {
+        window.history.pushState({}, "", "/");
+      }
+      setGroupRoute(null);
+    }
+  };
+  const navigateSection = (section: AppSection) => {
+    setActiveAppSection(section);
+    if (parseGroupRoute()) {
+      window.history.pushState({}, "", "/");
+    }
+    setGroupRoute(null);
+  };
+  useEffect(() => {
+    const onPopState = () => {
+      const route = parseGroupRoute();
+      setGroupRoute(route);
+      if (route) {
+        setActiveAppSection("groups");
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   const [activeAdminPage, setActiveAdminPage] = useState<AdminPage>("index");
   const [isAppNavCollapsed, setIsAppNavCollapsed] = useState(false);
   const [theme, setTheme] = useState<"tide" | "daybreak" | "surge">(() => {
@@ -1370,7 +1417,12 @@ function App() {
       return;
     }
     const pendingLanding = sessionStorage.getItem("postAuthLanding");
-    if (previouslySignedIn === false || pendingLanding === "dashboard") {
+    if (parseGroupRoute()) {
+      // Signed in while on a group entity URL (e.g. an invite link) — stay on
+      // the group rather than bouncing to the dashboard.
+      sessionStorage.removeItem("postAuthLanding");
+      setActiveAppSection("groups");
+    } else if (previouslySignedIn === false || pendingLanding === "dashboard") {
       sessionStorage.removeItem("postAuthLanding");
       setActiveAppSection("dashboard");
     }
@@ -4294,7 +4346,7 @@ function App() {
           memberMeta={accountMeta}
           memberRole={accountRole}
           onToggleCollapsed={() => setIsAppNavCollapsed((current) => !current)}
-          onSelectSection={setActiveAppSection}
+          onSelectSection={navigateSection}
           onSignIn={handleSignIn}
         />
 
@@ -6198,6 +6250,8 @@ function App() {
               ) : (
                 <GroupsPanel
                   isSignedIn={isSignedIn}
+                  routeGroup={groupRoute}
+                  onOpenGroup={openGroup}
                   rivers={canonicalRivers.map((river) => ({
                     id: river.id,
                     displayName: river.displayName,
@@ -8429,7 +8483,7 @@ function App() {
 
       <MobileBottomNav
         activeSection={activeAppSection}
-        onSelectSection={setActiveAppSection}
+        onSelectSection={navigateSection}
       />
 
       {lightboxPhoto ? (

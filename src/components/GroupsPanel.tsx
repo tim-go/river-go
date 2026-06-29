@@ -41,6 +41,10 @@ import { EntityPage, type EntityTab } from "./EntityPage";
 
 interface GroupsPanelProps {
   isSignedIn: boolean;
+  // The open group entity, from the URL (/g/<token>) — a handle or id, or null
+  // for the "My groups" list. Driven by App routing, not internal state.
+  routeGroup: string | null;
+  onOpenGroup: (idOrHandle: string | null) => void;
   rivers: { id: string; displayName: string }[];
 }
 
@@ -75,16 +79,23 @@ function formatWhen(iso: string | null): string {
   });
 }
 
-export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
+export function GroupsPanel({
+  isSignedIn,
+  routeGroup,
+  onOpenGroup,
+  rivers,
+}: GroupsPanelProps) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [sessions, setSessions] = useState<GroupSession[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     null,
   );
   const [groupDetail, setGroupDetail] = useState<GroupDetail | null>(null);
   const [publicGroup, setPublicGroup] = useState<GroupPublic | null>(null);
   const [pending, setPending] = useState<GroupPending | null>(null);
+  // The route token (routeGroup) may be a handle; API calls need the resolved
+  // group UUID, which the fetched group carries.
+  const selectedGroupId = groupDetail?.id ?? publicGroup?.id ?? null;
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -137,7 +148,9 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
   }, [isSignedIn]);
 
   useEffect(() => {
-    if (!selectedGroupId) {
+    // Drive the open group from the route token (handle or id), not the resolved
+    // id — the id only exists once the group has been fetched.
+    if (!routeGroup) {
       setGroupDetail(null);
       setPublicGroup(null);
       setPending(null);
@@ -149,7 +162,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
     setGroupTab("overview");
     setMemberQuery("");
     setShowAllMembers(false);
-    fetchGroup(selectedGroupId)
+    fetchGroup(routeGroup)
       .then((view) => {
         if (!active) {
           return;
@@ -170,7 +183,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
     return () => {
       active = false;
     };
-  }, [selectedGroupId]);
+  }, [routeGroup]);
 
   // Membership managers see pending invites/requests.
   const canManage =
@@ -200,15 +213,15 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
   }, [selectedGroupId, canManage, groupDetail?.memberCount]);
 
   async function reloadGroup() {
-    if (!selectedGroupId) {
+    if (!routeGroup) {
       return;
     }
-    const view = await fetchGroup(selectedGroupId);
+    const view = await fetchGroup(routeGroup);
     if (view.access === "member") {
       setGroupDetail(view.group);
-    }
-    if (canManage) {
-      setPending(await fetchPending(selectedGroupId).catch(() => null));
+      if (canManage) {
+        setPending(await fetchPending(view.group.id).catch(() => null));
+      }
     }
   }
 
@@ -225,7 +238,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
       setGroupDiscipline("");
       setIsCreatingGroup(false);
       await loadGroups();
-      setSelectedGroupId(created.id);
+      onOpenGroup(created.handle ?? created.id);
     } catch (createError) {
       setError(errorMessage(createError, "Could not create the group."));
     }
@@ -317,7 +330,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
       if (accept) {
         await reloadGroup();
       } else {
-        setSelectedGroupId(null);
+        onOpenGroup(null);
       }
     } catch (respondError) {
       setError(errorMessage(respondError, "Could not update the invite."));
@@ -330,7 +343,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
     }
     try {
       await leaveGroup(selectedGroupId);
-      setSelectedGroupId(null);
+      onOpenGroup(null);
       await loadGroups();
     } catch (leaveError) {
       setError(errorMessage(leaveError, "Could not leave the group."));
@@ -944,7 +957,10 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
             void loadGroups();
           }}
         />
-      ) : groupDetail && selectedGroupId ? (
+      ) : routeGroup ? (
+        // A group is open via the route (/g/<token>). Resolve to member or
+        // public view, or a loading state until the fetch lands.
+        groupDetail ? (
         // Group entity page — a first-class page with tabs.
         <EntityPage
           icon={<UsersRound size={22} />}
@@ -958,8 +974,6 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
               {groupDetail.memberCount === 1 ? "" : "s"}
             </>
           }
-          backLabel="My groups"
-          onBack={() => setSelectedGroupId(null)}
           actions={
             groupDetail.myStatus === "active" ? (
               <button
@@ -998,7 +1012,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
           ) : null}
           {groupTabBody}
         </EntityPage>
-      ) : publicGroup && selectedGroupId ? (
+        ) : publicGroup ? (
         // Group entity page — public/limited view (non-members).
         <EntityPage
           icon={<UsersRound size={22} />}
@@ -1012,8 +1026,6 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
               {publicGroup.memberCount === 1 ? "" : "s"}
             </>
           }
-          backLabel="My groups"
-          onBack={() => setSelectedGroupId(null)}
           actions={
             publicGroup.myStatus === "requested" ? (
               <span className="status-chip">request pending</span>
@@ -1084,6 +1096,9 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
             </div>
           )}
         </EntityPage>
+        ) : (
+          <p className="empty-state">Loading group…</p>
+        )
       ) : (
         // "My groups" — the user's list of groups.
         <div className="groups-list-view">
@@ -1156,7 +1171,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
                     className="group-row"
                     onClick={() => {
                       setSelectedSessionId(null);
-                      setSelectedGroupId(group.id);
+                      onOpenGroup(group.handle ?? group.id);
                     }}
                   >
                     <span>
@@ -1196,7 +1211,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
                         type="button"
                         className="session-row"
                         onClick={() => {
-                          setSelectedGroupId(session.groupId);
+                          onOpenGroup(group?.handle ?? session.groupId);
                           setSelectedSessionId(session.id);
                         }}
                       >
