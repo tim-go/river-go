@@ -6189,7 +6189,7 @@ function App() {
               </div>
             </PlaceholderPage>
           ) : activeAppSection === "groups" ? (
-            <PlaceholderPage section="groups" title="Groups">
+            <PlaceholderPage section="groups" title="Groups" wide>
               {!isSignedIn ? (
                 <SignedOutNotice
                   message="Sign in to create and join paddling groups."

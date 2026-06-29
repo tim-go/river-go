@@ -3,7 +3,6 @@ import {
   Check,
   ChevronLeft,
   Copy,
-  Link2,
   LogOut,
   Plus,
   UserPlus,
@@ -379,9 +378,370 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
     );
   }
 
-  if (selectedSessionId) {
-    return (
-      <section className="groups-panel">
+  // Leaders can manage sessions but not membership.
+  const canManageSessions = canManage || groupDetail?.myRole === "leader";
+  const groupSessions = selectedGroupId
+    ? sessions.filter((session) => session.groupId === selectedGroupId)
+    : [];
+  // All the user's sessions across groups, soonest first (My groups page).
+  const upcomingSessions = [...sessions].sort((a, b) => {
+    const at = a.scheduledFor ? Date.parse(a.scheduledFor) : Infinity;
+    const bt = b.scheduledFor ? Date.parse(b.scheduledFor) : Infinity;
+    return at - bt;
+  });
+
+  // Primary detail content (members, requests, sessions). Shown full width for
+  // plain members, or as the main column beside the manage aside for managers.
+  const primarySections =
+    groupDetail && selectedGroupId ? (
+      <>
+        {canManage && pending && pending.requests.length ? (
+          <div className="group-detail__section">
+            <h3>Join requests</h3>
+            <ul className="group-member-list">
+              {pending.requests.map((request) => (
+                <li key={request.memberId} className="group-member-row">
+                  <span>
+                    <strong>{request.publicName}</strong>
+                    <small>wants to join</small>
+                  </span>
+                  <span className="group-member-row__actions">
+                    <button
+                      type="button"
+                      className="primary-action primary-action--compact"
+                      onClick={() =>
+                        void runGroupAction(
+                          () =>
+                            respondToRequest(
+                              groupDetail.id,
+                              request.memberId,
+                              true,
+                            ),
+                          "Could not approve the request.",
+                        )
+                      }
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-button ghost-button--compact"
+                      onClick={() =>
+                        void runGroupAction(
+                          () =>
+                            respondToRequest(
+                              groupDetail.id,
+                              request.memberId,
+                              false,
+                            ),
+                          "Could not decline the request.",
+                        )
+                      }
+                    >
+                      Decline
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        <div className="group-detail__section">
+          <h3>Members</h3>
+          <ul className="group-member-list">
+            {groupDetail.members.map((member) => (
+              <li key={member.id} className="group-member-row">
+                <span>
+                  <strong>{member.publicName}</strong>
+                  <small>{GROUP_ROLE_LABELS[member.role]}</small>
+                </span>
+                {canManage && member.role !== "owner" ? (
+                  <span className="group-member-row__actions">
+                    {isOwner ? (
+                      <select
+                        value={member.role}
+                        onChange={(event) =>
+                          void runGroupAction(
+                            () =>
+                              setMemberRole(
+                                groupDetail.id,
+                                member.memberId,
+                                event.target.value as GroupRole,
+                              ),
+                            "Could not change the role.",
+                          )
+                        }
+                      >
+                        <option value="organiser">Organiser</option>
+                        <option value="leader">Leader</option>
+                        <option value="member">Member</option>
+                      </select>
+                    ) : null}
+                    {isOwner ? (
+                      <button
+                        type="button"
+                        className="ghost-button ghost-button--compact"
+                        onClick={() => void handleTransfer(member)}
+                      >
+                        Make owner
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="ghost-button ghost-button--compact"
+                      onClick={() =>
+                        void runGroupAction(
+                          () => removeMember(groupDetail.id, member.memberId),
+                          "Could not remove the member.",
+                        )
+                      }
+                      aria-label={`Remove ${member.publicName}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="group-detail__section">
+          <div className="group-detail__section-head">
+            <h3>Sessions</h3>
+            {canManageSessions ? (
+              <button
+                type="button"
+                className="ghost-button ghost-button--compact"
+                onClick={() => setIsCreatingSession((open) => !open)}
+              >
+                <Plus size={15} />{" "}
+                {isCreatingSession ? "Cancel" : "Plan session"}
+              </button>
+            ) : null}
+          </div>
+
+          {isCreatingSession ? (
+            <form className="session-form" onSubmit={handleCreateSession}>
+              <label>
+                Title
+                <input
+                  value={sessionTitle}
+                  onChange={(event) => setSessionTitle(event.target.value)}
+                  placeholder="Saturday Tryweryn"
+                  required
+                />
+              </label>
+              <label>
+                River
+                <select
+                  value={sessionRiverId}
+                  onChange={(event) => setSessionRiverId(event.target.value)}
+                >
+                  <option value="">— optional —</option>
+                  {rivers.map((river) => (
+                    <option key={river.id} value={river.id}>
+                      {river.displayName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Date &amp; time
+                <input
+                  type="datetime-local"
+                  value={sessionScheduledFor}
+                  onChange={(event) =>
+                    setSessionScheduledFor(event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                Meeting point
+                <input
+                  value={sessionMeetingPoint}
+                  onChange={(event) =>
+                    setSessionMeetingPoint(event.target.value)
+                  }
+                  placeholder="Car park, get-in…"
+                />
+              </label>
+              <label>
+                Notes
+                <textarea
+                  value={sessionNotes}
+                  onChange={(event) => setSessionNotes(event.target.value)}
+                  placeholder="Shuttle, parking, food plans…"
+                />
+              </label>
+              <button type="submit" className="primary-action">
+                Plan session
+              </button>
+            </form>
+          ) : null}
+
+          {groupSessions.length ? (
+            <ul className="session-list">
+              {groupSessions.map((session) => (
+                <li key={session.id}>
+                  <button
+                    type="button"
+                    className="session-row"
+                    onClick={() => setSelectedSessionId(session.id)}
+                  >
+                    <span>
+                      <strong>{session.title}</strong>
+                      <small>
+                        {formatWhen(session.scheduledFor)} ·{" "}
+                        {session.participantCount} going
+                      </small>
+                    </span>
+                    <span
+                      className={`status-chip status-chip--${session.status}`}
+                    >
+                      {session.status}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="empty-state">No sessions planned yet.</p>
+          )}
+        </div>
+      </>
+    ) : null;
+
+  // Manage controls (manager only) — the aside beside the primary content.
+  const manageAside =
+    groupDetail && selectedGroupId && canManage ? (
+      <>
+        <div className="group-detail__section">
+          <h3>Invite link</h3>
+          <div className="group-invite-link">
+            {isEditingHandle ? (
+              <span className="group-invite-link__edit">
+                <span className="group-invite-link__prefix">/g/</span>
+                <input
+                  value={handleDraft}
+                  onChange={(event) => setHandleDraft(event.target.value)}
+                  placeholder="tryweryn-paddlers"
+                />
+                <button
+                  type="button"
+                  className="primary-action primary-action--compact"
+                  onClick={() => void handleSaveHandle()}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="ghost-button ghost-button--compact"
+                  onClick={() => setIsEditingHandle(false)}
+                >
+                  Cancel
+                </button>
+              </span>
+            ) : (
+              (() => {
+                const inviteUrl = `${window.location.origin}/g/${
+                  groupDetail.handle ?? groupDetail.id
+                }`;
+                return (
+                  <span className="group-invite-link__view">
+                    <code title={inviteUrl}>{inviteUrl}</code>
+                    <button
+                      type="button"
+                      className="ghost-button ghost-button--compact"
+                      onClick={() => {
+                        void navigator.clipboard
+                          ?.writeText(inviteUrl)
+                          .then(() => {
+                            setLinkCopied(true);
+                            window.setTimeout(() => setLinkCopied(false), 1800);
+                          });
+                      }}
+                    >
+                      {linkCopied ? <Check size={14} /> : <Copy size={14} />}
+                      {linkCopied ? "Copied" : "Copy"}
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-button ghost-button--compact"
+                      onClick={() => {
+                        setHandleDraft(groupDetail.handle ?? "");
+                        setIsEditingHandle(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </span>
+                );
+              })()
+            )}
+          </div>
+          <label className="group-access-mode">
+            Joining
+            <select
+              value={groupDetail.accessMode}
+              onChange={(event) =>
+                void runGroupAction(
+                  () =>
+                    updateGroupSettings(groupDetail.id, {
+                      accessMode: event.target
+                        .value as GroupDetail["accessMode"],
+                    }).then(setGroupDetail),
+                  "Could not update access mode.",
+                )
+              }
+            >
+              <option value="request_to_join">
+                Anyone with the link can request to join
+              </option>
+              <option value="invite_only">Invite only</option>
+            </select>
+          </label>
+        </div>
+
+        <form
+          className="group-invite group-detail__section"
+          onSubmit={handleInviteByEmail}
+        >
+          <h3>Invite a member</h3>
+          <label>
+            <UserPlus size={15} /> By email
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(event) => setInviteEmail(event.target.value)}
+              placeholder="paddler@example.com"
+            />
+          </label>
+          <button
+            type="submit"
+            className="primary-action primary-action--compact"
+          >
+            Send invite
+          </button>
+          {pending && pending.invitedCount ? (
+            <p className="group-invite__count">
+              {pending.invitedCount} invite
+              {pending.invitedCount === 1 ? "" : "s"} pending
+            </p>
+          ) : null}
+          {inviteNotice ? (
+            <p className="group-invite__notice">{inviteNotice}</p>
+          ) : null}
+        </form>
+      </>
+    ) : null;
+
+  return (
+    <section className="groups-panel">
+      {error ? <p className="groups-panel__error">{error}</p> : null}
+
+      {selectedSessionId ? (
         <SessionDetailPanel
           sessionId={selectedSessionId}
           onBack={() => {
@@ -389,21 +749,8 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
             void loadGroups();
           }}
         />
-      </section>
-    );
-  }
-
-  // Leaders can manage sessions but not membership.
-  const canManageSessions = canManage || groupDetail?.myRole === "leader";
-  const groupSessions = selectedGroupId
-    ? sessions.filter((session) => session.groupId === selectedGroupId)
-    : [];
-
-  return (
-    <section className="groups-panel">
-      {error ? <p className="groups-panel__error">{error}</p> : null}
-
-      {groupDetail && selectedGroupId ? (
+      ) : groupDetail && selectedGroupId ? (
+        // Group page (member view) — the group as its own entity.
         <div className="group-detail">
           <div className="group-detail__head">
             <button
@@ -411,7 +758,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
               className="ghost-button ghost-button--compact"
               onClick={() => setSelectedGroupId(null)}
             >
-              <ChevronLeft size={16} /> Groups
+              <ChevronLeft size={16} /> My groups
             </button>
             {groupDetail.myStatus === "active" ? (
               <button
@@ -456,342 +803,16 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
           ) : null}
 
           {canManage ? (
-            <div className="group-detail__section">
-              <h3>Invite link</h3>
-              <div className="group-invite-link">
-                {isEditingHandle ? (
-                  <span className="group-invite-link__edit">
-                    <span className="group-invite-link__prefix">/g/</span>
-                    <input
-                      value={handleDraft}
-                      onChange={(event) => setHandleDraft(event.target.value)}
-                      placeholder="tryweryn-paddlers"
-                    />
-                    <button
-                      type="button"
-                      className="primary-action primary-action--compact"
-                      onClick={() => void handleSaveHandle()}
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost-button ghost-button--compact"
-                      onClick={() => setIsEditingHandle(false)}
-                    >
-                      Cancel
-                    </button>
-                  </span>
-                ) : (
-                  (() => {
-                    const inviteUrl = `${window.location.origin}/g/${
-                      groupDetail.handle ?? groupDetail.id
-                    }`;
-                    return (
-                      <span className="group-invite-link__view">
-                        <Link2 size={15} className="group-invite-link__icon" />
-                        <code title={inviteUrl}>{inviteUrl}</code>
-                        <button
-                          type="button"
-                          className="ghost-button ghost-button--compact"
-                          onClick={() => {
-                            void navigator.clipboard
-                              ?.writeText(inviteUrl)
-                              .then(() => {
-                                setLinkCopied(true);
-                                window.setTimeout(
-                                  () => setLinkCopied(false),
-                                  1800,
-                                );
-                              });
-                          }}
-                        >
-                          {linkCopied ? <Check size={14} /> : <Copy size={14} />}
-                          {linkCopied ? "Copied" : "Copy"}
-                        </button>
-                        <button
-                          type="button"
-                          className="ghost-button ghost-button--compact"
-                          onClick={() => {
-                            setHandleDraft(groupDetail.handle ?? "");
-                            setIsEditingHandle(true);
-                          }}
-                        >
-                          Edit
-                        </button>
-                      </span>
-                    );
-                  })()
-                )}
-              </div>
-              <label className="group-access-mode">
-                Joining
-                <select
-                  value={groupDetail.accessMode}
-                  onChange={(event) =>
-                    void runGroupAction(
-                      () =>
-                        updateGroupSettings(groupDetail.id, {
-                          accessMode: event.target
-                            .value as GroupDetail["accessMode"],
-                        }).then(setGroupDetail),
-                      "Could not update access mode.",
-                    )
-                  }
-                >
-                  <option value="request_to_join">
-                    Anyone with the link can request to join
-                  </option>
-                  <option value="invite_only">Invite only</option>
-                </select>
-              </label>
+            <div className="content-columns">
+              <div className="content-columns__main">{primarySections}</div>
+              <aside className="content-columns__aside">{manageAside}</aside>
             </div>
-          ) : null}
-
-          {canManage && pending && pending.requests.length ? (
-            <div className="group-detail__section">
-              <h3>Join requests</h3>
-              <ul className="group-member-list">
-                {pending.requests.map((request) => (
-                  <li key={request.memberId} className="group-member-row">
-                    <span>
-                      <strong>{request.publicName}</strong>
-                      <small>wants to join</small>
-                    </span>
-                    <span className="group-member-row__actions">
-                      <button
-                        type="button"
-                        className="primary-action primary-action--compact"
-                        onClick={() =>
-                          void runGroupAction(
-                            () =>
-                              respondToRequest(
-                                groupDetail.id,
-                                request.memberId,
-                                true,
-                              ),
-                            "Could not approve the request.",
-                          )
-                        }
-                      >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        className="ghost-button ghost-button--compact"
-                        onClick={() =>
-                          void runGroupAction(
-                            () =>
-                              respondToRequest(
-                                groupDetail.id,
-                                request.memberId,
-                                false,
-                              ),
-                            "Could not decline the request.",
-                          )
-                        }
-                      >
-                        Decline
-                      </button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <div className="group-detail__section">
-            <h3>Members</h3>
-            <ul className="group-member-list">
-              {groupDetail.members.map((member) => (
-                <li key={member.id} className="group-member-row">
-                  <span>
-                    <strong>{member.publicName}</strong>
-                    <small>{GROUP_ROLE_LABELS[member.role]}</small>
-                  </span>
-                  {canManage && member.role !== "owner" ? (
-                    <span className="group-member-row__actions">
-                      {isOwner ? (
-                        <select
-                          value={member.role}
-                          onChange={(event) =>
-                            void runGroupAction(
-                              () =>
-                                setMemberRole(
-                                  groupDetail.id,
-                                  member.memberId,
-                                  event.target.value as GroupRole,
-                                ),
-                              "Could not change the role.",
-                            )
-                          }
-                        >
-                          <option value="organiser">Organiser</option>
-                          <option value="leader">Leader</option>
-                          <option value="member">Member</option>
-                        </select>
-                      ) : null}
-                      {isOwner ? (
-                        <button
-                          type="button"
-                          className="ghost-button ghost-button--compact"
-                          onClick={() => void handleTransfer(member)}
-                        >
-                          Make owner
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="ghost-button ghost-button--compact"
-                        onClick={() =>
-                          void runGroupAction(
-                            () => removeMember(groupDetail.id, member.memberId),
-                            "Could not remove the member.",
-                          )
-                        }
-                        aria-label={`Remove ${member.publicName}`}
-                      >
-                        <X size={14} />
-                      </button>
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-
-            {canManage ? (
-              <form className="group-invite" onSubmit={handleInviteByEmail}>
-                <label>
-                  <UserPlus size={15} /> Invite by email
-                  <input
-                    type="email"
-                    value={inviteEmail}
-                    onChange={(event) => setInviteEmail(event.target.value)}
-                    placeholder="paddler@example.com"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  className="primary-action primary-action--compact"
-                >
-                  Send invite
-                </button>
-                {pending && pending.invitedCount ? (
-                  <p className="group-invite__count">
-                    {pending.invitedCount} invite
-                    {pending.invitedCount === 1 ? "" : "s"} pending
-                  </p>
-                ) : null}
-                {inviteNotice ? (
-                  <p className="group-invite__notice">{inviteNotice}</p>
-                ) : null}
-              </form>
-            ) : null}
-          </div>
-
-          <div className="group-detail__section">
-            <div className="group-detail__section-head">
-              <h3>Sessions</h3>
-              {canManageSessions ? (
-                <button
-                  type="button"
-                  className="ghost-button ghost-button--compact"
-                  onClick={() => setIsCreatingSession((open) => !open)}
-                >
-                  <Plus size={15} />{" "}
-                  {isCreatingSession ? "Cancel" : "Plan session"}
-                </button>
-              ) : null}
-            </div>
-
-            {isCreatingSession ? (
-              <form className="session-form" onSubmit={handleCreateSession}>
-                <label>
-                  Title
-                  <input
-                    value={sessionTitle}
-                    onChange={(event) => setSessionTitle(event.target.value)}
-                    placeholder="Saturday Tryweryn"
-                    required
-                  />
-                </label>
-                <label>
-                  River
-                  <select
-                    value={sessionRiverId}
-                    onChange={(event) => setSessionRiverId(event.target.value)}
-                  >
-                    <option value="">— optional —</option>
-                    {rivers.map((river) => (
-                      <option key={river.id} value={river.id}>
-                        {river.displayName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Date &amp; time
-                  <input
-                    type="datetime-local"
-                    value={sessionScheduledFor}
-                    onChange={(event) =>
-                      setSessionScheduledFor(event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  Meeting point
-                  <input
-                    value={sessionMeetingPoint}
-                    onChange={(event) =>
-                      setSessionMeetingPoint(event.target.value)
-                    }
-                    placeholder="Car park, get-in…"
-                  />
-                </label>
-                <label>
-                  Notes
-                  <textarea
-                    value={sessionNotes}
-                    onChange={(event) => setSessionNotes(event.target.value)}
-                    placeholder="Shuttle, parking, food plans…"
-                  />
-                </label>
-                <button type="submit" className="primary-action">
-                  Plan session
-                </button>
-              </form>
-            ) : null}
-
-            {groupSessions.length ? (
-              <ul className="session-list">
-                {groupSessions.map((session) => (
-                  <li key={session.id}>
-                    <button
-                      type="button"
-                      className="session-row"
-                      onClick={() => setSelectedSessionId(session.id)}
-                    >
-                      <span>
-                        <strong>{session.title}</strong>
-                        <small>
-                          {formatWhen(session.scheduledFor)} ·{" "}
-                          {session.participantCount} going
-                        </small>
-                      </span>
-                      <span className={`status-chip status-chip--${session.status}`}>
-                        {session.status}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="empty-state">No sessions planned yet.</p>
-            )}
-          </div>
+          ) : (
+            primarySections
+          )}
         </div>
       ) : publicGroup && selectedGroupId ? (
+        // Group page (public/limited view) — non-members of a private group.
         <div className="group-detail">
           <div className="group-detail__head">
             <button
@@ -799,7 +820,7 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
               className="ghost-button ghost-button--compact"
               onClick={() => setSelectedGroupId(null)}
             >
-              <ChevronLeft size={16} /> Groups
+              <ChevronLeft size={16} /> My groups
             </button>
           </div>
           <header className="group-detail__title">
@@ -810,7 +831,9 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
             </p>
           </header>
           {publicGroup.description ? (
-            <p className="group-detail__description">{publicGroup.description}</p>
+            <p className="group-detail__description">
+              {publicGroup.description}
+            </p>
           ) : null}
           <div className="group-detail__section">
             {publicGroup.myStatus === "requested" ? (
@@ -833,9 +856,10 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
           </div>
         </div>
       ) : (
+        // "My groups" — the user's list of groups.
         <div className="groups-list-view">
           <div className="groups-panel__head">
-            <h2>Your groups</h2>
+            <h2>My groups</h2>
             <button
               type="button"
               className="primary-action primary-action--compact"
@@ -895,13 +919,16 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
           {isLoading ? (
             <p className="empty-state">Loading…</p>
           ) : groups.length ? (
-            <ul className="groups-list">
+            <ul className="groups-grid">
               {groups.map((group) => (
                 <li key={group.id}>
                   <button
                     type="button"
                     className="group-row"
-                    onClick={() => setSelectedGroupId(group.id)}
+                    onClick={() => {
+                      setSelectedSessionId(null);
+                      setSelectedGroupId(group.id);
+                    }}
                   >
                     <span>
                       <strong>{group.name}</strong>
@@ -927,6 +954,42 @@ export function GroupsPanel({ isSignedIn, rivers }: GroupsPanelProps) {
               friends.
             </p>
           )}
+
+          {upcomingSessions.length ? (
+            <div className="group-detail__section">
+              <h3>Upcoming sessions</h3>
+              <ul className="session-list">
+                {upcomingSessions.map((session) => {
+                  const group = groups.find((g) => g.id === session.groupId);
+                  return (
+                    <li key={session.id}>
+                      <button
+                        type="button"
+                        className="session-row"
+                        onClick={() => {
+                          setSelectedGroupId(session.groupId);
+                          setSelectedSessionId(session.id);
+                        }}
+                      >
+                        <span>
+                          <strong>{session.title}</strong>
+                          <small>
+                            {formatWhen(session.scheduledFor)}
+                            {group ? ` · ${group.name}` : ""}
+                          </small>
+                        </span>
+                        <span
+                          className={`status-chip status-chip--${session.status}`}
+                        >
+                          {session.status}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
         </div>
       )}
     </section>

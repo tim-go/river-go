@@ -1059,6 +1059,48 @@ h1 {
   margin: 0 auto;
 }
 
+/* Wider canvas for desktop multi-column pages (e.g. the Groups page). */
+.app-page__content--wide {
+  max-width: 1320px;
+}
+
+/* "My groups" — a responsive grid of group cards (1 col on mobile). */
+.groups-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+/* Detail content split into a primary column + a manage/meta aside. */
+.content-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+.content-columns__main {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.content-columns__aside {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+@media (max-width: 1024px) {
+  .content-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
 .search-panel,
 .profile-grid {
   display: grid;
@@ -5401,12 +5443,6 @@ input[type="file"]::file-selector-button:hover {
   display: grid;
   gap: 14px;
   padding: 8px 0 24px;
-  /* The Groups page sits in the full-width app content area; a single column of
-     forms/lists stretched to ~1040px reads badly on desktop. Cap to a
-     comfortable column (full width on mobile, centred on desktop). */
-  width: 100%;
-  max-width: 620px;
-  margin: 0 auto;
 }
 
 .groups-panel__error {
@@ -5569,7 +5605,7 @@ input[type="file"]::file-selector-button:hover {
 }
 
 .group-invite-link__view code {
-  flex: 1 1 200px;
+  flex: 1 1 100%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
