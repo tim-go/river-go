@@ -441,8 +441,15 @@ export interface GroupJoinRequest {
   requestedAt: string;
 }
 
+export interface GroupInvitedMember {
+  memberId: string;
+  publicName: string;
+  invitedAt: string;
+}
+
 export interface GroupPending {
   requests: GroupJoinRequest[];
+  invites: GroupInvitedMember[];
   invitedCount: number;
 }
 

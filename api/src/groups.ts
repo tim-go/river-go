@@ -95,8 +95,15 @@ export interface ApiJoinRequest {
   requestedAt: string;
 }
 
+export interface ApiInvitedMember {
+  memberId: string;
+  publicName: string;
+  invitedAt: string;
+}
+
 export interface ApiGroupPending {
   requests: ApiJoinRequest[];
+  invites: ApiInvitedMember[];
   invitedCount: number;
 }
 
@@ -898,18 +905,31 @@ export async function listPending(
      ORDER BY gm.updated_at ASC`,
     [groupId],
   );
-  const invited = await pool.query<{ count: string }>(
-    `SELECT count(*) FROM group_members
-     WHERE group_id = $1 AND status = 'invited'`,
+  const invited = await pool.query<{
+    member_id: string;
+    public_name: string | null;
+    updated_at: Date;
+  }>(
+    `SELECT gm.member_id, m.public_name, gm.updated_at
+     FROM group_members gm
+     JOIN members m ON m.id = gm.member_id
+     WHERE gm.group_id = $1 AND gm.status = 'invited'
+     ORDER BY gm.updated_at ASC`,
     [groupId],
   );
+  const invites = invited.rows.map((row) => ({
+    memberId: row.member_id,
+    publicName: row.public_name ?? "RiverLaunch member",
+    invitedAt: row.updated_at.toISOString(),
+  }));
   return {
     requests: requests.rows.map((row) => ({
       memberId: row.member_id,
       publicName: row.public_name ?? "RiverLaunch member",
       requestedAt: row.updated_at.toISOString(),
     })),
-    invitedCount: Number(invited.rows[0]?.count ?? 0),
+    invites,
+    invitedCount: invites.length,
   };
 }
 

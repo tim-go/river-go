@@ -25,6 +25,7 @@ import type {
   GroupSession,
 } from "../types";
 import {
+  cancelInviteOrWithdraw,
   createGroup,
   createSession,
   fetchGroup,
@@ -715,6 +716,37 @@ export function GroupsPanel({
       </div>
     ) : null;
 
+  const invitesSection =
+    gd && canManage && pending && pending.invites.length ? (
+      <div className="group-detail__section">
+        <h3>Pending invites · {pending.invites.length}</h3>
+        <ul className="group-member-list">
+          {pending.invites.map((invite) => (
+            <li key={invite.memberId} className="group-member-row">
+              <span>
+                <strong>{invite.publicName}</strong>
+                <small>invited · not yet accepted</small>
+              </span>
+              <span className="group-member-row__actions">
+                <button
+                  type="button"
+                  className="ghost-button ghost-button--compact"
+                  onClick={() =>
+                    void runGroupAction(
+                      () => cancelInviteOrWithdraw(gd.id, invite.memberId),
+                      "Could not cancel the invite.",
+                    )
+                  }
+                >
+                  <X size={14} /> Cancel
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null;
+
   const memberFilter = memberQuery.trim().toLowerCase();
   const filteredMembers = gd
     ? memberFilter
@@ -730,6 +762,7 @@ export function GroupsPanel({
   const membersPanel = gd ? (
     <>
       {requestsSection}
+      {invitesSection}
       <div className="group-detail__section">
         <h3>Members · {gd.memberCount}</h3>
         <div className="entity-toolbar">
