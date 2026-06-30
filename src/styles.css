@@ -2221,15 +2221,22 @@ button.group-detail__section {
 /* Change-role modal: a neutral themed panel with selectable role options. */
 .role-dialog {
   width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 14px;
+  /* Opaque surface so the page doesn't bleed through (surge --surface-strong is
+     translucent — see the override below). */
   background: var(--surface-strong, #ffffff);
   color: var(--ink);
   box-shadow: var(--shadow);
+}
+[data-theme="surge"] .role-dialog {
+  background: rgba(16, 24, 52, 0.98);
 }
 .role-dialog h3 {
   margin: 2px 0;
@@ -5018,6 +5025,12 @@ input[type="file"]::file-selector-button:hover {
     place-items: stretch;
     padding: 0;
   }
+  /* Centered modal dialogs (confirm / change-role) stay centered on mobile —
+     they're not the full-screen auth sheet. */
+  .auth-sheet-backdrop.auth-sheet-backdrop--modal {
+    place-items: center;
+    padding: 12px;
+  }
 
   .auth-sheet:not(.auth-sheet--welcome) {
     grid-template-columns: 1fr;
@@ -5983,10 +5996,17 @@ input[type="file"]::file-selector-button:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
+}
+.group-member-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .group-member-row small {

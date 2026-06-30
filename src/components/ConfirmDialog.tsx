@@ -37,7 +37,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="auth-sheet-backdrop"
+      className="auth-sheet-backdrop auth-sheet-backdrop--modal"
       role="presentation"
       onClick={onCancel}
     >

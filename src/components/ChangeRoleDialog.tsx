@@ -60,7 +60,11 @@ export function ChangeRoleDialog({
   }, [onCancel]);
 
   return (
-    <div className="auth-sheet-backdrop" role="presentation" onClick={onCancel}>
+    <div
+      className="auth-sheet-backdrop auth-sheet-backdrop--modal"
+      role="presentation"
+      onClick={onCancel}
+    >
       <section
         className="role-dialog"
         role="dialog"
