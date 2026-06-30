@@ -1110,7 +1110,7 @@ h1 {
 
 .entity-page__cover {
   position: relative;
-  height: 170px;
+  height: 230px;
   margin-bottom: 16px;
   border-radius: 14px;
   overflow: hidden;
@@ -1129,7 +1129,7 @@ h1 {
 
 @media (max-width: 640px) {
   .entity-page__cover {
-    height: 120px;
+    height: 160px;
     border-radius: 10px;
   }
 }
@@ -1161,15 +1161,24 @@ h1 {
   color: var(--muted);
   font-size: 0.85rem;
 }
-.group-cover-position {
+/* Edit-mode controls on one row: Zoom (grows) + Cancel + Save. */
+.group-cover-edit-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.group-cover-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 200px;
   font-size: 0.85rem;
 }
-.group-cover-position input[type="range"] {
+.group-cover-zoom input[type="range"] {
   flex: 1;
+  min-width: 120px;
 }
 .group-cover-actions {
   display: flex;

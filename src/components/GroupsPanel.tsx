@@ -162,6 +162,9 @@ export function GroupsPanel({
   const [coverZoomDraft, setCoverZoomDraft] = useState(100);
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverDragging, setCoverDragging] = useState(false);
+  // The cover editor (drag/zoom/save) is gated behind an explicit Edit; the
+  // Settings view just shows the cover + add/replace/edit/remove actions.
+  const [coverEditMode, setCoverEditMode] = useState(false);
   const coverFileRef = useRef<HTMLInputElement | null>(null);
   // Drag origin for repositioning the cover (pointer + draft start values).
   const coverDragStart = useRef({ px: 0, py: 0, x: 50, y: 50 });
@@ -407,6 +410,8 @@ export function GroupsPanel({
         coverImagePath: path,
       });
       setGroupDetail(updated);
+      // Drop straight into edit mode so the manager can frame the new photo.
+      setCoverEditMode(true);
     } catch (uploadError) {
       setError(errorMessage(uploadError, "Could not upload the cover photo."));
     } finally {
@@ -424,6 +429,15 @@ export function GroupsPanel({
         }).then(setGroupDetail),
       "Could not update the cover photo.",
     );
+    setCoverEditMode(false);
+  }
+
+  // Discard unsaved framing and leave edit mode.
+  function cancelCoverEdit() {
+    setCoverXDraft(groupDetail?.coverX ?? 50);
+    setCoverPositionDraft(groupDetail?.coverPosition ?? 50);
+    setCoverZoomDraft(groupDetail?.coverZoom ?? 100);
+    setCoverEditMode(false);
   }
 
   // Drag the preview to pan the cover on both axes. Dragging the photo right
@@ -1088,7 +1102,8 @@ export function GroupsPanel({
       <>
         <div className="group-detail__section">
           <h3>Cover photo</h3>
-          {gd.coverImageUrl ? (
+          {coverEditMode && gd.coverImageUrl ? (
+            // EDIT MODE — drag to frame, zoom, then save or cancel.
             <>
               <div
                 className={`entity-page__cover group-cover-preview group-cover-preview--draggable${
@@ -1112,68 +1127,118 @@ export function GroupsPanel({
                 />
               </div>
               <p className="group-cover-hint">Drag the photo to reposition.</p>
-              <label className="group-cover-position">
-                Zoom
-                <input
-                  type="range"
-                  min={100}
-                  max={300}
-                  step={5}
-                  value={coverZoomDraft}
-                  onChange={(event) =>
-                    setCoverZoomDraft(Number(event.target.value))
+              <div className="group-cover-edit-row">
+                <label className="group-cover-zoom">
+                  Zoom
+                  <input
+                    type="range"
+                    min={100}
+                    max={300}
+                    step={5}
+                    value={coverZoomDraft}
+                    onChange={(event) =>
+                      setCoverZoomDraft(Number(event.target.value))
+                    }
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="ghost-button ghost-button--compact"
+                  onClick={cancelCoverEdit}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="primary-action primary-action--compact"
+                  disabled={
+                    coverXDraft === gd.coverX &&
+                    coverPositionDraft === gd.coverPosition &&
+                    coverZoomDraft === gd.coverZoom
                   }
-                />
-              </label>
-              <button
-                type="button"
-                className="primary-action primary-action--compact"
-                disabled={
-                  coverXDraft === gd.coverX &&
-                  coverPositionDraft === gd.coverPosition &&
-                  coverZoomDraft === gd.coverZoom
-                }
-                onClick={() => void handleSaveCoverFrame()}
-              >
-                Save cover
-              </button>
+                  onClick={() => void handleSaveCoverFrame()}
+                >
+                  Save
+                </button>
+              </div>
             </>
           ) : (
-            <div className="entity-page__cover group-cover-preview group-cover-preview--empty">
-              No cover photo yet
-            </div>
+            // VIEW MODE — show the current cover (if any) + actions.
+            <>
+              {gd.coverImageUrl ? (
+                <div className="entity-page__cover group-cover-preview">
+                  <img
+                    className="entity-page__cover-img"
+                    src={gd.coverImageUrl}
+                    alt=""
+                    draggable={false}
+                    style={{
+                      objectPosition: `${gd.coverX}% ${gd.coverPosition}%`,
+                      transformOrigin: `${gd.coverX}% ${gd.coverPosition}%`,
+                      transform: `scale(${gd.coverZoom / 100})`,
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="entity-page__cover group-cover-preview group-cover-preview--empty">
+                  No cover photo yet
+                </div>
+              )}
+              <div className="group-cover-actions">
+                <button
+                  type="button"
+                  className="ghost-button ghost-button--compact"
+                  disabled={coverUploading}
+                  onClick={() => coverFileRef.current?.click()}
+                >
+                  {coverUploading
+                    ? "Uploading…"
+                    : gd.coverImageUrl
+                      ? "Replace photo"
+                      : "Add cover photo"}
+                </button>
+                {gd.coverImageUrl ? (
+                  <>
+                    <button
+                      type="button"
+                      className="ghost-button ghost-button--compact"
+                      onClick={() => setCoverEditMode(true)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-button ghost-button--compact"
+                      onClick={() =>
+                        setConfirmDialog({
+                          eyebrow: "Remove cover photo",
+                          title: "Remove the cover photo?",
+                          body: (
+                            <p>
+                              The group will show no cover banner until you add a
+                              new one.
+                            </p>
+                          ),
+                          confirmLabel: "Remove",
+                          onConfirm: () => void handleRemoveCover(),
+                        })
+                      }
+                    >
+                      Remove
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            </>
           )}
-          <div className="group-cover-actions">
-            <button
-              type="button"
-              className="ghost-button ghost-button--compact"
-              disabled={coverUploading}
-              onClick={() => coverFileRef.current?.click()}
-            >
-              {coverUploading
-                ? "Uploading…"
-                : gd.coverImageUrl
-                  ? "Replace photo"
-                  : "Upload cover"}
-            </button>
-            {gd.coverImageUrl ? (
-              <button
-                type="button"
-                className="ghost-button ghost-button--compact"
-                onClick={() => void handleRemoveCover()}
-              >
-                Remove
-              </button>
-            ) : null}
-            <input
-              ref={coverFileRef}
-              type="file"
-              accept="image/*"
-              hidden
-              disabled={coverUploading}
-              onChange={(event) => void handleCoverUpload(event)}
-            />
-          </div>
+          <input
+            ref={coverFileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            disabled={coverUploading}
+            onChange={(event) => void handleCoverUpload(event)}
+          />
         </div>
 
         <form className="group-detail__section" onSubmit={handleSaveAbout}>
