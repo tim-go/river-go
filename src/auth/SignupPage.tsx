@@ -5,6 +5,7 @@ import {
   signInWithGoogle,
   subscribeToAuthState,
 } from "../services/firebaseAuth";
+import { updateMyProfile } from "../services/memberApi";
 import { GoogleIcon } from "../components/auth/GoogleIcon";
 import { PasswordStrengthField } from "../components/auth/PasswordStrengthField";
 import {
@@ -20,7 +21,7 @@ function landOnDashboardApp() {
 }
 
 export function SignupPage() {
-  const [displayName, setDisplayName] = useState("");
+  const [publicName, setPublicName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -43,6 +44,7 @@ export function SignupPage() {
   const canSubmit =
     !submitting &&
     !unconfigured &&
+    Boolean(publicName.trim()) &&
     Boolean(email.trim()) &&
     Boolean(pwStatus?.valid) &&
     Boolean(confirm) &&
@@ -51,6 +53,10 @@ export function SignupPage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    if (!publicName.trim()) {
+      setError("Add a public name so other paddlers can recognise you.");
+      return;
+    }
     if (!pwStatus?.valid) {
       setError(pwStatus?.message ?? "Choose a stronger password.");
       return;
@@ -65,8 +71,16 @@ export function SignupPage() {
       await createAccountWithEmail({
         email: email.trim(),
         password,
-        displayName: displayName.trim(),
+        displayName: publicName.trim(),
       });
+      // Persist the public name to the member record via the same path the
+      // Profile uses. Non-fatal: the account is created either way and the
+      // name can be set later in Profile.
+      try {
+        await updateMyProfile({ publicName: publicName.trim() });
+      } catch {
+        // ignore — don't block account creation on the profile write
+      }
       landOnDashboardApp();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create account.");
@@ -105,14 +119,18 @@ export function SignupPage() {
 
         <form className="signup__form" onSubmit={handleSubmit}>
           <label className="signup__label">
-            Display name
+            Public name
             <input
               autoComplete="name"
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
-              placeholder="Your paddling name"
+              value={publicName}
+              onChange={(event) => setPublicName(event.target.value)}
+              placeholder="Your name or paddling name"
+              required
               disabled={submitting}
             />
+            <span className="signup__hint">
+              Shown to other paddlers on your contributions and in groups.
+            </span>
           </label>
           <label className="signup__label">
             Email
