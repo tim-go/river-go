@@ -262,7 +262,8 @@ export function KitInventoryPanel() {
 
       {error ? <p className="kit-inventory__error">{error}</p> : null}
 
-      {isLoading ? (
+      {/* While editing, focus on just the edit form — hide the full list. */}
+      {editingId ? null : isLoading ? (
         <p className="kit-inventory__empty">Loading…</p>
       ) : items.length === 0 ? (
         <p className="kit-inventory__empty">

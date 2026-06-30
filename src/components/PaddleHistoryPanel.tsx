@@ -308,7 +308,8 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
 
       {error ? <p className="paddle-history__error">{error}</p> : null}
 
-      {isLoading ? (
+      {/* While editing, focus on just the edit form — hide the full list. */}
+      {editingId ? null : isLoading ? (
         <p className="paddle-history__empty">Loading…</p>
       ) : logs.length === 0 ? (
         <p className="paddle-history__empty">

@@ -243,7 +243,8 @@ export function SkillsPanel() {
 
       {error ? <p className="skills-panel__error">{error}</p> : null}
 
-      {isLoading ? (
+      {/* While editing, focus on just the edit form — hide the full list. */}
+      {editingId ? null : isLoading ? (
         <p className="skills-panel__empty">Loading…</p>
       ) : skills.length === 0 ? (
         <p className="skills-panel__empty">
