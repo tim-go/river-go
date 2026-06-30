@@ -110,6 +110,23 @@
   backdrop-filter: blur(10px);
 }
 
+/* Floating variant: the layers panel hovers just left of the floating action
+   bar, which is its positioned ancestor (position: fixed). */
+.map-filter--floating {
+  position: absolute;
+  right: 56px; /* 44px action button + a gap */
+  bottom: 0;
+  width: min(380px, calc(100vw - 84px));
+  z-index: 1;
+}
+
+/* Tall enough to show the whole layer list on normal screens (no scrollbar);
+   only scrolls on short viewports. */
+.map-filter--floating .map-filter__panel {
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+}
+
 .map-filter__panel-head {
   display: flex;
   align-items: center;
