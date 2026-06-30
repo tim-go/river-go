@@ -297,13 +297,21 @@ async function route(
   }
 
   // --- Group Paddle Sessions: groups & membership (GROUP-F1/F2) ---
-  if (method === "GET" && url.pathname === "/api/me/groups") {
+  // Canonical paths are /api/clubs; /api/groups stays accepted so older
+  // cached clients and any in-flight links keep working.
+  if (
+    method === "GET" &&
+    (url.pathname === "/api/me/clubs" || url.pathname === "/api/me/groups")
+  ) {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
     const groups = await listGroupsForMember(member.id);
     return { status: 200, body: { groups } };
   }
-  if (method === "POST" && url.pathname === "/api/me/groups") {
+  if (
+    method === "POST" &&
+    (url.pathname === "/api/me/clubs" || url.pathname === "/api/me/groups")
+  ) {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
     const group = await createGroup(member.id, parseGroupInput(body));
@@ -311,7 +319,7 @@ async function route(
   }
   // Pending invites/requests for a group's managers (GINV-F5).
   const groupPendingMatch = url.pathname.match(
-    /^\/api\/groups\/([^/]+)\/pending$/,
+    /^\/api\/(?:groups|clubs)\/([^/]+)\/pending$/,
   );
   if (method === "GET" && groupPendingMatch) {
     const authContext = await requireAuthContext(headers);
@@ -325,7 +333,7 @@ async function route(
 
   // Invite an existing member by exact email (GINV-F2). Neutral response.
   const groupInviteMatch = url.pathname.match(
-    /^\/api\/groups\/([^/]+)\/invites$/,
+    /^\/api\/(?:groups|clubs)\/([^/]+)\/invites$/,
   );
   if (method === "POST" && groupInviteMatch) {
     const authContext = await requireAuthContext(headers);
@@ -342,7 +350,7 @@ async function route(
 
   // Cancel a pending invite (manager) / withdraw own request (GINV-F12).
   const groupCancelInviteMatch = url.pathname.match(
-    /^\/api\/groups\/([^/]+)\/invites\/([^/]+)$/,
+    /^\/api\/(?:groups|clubs)\/([^/]+)\/invites\/([^/]+)$/,
   );
   if (method === "DELETE" && groupCancelInviteMatch) {
     const authContext = await requireAuthContext(headers);
@@ -357,7 +365,7 @@ async function route(
 
   // Approve/decline a join request (GINV-F4).
   const groupRequestRespondMatch = url.pathname.match(
-    /^\/api\/groups\/([^/]+)\/requests\/([^/]+)$/,
+    /^\/api\/(?:groups|clubs)\/([^/]+)\/requests\/([^/]+)$/,
   );
   if (method === "POST" && groupRequestRespondMatch) {
     const authContext = await requireAuthContext(headers);
@@ -374,7 +382,7 @@ async function route(
 
   // Request to join (GINV-F3/F4).
   const groupRequestMatch = url.pathname.match(
-    /^\/api\/groups\/([^/]+)\/requests$/,
+    /^\/api\/(?:groups|clubs)\/([^/]+)\/requests$/,
   );
   if (method === "POST" && groupRequestMatch) {
     const authContext = await requireAuthContext(headers);
@@ -384,7 +392,7 @@ async function route(
   }
 
   const groupRespondMatch = url.pathname.match(
-    /^\/api\/groups\/([^/]+)\/invite-response$/,
+    /^\/api\/(?:groups|clubs)\/([^/]+)\/invite-response$/,
   );
   if (method === "POST" && groupRespondMatch) {
     const authContext = await requireAuthContext(headers);
@@ -398,7 +406,7 @@ async function route(
     return { status: 200, body: { ok: true } };
   }
 
-  const groupLeaveMatch = url.pathname.match(/^\/api\/groups\/([^/]+)\/leave$/);
+  const groupLeaveMatch = url.pathname.match(/^\/api\/(?:groups|clubs)\/([^/]+)\/leave$/);
   if (method === "POST" && groupLeaveMatch) {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
@@ -408,7 +416,7 @@ async function route(
 
   // Transfer ownership (GINV-F9). Owner-only.
   const groupTransferMatch = url.pathname.match(
-    /^\/api\/groups\/([^/]+)\/transfer-ownership$/,
+    /^\/api\/(?:groups|clubs)\/([^/]+)\/transfer-ownership$/,
   );
   if (method === "POST" && groupTransferMatch) {
     const authContext = await requireAuthContext(headers);
@@ -426,7 +434,7 @@ async function route(
 
   // Remove a member (GINV-F11) / set role (GINV-F10).
   const groupMemberMatch = url.pathname.match(
-    /^\/api\/groups\/([^/]+)\/members\/([^/]+)$/,
+    /^\/api\/(?:groups|clubs)\/([^/]+)\/members\/([^/]+)$/,
   );
   if (groupMemberMatch && (method === "DELETE" || method === "PATCH")) {
     const authContext = await requireAuthContext(headers);
@@ -445,7 +453,7 @@ async function route(
   }
 
   // Group detail by id or handle (GINV-F3): full for members, limited otherwise.
-  const groupDetailMatch = url.pathname.match(/^\/api\/groups\/([^/]+)$/);
+  const groupDetailMatch = url.pathname.match(/^\/api\/(?:groups|clubs)\/([^/]+)$/);
   if (groupDetailMatch && method === "PATCH") {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
