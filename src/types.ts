@@ -22,6 +22,7 @@ export type AppSection =
   | "profile"
   | "more"
   | "about"
+  | "settings"
   | "admin";
 
 export type AppNotificationTone = "success" | "info" | "error";

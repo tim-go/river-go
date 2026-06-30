@@ -16,7 +16,7 @@ import {
   MapPinned,
   MapPin,
   MessageSquare,
-  MoreHorizontal,
+  ChevronLeft,
   Navigation,
   Palette,
   Plus,
@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   Star,
   Trash2,
+  Settings as SettingsIcon,
   UserRound,
   UsersRound,
   Waves,
@@ -165,7 +166,6 @@ import { loadContributions, loadFavouriteSectionIds, loadFavouriteRiverIds, save
 import { SyncOutboxBanner } from "./components/SyncOutboxBanner";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
-import { AppBrandPanel } from "./components/AppBrandPanel";
 import { AboutScreen } from "./components/AboutScreen";
 import { PaddleHistoryPanel } from "./components/PaddleHistoryPanel";
 import { KitInventoryPanel } from "./components/KitInventoryPanel";
@@ -7096,7 +7096,6 @@ function App() {
             </PlaceholderPage>
           ) : activeAppSection === "more" ? (
             <PlaceholderPage section="more" title="More">
-              <AppBrandPanel />
               <div className="placeholder-list">
                 <button
                   className="placeholder-row"
@@ -7108,6 +7107,30 @@ function App() {
                     <small>Clubs, friends, and planned sessions</small>
                   </span>
                   <UsersRound size={18} />
+                </button>
+                <button
+                  className="placeholder-row"
+                  type="button"
+                  onClick={() => navigateSection("settings")}
+                >
+                  <span>
+                    <strong>Settings</strong>
+                    <small>
+                      Appearance, location, offline packs, and preferences
+                    </small>
+                  </span>
+                  <SettingsIcon size={18} />
+                </button>
+                <button
+                  className="placeholder-row"
+                  type="button"
+                  onClick={() => setActiveAppSection("about")}
+                >
+                  <span>
+                    <strong>About</strong>
+                    <small>App version and info</small>
+                  </span>
+                  <Info size={18} />
                 </button>
                 {canAccessAdminTools ? (
                   <button
@@ -7129,6 +7152,19 @@ function App() {
                     <ShieldCheck size={18} />
                   </button>
                 ) : null}
+              </div>
+            </PlaceholderPage>
+          ) : activeAppSection === "settings" ? (
+            <PlaceholderPage section="settings" title="Settings">
+              <button
+                className="ghost-button ghost-button--compact"
+                type="button"
+                onClick={() => setActiveAppSection("more")}
+              >
+                <ChevronLeft size={16} />
+                More
+              </button>
+              <div className="placeholder-list">
                 <button className="placeholder-row" type="button">
                   <span>
                     <strong>Offline packs</strong>
@@ -7136,25 +7172,8 @@ function App() {
                   </span>
                   <RefreshCw size={18} />
                 </button>
-                <button
-                  className="placeholder-row"
-                  type="button"
-                  onClick={() => setActiveAppSection("about")}
-                >
-                  <span>
-                    <strong>About</strong>
-                    <small>App version and info</small>
-                  </span>
-                  <Info size={18} />
-                </button>
-                <section className="settings-panel" aria-label="Settings">
-                  <div className="settings-panel__header">
-                    <span>
-                      <strong>Settings</strong>
-                      <small>Appearance, map, alerts, and account preferences</small>
-                    </span>
-                    <MoreHorizontal size={18} />
-                  </div>
+              </div>
+              <section className="settings-panel" aria-label="Settings">
                   <PwaInstallSettingRow />
                   <label className="setting-toggle">
                     <input
@@ -7238,7 +7257,6 @@ function App() {
                     </div>
                   </div>
                 </section>
-              </div>
             </PlaceholderPage>
           ) : activeAppSection === "about" ? (
             <AboutScreen onBack={() => setActiveAppSection("more")} />

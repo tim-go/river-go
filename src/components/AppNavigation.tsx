@@ -150,7 +150,9 @@ export function MobileBottomNav({
           <button
             className={`bottom-nav__item ${
               activeSection === item.id ||
-              ((activeSection === "admin" || activeSection === "about") &&
+              ((activeSection === "admin" ||
+                activeSection === "about" ||
+                activeSection === "settings") &&
                 item.id === "more")
                 ? "bottom-nav__item--active"
                 : ""
