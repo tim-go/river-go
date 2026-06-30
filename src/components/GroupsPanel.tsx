@@ -46,6 +46,7 @@ import {
   updateGroupSettings,
 } from "../services/groupsApi";
 import { uploadGroupCover } from "../services/groupCoverUpload";
+import { ChangeRoleDialog } from "./ChangeRoleDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { SessionDetailPanel } from "./SessionDetailPanel";
 import { EntityPage, type EntityTab } from "./EntityPage";
@@ -139,6 +140,9 @@ export function GroupsPanel({
     confirmLabel: string;
     onConfirm: () => void;
   } | null>(null);
+  const [roleDialogMember, setRoleDialogMember] = useState<GroupMember | null>(
+    null,
+  );
 
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [groupName, setGroupName] = useState("");
@@ -661,35 +665,13 @@ export function GroupsPanel({
       </span>
       {gd && withControls && canManage && member.role !== "owner" ? (
         <span className="group-member-row__actions">
-          {/* Role assignment is owner + organiser (canManage); the outer guard
-              already requires canManage. "Make owner" below stays owner-only. */}
-          <select
-            value={member.role}
-            onChange={(event) =>
-              void runGroupAction(
-                () =>
-                  setMemberRole(
-                    gd.id,
-                    member.memberId,
-                    event.target.value as GroupRole,
-                  ),
-                "Could not change the role.",
-              )
-            }
+          <button
+            type="button"
+            className="ghost-button ghost-button--compact"
+            onClick={() => setRoleDialogMember(member)}
           >
-            <option value="organiser">Organiser</option>
-            <option value="leader">Leader</option>
-            <option value="member">Member</option>
-          </select>
-          {isOwner ? (
-            <button
-              type="button"
-              className="ghost-button ghost-button--compact"
-              onClick={() => void handleTransfer(member)}
-            >
-              Make owner
-            </button>
-          ) : null}
+            Change role
+          </button>
           <button
             type="button"
             className="ghost-button ghost-button--compact"
@@ -1838,6 +1820,28 @@ export function GroupsPanel({
             setConfirmDialog(null);
           }}
           onCancel={() => setConfirmDialog(null)}
+        />
+      ) : null}
+
+      {roleDialogMember ? (
+        <ChangeRoleDialog
+          memberName={roleDialogMember.publicName}
+          currentRole={roleDialogMember.role}
+          canTransferOwnership={isOwner}
+          onSave={(role) => {
+            const member = roleDialogMember;
+            setRoleDialogMember(null);
+            void runGroupAction(
+              () => setMemberRole(selectedGroupId!, member.memberId, role),
+              "Could not change the role.",
+            );
+          }}
+          onTransfer={() => {
+            const member = roleDialogMember;
+            setRoleDialogMember(null);
+            handleTransfer(member);
+          }}
+          onCancel={() => setRoleDialogMember(null)}
         />
       ) : null}
     </section>

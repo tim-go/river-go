@@ -2218,6 +2218,96 @@ button.group-detail__section {
   box-shadow: var(--shadow);
 }
 
+/* Change-role modal: a neutral themed panel with selectable role options. */
+.role-dialog {
+  width: min(460px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-strong, #ffffff);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.role-dialog h3 {
+  margin: 2px 0;
+}
+.role-dialog__current {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+.role-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.role-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.role-option--selected {
+  border-color: var(--river);
+  background: var(--surface);
+}
+.role-option input {
+  margin-top: 3px;
+  flex: 0 0 auto;
+}
+.role-option__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.role-option__body strong {
+  font-size: 0.92rem;
+}
+.role-option__body small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.role-dialog__transfer {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.role-dialog__transfer h4 {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.role-dialog__transfer p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.role-dialog__transfer-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  border: 1px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-weight: 650;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.role-dialog__transfer-btn:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
 .section-list {
   position: absolute;
   top: 16px;
