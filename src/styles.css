@@ -6161,6 +6161,10 @@ input[type="file"]::file-selector-button:hover {
 
 .group-invite-banner {
   display: flex;
+  /* Wrap on narrow screens so the actions drop below the text — but as a row,
+     not stacked (see __actions). Without wrap the buttons get squeezed and
+     break onto separate lines on mobile. */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
@@ -6173,8 +6177,13 @@ input[type="file"]::file-selector-button:hover {
   font-size: 0.84rem;
 }
 
-.group-invite-banner button {
-  margin-left: 6px;
+/* Accept + Decline always sit alongside each other; never shrink below their
+   combined width (which is what made them stack on mobile). */
+.group-invite-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .group-invite__results li button {

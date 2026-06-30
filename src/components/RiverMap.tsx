@@ -328,6 +328,10 @@ export function RiverMap({
   // pins nationally) get their own layer group + viewport-culled effect, so only
   // on-screen pins become DOM nodes and a GPS tick can't rebuild them all.
   const poiLayerRef = useRef<L.LayerGroup | null>(null);
+  // Live location lives in its own layer so GPS ticks only redraw the "you are
+  // here" marker — not the whole marker set (which would also tear down any
+  // popup the user has open). See the dedicated effect below.
+  const liveLocationLayerRef = useRef<L.LayerGroup | null>(null);
 
   // Met Office precipitation overlay — kept outside the main layer group (which
   // is cleared on every render) so toggling it doesn't rebuild the map.
@@ -663,11 +667,13 @@ export function RiverMap({
     const riverRenderer = L.canvas({ padding: 0.5 });
     const riverLines = L.layerGroup().addTo(map);
     const poiMarkers = L.layerGroup().addTo(map);
+    const liveLocationLayer = L.layerGroup().addTo(map);
     mapRef.current = map;
     layerRef.current = layers;
     riverRendererRef.current = riverRenderer;
     riverLinesLayerRef.current = riverLines;
     poiLayerRef.current = poiMarkers;
+    liveLocationLayerRef.current = liveLocationLayer;
 
     if (savedView) {
       // Honor the restored view over the load-time auto-fit-to-active-section,
@@ -735,6 +741,7 @@ export function RiverMap({
       riverLinesLayerRef.current = null;
       riverRendererRef.current = null;
       poiLayerRef.current = null;
+      liveLocationLayerRef.current = null;
     };
   }, []);
 
@@ -1838,30 +1845,9 @@ export function RiverMap({
         );
     }
 
-    if (liveLocation) {
-      if (liveLocation.accuracyMeters) {
-        L.circle(liveLocation.location, {
-          radius: liveLocation.accuracyMeters,
-          color: "#277da1",
-          fillColor: "#277da1",
-          fillOpacity: 0.08,
-          interactive: false,
-          weight: 1,
-        }).addTo(layers);
-      }
-
-      L.marker(liveLocation.location, {
-        bubblingMouseEvents: false,
-        icon: L.divIcon({
-          className: "",
-          html: markerHtml("user-location", ""),
-          iconSize: [22, 22],
-          iconAnchor: [11, 11],
-        }),
-      })
-        .addTo(layers)
-        .bindPopup(createLiveLocationPopup(liveLocation));
-    }
+    // The live-location marker is rendered by its own effect (keyed on
+    // liveLocation) into liveLocationLayerRef, so frequent GPS ticks don't
+    // rebuild every marker here and tear down an open popup.
 
     if (selectedLocation) {
       L.marker(selectedLocation, {
@@ -2036,7 +2022,6 @@ export function RiverMap({
     renderedPoiIds,
     riverPhotos,
     focusNonce,
-    liveLocation,
     markerClickMode,
     mapPois,
     knownWatercourses,
@@ -2068,6 +2053,41 @@ export function RiverMap({
     showKnownRivers,
     onOpenPhoto,
   ]);
+
+  // Live location renders into its own layer so a GPS tick only redraws the
+  // "you are here" marker. (When it lived in the big effect above, every tick
+  // cleared and rebuilt all markers — closing whatever popup was open.)
+  useEffect(() => {
+    const layer = liveLocationLayerRef.current;
+    if (!layer) {
+      return;
+    }
+    layer.clearLayers();
+    if (!liveLocation) {
+      return;
+    }
+    if (liveLocation.accuracyMeters) {
+      L.circle(liveLocation.location, {
+        radius: liveLocation.accuracyMeters,
+        color: "#277da1",
+        fillColor: "#277da1",
+        fillOpacity: 0.08,
+        interactive: false,
+        weight: 1,
+      }).addTo(layer);
+    }
+    L.marker(liveLocation.location, {
+      bubblingMouseEvents: false,
+      icon: L.divIcon({
+        className: "",
+        html: markerHtml("user-location", ""),
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+      }),
+    })
+      .addTo(layer)
+      .bindPopup(createLiveLocationPopup(liveLocation));
+  }, [liveLocation]);
 
   useEffect(() => {
     const map = mapRef.current;

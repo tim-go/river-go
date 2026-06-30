@@ -17,6 +17,7 @@ import {
   MapPin,
   MessageSquare,
   ChevronLeft,
+  Layers,
   Navigation,
   Palette,
   Plus,
@@ -503,6 +504,9 @@ function App() {
   // owns visibility. Distinct from POI kinds — these are photo-type contributions.
   const [showPhotoLayer, setShowPhotoLayer] = useState(true);
   const [isLevelLegendOpen, setIsLevelLegendOpen] = useState(false);
+  // The map layers control now lives in the floating action bar (a toggle),
+  // not the header. This owns its open/closed state.
+  const [isMapLayersOpen, setIsMapLayersOpen] = useState(false);
   const [riverDisciplineFilter, setRiverDisciplineFilter] = useState<
     "all" | "whitewater" | "touring"
   >("all");
@@ -4411,10 +4415,12 @@ function App() {
         <section className="topbar" aria-label="Map controls">
           <div className="topbar-actions">
             <MapFilterControl
+              variant="summary"
               categories={mapLayerCategoriesWithRiver}
               selected={selectedMapLayers}
               onToggle={toggleMapLayer}
               onClear={clearMapLayers}
+              onExpandedChange={setIsMapLayersOpen}
             />
             {authMessage || authState.error ? (
               <p className="topbar-message">
@@ -4517,7 +4523,23 @@ function App() {
       ) : null}
       {activeAppSection === "map" ? (
         <div className="map-floating-actions">
+          <MapFilterControl
+            variant="floating"
+            categories={mapLayerCategoriesWithRiver}
+            selected={selectedMapLayers}
+            onToggle={toggleMapLayer}
+            onClear={clearMapLayers}
+            expanded={isMapLayersOpen}
+            onExpandedChange={setIsMapLayersOpen}
+          />
           <MapActions>
+            <MapActionButton
+              label={isMapLayersOpen ? "Hide map layers" : "Map layers"}
+              active={isMapLayersOpen}
+              onClick={() => setIsMapLayersOpen((value) => !value)}
+            >
+              <Layers size={19} />
+            </MapActionButton>
             <MapActionButton
               label={isLevelLegendOpen ? "Hide legend" : "Show legend"}
               active={isLevelLegendOpen}
@@ -6660,7 +6682,7 @@ function App() {
                           <h3>Create account to manage emergency contact</h3>
                           <p>
                             Emergency contact details are private account data for
-                            future group sessions.
+                            future group meetups.
                           </p>
                         </div>
                         <button
@@ -6678,7 +6700,7 @@ function App() {
                         <div className="block-title">
                           <div>
                             <h3>Emergency contact</h3>
-                            <span>Private ICE details for future group sessions</span>
+                            <span>Private ICE details for future group meetups</span>
                           </div>
                           <span className="status-chip">
                             {emergencyProfile?.visibilityDefault ?? "private"}
@@ -6730,7 +6752,7 @@ function App() {
                             </div>
                             <p className="source-note">
                               Stored privately. Do not enter medical information
-                              here. In future group sessions you will choose
+                              here. In future group meetups you will choose
                               whether to share this emergency contact with the
                               organiser.
                             </p>
@@ -7104,7 +7126,7 @@ function App() {
                 >
                   <span>
                     <strong>Groups</strong>
-                    <small>Clubs, friends, and planned sessions</small>
+                    <small>Clubs, friends, and planned meetups</small>
                   </span>
                   <UsersRound size={18} />
                 </button>

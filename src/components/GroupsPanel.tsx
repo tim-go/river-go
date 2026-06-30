@@ -585,7 +585,7 @@ export function GroupsPanel({
       setSessions(await fetchSessions());
       setSelectedSessionId(created.id);
     } catch (sessionError) {
-      setError(errorMessage(sessionError, "Could not plan the session."));
+      setError(errorMessage(sessionError, "Could not plan the meetup."));
     }
   }
 
@@ -599,7 +599,7 @@ export function GroupsPanel({
           <div>
             <h3>Plan paddles with your people</h3>
             <p>
-              Sign in to create clubs and friend groups, plan sessions, share
+              Sign in to create clubs and friend groups, plan meetups, share
               meeting points, and coordinate who is coming.
             </p>
           </div>
@@ -954,14 +954,14 @@ export function GroupsPanel({
     <>
       <div className="group-detail__section">
         <div className="group-detail__section-head">
-          <h3>Upcoming sessions</h3>
+          <h3>Upcoming meetups</h3>
           {canManageSessions ? (
             <button
               type="button"
               className="ghost-button ghost-button--compact"
               onClick={() => setIsCreatingSession((open) => !open)}
             >
-              <Plus size={15} /> {isCreatingSession ? "Cancel" : "Plan session"}
+              <Plus size={15} /> {isCreatingSession ? "Cancel" : "Plan meetup"}
             </button>
           ) : null}
         </div>
@@ -1015,7 +1015,7 @@ export function GroupsPanel({
               />
             </label>
             <button type="submit" className="primary-action">
-              Plan session
+              Plan meetup
             </button>
           </form>
         ) : null}
@@ -1024,12 +1024,12 @@ export function GroupsPanel({
             {upcomingGroupSessions.map(renderSessionRow)}
           </ul>
         ) : (
-          <p className="empty-state">No sessions planned yet.</p>
+          <p className="empty-state">No meetups planned yet.</p>
         )}
       </div>
       {pastGroupSessions.length ? (
         <div className="group-detail__section">
-          <h3>Past sessions</h3>
+          <h3>Past meetups</h3>
           <ul className="session-list">
             {pastGroupSessions.map(renderSessionRow)}
           </ul>
@@ -1047,14 +1047,14 @@ export function GroupsPanel({
       ) : null}
       <div className="group-detail__section">
         <div className="group-detail__section-head">
-          <h3>Next session</h3>
+          <h3>Next meetup</h3>
           {canManageSessions ? (
             <button
               type="button"
               className="ghost-button ghost-button--compact"
               onClick={() => setGroupTab("sessions")}
             >
-              <Plus size={15} /> Plan session
+              <Plus size={15} /> Plan meetup
             </button>
           ) : null}
         </div>
@@ -1063,7 +1063,7 @@ export function GroupsPanel({
             {renderSessionRow(upcomingGroupSessions[0])}
           </ul>
         ) : (
-          <p className="empty-state">No sessions planned yet.</p>
+          <p className="empty-state">No meetups planned yet.</p>
         )}
       </div>
       <div className="group-detail__section">
@@ -1424,7 +1424,7 @@ export function GroupsPanel({
     { id: "overview", label: "Overview" },
     { id: "about", label: "About" },
     { id: "members", label: "Members" },
-    { id: "sessions", label: "Sessions" },
+    { id: "sessions", label: "Meetups" },
     ...(canManageMembers ? [{ id: "manage", label: "Manage members" }] : []),
     ...(canManage ? [{ id: "settings", label: "Settings" }] : []),
   ];
@@ -1449,7 +1449,7 @@ export function GroupsPanel({
         className="group-detail__section group-aside-card"
         onClick={() => setGroupTab("sessions")}
       >
-        <h3>Next session</h3>
+        <h3>Next meetup</h3>
         {nextGroupSession ? (
           <span className="group-aside-next">
             <strong>{nextGroupSession.title}</strong>
@@ -1580,7 +1580,7 @@ export function GroupsPanel({
           {groupDetail.myStatus === "invited" ? (
             <div className="group-invite-banner">
               <span>You have been invited to this group.</span>
-              <span>
+              <span className="group-invite-banner__actions">
                 <button
                   type="button"
                   className="primary-action primary-action--compact"
@@ -1837,7 +1837,7 @@ export function GroupsPanel({
 
           {upcomingSessions.length ? (
             <div className="group-detail__section">
-              <h3>Upcoming sessions</h3>
+              <h3>Upcoming meetups</h3>
               <ul className="session-list">
                 {upcomingSessions.map((session) => {
                   const group = groups.find((g) => g.id === session.groupId);

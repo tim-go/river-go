@@ -25,6 +25,17 @@ interface MapFilterControlProps {
   selected: Set<string>;
   onToggle: (id: string) => void;
   onClear: () => void;
+  /** Controlled open state. Falls back to internal state when omitted. */
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+  /**
+   * "bar" (default) = inline pills + expander + inline panel.
+   * "summary" = pills bar only (no expander, no panel) for the header — the
+   *   panel is opened elsewhere (the floating Layers button or a "+N" pill).
+   * "floating" = panel only (no bar); opened by an external trigger and
+   *   positioned as a floating overlay.
+   */
+  variant?: "bar" | "summary" | "floating";
 }
 
 const PILL_GAP = 5;
@@ -40,8 +51,22 @@ export function MapFilterControl({
   selected,
   onToggle,
   onClear,
+  expanded: controlledExpanded,
+  onExpandedChange,
+  variant = "bar",
 }: MapFilterControlProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? internalExpanded;
+  const setExpanded = (value: boolean) => {
+    if (onExpandedChange) onExpandedChange(value);
+    else setInternalExpanded(value);
+  };
+  const floating = variant === "floating";
+  // The summary bar lives in the header and never renders the panel; the bar /
+  // floating variants do. Only a panel-rendering instance owns outside-close.
+  const showBar = variant !== "floating";
+  const showExpander = variant === "bar";
+  const showPanel = expanded && variant !== "summary";
   const rootRef = useRef<HTMLDivElement>(null);
   const pillsRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -50,19 +75,27 @@ export function MapFilterControl({
   // (e.g. tapping the map). Pointerdown in the capture phase fires before the
   // map's own click handling, and covers both touch and mouse.
   useEffect(() => {
-    if (!expanded) {
+    if (!showPanel) {
       return;
     }
     const handlePointerDown = (event: PointerEvent) => {
       const root = rootRef.current;
-      if (root && !root.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+      // Ignore the floating action bar — its Layers button owns the toggle, so
+      // its own click must not be treated as an "outside" close (which would
+      // race the toggle and keep the panel stuck open).
+      if (
+        root &&
+        !root.contains(target) &&
+        !target.closest(".map-actions")
+      ) {
         setExpanded(false);
       }
     };
     document.addEventListener("pointerdown", handlePointerDown, true);
     return () =>
       document.removeEventListener("pointerdown", handlePointerDown, true);
-  }, [expanded]);
+  }, [showPanel]);
 
   const { optionById, colorByOptionId, filterOptionIds } = useMemo(() => {
     const byId = new Map<string, FilterOption>();
@@ -200,11 +233,19 @@ export function MapFilterControl({
   const filterCategories = categories.filter((c) => c.kind === "filter");
   const displayCategories = categories.filter((c) => c.kind !== "filter");
 
+  // Floating variant has no inline bar; it only exists while open.
+  if (floating && !expanded) {
+    return null;
+  }
+
   return (
     <div
       ref={rootRef}
-      className={`map-filter ${expanded ? "map-filter--expanded" : ""}`}
+      className={`map-filter map-filter--${variant} ${
+        expanded ? "map-filter--expanded" : ""
+      }`}
     >
+      {showBar ? (
       <div className="map-filter__bar">
         <div className="map-filter__pills" ref={pillsRef}>
           {activeIds.length === 0 ? (
@@ -228,18 +269,21 @@ export function MapFilterControl({
             </>
           )}
         </div>
-        <button
-          type="button"
-          className="map-filter__expander"
-          onClick={() => setExpanded((current) => !current)}
-          aria-expanded={expanded}
-        >
-          <span>Layers</span>
-          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
+        {showExpander ? (
+          <button
+            type="button"
+            className="map-filter__expander"
+            onClick={() => setExpanded(!expanded)}
+            aria-expanded={expanded}
+          >
+            <span>Layers</span>
+            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        ) : null}
       </div>
+      ) : null}
 
-      {expanded ? (
+      {showPanel ? (
         <div className="map-filter__panel" role="group" aria-label="Map layers">
           <div className="map-filter__panel-head">
             <strong>Layers</strong>
