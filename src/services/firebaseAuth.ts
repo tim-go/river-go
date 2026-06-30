@@ -125,6 +125,19 @@ export async function createAccountWithEmail(input: {
   }
 }
 
+// Update the signed-in user's name (Firebase displayName), then force a token
+// refresh so the new name claim is available — the member record syncs its
+// display_name from the token on the next authed request (e.g. GET /api/me).
+export async function updateMyDisplayName(name: string): Promise<void> {
+  const auth = getClientAuth();
+  const user = auth?.currentUser;
+  if (!user) {
+    throw new Error("Sign in to update your name.");
+  }
+  await updateProfile(user, { displayName: name.trim() });
+  await user.getIdToken(true);
+}
+
 export async function signInWithEmail(input: {
   email: string;
   password: string;

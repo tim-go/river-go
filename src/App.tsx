@@ -99,6 +99,7 @@ import {
   signInWithEmail,
   signOutCurrentUser,
   subscribeToAuthState,
+  updateMyDisplayName,
   type AuthState,
 } from "./services/firebaseAuth";
 import {
@@ -856,6 +857,7 @@ function App() {
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
   const [memberMessage, setMemberMessage] = useState("");
   const [publicNameDraft, setPublicNameDraft] = useState("");
+  const [nameDraft, setNameDraft] = useState("");
   const [emergencyProfile, setEmergencyProfile] =
     useState<MemberEmergencyProfile | null>(null);
   const [emergencyContactName, setEmergencyContactName] = useState("");
@@ -1479,6 +1481,7 @@ function App() {
         if (isMounted) {
           setMemberProfile(member);
           setPublicNameDraft(member.publicName ?? member.displayName ?? "");
+          setNameDraft(member.displayName ?? "");
           setMemberMessage("");
         }
       })
@@ -2631,6 +2634,34 @@ function App() {
       );
     } finally {
       setIsMemberRouteSuggestionsLoading(false);
+    }
+  }
+
+  async function saveName() {
+    if (!authState.user) {
+      requireSignInForSave();
+      return;
+    }
+    if (!nameDraft.trim()) {
+      showAppNotification("Add your name.", "error");
+      return;
+    }
+    setIsProfileSaving(true);
+    try {
+      // Update the Firebase displayName, then re-fetch the member (GET /api/me
+      // upserts → syncs display_name from the refreshed token).
+      await updateMyDisplayName(nameDraft.trim());
+      const updatedMember = await fetchCurrentMember();
+      setMemberProfile(updatedMember);
+      setNameDraft(updatedMember.displayName ?? "");
+      showAppNotification("Name saved.");
+    } catch (error) {
+      showAppNotification(
+        error instanceof Error ? error.message : "Could not save your name.",
+        "error",
+      );
+    } finally {
+      setIsProfileSaving(false);
     }
   }
 
@@ -6422,6 +6453,41 @@ function App() {
                           <LogIn size={16} />
                           Create account / Sign in
                         </button>
+                      </section>
+                    ) : null}
+                    {isSignedIn ? (
+                      <section className="profile-card profile-card--stacked">
+                        <div className="block-title">
+                          <div>
+                            <h3>Your name</h3>
+                            <span>
+                              For your account and emails — not shown publicly
+                            </span>
+                          </div>
+                        </div>
+                        <div className="form-grid">
+                          <label>
+                            <span>Your name</span>
+                            <input
+                              type="text"
+                              value={nameDraft}
+                              onChange={(event) => setNameDraft(event.target.value)}
+                              placeholder="e.g. Alex Jones"
+                              maxLength={80}
+                            />
+                          </label>
+                        </div>
+                        <div className="profile-actions">
+                          <button
+                            className="primary-action"
+                            type="button"
+                            onClick={() => void saveName()}
+                            disabled={isProfileSaving}
+                          >
+                            <UserRound size={16} />
+                            {isProfileSaving ? "Saving" : "Save name"}
+                          </button>
+                        </div>
                       </section>
                     ) : null}
                     {authMessage || authState.error || memberMessage ? (
