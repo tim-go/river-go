@@ -1181,6 +1181,10 @@ h1 {
 
 .content-columns__aside {
   display: grid;
+  /* Constrain the single column to the track (minmax floor of 0) so a wide,
+     unbreakable child (e.g. the invite-link URL) can't expand the auto column
+     and push every panel past the 320px gutter. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   align-content: start;
 }
