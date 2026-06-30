@@ -23,14 +23,14 @@ const GROUP_ACCESS_MODES: GroupAccessMode[] = [
   "request_to_join",
   "invite_only",
 ];
-// Membership managers can invite, approve/decline requests, remove members, and
-// edit group settings. Only the owner sets roles + transfers ownership. Leaders
-// manage sessions (see SESSION_MANAGER_ROLES in group-sessions.ts) but NOT
-// membership.
+// Membership managers (owner + organiser) remove members, edit settings, and
+// assign roles. Only the owner transfers ownership. Leaders manage sessions
+// (SESSION_MANAGER_ROLES in group-sessions.ts) + membership intake, but NOT
+// removal/settings/roles.
 const MEMBERSHIP_MANAGER_ROLES: GroupRole[] = ["owner", "organiser"];
 // Membership intake — invite, see + approve/decline requests, cancel invites —
 // is open to leaders and above. Removing members, role changes, and settings
-// stay with MEMBERSHIP_MANAGER_ROLES (owner/organiser); roles + transfer are
+// stay with MEMBERSHIP_MANAGER_ROLES (owner/organiser); ownership transfer is
 // owner-only. Any active member can share the group link (no role gate).
 const MEMBER_MANAGER_ROLES: GroupRole[] = ["owner", "organiser", "leader"];
 // Roles a member can be promoted/demoted between (owner is set via transfer).
@@ -704,7 +704,9 @@ export async function setMemberRole(
   targetMemberId: string,
   role: GroupRole,
 ): Promise<void> {
-  await requireGroupRole(actingMemberId, groupId, ["owner"]);
+  // Owner + organiser can assign roles; the owner's role itself is protected
+  // (only transferable) and you can't change your own role.
+  await requireGroupRole(actingMemberId, groupId, MEMBERSHIP_MANAGER_ROLES);
   if (!ASSIGNABLE_ROLES.includes(role)) {
     throw new HttpError(400, "Choose a valid role.");
   }

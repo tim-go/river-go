@@ -661,26 +661,26 @@ export function GroupsPanel({
       </span>
       {gd && canManage && member.role !== "owner" ? (
         <span className="group-member-row__actions">
-          {isOwner ? (
-            <select
-              value={member.role}
-              onChange={(event) =>
-                void runGroupAction(
-                  () =>
-                    setMemberRole(
-                      gd.id,
-                      member.memberId,
-                      event.target.value as GroupRole,
-                    ),
-                  "Could not change the role.",
-                )
-              }
-            >
-              <option value="organiser">Organiser</option>
-              <option value="leader">Leader</option>
-              <option value="member">Member</option>
-            </select>
-          ) : null}
+          {/* Role assignment is owner + organiser (canManage); the outer guard
+              already requires canManage. "Make owner" below stays owner-only. */}
+          <select
+            value={member.role}
+            onChange={(event) =>
+              void runGroupAction(
+                () =>
+                  setMemberRole(
+                    gd.id,
+                    member.memberId,
+                    event.target.value as GroupRole,
+                  ),
+                "Could not change the role.",
+              )
+            }
+          >
+            <option value="organiser">Organiser</option>
+            <option value="leader">Leader</option>
+            <option value="member">Member</option>
+          </select>
           {isOwner ? (
             <button
               type="button"
