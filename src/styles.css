@@ -1336,7 +1336,7 @@ button.group-detail__section {
 .group-aside-facts {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--muted-strong, #6b7a76);
+  color: var(--muted);
 }
 .group-aside-next {
   display: flex;

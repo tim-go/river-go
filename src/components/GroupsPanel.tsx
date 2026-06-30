@@ -410,7 +410,9 @@ export function GroupsPanel({
   async function handleTransfer(member: GroupMember) {
     if (
       !window.confirm(
-        `Make ${member.publicName} the owner? You'll become an organiser.`,
+        `Transfer ownership of “${gd?.name ?? "this group"}” to ${member.publicName}?\n\n` +
+          `${member.publicName} will become the owner with full control — including the right to remove members, change settings, or delete the group. ` +
+          `You will be demoted to organiser, and only the new owner can transfer ownership back. This cannot be undone by you.`,
       )
     ) {
       return;
@@ -595,12 +597,18 @@ export function GroupsPanel({
           <button
             type="button"
             className="ghost-button ghost-button--compact"
-            onClick={() =>
-              void runGroupAction(
-                () => removeMember(gd.id, member.memberId),
-                "Could not remove the member.",
-              )
-            }
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Remove ${member.publicName} from “${gd.name}”? They'll lose access and would need to be re-invited or request to join again.`,
+                )
+              ) {
+                void runGroupAction(
+                  () => removeMember(gd.id, member.memberId),
+                  "Could not remove the member.",
+                );
+              }
+            }}
             aria-label={`Remove ${member.publicName}`}
           >
             <X size={14} />
@@ -637,7 +645,7 @@ export function GroupsPanel({
         </span>
       ) : (
         (() => {
-          const inviteUrl = `${window.location.origin}/g/${gd.handle ?? gd.id}`;
+          const inviteUrl = `${window.location.origin}/group/${gd.handle ?? gd.id}`;
           return (
             <span className="group-invite-link__view">
               <code title={inviteUrl}>{inviteUrl}</code>
@@ -731,12 +739,18 @@ export function GroupsPanel({
                 <button
                   type="button"
                   className="ghost-button ghost-button--compact"
-                  onClick={() =>
-                    void runGroupAction(
-                      () => cancelInviteOrWithdraw(gd.id, invite.memberId),
-                      "Could not cancel the invite.",
-                    )
-                  }
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Cancel the invite to ${invite.publicName}? They won't be able to join unless you invite them again.`,
+                      )
+                    ) {
+                      void runGroupAction(
+                        () => cancelInviteOrWithdraw(gd.id, invite.memberId),
+                        "Could not cancel the invite.",
+                      );
+                    }
+                  }}
                 >
                   <X size={14} /> Cancel
                 </button>

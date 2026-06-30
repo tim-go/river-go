@@ -314,8 +314,8 @@ function parseGroupRoute(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
-  // /g/ is the canonical (short, shareable) form; /group/ and /groups/ are
-  // accepted aliases.
+  // /group/ is the canonical (displayed) form; /g/ and /groups/ are accepted
+  // aliases.
   const match = window.location.pathname.match(
     /^\/(?:g|group|groups)\/([^/]+)\/?$/,
   );
@@ -334,7 +334,11 @@ function App() {
   // to the section view. Clicking a nav section leaves any open group.
   const openGroup = (idOrHandle: string | null) => {
     if (idOrHandle) {
-      window.history.pushState({}, "", `/g/${encodeURIComponent(idOrHandle)}`);
+      window.history.pushState(
+        {},
+        "",
+        `/group/${encodeURIComponent(idOrHandle)}`,
+      );
       setGroupRoute(idOrHandle);
       setActiveAppSection("groups");
     } else {
