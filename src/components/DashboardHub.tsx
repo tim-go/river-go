@@ -80,7 +80,7 @@ export function DashboardHub({
       <section className="dashboard-section">
         <header className="dashboard-section__head">
           <h3>
-            <CalendarClock size={16} /> Next sessions
+            <CalendarClock size={16} /> Next meetups
           </h3>
           <button
             type="button"
@@ -105,7 +105,7 @@ export function DashboardHub({
         ) : (
           <p className="dashboard-section__empty">
             {groups.length
-              ? "No upcoming sessions planned."
+              ? "No upcoming meetups planned."
               : "Join a group to plan paddles together."}
           </p>
         )}

@@ -59,7 +59,7 @@ export function SessionDetailPanel({
     try {
       setSession(await fetchSession(sessionId));
     } catch (loadError) {
-      setError(errorMessage(loadError, "Could not load the session."));
+      setError(errorMessage(loadError, "Could not load the meetup."));
     } finally {
       setIsLoading(false);
     }
@@ -202,9 +202,9 @@ export function SessionDetailPanel({
           <ShieldAlert size={16} /> Emergency contact
         </h3>
         <p className="session-note">
-          Share the emergency contact from your profile with this session's
-          organisers — only while the session is live. You can turn it off any
-          time, and it closes automatically when the session ends.
+          Share the emergency contact from your profile with this meetup's
+          organisers — only while the meetup is live. You can turn it off any
+          time, and it closes automatically when the meetup ends.
         </p>
         <label className="toggle-line">
           <input
@@ -217,7 +217,7 @@ export function SessionDetailPanel({
               )
             }
           />
-          Share my emergency contact for this session
+          Share my emergency contact for this meetup
         </label>
       </div>
 
@@ -319,7 +319,7 @@ export function SessionDetailPanel({
                 void run(() => setSessionStatus(sessionId, "active"))
               }
             >
-              Start session
+              Start meetup
             </button>
           ) : null}
           {session.status === "active" ? (
@@ -342,7 +342,7 @@ export function SessionDetailPanel({
                   )
                 }
               >
-                Complete session
+                Complete meetup
               </button>
             </>
           ) : null}
@@ -355,7 +355,7 @@ export function SessionDetailPanel({
                 void run(() => setSessionStatus(sessionId, "cancelled"))
               }
             >
-              Cancel session
+              Cancel meetup
             </button>
           ) : null}
           {session.outcomeNotes ? (

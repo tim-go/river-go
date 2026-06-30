@@ -14,16 +14,16 @@ const ROLE_OPTIONS: { value: GroupRole; description: string }[] = [
   {
     value: "organiser",
     description:
-      "Full admin — manage settings, members, roles, and sessions (not ownership transfer).",
+      "Full admin — manage settings, members, roles, and meetups (not ownership transfer).",
   },
   {
     value: "leader",
     description:
-      "Runs sessions and invites/approves members. Can't remove members or change settings.",
+      "Runs meetups and invites/approves members. Can't remove members or change settings.",
   },
   {
     value: "member",
-    description: "Views the group, RSVPs to sessions, and shares the group link.",
+    description: "Views the group, RSVPs to meetups, and shares the group link.",
   },
 ];
 
