@@ -1451,13 +1451,17 @@ export function GroupsPanel({
           <span className="empty-state">None planned</span>
         )}
       </button>
-      <div className="group-detail__section">
+      <button
+        type="button"
+        className="group-detail__section group-aside-card"
+        onClick={() => setGroupTab("about")}
+      >
         <h3>About this group</h3>
         <p className="group-aside-facts">
           {GROUP_KIND_LABELS[gd.kind]}
           {gd.discipline ? ` · ${gd.discipline}` : ""} · {gd.visibility}
         </p>
-      </div>
+      </button>
       {isActiveMember ? (
         <div className="group-detail__section">
           <h3>Group link</h3>
