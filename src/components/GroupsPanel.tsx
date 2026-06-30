@@ -653,13 +653,13 @@ export function GroupsPanel({
     </li>
   );
 
-  const renderMemberRow = (member: GroupMember) => (
+  const renderMemberRow = (member: GroupMember, withControls = false) => (
     <li key={member.id} className="group-member-row">
       <span>
         <strong>{member.publicName}</strong>
         <small>{GROUP_ROLE_LABELS[member.role]}</small>
       </span>
-      {gd && canManage && member.role !== "owner" ? (
+      {gd && withControls && canManage && member.role !== "owner" ? (
         <span className="group-member-row__actions">
           {/* Role assignment is owner + organiser (canManage); the outer guard
               already requires canManage. "Make owner" below stays owner-only. */}
@@ -931,19 +931,11 @@ export function GroupsPanel({
       </form>
     ) : null;
 
-  const managePanel = gd ? (
-    <>
-      {inviteMemberForm}
-      {requestsSection}
-      {invitesSection}
-      {!requestsSection && !invitesSection ? (
-        <p className="empty-state">No pending requests or invites.</p>
-      ) : null}
-    </>
-  ) : null;
-
-  const membersPanel = gd ? (
-    <>
+  // The member roster (search + role-tier sections). withControls renders the
+  // per-row manager controls (role/remove/make-owner) — used on the Manage
+  // members tab; the Members tab is a straight read-only list.
+  const renderRoster = (withControls: boolean) =>
+    gd ? (
       <div className="group-detail__section">
         <h3>Members · {gd.memberCount}</h3>
         <div className="entity-toolbar">
@@ -972,7 +964,7 @@ export function GroupsPanel({
               <div key={tier.title} className="group-member-tier">
                 <h4>{tier.title}</h4>
                 <ul className="group-member-list">
-                  {tierMembers.map(renderMemberRow)}
+                  {tierMembers.map((m) => renderMemberRow(m, withControls))}
                 </ul>
               </div>
             ) : null;
@@ -990,6 +982,20 @@ export function GroupsPanel({
           </button>
         ) : null}
       </div>
+    ) : null;
+
+  const managePanel = gd ? (
+    <>
+      {inviteMemberForm}
+      {requestsSection}
+      {invitesSection}
+      {renderRoster(true)}
+    </>
+  ) : null;
+
+  const membersPanel = gd ? (
+    <>
+      {renderRoster(false)}
     </>
   ) : null;
 
