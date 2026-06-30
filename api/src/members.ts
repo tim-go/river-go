@@ -16,6 +16,10 @@ export interface Member {
   publicName: string | null;
   publicNameStatus: string;
   photoUrl: string | null;
+  avatarImageUrl: string | null;
+  avatarX: number;
+  avatarPosition: number;
+  avatarZoom: number;
   role: MemberRole;
   trustLevel: MemberTrustLevel;
   createdAt: string;
@@ -33,6 +37,10 @@ interface MemberRow {
   public_name: string | null;
   public_name_status: string;
   photo_url: string | null;
+  avatar_image_url: string | null;
+  avatar_x: number;
+  avatar_position: number;
+  avatar_zoom: number;
   role: MemberRole;
   trust_level: MemberTrustLevel;
   created_at: Date;
@@ -128,6 +136,85 @@ export async function updateMemberProfile(
     WHERE id = $1
     RETURNING *`,
     [memberId, normalisedPublicName],
+  );
+
+  if (!result.rowCount) {
+    throw new HttpError(404, "Member not found.");
+  }
+
+  return mapMember(result.rows[0]);
+}
+
+export interface AvatarInput {
+  /** null clears the picture. */
+  imageUrl: string | null;
+  x?: number;
+  position?: number;
+  zoom?: number;
+}
+
+/** A member's profile picture as shown to others (rosters, participants). */
+export interface MemberAvatar {
+  imageUrl: string;
+  x: number;
+  position: number;
+  zoom: number;
+}
+
+/** Build the nested avatar from joined member columns; null when no picture. */
+export function buildMemberAvatar(row: {
+  avatar_image_url: string | null;
+  avatar_x: number | string | null;
+  avatar_position: number | string | null;
+  avatar_zoom: number | string | null;
+}): MemberAvatar | null {
+  if (!row.avatar_image_url) {
+    return null;
+  }
+  return {
+    imageUrl: row.avatar_image_url,
+    x: Number(row.avatar_x ?? 50),
+    position: Number(row.avatar_position ?? 50),
+    zoom: Number(row.avatar_zoom ?? 100),
+  };
+}
+
+const clampPercent = (value: number | undefined, fallback: number): number => {
+  if (value == null || Number.isNaN(value)) {
+    return fallback;
+  }
+  return Math.max(0, Math.min(100, Math.round(value)));
+};
+
+const clampZoom = (value: number | undefined): number => {
+  if (value == null || Number.isNaN(value)) {
+    return 100;
+  }
+  return Math.max(100, Math.min(300, Math.round(value)));
+};
+
+export async function updateMemberAvatar(
+  memberId: string,
+  input: AvatarInput,
+): Promise<Member> {
+  // Clearing the picture resets the framing to defaults.
+  const cleared = !input.imageUrl;
+  const result = await pool.query<MemberRow>(
+    `UPDATE members
+    SET avatar_image_url = $2,
+      avatar_x = $3,
+      avatar_position = $4,
+      avatar_zoom = $5,
+      updated_at = now()
+    WHERE id = $1
+    RETURNING *`,
+    [
+      memberId,
+      input.imageUrl,
+      cleared ? 50 : clampPercent(input.x, 50),
+      cleared ? 50 : clampPercent(input.position, 50),
+      cleared ? 100 : clampZoom(input.zoom),
+    ],
   );
 
   if (!result.rowCount) {
@@ -338,6 +425,10 @@ function mapMember(row: MemberRow): Member {
     publicName: row.public_name,
     publicNameStatus: row.public_name_status,
     photoUrl: row.photo_url,
+    avatarImageUrl: row.avatar_image_url,
+    avatarX: row.avatar_x,
+    avatarPosition: row.avatar_position,
+    avatarZoom: row.avatar_zoom,
     role: row.role,
     trustLevel: row.trust_level,
     createdAt: row.created_at.toISOString(),

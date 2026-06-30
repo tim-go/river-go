@@ -2,6 +2,7 @@ import type { PoolClient } from "pg";
 import { pool } from "./db.js";
 import { HttpError } from "./http.js";
 import { sendGroupInviteEmail } from "./email/group-emails.js";
+import { buildMemberAvatar, type MemberAvatar } from "./members.js";
 
 export type GroupKind = "club" | "subgroup" | "friends" | "trip";
 export type GroupVisibility = "private" | "members" | "public";
@@ -102,12 +103,14 @@ export interface ApiGroupPublic {
 export interface ApiJoinRequest {
   memberId: string;
   publicName: string;
+  avatar: MemberAvatar | null;
   requestedAt: string;
 }
 
 export interface ApiInvitedMember {
   memberId: string;
   publicName: string;
+  avatar: MemberAvatar | null;
   invitedAt: string;
 }
 
@@ -121,6 +124,7 @@ export interface ApiGroupMember {
   id: string;
   memberId: string;
   publicName: string;
+  avatar: MemberAvatar | null;
   role: GroupRole;
   status: GroupMemberStatus;
   joinedAt: string;
@@ -165,6 +169,10 @@ interface GroupMemberRow {
   id: string;
   member_id: string;
   public_name: string | null;
+  avatar_image_url: string | null;
+  avatar_x: number | string | null;
+  avatar_position: number | string | null;
+  avatar_zoom: number | string | null;
   role: GroupRole;
   status: GroupMemberStatus;
   joined_at: Date;
@@ -208,6 +216,7 @@ function mapGroupMemberRow(row: GroupMemberRow): ApiGroupMember {
     id: row.id,
     memberId: row.member_id,
     publicName: row.public_name ?? "RiverLaunch member",
+    avatar: buildMemberAvatar(row),
     role: row.role,
     status: row.status,
     joinedAt: row.joined_at.toISOString(),
@@ -448,7 +457,9 @@ export async function getGroupForMember(
   // Only active members are listed by identity — pending invites are count-only
   // (GINV-B1) and join requests surface via the manager-only pending endpoint.
   const members = await client.query<GroupMemberRow>(
-    `SELECT gm.id, gm.member_id, m.public_name, gm.role, gm.status, gm.joined_at
+    `SELECT gm.id, gm.member_id, m.public_name,
+       m.avatar_image_url, m.avatar_x, m.avatar_position, m.avatar_zoom,
+       gm.role, gm.status, gm.joined_at
      FROM group_members gm
      JOIN members m ON m.id = gm.member_id
      WHERE gm.group_id = $1 AND gm.status = 'active'
@@ -949,39 +960,39 @@ export async function listPending(
   groupId: string,
 ): Promise<ApiGroupPending> {
   await requireGroupRole(actingMemberId, groupId, MEMBER_MANAGER_ROLES);
-  const requests = await pool.query<{
+  interface PendingRow {
     member_id: string;
     public_name: string | null;
+    avatar_image_url: string | null;
+    avatar_x: number | string | null;
+    avatar_position: number | string | null;
+    avatar_zoom: number | string | null;
     updated_at: Date;
-  }>(
-    `SELECT gm.member_id, m.public_name, gm.updated_at
-     FROM group_members gm
-     JOIN members m ON m.id = gm.member_id
-     WHERE gm.group_id = $1 AND gm.status = 'requested'
-     ORDER BY gm.updated_at ASC`,
-    [groupId],
-  );
-  const invited = await pool.query<{
-    member_id: string;
-    public_name: string | null;
-    updated_at: Date;
-  }>(
-    `SELECT gm.member_id, m.public_name, gm.updated_at
-     FROM group_members gm
-     JOIN members m ON m.id = gm.member_id
-     WHERE gm.group_id = $1 AND gm.status = 'invited'
-     ORDER BY gm.updated_at ASC`,
-    [groupId],
-  );
+  }
+  const pendingSelect = (status: "requested" | "invited") =>
+    pool.query<PendingRow>(
+      `SELECT gm.member_id, m.public_name,
+         m.avatar_image_url, m.avatar_x, m.avatar_position, m.avatar_zoom,
+         gm.updated_at
+       FROM group_members gm
+       JOIN members m ON m.id = gm.member_id
+       WHERE gm.group_id = $1 AND gm.status = $2
+       ORDER BY gm.updated_at ASC`,
+      [groupId, status],
+    );
+  const requests = await pendingSelect("requested");
+  const invited = await pendingSelect("invited");
   const invites = invited.rows.map((row) => ({
     memberId: row.member_id,
     publicName: row.public_name ?? "RiverLaunch member",
+    avatar: buildMemberAvatar(row),
     invitedAt: row.updated_at.toISOString(),
   }));
   return {
     requests: requests.rows.map((row) => ({
       memberId: row.member_id,
       publicName: row.public_name ?? "RiverLaunch member",
+      avatar: buildMemberAvatar(row),
       requestedAt: row.updated_at.toISOString(),
     })),
     invites,
