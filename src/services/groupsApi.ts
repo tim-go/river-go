@@ -24,7 +24,7 @@ async function authedFetch<T>(
 ): Promise<T> {
   const authToken = await getCurrentUserIdToken();
   if (!authToken && !allowAnonymous) {
-    throw new Error("Sign in to use groups.");
+    throw new Error("Sign in to use clubs.");
   }
 
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
@@ -75,12 +75,12 @@ export interface SessionDraft {
 // --- Groups ---
 
 export async function fetchGroups(): Promise<Group[]> {
-  const result = await authedFetch<{ groups?: Group[] }>("/api/me/groups");
+  const result = await authedFetch<{ groups?: Group[] }>("/api/me/clubs");
   return result.groups ?? [];
 }
 
 export async function createGroup(draft: GroupDraft): Promise<Group> {
-  const result = await authedFetch<{ group: Group }>("/api/me/groups", {
+  const result = await authedFetch<{ group: Group }>("/api/me/clubs", {
     method: "POST",
     body: JSON.stringify(draft),
   });
@@ -92,7 +92,7 @@ export async function fetchGroup(idOrHandle: string): Promise<GroupView> {
   const result = await authedFetch<{
     group: GroupView["group"];
     access: GroupView["access"];
-  }>(`/api/groups/${encodeURIComponent(idOrHandle)}`, {}, true);
+  }>(`/api/clubs/${encodeURIComponent(idOrHandle)}`, {}, true);
   return { access: result.access, group: result.group } as GroupView;
 }
 
@@ -101,7 +101,7 @@ export async function inviteByEmail(
   groupId: string,
   email: string,
 ): Promise<void> {
-  await authedFetch(`/api/groups/${encodeURIComponent(groupId)}/invites`, {
+  await authedFetch(`/api/clubs/${encodeURIComponent(groupId)}/invites`, {
     method: "POST",
     body: JSON.stringify({ email }),
   });
@@ -113,7 +113,7 @@ export async function cancelInviteOrWithdraw(
   memberId: string,
 ): Promise<void> {
   await authedFetch(
-    `/api/groups/${encodeURIComponent(groupId)}/invites/${encodeURIComponent(
+    `/api/clubs/${encodeURIComponent(groupId)}/invites/${encodeURIComponent(
       memberId,
     )}`,
     { method: "DELETE" },
@@ -121,7 +121,7 @@ export async function cancelInviteOrWithdraw(
 }
 
 export async function requestToJoin(groupId: string): Promise<void> {
-  await authedFetch(`/api/groups/${encodeURIComponent(groupId)}/requests`, {
+  await authedFetch(`/api/clubs/${encodeURIComponent(groupId)}/requests`, {
     method: "POST",
   });
 }
@@ -132,7 +132,7 @@ export async function respondToRequest(
   approve: boolean,
 ): Promise<void> {
   await authedFetch(
-    `/api/groups/${encodeURIComponent(groupId)}/requests/${encodeURIComponent(
+    `/api/clubs/${encodeURIComponent(groupId)}/requests/${encodeURIComponent(
       memberId,
     )}`,
     { method: "POST", body: JSON.stringify({ approve }) },
@@ -141,7 +141,7 @@ export async function respondToRequest(
 
 export async function fetchPending(groupId: string): Promise<GroupPending> {
   const result = await authedFetch<{ pending: GroupPending }>(
-    `/api/groups/${encodeURIComponent(groupId)}/pending`,
+    `/api/clubs/${encodeURIComponent(groupId)}/pending`,
   );
   return result.pending;
 }
@@ -151,7 +151,7 @@ export async function removeMember(
   memberId: string,
 ): Promise<void> {
   await authedFetch(
-    `/api/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(
+    `/api/clubs/${encodeURIComponent(groupId)}/members/${encodeURIComponent(
       memberId,
     )}`,
     { method: "DELETE" },
@@ -164,7 +164,7 @@ export async function setMemberRole(
   role: GroupRole,
 ): Promise<void> {
   await authedFetch(
-    `/api/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(
+    `/api/clubs/${encodeURIComponent(groupId)}/members/${encodeURIComponent(
       memberId,
     )}`,
     { method: "PATCH", body: JSON.stringify({ role }) },
@@ -176,7 +176,7 @@ export async function transferOwnership(
   memberId: string,
 ): Promise<void> {
   await authedFetch(
-    `/api/groups/${encodeURIComponent(groupId)}/transfer-ownership`,
+    `/api/clubs/${encodeURIComponent(groupId)}/transfer-ownership`,
     { method: "POST", body: JSON.stringify({ memberId }) },
   );
 }
@@ -199,7 +199,7 @@ export async function updateGroupSettings(
   patch: GroupSettingsPatch,
 ): Promise<GroupDetail> {
   const result = await authedFetch<{ group: GroupDetail }>(
-    `/api/groups/${encodeURIComponent(groupId)}`,
+    `/api/clubs/${encodeURIComponent(groupId)}`,
     { method: "PATCH", body: JSON.stringify(patch) },
   );
   return result.group;
@@ -210,13 +210,13 @@ export async function respondToGroupInvite(
   accept: boolean,
 ): Promise<void> {
   await authedFetch(
-    `/api/groups/${encodeURIComponent(groupId)}/invite-response`,
+    `/api/clubs/${encodeURIComponent(groupId)}/invite-response`,
     { method: "POST", body: JSON.stringify({ accept }) },
   );
 }
 
 export async function leaveGroup(groupId: string): Promise<void> {
-  await authedFetch(`/api/groups/${encodeURIComponent(groupId)}/leave`, {
+  await authedFetch(`/api/clubs/${encodeURIComponent(groupId)}/leave`, {
     method: "POST",
   });
 }

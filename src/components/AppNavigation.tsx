@@ -21,7 +21,7 @@ const appNavItems: Array<{
   { id: "map", label: "Map", icon: MapIcon },
   { id: "discover", label: "Discover", icon: Compass },
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "groups", label: "Groups", icon: UsersRound },
+  { id: "groups", label: "Clubs", icon: UsersRound },
   { id: "profile", label: "Profile", icon: UserRound },
   { id: "more", label: "More", icon: MoreHorizontal },
 ];

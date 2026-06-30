@@ -23,7 +23,7 @@ const ROLE_OPTIONS: { value: GroupRole; description: string }[] = [
   },
   {
     value: "member",
-    description: "Views the group, RSVPs to meetups, and shares the group link.",
+    description: "Views the club, RSVPs to meetups, and shares the club link.",
   },
 ];
 

@@ -17,7 +17,7 @@ export async function sendGroupInviteEmail(input: {
   inviterName?: string | null;
 }): Promise<TransactionalEmailDelivery> {
   const base = getAppBaseUrl();
-  const path = `/group/${encodeURIComponent(input.groupHandleOrId)}`;
+  const path = `/club/${encodeURIComponent(input.groupHandleOrId)}`;
   const inviteUrl = base ? new URL(path, base).toString() : path;
 
   const template = buildGroupInviteEmail({
