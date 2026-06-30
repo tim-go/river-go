@@ -1,6 +1,7 @@
 import type { PoolClient } from "pg";
 import { pool } from "./db.js";
 import { HttpError } from "./http.js";
+import { sendGroupInviteEmail } from "./email/group-emails.js";
 
 export type GroupKind = "club" | "subgroup" | "friends" | "trip";
 export type GroupVisibility = "private" | "members" | "public";
@@ -501,6 +502,30 @@ export async function inviteMemberByEmail(
         target.id,
         "invite",
       );
+      // Best-effort invite email to the (registered) invitee. Fire-and-forget so
+      // the neutral response is neither delayed nor affected by delivery, and we
+      // never email unregistered addresses (we only get here for a real member).
+      const info = await pool.query<{
+        name: string;
+        handle: string | null;
+        inviter: string | null;
+      }>(
+        `SELECT g.name, g.handle, m.public_name AS inviter
+         FROM groups g LEFT JOIN members m ON m.id = $2
+         WHERE g.id = $1`,
+        [groupId, actingMemberId],
+      );
+      const details = info.rows[0];
+      if (details) {
+        void sendGroupInviteEmail({
+          toEmail: normalised,
+          groupName: details.name,
+          groupHandleOrId: details.handle ?? groupId,
+          inviterName: details.inviter,
+        }).catch(() => {
+          /* delivery is best-effort; the invite itself already succeeded */
+        });
+      }
     }
   }
   // Always the same response, whether or not the email resolved.
