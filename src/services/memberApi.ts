@@ -18,6 +18,10 @@ export interface MemberProfile {
   publicName: string | null;
   publicNameStatus: string;
   photoUrl: string | null;
+  avatarImageUrl: string | null;
+  avatarX: number;
+  avatarPosition: number;
+  avatarZoom: number;
   role: MemberRole;
   trustLevel: MemberTrustLevel;
   createdAt: string;
@@ -55,6 +59,19 @@ export async function updateMyProfile(input: {
   publicName: string;
 }): Promise<MemberProfile> {
   return fetchMemberEndpoint<{ member: MemberProfile }>("/api/me/profile", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  }).then((result) => result.member);
+}
+
+/** Save (or clear, with imageUrl: null) the member's profile picture + framing. */
+export async function updateMyAvatar(input: {
+  imageUrl: string | null;
+  x?: number;
+  position?: number;
+  zoom?: number;
+}): Promise<MemberProfile> {
+  return fetchMemberEndpoint<{ member: MemberProfile }>("/api/me/avatar", {
     method: "PATCH",
     body: JSON.stringify(input),
   }).then((result) => result.member);

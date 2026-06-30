@@ -50,6 +50,7 @@ import {
   canPublishDirectly,
   isMemberTrustLevel,
   updateMemberProfile,
+  updateMemberAvatar,
   requireAdmin,
   requireContributorIdentity,
   requireModerator,
@@ -223,6 +224,27 @@ async function route(
     }
 
     const updatedMember = await updateMemberProfile(member.id, body.publicName);
+    return { status: 200, body: { member: updatedMember } };
+  }
+
+  if (method === "PATCH" && url.pathname === "/api/me/avatar") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+
+    if (!isRecord(body)) {
+      throw new HttpError(400, "Invalid avatar payload.");
+    }
+    const imageUrl =
+      typeof body.imageUrl === "string" && body.imageUrl ? body.imageUrl : null;
+    const num = (value: unknown): number | undefined =>
+      typeof value === "number" ? value : undefined;
+
+    const updatedMember = await updateMemberAvatar(member.id, {
+      imageUrl,
+      x: num(body.x),
+      position: num(body.position),
+      zoom: num(body.zoom),
+    });
     return { status: 200, body: { member: updatedMember } };
   }
 

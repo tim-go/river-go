@@ -6079,8 +6079,106 @@ input[type="file"]::file-selector-button:hover {
   flex: 0 0 auto;
 }
 
+/* Avatar + name/role group on the left of a member/participant row. */
+.group-member-row__person,
+.participant-row__person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .group-member-row small {
   text-transform: capitalize;
+}
+
+/* ---- Member avatar (circle headshot) ---- */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface-strong, #dfe7e4);
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+.avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.avatar__initials {
+  color: var(--muted);
+}
+
+/* ---- Account profile-picture editor ---- */
+.avatar-editor {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.avatar-editor__view {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.avatar-editor__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* The framing circle — drag to pan, the slider zooms. */
+.avatar-editor__frame {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface-strong, #dfe7e4);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.avatar-editor__frame--dragging {
+  cursor: grabbing;
+}
+.avatar-editor__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.avatar-editor__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.avatar-editor__zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.avatar-editor__zoom input {
+  width: 180px;
+}
+.avatar-editor__actions {
+  display: flex;
+  gap: 8px;
+}
+.ghost-button--danger {
+  color: var(--danger);
+}
+/* On Surge the ghost-button surface is dark navy, where the default dark red
+   (#b42318) barely reads — use a lighter coral that contrasts. */
+[data-theme="surge"] .ghost-button--danger {
+  color: #ff8a80;
 }
 
 /* Invite link row: icon + full URL (truncated) + copy/edit, no full-width input. */

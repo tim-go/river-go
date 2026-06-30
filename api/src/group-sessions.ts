@@ -11,6 +11,7 @@ import {
   type ParticipantCapabilities,
   computeSessionCoverage,
 } from "./session-coverage.js";
+import { buildMemberAvatar, type MemberAvatar } from "./members.js";
 
 export type SessionStatus = "planned" | "active" | "completed" | "cancelled";
 export type Rsvp = "invited" | "yes" | "no" | "maybe";
@@ -55,6 +56,7 @@ export interface ApiSessionParticipant {
   id: string;
   memberId: string;
   publicName: string;
+  avatar: MemberAvatar | null;
   rsvp: Rsvp;
   availabilityNote: string | null;
   checkedInAt: string | null;
@@ -117,6 +119,10 @@ interface ParticipantRow {
   id: string;
   member_id: string;
   public_name: string | null;
+  avatar_image_url: string | null;
+  avatar_x: number | string | null;
+  avatar_position: number | string | null;
+  avatar_zoom: number | string | null;
   rsvp: Rsvp;
   availability_note: string | null;
   checked_in_at: Date | null;
@@ -184,6 +190,7 @@ function mapParticipantRow(row: ParticipantRow): ApiSessionParticipant {
     id: row.id,
     memberId: row.member_id,
     publicName: row.public_name ?? "RiverLaunch member",
+    avatar: buildMemberAvatar(row),
     rsvp: row.rsvp,
     availabilityNote: row.availability_note,
     checkedInAt: isoOrNull(row.checked_in_at),
@@ -381,7 +388,9 @@ export async function getSessionForMember(
       emergency_contact_relationship: string | null;
     }
   >(
-    `SELECT sp.id, sp.member_id, m.public_name, sp.rsvp, sp.availability_note,
+    `SELECT sp.id, sp.member_id, m.public_name,
+            m.avatar_image_url, m.avatar_x, m.avatar_position, m.avatar_zoom,
+            sp.rsvp, sp.availability_note,
             sp.checked_in_at, sp.checked_out_at, sp.checked_in_by, sp.ice_consent,
             ${
               iceVisible

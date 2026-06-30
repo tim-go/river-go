@@ -440,15 +440,25 @@ export interface GroupPublic {
   myStatus: GroupMemberStatus | null;
 }
 
+/** A member's profile picture as shown to others, with circle framing. */
+export interface MemberAvatar {
+  imageUrl: string;
+  x: number;
+  position: number;
+  zoom: number;
+}
+
 export interface GroupJoinRequest {
   memberId: string;
   publicName: string;
+  avatar: MemberAvatar | null;
   requestedAt: string;
 }
 
 export interface GroupInvitedMember {
   memberId: string;
   publicName: string;
+  avatar: MemberAvatar | null;
   invitedAt: string;
 }
 
@@ -462,6 +472,7 @@ export interface GroupMember {
   id: string;
   memberId: string;
   publicName: string;
+  avatar: MemberAvatar | null;
   role: GroupRole;
   status: GroupMemberStatus;
   joinedAt: string;
@@ -505,6 +516,7 @@ export interface SessionParticipant {
   id: string;
   memberId: string;
   publicName: string;
+  avatar: MemberAvatar | null;
   rsvp: Rsvp;
   availabilityNote: string | null;
   checkedInAt: string | null;

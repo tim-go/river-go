@@ -7,6 +7,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import type { Rsvp, SessionDetail } from "../types";
+import { Avatar } from "./Avatar";
 import {
   fetchSession,
   setSessionCheckIn,
@@ -257,27 +258,36 @@ export function SessionDetailPanel({
         <ul className="participant-list">
           {session.participants.map((participant) => (
             <li key={participant.id} className="participant-row">
-              <span>
-                <strong>{participant.publicName}</strong>
-                <small>
-                  {participant.rsvp}
-                  {participant.checkedInAt && !participant.checkedOutAt
-                    ? " · checked in"
-                    : ""}
-                  {participant.availabilityNote
-                    ? ` · ${participant.availabilityNote}`
-                    : ""}
-                </small>
-                {session.iceVisible && participant.ice ? (
-                  <small className="participant-ice">
-                    <ShieldAlert size={12} /> ICE:{" "}
-                    {participant.ice.name ?? "—"}
-                    {participant.ice.phone ? ` · ${participant.ice.phone}` : ""}
-                    {participant.ice.relationship
-                      ? ` (${participant.ice.relationship})`
+              <span className="participant-row__person">
+                <Avatar
+                  name={participant.publicName}
+                  avatar={participant.avatar}
+                  size={36}
+                />
+                <span>
+                  <strong>{participant.publicName}</strong>
+                  <small>
+                    {participant.rsvp}
+                    {participant.checkedInAt && !participant.checkedOutAt
+                      ? " · checked in"
+                      : ""}
+                    {participant.availabilityNote
+                      ? ` · ${participant.availabilityNote}`
                       : ""}
                   </small>
-                ) : null}
+                  {session.iceVisible && participant.ice ? (
+                    <small className="participant-ice">
+                      <ShieldAlert size={12} /> ICE:{" "}
+                      {participant.ice.name ?? "—"}
+                      {participant.ice.phone
+                        ? ` · ${participant.ice.phone}`
+                        : ""}
+                      {participant.ice.relationship
+                        ? ` (${participant.ice.relationship})`
+                        : ""}
+                    </small>
+                  ) : null}
+                </span>
               </span>
               {canManage ? (
                 <button

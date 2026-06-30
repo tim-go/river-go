@@ -8,10 +8,13 @@ import {
   type ReactNode,
 } from "react";
 import {
+  Camera,
   Check,
   Copy,
+  Crop,
   LogOut,
   Plus,
+  Trash2,
   UserPlus,
   UsersRound,
   X,
@@ -49,6 +52,7 @@ import { uploadGroupCover } from "../services/groupCoverUpload";
 import { ChangeRoleDialog } from "./ChangeRoleDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { SessionDetailPanel } from "./SessionDetailPanel";
+import { Avatar } from "./Avatar";
 import { EntityPage, type EntityTab } from "./EntityPage";
 
 interface GroupsPanelProps {
@@ -665,9 +669,12 @@ export function GroupsPanel({
 
   const renderMemberRow = (member: GroupMember, withControls = false) => (
     <li key={member.id} className="group-member-row">
-      <span>
-        <strong>{member.publicName}</strong>
-        <small>{GROUP_ROLE_LABELS[member.role]}</small>
+      <span className="group-member-row__person">
+        <Avatar name={member.publicName} avatar={member.avatar} size={36} />
+        <span>
+          <strong>{member.publicName}</strong>
+          <small>{GROUP_ROLE_LABELS[member.role]}</small>
+        </span>
       </span>
       {gd && withControls && canManage && member.role !== "owner" ? (
         <span className="group-member-row__actions">
@@ -743,9 +750,16 @@ export function GroupsPanel({
         <ul className="group-member-list">
           {pending.requests.map((request) => (
             <li key={request.memberId} className="group-member-row">
-              <span>
-                <strong>{request.publicName}</strong>
-                <small>wants to join</small>
+              <span className="group-member-row__person">
+                <Avatar
+                  name={request.publicName}
+                  avatar={request.avatar}
+                  size={36}
+                />
+                <span>
+                  <strong>{request.publicName}</strong>
+                  <small>wants to join</small>
+                </span>
               </span>
               <span className="group-member-row__actions">
                 <button
@@ -786,9 +800,16 @@ export function GroupsPanel({
         <ul className="group-member-list">
           {pending.invites.map((invite) => (
             <li key={invite.memberId} className="group-member-row">
-              <span>
-                <strong>{invite.publicName}</strong>
-                <small>invited · not yet accepted</small>
+              <span className="group-member-row__person">
+                <Avatar
+                  name={invite.publicName}
+                  avatar={invite.avatar}
+                  size={36}
+                />
+                <span>
+                  <strong>{invite.publicName}</strong>
+                  <small>invited · not yet accepted</small>
+                </span>
               </span>
               <span className="group-member-row__actions">
                 <button
@@ -1078,14 +1099,7 @@ export function GroupsPanel({
           </button>
         </div>
         <ul className="group-member-list">
-          {gd.members.slice(0, 5).map((member) => (
-            <li key={member.id} className="group-member-row">
-              <span>
-                <strong>{member.publicName}</strong>
-                <small>{GROUP_ROLE_LABELS[member.role]}</small>
-              </span>
-            </li>
-          ))}
+          {gd.members.slice(0, 5).map((member) => renderMemberRow(member))}
         </ul>
       </div>
       {canManageMembers &&
@@ -1231,11 +1245,12 @@ export function GroupsPanel({
                   disabled={coverUploading}
                   onClick={() => coverFileRef.current?.click()}
                 >
+                  <Camera size={15} />{" "}
                   {coverUploading
                     ? "Uploading…"
                     : gd.coverImageUrl
-                      ? "Replace photo"
-                      : "Add cover photo"}
+                      ? "Change picture"
+                      : "Add picture"}
                 </button>
                 {gd.coverImageUrl ? (
                   <>
@@ -1244,18 +1259,18 @@ export function GroupsPanel({
                       className="ghost-button ghost-button--compact"
                       onClick={() => setCoverEditMode(true)}
                     >
-                      Edit
+                      <Crop size={15} /> Reframe
                     </button>
                     <button
                       type="button"
-                      className="ghost-button ghost-button--compact"
+                      className="ghost-button ghost-button--compact ghost-button--danger"
                       onClick={() =>
                         setConfirmDialog({
                           eyebrow: "Remove cover photo",
                           title: "Remove the cover photo?",
                           body: (
                             <p>
-                              The group will show no cover banner until you add a
+                              The club will show no cover banner until you add a
                               new one.
                             </p>
                           ),
@@ -1264,7 +1279,7 @@ export function GroupsPanel({
                         })
                       }
                     >
-                      Remove
+                      <Trash2 size={15} /> Remove
                     </button>
                   </>
                 ) : null}
