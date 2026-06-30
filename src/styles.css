@@ -1637,16 +1637,17 @@ button.group-detail__section {
   gap: 8px;
 }
 
-/* Sign out stands out as a clear, slightly destructive action. */
+/* Sign out is a calm, reversible action — the brand accent (blue in Surge),
+   not an alarming red. */
 .profile-action--signout {
-  border-color: var(--danger);
+  border-color: var(--river);
   background: transparent;
-  color: var(--danger);
+  color: var(--river);
 }
 
 .profile-action--signout:hover {
-  border-color: var(--danger);
-  background: var(--danger);
+  border-color: var(--river);
+  background: var(--river);
   color: #fff;
 }
 
@@ -5784,6 +5785,19 @@ input[type="file"]::file-selector-button:hover {
   gap: 8px;
 }
 
+/* Roster grouped by role tier (Owners & organisers / Leaders / Members). */
+.group-member-tier + .group-member-tier {
+  margin-top: 14px;
+}
+.group-member-tier h4 {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
 .group-row,
 .session-row {
   display: flex;
@@ -5949,9 +5963,11 @@ input[type="file"]::file-selector-button:hover {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 14px;
-  border: 1px solid #e7b561;
+  /* Informational "you've been invited" prompt — a blue info tone (not amber). */
+  border: 1px solid #b9d2f0;
   border-radius: 10px;
-  background: #fbf4e7;
+  background: #eef5fd;
+  color: var(--ink);
   font-size: 0.84rem;
 }
 
@@ -6364,8 +6380,8 @@ input[type="file"]::file-selector-button:hover {
   background: rgba(30, 42, 84, 0.72);
 }
 [data-theme="surge"] .group-invite-banner {
-  border-color: rgba(255, 196, 60, 0.42);
-  background: rgba(255, 196, 60, 0.12);
+  border-color: rgba(106, 160, 255, 0.4);
+  background: rgba(106, 160, 255, 0.14);
   color: var(--ink);
 }
 [data-theme="surge"] .status-chip--planned {
@@ -6982,6 +6998,15 @@ input[type="file"]::file-selector-button:hover {
 }
 [data-theme="surge"] .app-notification button:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* default / success (green) — the base notification had no dark variant, so it
+   rendered light-text-on-light. The --error / --info rules below override this
+   for their tones. */
+[data-theme="surge"] .app-notification {
+  border-color: rgba(40, 194, 160, 0.4);
+  background: rgba(18, 42, 36, 0.97);
+  color: #9fe9d4;
 }
 
 /* danger / error (red) */

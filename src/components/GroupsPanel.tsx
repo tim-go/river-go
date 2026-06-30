@@ -955,9 +955,28 @@ export function GroupsPanel({
           />
         </div>
         {filteredMembers.length ? (
-          <ul className="group-member-list">
-            {visibleMembers.map(renderMemberRow)}
-          </ul>
+          (
+            [
+              {
+                title: "Owners & organisers",
+                roles: ["owner", "organiser"] as GroupRole[],
+              },
+              { title: "Leaders", roles: ["leader"] as GroupRole[] },
+              { title: "Members", roles: ["member"] as GroupRole[] },
+            ] as const
+          ).map((tier) => {
+            const tierMembers = visibleMembers.filter((m) =>
+              tier.roles.includes(m.role),
+            );
+            return tierMembers.length ? (
+              <div key={tier.title} className="group-member-tier">
+                <h4>{tier.title}</h4>
+                <ul className="group-member-list">
+                  {tierMembers.map(renderMemberRow)}
+                </ul>
+              </div>
+            ) : null;
+          })
         ) : (
           <p className="empty-state">No members match “{memberQuery}”.</p>
         )}
