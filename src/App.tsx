@@ -310,17 +310,18 @@ import {
 // while rejecting a photo dropped on a different river than the one focused.
 const NEAREST_POI_ATTACH_METERS = 1000;
 
-// A group is a first-class, addressable entity: /g/<handle-or-id>. This is the
+// A club is a first-class, addressable entity: /club/<handle-or-id>. This is the
 // only routed entity for now (paddler profiles, /p/<handle>, will follow the
 // same shape). Everything else is the section-based nav.
 function parseGroupRoute(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
-  // /group/ is the canonical (displayed) form; /g/ and /groups/ are accepted
-  // aliases.
+  // /club/ is the canonical (displayed) form. /c/ and /clubs/ are accepted
+  // aliases, as are the legacy /group, /g and /groups (older shared/invite
+  // links must keep resolving).
   const match = window.location.pathname.match(
-    /^\/(?:g|group|groups)\/([^/]+)\/?$/,
+    /^\/(?:c|club|clubs|g|group|groups)\/([^/]+)\/?$/,
   );
   return match ? decodeURIComponent(match[1]) : null;
 }
@@ -333,14 +334,14 @@ function App() {
   const [groupRoute, setGroupRoute] = useState<string | null>(() =>
     parseGroupRoute(),
   );
-  // Open a group entity page by handle or id (pushes /g/<token>); null returns
-  // to the section view. Clicking a nav section leaves any open group.
+  // Open a club entity page by handle or id (pushes /club/<token>); null returns
+  // to the section view. Clicking a nav section leaves any open club.
   const openGroup = (idOrHandle: string | null) => {
     if (idOrHandle) {
       window.history.pushState(
         {},
         "",
-        `/group/${encodeURIComponent(idOrHandle)}`,
+        `/club/${encodeURIComponent(idOrHandle)}`,
       );
       setGroupRoute(idOrHandle);
       setActiveAppSection("groups");
@@ -6315,10 +6316,10 @@ function App() {
               </div>
             </PlaceholderPage>
           ) : activeAppSection === "groups" ? (
-            <PlaceholderPage section="groups" title="Groups" wide>
+            <PlaceholderPage section="groups" title="Clubs" wide>
               {!isSignedIn && !groupRoute ? (
                 <SignedOutNotice
-                  message="Sign in to create and join paddling groups."
+                  message="Sign in to create and join paddling clubs."
                   onSignIn={handleSignIn}
                 />
               ) : (
@@ -6682,7 +6683,7 @@ function App() {
                           <h3>Create account to manage emergency contact</h3>
                           <p>
                             Emergency contact details are private account data for
-                            future group meetups.
+                            future club meetups.
                           </p>
                         </div>
                         <button
@@ -6700,7 +6701,7 @@ function App() {
                         <div className="block-title">
                           <div>
                             <h3>Emergency contact</h3>
-                            <span>Private ICE details for future group meetups</span>
+                            <span>Private ICE details for future club meetups</span>
                           </div>
                           <span className="status-chip">
                             {emergencyProfile?.visibilityDefault ?? "private"}
@@ -6752,7 +6753,7 @@ function App() {
                             </div>
                             <p className="source-note">
                               Stored privately. Do not enter medical information
-                              here. In future group meetups you will choose
+                              here. In future club meetups you will choose
                               whether to share this emergency contact with the
                               organiser.
                             </p>
@@ -7125,8 +7126,8 @@ function App() {
                   onClick={() => navigateSection("groups")}
                 >
                   <span>
-                    <strong>Groups</strong>
-                    <small>Clubs, friends, and planned meetups</small>
+                    <strong>Clubs</strong>
+                    <small>Your clubs and friends, and planned meetups</small>
                   </span>
                   <UsersRound size={18} />
                 </button>

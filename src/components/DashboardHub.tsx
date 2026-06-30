@@ -87,7 +87,7 @@ export function DashboardHub({
             className="dashboard-section__link"
             onClick={onOpenGroups}
           >
-            Groups <ChevronRight size={14} />
+            Clubs <ChevronRight size={14} />
           </button>
         </header>
         {upcomingSessions.length ? (
@@ -106,7 +106,7 @@ export function DashboardHub({
           <p className="dashboard-section__empty">
             {groups.length
               ? "No upcoming meetups planned."
-              : "Join a group to plan paddles together."}
+              : "Join a club to plan paddles together."}
           </p>
         )}
       </section>

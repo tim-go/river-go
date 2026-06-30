@@ -197,7 +197,7 @@ export function GroupsPanel({
       setGroups(loadedGroups);
       setSessions(loadedSessions);
     } catch (loadError) {
-      setError(errorMessage(loadError, "Could not load your groups."));
+      setError(errorMessage(loadError, "Could not load your clubs."));
     } finally {
       setIsLoading(false);
     }
@@ -241,7 +241,7 @@ export function GroupsPanel({
       })
       .catch((detailError) => {
         if (active) {
-          setError(errorMessage(detailError, "Could not load that group."));
+          setError(errorMessage(detailError, "Could not load that club."));
         }
       });
     return () => {
@@ -322,7 +322,7 @@ export function GroupsPanel({
       await loadGroups();
       onOpenGroup(created.handle ?? created.id);
     } catch (createError) {
-      setError(errorMessage(createError, "Could not create the group."));
+      setError(errorMessage(createError, "Could not create the club."));
     }
   }
 
@@ -399,7 +399,7 @@ export function GroupsPanel({
         description: descriptionDraft.trim() || null,
       });
       setGroupDetail(updated);
-    }, "Could not save the group details.");
+    }, "Could not save the club details.");
   }
 
   async function handleCoverUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -511,8 +511,8 @@ export function GroupsPanel({
         <>
           <p>
             {member.publicName} will become the owner of “
-            {gd?.name ?? "this group"}” with full control — including removing
-            members, changing settings, or deleting the group.
+            {gd?.name ?? "this club"}” with full control — including removing
+            members, changing settings, or deleting the club.
           </p>
           <p>
             You'll be demoted to organiser, and only the new owner can transfer
@@ -555,7 +555,7 @@ export function GroupsPanel({
       onOpenGroup(null);
       await loadGroups();
     } catch (leaveError) {
-      setError(errorMessage(leaveError, "Could not leave the group."));
+      setError(errorMessage(leaveError, "Could not leave the club."));
     }
   }
 
@@ -599,8 +599,8 @@ export function GroupsPanel({
           <div>
             <h3>Plan paddles with your people</h3>
             <p>
-              Sign in to create clubs and friend groups, plan meetups, share
-              meeting points, and coordinate who is coming.
+              Sign in to create clubs for your team or friends, plan meetups,
+              share meeting points, and coordinate who is coming.
             </p>
           </div>
         </div>
@@ -712,7 +712,7 @@ export function GroupsPanel({
   // the Settings tab (see handleEditor) so this stays a compact link + copy.
   const inviteLinkBlock = gd
     ? (() => {
-        const inviteUrl = `${window.location.origin}/group/${gd.handle ?? gd.id}`;
+        const inviteUrl = `${window.location.origin}/club/${gd.handle ?? gd.id}`;
         return (
           <div className="group-invite-link group-invite-link--readonly">
             <code title={inviteUrl}>{inviteUrl}</code>
@@ -1299,7 +1299,7 @@ export function GroupsPanel({
               value={descriptionDraft}
               onChange={(event) => setDescriptionDraft(event.target.value)}
               rows={6}
-              placeholder="What's this group about? Where and when do you paddle?"
+              placeholder="What's this club about? Where and when do you paddle?"
             />
           </label>
           <button
@@ -1315,13 +1315,13 @@ export function GroupsPanel({
         </form>
 
         <div className="group-detail__section">
-          <h3>Group link</h3>
+          <h3>Club link</h3>
           <p className="source-note">
-            The handle used in this group&rsquo;s shareable link.
+            The handle used in this club&rsquo;s shareable link.
           </p>
           {isEditingHandle ? (
             <span className="group-invite-link__edit">
-              <span className="group-invite-link__prefix">/group/</span>
+              <span className="group-invite-link__prefix">/club/</span>
               <input
                 value={handleDraft}
                 onChange={(event) => setHandleDraft(event.target.value)}
@@ -1344,7 +1344,7 @@ export function GroupsPanel({
             </span>
           ) : (
             <span className="group-invite-link__view">
-              <code>/group/{gd.handle ?? gd.id}</code>
+              <code>/club/{gd.handle ?? gd.id}</code>
               <button
                 type="button"
                 className="ghost-button ghost-button--compact"
@@ -1464,7 +1464,7 @@ export function GroupsPanel({
         className="group-detail__section group-aside-card"
         onClick={() => setGroupTab("about")}
       >
-        <h3>About this group</h3>
+        <h3>About this club</h3>
         <p className="group-aside-facts">
           {GROUP_KIND_LABELS[gd.kind]}
           {gd.discipline ? ` · ${gd.discipline}` : ""} · {gd.visibility}
@@ -1472,8 +1472,8 @@ export function GroupsPanel({
       </button>
       {isActiveMember ? (
         <div className="group-detail__section">
-          <h3>Group link</h3>
-          <p className="source-note">Share this to invite people to the group.</p>
+          <h3>Club link</h3>
+          <p className="source-note">Share this to invite people to the club.</p>
           {inviteLinkBlock}
         </div>
       ) : null}
@@ -1489,7 +1489,7 @@ export function GroupsPanel({
         </span>
       </div>
       <div className="group-detail__section">
-        <h3>About this group</h3>
+        <h3>About this club</h3>
         <p className="group-aside-facts">
           {GROUP_KIND_LABELS[publicGroup.kind]}
           {publicGroup.discipline ? ` · ${publicGroup.discipline}` : ""}
@@ -1579,7 +1579,7 @@ export function GroupsPanel({
         >
           {groupDetail.myStatus === "invited" ? (
             <div className="group-invite-banner">
-              <span>You have been invited to this group.</span>
+              <span>You have been invited to this club.</span>
               <span className="group-invite-banner__actions">
                 <button
                   type="button"
@@ -1687,19 +1687,19 @@ export function GroupsPanel({
           )}
         </EntityPage>
         ) : (
-          <p className="empty-state">Loading group…</p>
+          <p className="empty-state">Loading club…</p>
         )
       ) : (
         // "My groups" — the user's list of groups.
         <div className="groups-list-view">
           <div className="groups-panel__head">
-            <h2>My groups</h2>
+            <h2>My clubs</h2>
             <button
               type="button"
               className="primary-action primary-action--compact"
               onClick={() => setIsCreatingGroup((open) => !open)}
             >
-              <Plus size={16} /> {isCreatingGroup ? "Cancel" : "New group"}
+              <Plus size={16} /> {isCreatingGroup ? "Cancel" : "New club"}
             </button>
           </div>
 
@@ -1745,7 +1745,7 @@ export function GroupsPanel({
                 </select>
               </label>
               <button type="submit" className="primary-action">
-                Create group
+                Create club
               </button>
             </form>
           ) : null}
@@ -1830,7 +1830,7 @@ export function GroupsPanel({
             </ul>
           ) : (
             <p className="empty-state">
-              No groups yet. Create one to plan paddles with your club or
+              No clubs yet. Create one to plan paddles with your team or
               friends.
             </p>
           )}

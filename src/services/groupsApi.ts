@@ -24,7 +24,7 @@ async function authedFetch<T>(
 ): Promise<T> {
   const authToken = await getCurrentUserIdToken();
   if (!authToken && !allowAnonymous) {
-    throw new Error("Sign in to use groups.");
+    throw new Error("Sign in to use clubs.");
   }
 
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
