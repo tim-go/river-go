@@ -6,6 +6,7 @@ import {
   fetchMemberSkills,
   updateMemberSkill,
 } from "../services/skillsApi";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const SKILL_CATEGORIES = [
   "Qualification",
@@ -42,6 +43,10 @@ export function SkillsPanel() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
 
   const [category, setCategory] = useState("");
   const [name, setName] = useState("");
@@ -300,7 +305,9 @@ export function SkillsPanel() {
                       <button
                         type="button"
                         className="skill-item__delete"
-                        onClick={() => handleDelete(skill.id)}
+                        onClick={() =>
+                          setConfirmDelete({ id: skill.id, label: skill.name })
+                        }
                       >
                         Remove
                       </button>
@@ -312,6 +319,24 @@ export function SkillsPanel() {
           ))}
         </div>
       )}
+
+      {confirmDelete ? (
+        <ConfirmDialog
+          eyebrow="Remove skill"
+          title={
+            confirmDelete.label
+              ? `Remove “${confirmDelete.label}”?`
+              : "Remove this skill?"
+          }
+          body={<p>This can't be undone.</p>}
+          confirmLabel="Remove"
+          onConfirm={() => {
+            void handleDelete(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      ) : null}
     </section>
   );
 }

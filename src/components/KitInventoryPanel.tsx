@@ -6,6 +6,7 @@ import {
   fetchKitItems,
   updateKitItem,
 } from "../services/kitApi";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const KIT_CATEGORIES = [
   "Boat",
@@ -51,6 +52,10 @@ export function KitInventoryPanel() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
 
   const [category, setCategory] = useState("");
   const [name, setName] = useState("");
@@ -318,7 +323,9 @@ export function KitInventoryPanel() {
                       <button
                         type="button"
                         className="kit-item__delete"
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() =>
+                          setConfirmDelete({ id: item.id, label: item.name })
+                        }
                       >
                         Remove
                       </button>
@@ -330,6 +337,24 @@ export function KitInventoryPanel() {
           ))}
         </div>
       )}
+
+      {confirmDelete ? (
+        <ConfirmDialog
+          eyebrow="Remove kit"
+          title={
+            confirmDelete.label
+              ? `Remove “${confirmDelete.label}”?`
+              : "Remove this kit item?"
+          }
+          body={<p>This can't be undone.</p>}
+          confirmLabel="Remove"
+          onConfirm={() => {
+            void handleDelete(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      ) : null}
     </section>
   );
 }

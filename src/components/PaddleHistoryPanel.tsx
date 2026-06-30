@@ -7,6 +7,7 @@ import {
   fetchPaddleStats,
   updatePaddleLog,
 } from "../services/paddleLogApi";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface RiverOption {
   id: string;
@@ -43,6 +44,10 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
 
   const [riverId, setRiverId] = useState("");
   const [title, setTitle] = useState("");
@@ -357,7 +362,9 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
                 <button
                   type="button"
                   className="paddle-log__delete"
-                  onClick={() => handleDelete(log.id)}
+                  onClick={() =>
+                    setConfirmDelete({ id: log.id, label: log.title })
+                  }
                 >
                   Remove
                 </button>
@@ -366,6 +373,24 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
           ))}
         </ul>
       )}
+
+      {confirmDelete ? (
+        <ConfirmDialog
+          eyebrow="Remove paddle"
+          title={
+            confirmDelete.label
+              ? `Remove “${confirmDelete.label}”?`
+              : "Remove this paddle?"
+          }
+          body={<p>This removes it from your paddle history.</p>}
+          confirmLabel="Remove"
+          onConfirm={() => {
+            void handleDelete(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      ) : null}
     </section>
   );
 }
