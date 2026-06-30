@@ -98,7 +98,7 @@ button:disabled {
   padding: 2px 12px;
   border-bottom: 1px solid #e3d6bd;
   background: #fff7e6;
-  color: #6f3d08;
+  color: #b45309;
   font-size: 0.72rem;
   font-weight: 650;
   line-height: 1.2;
@@ -711,7 +711,7 @@ h1 {
 .sync-banner--offline {
   border-color: #f0d3a7;
   background: #fff8ec;
-  color: #6f3d08;
+  color: #b45309;
 }
 
 .sync-banner__content {
@@ -2178,7 +2178,7 @@ button.group-detail__section {
 
 .confirm-panel p {
   margin-bottom: 0;
-  color: #6f3d08;
+  color: #b45309;
 }
 
 .confirm-panel--modal {
@@ -3769,7 +3769,7 @@ button.group-detail__section {
   border: 1px solid #f5c285;
   border-radius: 8px;
   background: #fff8ec;
-  color: #6f3d08;
+  color: #b45309;
   line-height: 1.42;
 }
 
@@ -6979,7 +6979,7 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .status-chip--needs-confirmation {
   border-color: rgba(255, 196, 60, 0.42);
   background: rgba(255, 196, 60, 0.12);
-  color: #ffd27a;
+  color: #fcd34d;
 }
 
 /* Emergency-contact callout: blue "important info", not an amber warning. */
@@ -6993,7 +6993,7 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .confirm-panel p,
 [data-theme="surge"] .participant-ice,
 [data-theme="surge"] .river-safety-toggle {
-  color: #ffd27a;
+  color: #fcd34d;
 }
 /* Confirm modal must be opaque — the amber notice tint lets the page bleed through. */
 [data-theme="surge"] .confirm-panel--modal {
