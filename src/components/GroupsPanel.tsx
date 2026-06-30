@@ -708,70 +708,33 @@ export function GroupsPanel({
     </li>
   );
 
-  const inviteLinkBlock = gd ? (
-    <div className="group-invite-link">
-      {isEditingHandle ? (
-        <span className="group-invite-link__edit">
-          <span className="group-invite-link__prefix">/g/</span>
-          <input
-            value={handleDraft}
-            onChange={(event) => setHandleDraft(event.target.value)}
-            placeholder="tryweryn-paddlers"
-          />
-          <button
-            type="button"
-            className="primary-action primary-action--compact"
-            onClick={() => void handleSaveHandle()}
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            className="ghost-button ghost-button--compact"
-            onClick={() => setIsEditingHandle(false)}
-          >
-            Cancel
-          </button>
-        </span>
-      ) : (
-        (() => {
-          const inviteUrl = `${window.location.origin}/group/${gd.handle ?? gd.id}`;
-          return (
-            <span className="group-invite-link__view">
-              <code title={inviteUrl}>{inviteUrl}</code>
-              <button
-                type="button"
-                className="ghost-button ghost-button--compact"
-                onClick={() => {
-                  void copyToClipboard(inviteUrl)
-                    .then(() => {
-                      setLinkCopied(true);
-                      window.setTimeout(() => setLinkCopied(false), 1800);
-                    })
-                    .catch(() => setError("Could not copy the link."));
-                }}
-              >
-                {linkCopied ? <Check size={14} /> : <Copy size={14} />}
-                {linkCopied ? "Copied" : "Copy"}
-              </button>
-              {canManage ? (
-                <button
-                  type="button"
-                  className="ghost-button ghost-button--compact"
-                  onClick={() => {
-                    setHandleDraft(gd.handle ?? "");
-                    setIsEditingHandle(true);
-                  }}
-                >
-                  Edit
-                </button>
-              ) : null}
-            </span>
-          );
-        })()
-      )}
-    </div>
-  ) : null;
+  // Read-only invite link for the right gutter. Editing the handle lives in
+  // the Settings tab (see handleEditor) so this stays a compact link + copy.
+  const inviteLinkBlock = gd
+    ? (() => {
+        const inviteUrl = `${window.location.origin}/group/${gd.handle ?? gd.id}`;
+        return (
+          <div className="group-invite-link group-invite-link--readonly">
+            <code title={inviteUrl}>{inviteUrl}</code>
+            <button
+              type="button"
+              className="ghost-button ghost-button--compact"
+              onClick={() => {
+                void copyToClipboard(inviteUrl)
+                  .then(() => {
+                    setLinkCopied(true);
+                    window.setTimeout(() => setLinkCopied(false), 1800);
+                  })
+                  .catch(() => setError("Could not copy the link."));
+              }}
+            >
+              {linkCopied ? <Check size={14} /> : <Copy size={14} />}
+              {linkCopied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        );
+      })()
+    : null;
 
   const requestsSection =
     gd && canManageMembers && pending && pending.requests.length ? (
@@ -1350,6 +1313,51 @@ export function GroupsPanel({
             Save
           </button>
         </form>
+
+        <div className="group-detail__section">
+          <h3>Group link</h3>
+          <p className="source-note">
+            The handle used in this group&rsquo;s shareable link.
+          </p>
+          {isEditingHandle ? (
+            <span className="group-invite-link__edit">
+              <span className="group-invite-link__prefix">/group/</span>
+              <input
+                value={handleDraft}
+                onChange={(event) => setHandleDraft(event.target.value)}
+                placeholder="tryweryn-paddlers"
+              />
+              <button
+                type="button"
+                className="primary-action primary-action--compact"
+                onClick={() => void handleSaveHandle()}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                className="ghost-button ghost-button--compact"
+                onClick={() => setIsEditingHandle(false)}
+              >
+                Cancel
+              </button>
+            </span>
+          ) : (
+            <span className="group-invite-link__view">
+              <code>/group/{gd.handle ?? gd.id}</code>
+              <button
+                type="button"
+                className="ghost-button ghost-button--compact"
+                onClick={() => {
+                  setHandleDraft(gd.handle ?? "");
+                  setIsEditingHandle(true);
+                }}
+              >
+                Edit
+              </button>
+            </span>
+          )}
+        </div>
 
         <div className="group-detail__section">
           <h3>Joining &amp; visibility</h3>

@@ -6050,6 +6050,10 @@ input[type="file"]::file-selector-button:hover {
 
 .group-detail__section {
   display: grid;
+  /* Pin the single column to the available width (floor of 0) so a nowrap
+     child — e.g. the invite-link URL — truncates inside the panel rather than
+     stretching the auto column past it (notably in the narrow 320px gutter). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -6095,6 +6099,28 @@ input[type="file"]::file-selector-button:hover {
 
 .group-invite-link__view code {
   flex: 1 1 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.8rem;
+}
+
+/* Read-only gutter variant: the URL truncates on its own row, copy beneath.
+   Stacking keeps the long link inside the narrow 320px aside column. */
+.group-invite-link--readonly {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.group-invite-link--readonly code {
+  display: block;
+  width: 100%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
