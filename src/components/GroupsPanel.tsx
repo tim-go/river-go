@@ -75,6 +75,12 @@ const GROUP_ROLE_LABELS: Record<GroupRole, string> = {
   member: "Member",
 };
 
+const DISCIPLINE_LABELS: Record<GroupDiscipline, string> = {
+  whitewater: "Whitewater",
+  touring: "Touring",
+  both: "Whitewater & touring",
+};
+
 function errorMessage(value: unknown, fallback: string): string {
   return value instanceof Error ? value.message : fallback;
 }
@@ -1736,33 +1742,79 @@ export function GroupsPanel({
             <p className="empty-state">Loading…</p>
           ) : groups.length ? (
             <ul className="groups-grid">
-              {groups.map((group) => (
-                <li key={group.id}>
-                  <button
-                    type="button"
-                    className="group-row"
-                    onClick={() => {
-                      setSelectedSessionId(null);
-                      onOpenGroup(group.handle ?? group.id);
-                    }}
-                  >
-                    <span>
-                      <strong>{group.name}</strong>
-                      <small>
-                        {GROUP_KIND_LABELS[group.kind]} · {group.memberCount}{" "}
-                        member{group.memberCount === 1 ? "" : "s"}
-                      </small>
-                    </span>
-                    {group.myStatus === "invited" ? (
-                      <span className="status-chip">invited</span>
-                    ) : (
-                      <span className="status-chip status-chip--muted">
-                        {group.myRole}
+              {groups.map((group) => {
+                const nextSession = upcomingSessions.find(
+                  (s) => s.groupId === group.id && !isPastSession(s),
+                );
+                return (
+                  <li key={group.id}>
+                    <button
+                      type="button"
+                      className="group-card"
+                      onClick={() => {
+                        setSelectedSessionId(null);
+                        onOpenGroup(group.handle ?? group.id);
+                      }}
+                    >
+                      <span className="group-card__cover">
+                        {group.coverImageUrl ? (
+                          <img
+                            className="group-card__cover-img"
+                            src={group.coverImageUrl}
+                            alt=""
+                            style={{
+                              objectPosition: `${group.coverX}% ${group.coverPosition}%`,
+                              transformOrigin: `${group.coverX}% ${group.coverPosition}%`,
+                              transform: `scale(${group.coverZoom / 100})`,
+                            }}
+                          />
+                        ) : (
+                          <span className="group-card__cover-empty">
+                            <UsersRound size={26} />
+                          </span>
+                        )}
+                        {group.myStatus === "invited" ? (
+                          <span className="status-chip group-card__chip">
+                            invited
+                          </span>
+                        ) : group.myStatus === "requested" ? (
+                          <span className="status-chip group-card__chip">
+                            request pending
+                          </span>
+                        ) : group.myRole ? (
+                          <span className="status-chip status-chip--muted group-card__chip">
+                            {GROUP_ROLE_LABELS[group.myRole]}
+                          </span>
+                        ) : null}
                       </span>
-                    )}
-                  </button>
-                </li>
-              ))}
+                      <span className="group-card__body">
+                        <strong className="group-card__name">
+                          {group.name}
+                        </strong>
+                        <span className="group-card__meta">
+                          {GROUP_KIND_LABELS[group.kind]}
+                          {group.discipline
+                            ? ` · ${DISCIPLINE_LABELS[group.discipline]}`
+                            : ""}{" "}
+                          · {group.visibility} · {group.memberCount} member
+                          {group.memberCount === 1 ? "" : "s"}
+                        </span>
+                        {group.description ? (
+                          <span className="group-card__desc">
+                            {group.description}
+                          </span>
+                        ) : null}
+                        {nextSession ? (
+                          <span className="group-card__next">
+                            Next: {nextSession.title} ·{" "}
+                            {formatWhen(nextSession.scheduledFor)}
+                          </span>
+                        ) : null}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p className="empty-state">

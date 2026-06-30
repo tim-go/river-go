@@ -1074,8 +1074,94 @@ h1 {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 720px) {
+  .groups-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Rich group tile — a cover banner + name, meta, description, next session. */
+.group-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: inherit;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+.group-card:hover {
+  border-color: var(--river);
+  transform: translateY(-1px);
+}
+.group-card__cover {
+  position: relative;
+  height: 108px;
+  overflow: hidden;
+  background: var(--surface-strong, #e7ecea);
+}
+.group-card__cover-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.group-card__cover-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+  background: linear-gradient(
+    135deg,
+    var(--surface-strong, #e7ecea),
+    var(--surface)
+  );
+}
+.group-card__chip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.group-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px 14px;
+}
+.group-card__name {
+  font-size: 1.02rem;
+  line-height: 1.2;
+}
+.group-card__meta {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.group-card__desc {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.group-card__next {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--river);
 }
 
 /* Detail content split into a primary column + a manage/meta aside. */
