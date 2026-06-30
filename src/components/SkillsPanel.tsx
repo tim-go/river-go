@@ -4,7 +4,9 @@ import {
   createMemberSkill,
   deleteMemberSkill,
   fetchMemberSkills,
+  updateMemberSkill,
 } from "../services/skillsApi";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const SKILL_CATEGORIES = [
   "Qualification",
@@ -40,6 +42,11 @@ export function SkillsPanel() {
   const [error, setError] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
 
   const [category, setCategory] = useState("");
   const [name, setName] = useState("");
@@ -85,6 +92,23 @@ export function SkillsPanel() {
     setExpiresOn("");
   }
 
+  function closeForm() {
+    resetForm();
+    setEditingId(null);
+    setIsFormOpen(false);
+  }
+
+  function startEdit(skill: MemberSkill) {
+    setEditingId(skill.id);
+    setCategory(skill.category);
+    setName(skill.name);
+    setDetail(skill.detail ?? "");
+    setAttainedOn(skill.attainedOn ?? "");
+    setExpiresOn(skill.expiresOn ?? "");
+    setIsFormOpen(true);
+    setError("");
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!category || !name.trim()) {
@@ -94,15 +118,19 @@ export function SkillsPanel() {
     setIsSaving(true);
     setError("");
     try {
-      await createMemberSkill({
+      const draft = {
         category,
         name: name.trim(),
         detail: detail.trim() || null,
         attainedOn: attainedOn || null,
         expiresOn: expiresOn || null,
-      });
-      resetForm();
-      setIsFormOpen(false);
+      };
+      if (editingId) {
+        await updateMemberSkill(editingId, draft);
+      } else {
+        await createMemberSkill(draft);
+      }
+      closeForm();
       await load();
     } catch (saveError) {
       setError(
@@ -139,13 +167,15 @@ export function SkillsPanel() {
             never a claim that you are safe or suitable to lead.
           </p>
         </div>
-        <button
-          type="button"
-          className="skills-panel__add"
-          onClick={() => setIsFormOpen((open) => !open)}
-        >
-          {isFormOpen ? "Cancel" : "Add skill"}
-        </button>
+        {!isFormOpen ? (
+          <button
+            type="button"
+            className="skills-panel__add"
+            onClick={() => setIsFormOpen(true)}
+          >
+            Add skill
+          </button>
+        ) : null}
       </header>
 
       {isFormOpen ? (
@@ -204,19 +234,33 @@ export function SkillsPanel() {
               />
             </label>
           </div>
-          <button
-            type="submit"
-            className="skills-form__submit"
-            disabled={isSaving}
-          >
-            {isSaving ? "Saving…" : "Save skill"}
-          </button>
+          <div className="form-actions">
+            <button
+              type="button"
+              className="skills-panel__add"
+              onClick={closeForm}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="skills-form__submit"
+              disabled={isSaving}
+            >
+              {isSaving
+                ? "Saving…"
+                : editingId
+                  ? "Save changes"
+                  : "Save skill"}
+            </button>
+          </div>
         </form>
       ) : null}
 
       {error ? <p className="skills-panel__error">{error}</p> : null}
 
-      {isLoading ? (
+      {/* While editing, focus on just the edit form — hide the full list. */}
+      {editingId ? null : isLoading ? (
         <p className="skills-panel__empty">Loading…</p>
       ) : skills.length === 0 ? (
         <p className="skills-panel__empty">
@@ -250,13 +294,24 @@ export function SkillsPanel() {
                         ) : null}
                       </div>
                     ) : null}
-                    <button
-                      type="button"
-                      className="skill-item__delete"
-                      onClick={() => handleDelete(skill.id)}
-                    >
-                      Remove
-                    </button>
+                    <div className="skill-item__actions">
+                      <button
+                        type="button"
+                        className="skill-item__edit"
+                        onClick={() => startEdit(skill)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="skill-item__delete"
+                        onClick={() =>
+                          setConfirmDelete({ id: skill.id, label: skill.name })
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -264,6 +319,24 @@ export function SkillsPanel() {
           ))}
         </div>
       )}
+
+      {confirmDelete ? (
+        <ConfirmDialog
+          eyebrow="Remove skill"
+          title={
+            confirmDelete.label
+              ? `Remove “${confirmDelete.label}”?`
+              : "Remove this skill?"
+          }
+          body={<p>This can't be undone.</p>}
+          confirmLabel="Remove"
+          onConfirm={() => {
+            void handleDelete(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      ) : null}
     </section>
   );
 }

@@ -27,6 +27,7 @@ The app can make planning, attendance, meeting points, river context, and post-p
 
 ## References
 
+- `/docs/specs/group-tools/group-membership-and-invites.md` (joining a group)
 - `/docs/specs/identity/app-shell-navigation.md`
 - `/docs/specs/foundations/geospatial-domain-model.md`
 - `/docs/specs/member-tools/member-profiles-and-history.md`
@@ -163,7 +164,7 @@ These resolve the open questions above for the first build:
 | Key | Feature | Surface | Status | Target | Delivered | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | GROUP-F1 | Clubs and subgroups | Groups | Delivered | Later | 2026-06-16 | Club/friends/subgroup/trip groups; owner/organiser/leader/member/guest roles; private by default. |
-| GROUP-F2 | Friend and temporary groups | Groups/profile | Delivered | Later | 2026-06-16 | Friends + trip group kinds; invite-by-name, accept/decline, leave. |
+| GROUP-F2 | Friend and temporary groups | Groups/profile | Delivered | Later | 2026-06-16 | Friends + trip group kinds; accept/decline, leave. Invite-by-name **superseded** by email/code/request — see `group-membership-and-invites.md`. |
 | GROUP-F3 | Planned paddle sessions | Groups/map | Delivered | Later | 2026-06-16 | River/venue, meeting point, timing, notes; manager-gated create. |
 | GROUP-F4 | Participant availability | Groups | Delivered | Later | 2026-06-16 | RSVP (going/maybe/can't) + free-text availability note. |
 | GROUP-F5 | Check-in/check-out | Groups/mobile | Delivered | Later | 2026-06-16 | Self + organiser-manual check-in/out; planned/active/completed/cancelled lifecycle. |

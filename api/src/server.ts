@@ -68,17 +68,25 @@ import {
   getPaddleStats,
   listPaddleLogs,
   parsePaddleLogInput,
+  updatePaddleLog,
 } from "./paddle-logs.js";
 import {
-  addGroupMember,
+  cancelInviteOrWithdraw,
   createGroup,
-  getGroupForMember,
-  type GroupRole,
+  getGroupByIdOrHandle,
+  inviteMemberByEmail,
   leaveGroup,
   listGroupsForMember,
+  listPending,
   parseGroupInput,
+  removeMember,
+  requestToJoin,
   respondToGroupInvite,
-  searchInvitableMembers,
+  respondToJoinRequest,
+  setMemberRole,
+  transferOwnership,
+  updateGroupSettings,
+  type GroupRole,
 } from "./groups.js";
 import {
   checkInParticipant,
@@ -97,12 +105,14 @@ import {
   deleteKitItem,
   listKitItems,
   parseKitItemInput,
+  updateKitItem,
 } from "./kit-items.js";
 import {
   createMemberSkill,
   deleteMemberSkill,
   listMemberSkills,
   parseMemberSkillInput,
+  updateMemberSkill,
 } from "./member-skills.js";
 import {
   applyRouteSuggestionDecision,
@@ -275,6 +285,17 @@ async function route(
     return { status: 200, body: { ok: true } };
   }
 
+  if (method === "PATCH" && paddleLogDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const paddleLog = await updatePaddleLog(
+      member.id,
+      decodeURIComponent(paddleLogDeleteMatch[1]),
+      parsePaddleLogInput(body),
+    );
+    return { status: 200, body: { paddleLog } };
+  }
+
   // --- Group Paddle Sessions: groups & membership (GROUP-F1/F2) ---
   if (method === "GET" && url.pathname === "/api/me/groups") {
     const authContext = await requireAuthContext(headers);
@@ -288,48 +309,78 @@ async function route(
     const group = await createGroup(member.id, parseGroupInput(body));
     return { status: 201, body: { group } };
   }
-  if (method === "GET" && url.pathname === "/api/members/search") {
+  // Pending invites/requests for a group's managers (GINV-F5).
+  const groupPendingMatch = url.pathname.match(
+    /^\/api\/groups\/([^/]+)\/pending$/,
+  );
+  if (method === "GET" && groupPendingMatch) {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
-    const members = await searchInvitableMembers(
-      url.searchParams.get("q") ?? "",
+    const pending = await listPending(
       member.id,
+      decodeURIComponent(groupPendingMatch[1]),
     );
-    return { status: 200, body: { members } };
+    return { status: 200, body: { pending } };
   }
 
-  const groupDetailMatch = url.pathname.match(/^\/api\/groups\/([^/]+)$/);
-  if (method === "GET" && groupDetailMatch) {
-    const authContext = await requireAuthContext(headers);
-    const member = await upsertMemberFromAuth(authContext);
-    const group = await getGroupForMember(
-      member.id,
-      decodeURIComponent(groupDetailMatch[1]),
-    );
-    return { status: 200, body: { group } };
-  }
-
+  // Invite an existing member by exact email (GINV-F2). Neutral response.
   const groupInviteMatch = url.pathname.match(
-    /^\/api\/groups\/([^/]+)\/members$/,
+    /^\/api\/groups\/([^/]+)\/invites$/,
   );
   if (method === "POST" && groupInviteMatch) {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
     const record = (body ?? {}) as Record<string, unknown>;
-    const targetMemberId =
-      typeof record.memberId === "string" ? record.memberId : "";
-    if (!targetMemberId) {
-      throw new HttpError(400, "A member to invite is required.");
-    }
-    const role =
-      typeof record.role === "string" ? (record.role as GroupRole) : "member";
-    const groupMember = await addGroupMember(
+    const email = typeof record.email === "string" ? record.email : "";
+    await inviteMemberByEmail(
       member.id,
       decodeURIComponent(groupInviteMatch[1]),
-      targetMemberId,
-      role,
+      email,
     );
-    return { status: 201, body: { member: groupMember } };
+    return { status: 200, body: { ok: true } };
+  }
+
+  // Cancel a pending invite (manager) / withdraw own request (GINV-F12).
+  const groupCancelInviteMatch = url.pathname.match(
+    /^\/api\/groups\/([^/]+)\/invites\/([^/]+)$/,
+  );
+  if (method === "DELETE" && groupCancelInviteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    await cancelInviteOrWithdraw(
+      member.id,
+      decodeURIComponent(groupCancelInviteMatch[1]),
+      decodeURIComponent(groupCancelInviteMatch[2]),
+    );
+    return { status: 200, body: { ok: true } };
+  }
+
+  // Approve/decline a join request (GINV-F4).
+  const groupRequestRespondMatch = url.pathname.match(
+    /^\/api\/groups\/([^/]+)\/requests\/([^/]+)$/,
+  );
+  if (method === "POST" && groupRequestRespondMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const record = (body ?? {}) as Record<string, unknown>;
+    await respondToJoinRequest(
+      member.id,
+      decodeURIComponent(groupRequestRespondMatch[1]),
+      decodeURIComponent(groupRequestRespondMatch[2]),
+      record.approve === true,
+    );
+    return { status: 200, body: { ok: true } };
+  }
+
+  // Request to join (GINV-F3/F4).
+  const groupRequestMatch = url.pathname.match(
+    /^\/api\/groups\/([^/]+)\/requests$/,
+  );
+  if (method === "POST" && groupRequestMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    await requestToJoin(member.id, decodeURIComponent(groupRequestMatch[1]));
+    return { status: 200, body: { ok: true } };
   }
 
   const groupRespondMatch = url.pathname.match(
@@ -353,6 +404,72 @@ async function route(
     const member = await upsertMemberFromAuth(authContext);
     await leaveGroup(member.id, decodeURIComponent(groupLeaveMatch[1]));
     return { status: 200, body: { ok: true } };
+  }
+
+  // Transfer ownership (GINV-F9). Owner-only.
+  const groupTransferMatch = url.pathname.match(
+    /^\/api\/groups\/([^/]+)\/transfer-ownership$/,
+  );
+  if (method === "POST" && groupTransferMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const record = (body ?? {}) as Record<string, unknown>;
+    const targetMemberId =
+      typeof record.memberId === "string" ? record.memberId : "";
+    await transferOwnership(
+      member.id,
+      decodeURIComponent(groupTransferMatch[1]),
+      targetMemberId,
+    );
+    return { status: 200, body: { ok: true } };
+  }
+
+  // Remove a member (GINV-F11) / set role (GINV-F10).
+  const groupMemberMatch = url.pathname.match(
+    /^\/api\/groups\/([^/]+)\/members\/([^/]+)$/,
+  );
+  if (groupMemberMatch && (method === "DELETE" || method === "PATCH")) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const groupId = decodeURIComponent(groupMemberMatch[1]);
+    const targetMemberId = decodeURIComponent(groupMemberMatch[2]);
+    if (method === "DELETE") {
+      await removeMember(member.id, groupId, targetMemberId);
+    } else {
+      const record = (body ?? {}) as Record<string, unknown>;
+      const role =
+        typeof record.role === "string" ? (record.role as GroupRole) : "member";
+      await setMemberRole(member.id, groupId, targetMemberId, role);
+    }
+    return { status: 200, body: { ok: true } };
+  }
+
+  // Group detail by id or handle (GINV-F3): full for members, limited otherwise.
+  const groupDetailMatch = url.pathname.match(/^\/api\/groups\/([^/]+)$/);
+  if (groupDetailMatch && method === "PATCH") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const idOrHandle = decodeURIComponent(groupDetailMatch[1]);
+    const group = await updateGroupSettings(
+      member.id,
+      idOrHandle,
+      (body ?? {}) as Record<string, unknown>,
+    );
+    return { status: 200, body: { group, access: "member" } };
+  }
+  if (groupDetailMatch && method === "GET") {
+    // Optional auth: a group entity page is viewable by anyone — signed-out
+    // visitors get the limited public view, members get the full detail.
+    const authContext = await getOptionalAuthContext(headers);
+    const member = authContext
+      ? await upsertMemberFromAuth(authContext)
+      : null;
+    const idOrHandle = decodeURIComponent(groupDetailMatch[1]);
+    const resolved = await getGroupByIdOrHandle(idOrHandle, member?.id ?? null);
+    return {
+      status: 200,
+      body: { group: resolved.group, access: resolved.access },
+    };
   }
 
   // --- Group Paddle Sessions: planned sessions & participants (F3/F4/F5/F9) ---
@@ -490,6 +607,17 @@ async function route(
     return { status: 200, body: { ok: true } };
   }
 
+  if (method === "PATCH" && kitItemDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const kitItem = await updateKitItem(
+      member.id,
+      decodeURIComponent(kitItemDeleteMatch[1]),
+      parseKitItemInput(body),
+    );
+    return { status: 200, body: { kitItem } };
+  }
+
   if (method === "GET" && url.pathname === "/api/me/skills") {
     const authContext = await requireAuthContext(headers);
     const member = await upsertMemberFromAuth(authContext);
@@ -513,6 +641,17 @@ async function route(
     const member = await upsertMemberFromAuth(authContext);
     await deleteMemberSkill(member.id, decodeURIComponent(skillDeleteMatch[1]));
     return { status: 200, body: { ok: true } };
+  }
+
+  if (method === "PATCH" && skillDeleteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    const skill = await updateMemberSkill(
+      member.id,
+      decodeURIComponent(skillDeleteMatch[1]),
+      parseMemberSkillInput(body),
+    );
+    return { status: 200, body: { skill } };
   }
 
   if (method === "GET" && url.pathname === "/api/me/emergency-profile") {

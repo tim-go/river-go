@@ -98,7 +98,7 @@ button:disabled {
   padding: 2px 12px;
   border-bottom: 1px solid #e3d6bd;
   background: #fff7e6;
-  color: #6f3d08;
+  color: #b45309;
   font-size: 0.72rem;
   font-weight: 650;
   line-height: 1.2;
@@ -711,7 +711,7 @@ h1 {
 .sync-banner--offline {
   border-color: #f0d3a7;
   background: #fff8ec;
-  color: #6f3d08;
+  color: #b45309;
 }
 
 .sync-banner__content {
@@ -1059,6 +1059,398 @@ h1 {
   margin: 0 auto;
 }
 
+/* Wider canvas for desktop multi-column pages (e.g. the Groups page). */
+.app-page__content--wide {
+  max-width: 1320px;
+}
+/* Keep the page title aligned with the wide content's left edge. */
+.app-page__header--wide {
+  max-width: 1320px;
+}
+
+/* "My groups" — a responsive grid of group cards (1 col on mobile). */
+.groups-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 720px) {
+  .groups-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Rich group tile — a cover banner + name, meta, description, next session. */
+.group-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: inherit;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+.group-card:hover {
+  border-color: var(--river);
+  transform: translateY(-1px);
+}
+.group-card__cover {
+  position: relative;
+  height: 108px;
+  overflow: hidden;
+  background: var(--surface-strong, #e7ecea);
+}
+.group-card__cover-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.group-card__cover-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+  background: linear-gradient(
+    135deg,
+    var(--surface-strong, #e7ecea),
+    var(--surface)
+  );
+}
+.group-card__chip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.group-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px 14px;
+}
+.group-card__name {
+  font-size: 1.02rem;
+  line-height: 1.2;
+}
+.group-card__meta {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.group-card__desc {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.group-card__next {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--river);
+}
+
+/* Detail content split into a primary column + a manage/meta aside. */
+.content-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+.content-columns__main {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.content-columns__aside {
+  display: grid;
+  /* Constrain the single column to the track (minmax floor of 0) so a wide,
+     unbreakable child (e.g. the invite-link URL) can't expand the auto column
+     and push every panel past the 320px gutter. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-content: start;
+}
+
+@media (max-width: 1024px) {
+  .content-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Reusable entity-page shell (group now, paddler profile later) ----
+   An identity header + a horizontal tab bar + the active tab's body. */
+.entity-page {
+  display: grid;
+  gap: 0;
+}
+
+.entity-page__cover {
+  position: relative;
+  height: 230px;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  overflow: hidden;
+  /* Themed muted surface (shows for the empty/loading state; image covers it
+     otherwise). --surface-strong is defined per theme, so it stays dark in Surge. */
+  background-color: var(--surface-strong, #e7ecea);
+}
+/* object-fit:cover fills the banner at zoom 100 (no letterbox); the inline
+   transform: scale() zooms in and is clipped by the cover's overflow:hidden. */
+.entity-page__cover-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 640px) {
+  .entity-page__cover {
+    height: 160px;
+    border-radius: 10px;
+  }
+}
+
+.group-cover-preview {
+  margin-bottom: 10px;
+}
+.group-cover-preview--draggable {
+  cursor: grab;
+  /* Pan the photo by dragging; suppress browser gestures/selection. */
+  touch-action: none;
+  user-select: none;
+}
+.group-cover-preview--draggable .entity-page__cover-img {
+  pointer-events: none;
+}
+.group-cover-preview--dragging {
+  cursor: grabbing;
+}
+.group-cover-hint {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.group-cover-preview--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+/* Edit-mode controls on one row: Zoom (grows) + Cancel + Save. */
+.group-cover-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.group-cover-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 200px;
+  font-size: 0.85rem;
+}
+.group-cover-zoom input[type="range"] {
+  flex: 1;
+  min-width: 120px;
+}
+.group-cover-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.group-cover-actions label {
+  cursor: pointer;
+}
+
+.entity-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+}
+
+.entity-page__identity {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.entity-page__back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.entity-page__back:hover {
+  color: var(--ink);
+}
+
+.entity-page__heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.entity-page__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  background: var(--surface-strong);
+  color: var(--river-dark);
+}
+
+.entity-page__titles {
+  min-width: 0;
+}
+
+.entity-page__titles h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.15;
+}
+
+.entity-page__subtitle {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.entity-page__meta {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.entity-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* The entity-page tabs reuse the shared .segmented-control styling (identical to
+   the Profile tabs, incl. per-theme active colours). The only difference: a
+   variable number of tabs that wrap to fit, rather than a fixed 5 columns. */
+.entity-page__tabs {
+  margin-bottom: 18px;
+}
+.segmented-control.entity-page__tabs {
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+}
+
+.entity-page__body {
+  display: grid;
+  gap: 16px;
+}
+
+/* Toolbar row (e.g. the Members search/filter). */
+.entity-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.entity-toolbar input {
+  max-width: 320px;
+}
+
+/* Entity page: cap the whole page to a readable width (rather than stretching
+   to the full wide canvas) so the main column sits next to the 320px gutter
+   with no awkward gap, and fields don't run silly-wide. */
+.entity-page {
+  max-width: 1120px;
+}
+.content-columns__main input:not([type="range"]),
+.content-columns__main select,
+.content-columns__main textarea {
+  max-width: 560px;
+  width: 100%;
+}
+.content-columns__main .entity-toolbar input {
+  max-width: 320px;
+}
+/* The group description is free text — let it use the full column width. */
+.content-columns__main .group-about-description,
+.content-columns__main .group-about-description textarea {
+  max-width: none;
+}
+.content-columns__main form button.primary-action {
+  justify-self: start;
+  width: auto;
+}
+
+/* Right-gutter cards (stats + contextual controls). */
+.content-columns__aside .group-detail__section {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+button.group-detail__section {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.group-aside-stat__num {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--river);
+}
+.group-aside-stat__label,
+.group-aside-facts {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.group-aside-next {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.content-columns__aside .group-invite-link code {
+  font-size: 0.78rem;
+}
+
 .search-panel,
 .profile-grid {
   display: grid;
@@ -1311,16 +1703,17 @@ h1 {
   gap: 8px;
 }
 
-/* Sign out stands out as a clear, slightly destructive action. */
+/* Sign out is a calm, reversible action — the brand accent (blue in Surge),
+   not an alarming red. */
 .profile-action--signout {
-  border-color: var(--danger);
+  border-color: var(--river);
   background: transparent;
-  color: var(--danger);
+  color: var(--river);
 }
 
 .profile-action--signout:hover {
-  border-color: var(--danger);
-  background: var(--danger);
+  border-color: var(--river);
+  background: var(--river);
   color: #fff;
 }
 
@@ -1522,6 +1915,9 @@ h1 {
 
 .contributor-step__body p {
   margin: 0;
+  /* Explicit token, not the inherited ambient ink — these panels float over the
+     map, where the dark default would render dark-on-dark under Surge. */
+  color: var(--muted);
 }
 
 .contributor-step__actions {
@@ -1880,12 +2276,109 @@ h1 {
 
 .confirm-panel p {
   margin-bottom: 0;
-  color: #6f3d08;
+  color: #b45309;
 }
 
 .confirm-panel--modal {
   width: min(420px, calc(100vw - 24px));
   box-shadow: var(--shadow);
+}
+
+/* Change-role modal: a neutral themed panel with selectable role options. */
+.role-dialog {
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  /* Opaque surface so the page doesn't bleed through (surge --surface-strong is
+     translucent — see the override below). */
+  background: var(--surface-strong, #ffffff);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+[data-theme="surge"] .role-dialog {
+  background: rgba(16, 24, 52, 0.98);
+}
+.role-dialog h3 {
+  margin: 2px 0;
+}
+.role-dialog__current {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+.role-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.role-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.role-option--selected {
+  border-color: var(--river);
+  background: var(--surface);
+}
+.role-option input {
+  margin-top: 3px;
+  flex: 0 0 auto;
+}
+.role-option__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.role-option__body strong {
+  font-size: 0.92rem;
+}
+.role-option__body small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.role-dialog__transfer {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.role-dialog__transfer h4 {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.role-dialog__transfer p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.role-dialog__transfer-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  border: 1px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-weight: 650;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.role-dialog__transfer-btn:hover {
+  background: var(--danger);
+  color: #fff;
 }
 
 .section-list {
@@ -3471,7 +3964,7 @@ h1 {
   border: 1px solid #f5c285;
   border-radius: 8px;
   background: #fff8ec;
-  color: #6f3d08;
+  color: #b45309;
   line-height: 1.42;
 }
 
@@ -4281,6 +4774,20 @@ select {
   padding: 0 10px;
 }
 
+/* Checkboxes and radios must escape the text-input sizing above — otherwise they
+   inherit width:100% + height:40px and render as a full-width box that swamps
+   their label. Reset to native size and theme the tick via accent-color. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  accent-color: var(--river);
+}
+
 textarea {
   resize: vertical;
   padding: 10px;
@@ -4304,6 +4811,15 @@ input[type="file"]::file-selector-button {
 input[type="file"]::file-selector-button:hover {
   border-color: var(--river-dark);
   color: var(--river-dark);
+}
+
+/* The native date/time picker icon is dark — invert it so it shows on the
+   dark Surge theme. */
+[data-theme="surge"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="surge"] input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+[data-theme="surge"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-theme="surge"] input[type="month"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.6);
 }
 
 .location-card {
@@ -4574,6 +5090,12 @@ input[type="file"]::file-selector-button:hover {
   .auth-sheet-backdrop:not(.auth-sheet-backdrop--welcome) {
     place-items: stretch;
     padding: 0;
+  }
+  /* Centered modal dialogs (confirm / change-role) stay centered on mobile —
+     they're not the full-screen auth sheet. */
+  .auth-sheet-backdrop.auth-sheet-backdrop--modal {
+    place-items: center;
+    padding: 12px;
   }
 
   .auth-sheet:not(.auth-sheet--welcome) {
@@ -5354,6 +5876,12 @@ input[type="file"]::file-selector-button:hover {
 .skill-item__delete { display: block; margin: 6px 0 0 auto; border: none; background: none; color: var(--muted); font-size: 0.72rem; cursor: pointer; padding: 0; }
 .skill-item__delete:hover { color: #b4321f; }
 
+/* Edit + Remove row for kit / skill / paddle-log items. */
+.kit-item__actions, .skill-item__actions, .paddle-log__actions { display: flex; justify-content: flex-end; gap: 14px; margin-top: 8px; }
+.kit-item__actions button, .skill-item__actions button, .paddle-log__actions button { margin: 0; }
+.kit-item__edit, .skill-item__edit, .paddle-log__edit { border: none; background: none; color: var(--muted); font-size: 0.72rem; cursor: pointer; padding: 0; }
+.kit-item__edit:hover, .skill-item__edit:hover, .paddle-log__edit:hover { color: var(--river); }
+
 /* River discipline/nation filter + grade pill (discovery #1a) */
 .river-filters { display: flex; gap: 8px; align-items: center; padding: 8px 10px 4px; }
 .segmented-control.river-discipline-filter { display: flex; flex: 1; gap: 2px; background: #eef2f0; border-radius: 999px; padding: 3px; }
@@ -5424,6 +5952,19 @@ input[type="file"]::file-selector-button:hover {
   padding: 0;
   display: grid;
   gap: 8px;
+}
+
+/* Roster grouped by role tier (Owners & organisers / Leaders / Members). */
+.group-member-tier + .group-member-tier {
+  margin-top: 14px;
+}
+.group-member-tier h4 {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
 }
 
 .group-row,
@@ -5509,6 +6050,10 @@ input[type="file"]::file-selector-button:hover {
 
 .group-detail__section {
   display: grid;
+  /* Pin the single column to the available width (floor of 0) so a nowrap
+     child — e.g. the invite-link URL — truncates inside the panel rather than
+     stretching the auto column past it (notably in the narrow 320px gutter). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -5521,14 +6066,97 @@ input[type="file"]::file-selector-button:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
 }
+.group-member-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
 
 .group-member-row small {
   text-transform: capitalize;
+}
+
+/* Invite link row: icon + full URL (truncated) + copy/edit, no full-width input. */
+.group-invite-link__view,
+.group-invite-link__edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.group-invite-link__icon {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.group-invite-link__view code {
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.8rem;
+}
+
+/* Read-only gutter variant: the URL truncates on its own row, copy beneath.
+   Stacking keeps the long link inside the narrow 320px aside column. */
+.group-invite-link--readonly {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.group-invite-link--readonly code {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.8rem;
+}
+
+.group-invite-link__prefix {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.group-invite-link__edit input {
+  flex: 1 1 140px;
+  width: auto;
+  min-width: 120px;
+}
+
+.group-invite-link button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.group-access-mode {
+  display: grid;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--ink);
 }
 
 .group-invite-banner {
@@ -5537,9 +6165,11 @@ input[type="file"]::file-selector-button:hover {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 14px;
-  border: 1px solid #e7b561;
+  /* Informational "you've been invited" prompt — a blue info tone (not amber). */
+  border: 1px solid #b9d2f0;
   border-radius: 10px;
-  background: #fbf4e7;
+  background: #eef5fd;
+  color: var(--ink);
   font-size: 0.84rem;
 }
 
@@ -5554,6 +6184,9 @@ input[type="file"]::file-selector-button:hover {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
+  /* Without this the button falls back to the UA black `buttontext`, which reads
+     as black-on-dark on the Surge theme's dark surface. */
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -5629,9 +6262,16 @@ input[type="file"]::file-selector-button:hover {
   font-size: 0.92rem;
 }
 
+/* Emergency-contact consent: an "important info" callout. Uses the app's sky
+   accent so it reads as notable and trustworthy, distinct from the amber used
+   for warnings/cautions elsewhere. */
 .session-block--ice {
-  border-color: #e7b561;
-  background: #fbf4e7;
+  border-color: rgba(39, 125, 161, 0.34);
+  background: rgba(39, 125, 161, 0.08);
+}
+
+.session-block--ice h3 {
+  color: var(--sky);
 }
 
 .session-note {
@@ -5675,10 +6315,18 @@ input[type="file"]::file-selector-button:hover {
 
 .toggle-line {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
   font-size: 0.84rem;
   font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.toggle-line input[type="checkbox"] {
+  flex: 0 0 auto;
+  /* Nudge the box onto the first text line when the label wraps. */
+  margin-top: 1px;
 }
 
 .coverage-list,
@@ -5934,8 +6582,8 @@ input[type="file"]::file-selector-button:hover {
   background: rgba(30, 42, 84, 0.72);
 }
 [data-theme="surge"] .group-invite-banner {
-  border-color: rgba(255, 196, 60, 0.42);
-  background: rgba(255, 196, 60, 0.12);
+  border-color: rgba(106, 160, 255, 0.4);
+  background: rgba(106, 160, 255, 0.14);
   color: var(--ink);
 }
 [data-theme="surge"] .status-chip--planned {
@@ -6554,6 +7202,15 @@ input[type="file"]::file-selector-button:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* default / success (green) — the base notification had no dark variant, so it
+   rendered light-text-on-light. The --error / --info rules below override this
+   for their tones. */
+[data-theme="surge"] .app-notification {
+  border-color: rgba(40, 194, 160, 0.4);
+  background: rgba(18, 42, 36, 0.97);
+  color: #9fe9d4;
+}
+
 /* danger / error (red) */
 [data-theme="surge"] .app-notification--error,
 [data-theme="surge"] .profile-message,
@@ -6583,19 +7240,27 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .notice,
 [data-theme="surge"] .confirm-panel,
 [data-theme="surge"] .inline-admin-control,
-[data-theme="surge"] .session-block--ice,
 [data-theme="surge"] .kit-item__flag,
 [data-theme="surge"] .coverage-item--gap,
 [data-theme="surge"] .status-chip--pending,
 [data-theme="surge"] .status-chip--needs-confirmation {
   border-color: rgba(255, 196, 60, 0.42);
   background: rgba(255, 196, 60, 0.12);
-  color: #ffd27a;
+  color: #fcd34d;
+}
+
+/* Emergency-contact callout: blue "important info", not an amber warning. */
+[data-theme="surge"] .session-block--ice {
+  border-color: rgba(90, 160, 255, 0.4);
+  background: rgba(77, 139, 255, 0.13);
+}
+[data-theme="surge"] .session-block--ice h3 {
+  color: #8fb6ff;
 }
 [data-theme="surge"] .confirm-panel p,
 [data-theme="surge"] .participant-ice,
 [data-theme="surge"] .river-safety-toggle {
-  color: #ffd27a;
+  color: #fcd34d;
 }
 /* Confirm modal must be opaque — the amber notice tint lets the page bleed through. */
 [data-theme="surge"] .confirm-panel--modal {
@@ -6606,7 +7271,6 @@ input[type="file"]::file-selector-button:hover {
 /* success / green */
 [data-theme="surge"] .sync-pill--queued,
 [data-theme="surge"] .sync-icon-button--queued,
-[data-theme="surge"] .contributor-step--done,
 [data-theme="surge"] .coverage-item--ok,
 [data-theme="surge"] .location-card,
 [data-theme="surge"] .status-chip--confirmed,
@@ -6616,6 +7280,17 @@ input[type="file"]::file-selector-button:hover {
   border-color: rgba(40, 194, 160, 0.4);
   background: rgba(40, 194, 160, 0.18);
   color: #8ff0d4;
+}
+
+/* Keep the done step on the same solid dark panel as the others — the earlier
+   green-tinted panel read as translucent over the map. Signal completion with a
+   solid green tick plus a subtle green border instead. */
+[data-theme="surge"] .contributor-step--done {
+  border-color: rgba(40, 194, 160, 0.45);
+}
+[data-theme="surge"] .contributor-step--done .contributor-step__icon {
+  background: #2bd4ac;
+  color: #052621;
 }
 [data-theme="surge"] .trend-label--rising {
   color: #5fd0a8;

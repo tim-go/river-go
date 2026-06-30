@@ -76,6 +76,12 @@
   color: #c7d3f0;
 }
 
+.signup__hint {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: rgba(199, 211, 240, 0.7);
+}
+
 .signup__label input {
   width: 100%;
   padding: 11px 12px;

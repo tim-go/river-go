@@ -16,7 +16,7 @@ import {
   MapPinned,
   MapPin,
   MessageSquare,
-  MoreHorizontal,
+  ChevronLeft,
   Navigation,
   Palette,
   Plus,
@@ -28,7 +28,9 @@ import {
   ShieldCheck,
   Star,
   Trash2,
+  Settings as SettingsIcon,
   UserRound,
+  UsersRound,
   Waves,
   X,
 } from "lucide-react";
@@ -99,6 +101,7 @@ import {
   signInWithEmail,
   signOutCurrentUser,
   subscribeToAuthState,
+  updateMyDisplayName,
   type AuthState,
 } from "./services/firebaseAuth";
 import {
@@ -163,7 +166,6 @@ import { loadContributions, loadFavouriteSectionIds, loadFavouriteRiverIds, save
 import { SyncOutboxBanner } from "./components/SyncOutboxBanner";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
-import { AppBrandPanel } from "./components/AppBrandPanel";
 import { AboutScreen } from "./components/AboutScreen";
 import { PaddleHistoryPanel } from "./components/PaddleHistoryPanel";
 import { KitInventoryPanel } from "./components/KitInventoryPanel";
@@ -307,10 +309,65 @@ import {
 // while rejecting a photo dropped on a different river than the one focused.
 const NEAREST_POI_ATTACH_METERS = 1000;
 
+// A group is a first-class, addressable entity: /g/<handle-or-id>. This is the
+// only routed entity for now (paddler profiles, /p/<handle>, will follow the
+// same shape). Everything else is the section-based nav.
+function parseGroupRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  // /group/ is the canonical (displayed) form; /g/ and /groups/ are accepted
+  // aliases.
+  const match = window.location.pathname.match(
+    /^\/(?:g|group|groups)\/([^/]+)\/?$/,
+  );
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 function App() {
   const outboxStore = useMemo(() => createContributionOutboxStore(), []);
-  const [activeAppSection, setActiveAppSection] =
-    useState<AppSection>("map");
+  const [activeAppSection, setActiveAppSection] = useState<AppSection>(() =>
+    parseGroupRoute() ? "groups" : "map",
+  );
+  const [groupRoute, setGroupRoute] = useState<string | null>(() =>
+    parseGroupRoute(),
+  );
+  // Open a group entity page by handle or id (pushes /g/<token>); null returns
+  // to the section view. Clicking a nav section leaves any open group.
+  const openGroup = (idOrHandle: string | null) => {
+    if (idOrHandle) {
+      window.history.pushState(
+        {},
+        "",
+        `/group/${encodeURIComponent(idOrHandle)}`,
+      );
+      setGroupRoute(idOrHandle);
+      setActiveAppSection("groups");
+    } else {
+      if (parseGroupRoute()) {
+        window.history.pushState({}, "", "/");
+      }
+      setGroupRoute(null);
+    }
+  };
+  const navigateSection = (section: AppSection) => {
+    setActiveAppSection(section);
+    if (parseGroupRoute()) {
+      window.history.pushState({}, "", "/");
+    }
+    setGroupRoute(null);
+  };
+  useEffect(() => {
+    const onPopState = () => {
+      const route = parseGroupRoute();
+      setGroupRoute(route);
+      if (route) {
+        setActiveAppSection("groups");
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   const [activeAdminPage, setActiveAdminPage] = useState<AdminPage>("index");
   const [isAppNavCollapsed, setIsAppNavCollapsed] = useState(false);
   const [theme, setTheme] = useState<"tide" | "daybreak" | "surge">(() => {
@@ -801,6 +858,7 @@ function App() {
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
   const [memberMessage, setMemberMessage] = useState("");
   const [publicNameDraft, setPublicNameDraft] = useState("");
+  const [nameDraft, setNameDraft] = useState("");
   const [emergencyProfile, setEmergencyProfile] =
     useState<MemberEmergencyProfile | null>(null);
   const [emergencyContactName, setEmergencyContactName] = useState("");
@@ -1089,11 +1147,15 @@ function App() {
     requireEmailVerification: REQUIRE_EMAIL_VERIFICATION,
   });
   const isLiveLocationSupported =
-    typeof navigator !== "undefined" && "geolocation" in navigator;
+    typeof navigator !== "undefined" &&
+    "geolocation" in navigator &&
+    // Browsers block geolocation on insecure origins (e.g. http on a LAN IP),
+    // where it would otherwise surface as a misleading "permission denied".
+    (typeof window === "undefined" || window.isSecureContext);
   const liveLocationAlert =
-    liveLocationStatus === "denied" ||
-    liveLocationStatus === "unavailable" ||
-    liveLocationStatus === "error"
+    // Only nag for runtime failures (denied/error). "unavailable" is
+    // environmental (no geolocation / insecure origin) — shown inline, not toasted.
+    liveLocationStatus === "denied" || liveLocationStatus === "error"
       ? liveLocationMessage
       : "";
   const canSyncOutbox =
@@ -1270,7 +1332,11 @@ function App() {
     if (!isLiveLocationSupported) {
       setLiveLocation(null);
       setLiveLocationStatus("unavailable");
-      setLiveLocationMessage("Location sharing is not available in this browser.");
+      setLiveLocationMessage(
+        typeof window !== "undefined" && !window.isSecureContext
+          ? "Live location needs a secure (HTTPS) connection — unavailable on this address."
+          : "Location sharing is not available in this browser.",
+      );
       return;
     }
 
@@ -1370,7 +1436,12 @@ function App() {
       return;
     }
     const pendingLanding = sessionStorage.getItem("postAuthLanding");
-    if (previouslySignedIn === false || pendingLanding === "dashboard") {
+    if (parseGroupRoute()) {
+      // Signed in while on a group entity URL (e.g. an invite link) — stay on
+      // the group rather than bouncing to the dashboard.
+      sessionStorage.removeItem("postAuthLanding");
+      setActiveAppSection("groups");
+    } else if (previouslySignedIn === false || pendingLanding === "dashboard") {
       sessionStorage.removeItem("postAuthLanding");
       setActiveAppSection("dashboard");
     }
@@ -1411,6 +1482,7 @@ function App() {
         if (isMounted) {
           setMemberProfile(member);
           setPublicNameDraft(member.publicName ?? member.displayName ?? "");
+          setNameDraft(member.displayName ?? "");
           setMemberMessage("");
         }
       })
@@ -2396,7 +2468,11 @@ function App() {
   function enableLiveLocation(shouldFocus = false) {
     if (!isLiveLocationSupported) {
       setLiveLocationStatus("unavailable");
-      setLiveLocationMessage("Location sharing is not available in this browser.");
+      setLiveLocationMessage(
+        typeof window !== "undefined" && !window.isSecureContext
+          ? "Live location needs a secure (HTTPS) connection — unavailable on this address."
+          : "Location sharing is not available in this browser.",
+      );
       return;
     }
 
@@ -2559,6 +2635,34 @@ function App() {
       );
     } finally {
       setIsMemberRouteSuggestionsLoading(false);
+    }
+  }
+
+  async function saveName() {
+    if (!authState.user) {
+      requireSignInForSave();
+      return;
+    }
+    if (!nameDraft.trim()) {
+      showAppNotification("Add your name.", "error");
+      return;
+    }
+    setIsProfileSaving(true);
+    try {
+      // Update the Firebase displayName, then re-fetch the member (GET /api/me
+      // upserts → syncs display_name from the refreshed token).
+      await updateMyDisplayName(nameDraft.trim());
+      const updatedMember = await fetchCurrentMember();
+      setMemberProfile(updatedMember);
+      setNameDraft(updatedMember.displayName ?? "");
+      showAppNotification("Name saved.");
+    } catch (error) {
+      showAppNotification(
+        error instanceof Error ? error.message : "Could not save your name.",
+        "error",
+      );
+    } finally {
+      setIsProfileSaving(false);
     }
   }
 
@@ -4294,7 +4398,7 @@ function App() {
           memberMeta={accountMeta}
           memberRole={accountRole}
           onToggleCollapsed={() => setIsAppNavCollapsed((current) => !current)}
-          onSelectSection={setActiveAppSection}
+          onSelectSection={navigateSection}
           onSignIn={handleSignIn}
         />
 
@@ -6189,8 +6293,8 @@ function App() {
               </div>
             </PlaceholderPage>
           ) : activeAppSection === "groups" ? (
-            <PlaceholderPage section="groups" title="Groups">
-              {!isSignedIn ? (
+            <PlaceholderPage section="groups" title="Groups" wide>
+              {!isSignedIn && !groupRoute ? (
                 <SignedOutNotice
                   message="Sign in to create and join paddling groups."
                   onSignIn={handleSignIn}
@@ -6198,6 +6302,9 @@ function App() {
               ) : (
                 <GroupsPanel
                   isSignedIn={isSignedIn}
+                  routeGroup={groupRoute}
+                  onOpenGroup={openGroup}
+                  onSignIn={handleSignIn}
                   rivers={canonicalRivers.map((river) => ({
                     id: river.id,
                     displayName: river.displayName,
@@ -6312,9 +6419,9 @@ function App() {
                       <UserRound size={22} />
                       <div>
                         <strong>
-                          {memberProfile?.publicName ??
-                            memberProfile?.displayName ??
+                          {memberProfile?.displayName ??
                             authState.user?.displayName ??
+                            memberProfile?.publicName ??
                             "Signed out"}
                         </strong>
                         <span>
@@ -6347,6 +6454,41 @@ function App() {
                           <LogIn size={16} />
                           Create account / Sign in
                         </button>
+                      </section>
+                    ) : null}
+                    {isSignedIn ? (
+                      <section className="profile-card profile-card--stacked">
+                        <div className="block-title">
+                          <div>
+                            <h3>Your name</h3>
+                            <span>
+                              For your account and emails — not shown publicly
+                            </span>
+                          </div>
+                        </div>
+                        <div className="form-grid">
+                          <label>
+                            <span>Your name</span>
+                            <input
+                              type="text"
+                              value={nameDraft}
+                              onChange={(event) => setNameDraft(event.target.value)}
+                              placeholder="e.g. Alex Jones"
+                              maxLength={80}
+                            />
+                          </label>
+                        </div>
+                        <div className="profile-actions">
+                          <button
+                            className="primary-action"
+                            type="button"
+                            onClick={() => void saveName()}
+                            disabled={isProfileSaving}
+                          >
+                            <UserRound size={16} />
+                            {isProfileSaving ? "Saving" : "Save name"}
+                          </button>
+                        </div>
                       </section>
                     ) : null}
                     {authMessage || authState.error || memberMessage ? (
@@ -6954,8 +7096,42 @@ function App() {
             </PlaceholderPage>
           ) : activeAppSection === "more" ? (
             <PlaceholderPage section="more" title="More">
-              <AppBrandPanel />
               <div className="placeholder-list">
+                <button
+                  className="placeholder-row"
+                  type="button"
+                  onClick={() => navigateSection("groups")}
+                >
+                  <span>
+                    <strong>Groups</strong>
+                    <small>Clubs, friends, and planned sessions</small>
+                  </span>
+                  <UsersRound size={18} />
+                </button>
+                <button
+                  className="placeholder-row"
+                  type="button"
+                  onClick={() => navigateSection("settings")}
+                >
+                  <span>
+                    <strong>Settings</strong>
+                    <small>
+                      Appearance, location, offline packs, and preferences
+                    </small>
+                  </span>
+                  <SettingsIcon size={18} />
+                </button>
+                <button
+                  className="placeholder-row"
+                  type="button"
+                  onClick={() => setActiveAppSection("about")}
+                >
+                  <span>
+                    <strong>About</strong>
+                    <small>App version and info</small>
+                  </span>
+                  <Info size={18} />
+                </button>
                 {canAccessAdminTools ? (
                   <button
                     className="placeholder-row"
@@ -6976,6 +7152,19 @@ function App() {
                     <ShieldCheck size={18} />
                   </button>
                 ) : null}
+              </div>
+            </PlaceholderPage>
+          ) : activeAppSection === "settings" ? (
+            <PlaceholderPage section="settings" title="Settings">
+              <button
+                className="ghost-button ghost-button--compact"
+                type="button"
+                onClick={() => setActiveAppSection("more")}
+              >
+                <ChevronLeft size={16} />
+                More
+              </button>
+              <div className="placeholder-list">
                 <button className="placeholder-row" type="button">
                   <span>
                     <strong>Offline packs</strong>
@@ -6983,25 +7172,8 @@ function App() {
                   </span>
                   <RefreshCw size={18} />
                 </button>
-                <button
-                  className="placeholder-row"
-                  type="button"
-                  onClick={() => setActiveAppSection("about")}
-                >
-                  <span>
-                    <strong>About</strong>
-                    <small>App version and info</small>
-                  </span>
-                  <Info size={18} />
-                </button>
-                <section className="settings-panel" aria-label="Settings">
-                  <div className="settings-panel__header">
-                    <span>
-                      <strong>Settings</strong>
-                      <small>Appearance, map, alerts, and account preferences</small>
-                    </span>
-                    <MoreHorizontal size={18} />
-                  </div>
+              </div>
+              <section className="settings-panel" aria-label="Settings">
                   <PwaInstallSettingRow />
                   <label className="setting-toggle">
                     <input
@@ -7085,7 +7257,6 @@ function App() {
                     </div>
                   </div>
                 </section>
-              </div>
             </PlaceholderPage>
           ) : activeAppSection === "about" ? (
             <AboutScreen onBack={() => setActiveAppSection("more")} />
@@ -8429,7 +8600,7 @@ function App() {
 
       <MobileBottomNav
         activeSection={activeAppSection}
-        onSelectSection={setActiveAppSection}
+        onSelectSection={navigateSection}
       />
 
       {lightboxPhoto ? (

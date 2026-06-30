@@ -22,6 +22,7 @@ export type AppSection =
   | "profile"
   | "more"
   | "about"
+  | "settings"
   | "admin";
 
 export type AppNotificationTone = "success" | "info" | "error";
@@ -387,8 +388,15 @@ export interface MemberSkill {
 
 export type GroupKind = "club" | "subgroup" | "friends" | "trip";
 export type GroupVisibility = "private" | "members" | "public";
-export type GroupRole = "owner" | "organiser" | "leader" | "member" | "guest";
-export type GroupMemberStatus = "invited" | "active" | "left";
+export type GroupRole = "owner" | "organiser" | "leader" | "member";
+export type GroupMemberStatus =
+  | "invited"
+  | "requested"
+  | "active"
+  | "left"
+  | "removed"
+  | "declined";
+export type GroupAccessMode = "request_to_join" | "invite_only";
 export type GroupDiscipline = "whitewater" | "touring" | "both";
 export type SessionStatus = "planned" | "active" | "completed" | "cancelled";
 export type Rsvp = "invited" | "yes" | "no" | "maybe";
@@ -396,17 +404,58 @@ export type Rsvp = "invited" | "yes" | "no" | "maybe";
 export interface Group {
   id: string;
   name: string;
+  handle: string | null;
   kind: GroupKind;
   parentGroupId: string | null;
   description: string | null;
   discipline: GroupDiscipline | null;
   visibility: GroupVisibility;
+  accessMode: GroupAccessMode;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  coverImageUrl: string | null;
+  coverPosition: number;
+  coverX: number;
+  coverZoom: number;
   memberCount: number;
   myRole: GroupRole | null;
   myStatus: GroupMemberStatus | null;
+}
+
+export interface GroupPublic {
+  id: string;
+  name: string;
+  handle: string | null;
+  kind: GroupKind;
+  description: string | null;
+  discipline: GroupDiscipline | null;
+  visibility: GroupVisibility;
+  accessMode: GroupAccessMode;
+  coverImageUrl: string | null;
+  coverPosition: number;
+  coverX: number;
+  coverZoom: number;
+  memberCount: number;
+  myStatus: GroupMemberStatus | null;
+}
+
+export interface GroupJoinRequest {
+  memberId: string;
+  publicName: string;
+  requestedAt: string;
+}
+
+export interface GroupInvitedMember {
+  memberId: string;
+  publicName: string;
+  invitedAt: string;
+}
+
+export interface GroupPending {
+  requests: GroupJoinRequest[];
+  invites: GroupInvitedMember[];
+  invitedCount: number;
 }
 
 export interface GroupMember {
@@ -422,10 +471,9 @@ export interface GroupDetail extends Group {
   members: GroupMember[];
 }
 
-export interface InvitableMember {
-  id: string;
-  publicName: string;
-}
+export type GroupView =
+  | { access: "member"; group: GroupDetail }
+  | { access: "public"; group: GroupPublic };
 
 export interface GroupSession {
   id: string;

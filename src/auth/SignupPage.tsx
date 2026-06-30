@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { LogIn, Waves } from "lucide-react";
 import {
   createAccountWithEmail,
   signInWithGoogle,
   subscribeToAuthState,
 } from "../services/firebaseAuth";
+import { updateMyProfile } from "../services/memberApi";
 import { GoogleIcon } from "../components/auth/GoogleIcon";
 import { PasswordStrengthField } from "../components/auth/PasswordStrengthField";
 import {
@@ -20,7 +21,8 @@ function landOnDashboardApp() {
 }
 
 export function SignupPage() {
-  const [displayName, setDisplayName] = useState("");
+  const [name, setName] = useState("");
+  const [publicName, setPublicName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -28,13 +30,21 @@ export function SignupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unconfigured, setUnconfigured] = useState(false);
+  // While the email sign-up is mid-flight, suppress the auth-state auto-redirect
+  // below — otherwise signing in (during account creation) navigates away and
+  // aborts the profile write. handleSubmit redirects itself once done.
+  const handlingEmailSignup = useRef(false);
 
   // Already signed in (incl. returning from a Google redirect) → into the app.
   useEffect(() => {
     return subscribeToAuthState((state) => {
       if (state.status === "unconfigured") {
         setUnconfigured(true);
-      } else if (state.status === "ready" && state.user) {
+      } else if (
+        state.status === "ready" &&
+        state.user &&
+        !handlingEmailSignup.current
+      ) {
         landOnDashboardApp();
       }
     });
@@ -43,6 +53,8 @@ export function SignupPage() {
   const canSubmit =
     !submitting &&
     !unconfigured &&
+    Boolean(name.trim()) &&
+    Boolean(publicName.trim()) &&
     Boolean(email.trim()) &&
     Boolean(pwStatus?.valid) &&
     Boolean(confirm) &&
@@ -51,6 +63,14 @@ export function SignupPage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    if (!name.trim()) {
+      setError("Add your name.");
+      return;
+    }
+    if (!publicName.trim()) {
+      setError("Add a public name so other paddlers can recognise you.");
+      return;
+    }
     if (!pwStatus?.valid) {
       setError(pwStatus?.message ?? "Choose a stronger password.");
       return;
@@ -61,14 +81,25 @@ export function SignupPage() {
       return;
     }
     setSubmitting(true);
+    // Hold off the auth-state auto-redirect until the profile write finishes.
+    handlingEmailSignup.current = true;
     try {
+      // Your name → the Firebase displayName (used in emails / account).
       await createAccountWithEmail({
         email: email.trim(),
         password,
-        displayName: displayName.trim(),
+        displayName: name.trim(),
       });
+      // Public name → the member's public_name (the publicly visible name).
+      // Now that the redirect is held, this completes before we navigate.
+      try {
+        await updateMyProfile({ publicName: publicName.trim() });
+      } catch {
+        // Non-fatal: the account exists; the name can be set later in Profile.
+      }
       landOnDashboardApp();
     } catch (err) {
+      handlingEmailSignup.current = false;
       setError(err instanceof Error ? err.message : "Could not create account.");
       setSubmitting(false);
     }
@@ -105,14 +136,32 @@ export function SignupPage() {
 
         <form className="signup__form" onSubmit={handleSubmit}>
           <label className="signup__label">
-            Display name
+            Your name
             <input
               autoComplete="name"
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
-              placeholder="Your paddling name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="e.g. Alex Jones"
+              required
               disabled={submitting}
             />
+            <span className="signup__hint">
+              For your account and emails — not shown publicly.
+            </span>
+          </label>
+          <label className="signup__label">
+            Public name
+            <input
+              autoComplete="nickname"
+              value={publicName}
+              onChange={(event) => setPublicName(event.target.value)}
+              placeholder="Your name or paddling name"
+              required
+              disabled={submitting}
+            />
+            <span className="signup__hint">
+              Shown to other paddlers on your contributions and in groups.
+            </span>
           </label>
           <label className="signup__label">
             Email

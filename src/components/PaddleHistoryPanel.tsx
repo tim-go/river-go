@@ -5,7 +5,9 @@ import {
   deletePaddleLog,
   fetchPaddleLogs,
   fetchPaddleStats,
+  updatePaddleLog,
 } from "../services/paddleLogApi";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface RiverOption {
   id: string;
@@ -41,6 +43,11 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
   const [error, setError] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
 
   const [riverId, setRiverId] = useState("");
   const [title, setTitle] = useState("");
@@ -85,6 +92,25 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
     setNotes("");
   }
 
+  function closeForm() {
+    resetForm();
+    setEditingId(null);
+    setIsFormOpen(false);
+  }
+
+  function startEdit(log: PaddleLog) {
+    setEditingId(log.id);
+    setRiverId(log.riverId ?? "");
+    setTitle(log.title);
+    setPaddledOn(log.paddledOn);
+    setLevelNote(log.levelNote ?? "");
+    setCraftType(log.craftType ?? "");
+    setCompanions(log.companions ?? "");
+    setNotes(log.notes ?? "");
+    setIsFormOpen(true);
+    setError("");
+  }
+
   function handleRiverChange(value: string) {
     setRiverId(value);
     const river = rivers.find((item) => item.id === value);
@@ -108,7 +134,7 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
     setIsSaving(true);
     setError("");
     try {
-      await createPaddleLog({
+      const draft = {
         riverId: riverId || null,
         title: resolvedTitle,
         paddledOn,
@@ -116,9 +142,13 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
         craftType: craftType || null,
         companions: companions.trim() || null,
         notes: notes.trim() || null,
-      });
-      resetForm();
-      setIsFormOpen(false);
+      };
+      if (editingId) {
+        await updatePaddleLog(editingId, draft);
+      } else {
+        await createPaddleLog(draft);
+      }
+      closeForm();
       await load();
     } catch (saveError) {
       setError(
@@ -154,13 +184,15 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
             Private to you — a log of the rivers you have paddled.
           </p>
         </div>
-        <button
-          type="button"
-          className="paddle-history__add"
-          onClick={() => setIsFormOpen((open) => !open)}
-        >
-          {isFormOpen ? "Cancel" : "Log a paddle"}
-        </button>
+        {!isFormOpen ? (
+          <button
+            type="button"
+            className="paddle-history__add"
+            onClick={() => setIsFormOpen(true)}
+          >
+            Log a paddle
+          </button>
+        ) : null}
       </header>
 
       {stats && stats.totalPaddles > 0 ? (
@@ -267,19 +299,33 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
               rows={2}
             />
           </label>
-          <button
-            type="submit"
-            className="paddle-form__submit"
-            disabled={isSaving}
-          >
-            {isSaving ? "Saving…" : "Save paddle"}
-          </button>
+          <div className="form-actions">
+            <button
+              type="button"
+              className="paddle-history__add"
+              onClick={closeForm}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="paddle-form__submit"
+              disabled={isSaving}
+            >
+              {isSaving
+                ? "Saving…"
+                : editingId
+                  ? "Save changes"
+                  : "Save paddle"}
+            </button>
+          </div>
         </form>
       ) : null}
 
       {error ? <p className="paddle-history__error">{error}</p> : null}
 
-      {isLoading ? (
+      {/* While editing, focus on just the edit form — hide the full list. */}
+      {editingId ? null : isLoading ? (
         <p className="paddle-history__empty">Loading…</p>
       ) : logs.length === 0 ? (
         <p className="paddle-history__empty">
@@ -305,17 +351,46 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
               {log.notes ? (
                 <p className="paddle-log__notes">{log.notes}</p>
               ) : null}
-              <button
-                type="button"
-                className="paddle-log__delete"
-                onClick={() => handleDelete(log.id)}
-              >
-                Remove
-              </button>
+              <div className="paddle-log__actions">
+                <button
+                  type="button"
+                  className="paddle-log__edit"
+                  onClick={() => startEdit(log)}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="paddle-log__delete"
+                  onClick={() =>
+                    setConfirmDelete({ id: log.id, label: log.title })
+                  }
+                >
+                  Remove
+                </button>
+              </div>
             </li>
           ))}
         </ul>
       )}
+
+      {confirmDelete ? (
+        <ConfirmDialog
+          eyebrow="Remove paddle"
+          title={
+            confirmDelete.label
+              ? `Remove “${confirmDelete.label}”?`
+              : "Remove this paddle?"
+          }
+          body={<p>This removes it from your paddle history.</p>}
+          confirmLabel="Remove"
+          onConfirm={() => {
+            void handleDelete(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      ) : null}
     </section>
   );
 }
