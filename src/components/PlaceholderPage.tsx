@@ -14,7 +14,9 @@ export function PlaceholderPage({
 }) {
   return (
     <section className={`app-page app-page--${section}`} aria-label={title}>
-      <div className="app-page__header">
+      <div
+        className={`app-page__header${wide ? " app-page__header--wide" : ""}`}
+      >
         <h2>{title}</h2>
       </div>
       <div
