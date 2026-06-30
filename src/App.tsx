@@ -29,6 +29,7 @@ import {
   Star,
   Trash2,
   UserRound,
+  UsersRound,
   Waves,
   X,
 } from "lucide-react";
@@ -7097,6 +7098,17 @@ function App() {
             <PlaceholderPage section="more" title="More">
               <AppBrandPanel />
               <div className="placeholder-list">
+                <button
+                  className="placeholder-row"
+                  type="button"
+                  onClick={() => navigateSection("groups")}
+                >
+                  <span>
+                    <strong>Groups</strong>
+                    <small>Clubs, friends, and planned sessions</small>
+                  </span>
+                  <UsersRound size={18} />
+                </button>
                 {canAccessAdminTools ? (
                   <button
                     className="placeholder-row"
