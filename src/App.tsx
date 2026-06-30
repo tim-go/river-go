@@ -6418,9 +6418,9 @@ function App() {
                       <UserRound size={22} />
                       <div>
                         <strong>
-                          {memberProfile?.publicName ??
-                            memberProfile?.displayName ??
+                          {memberProfile?.displayName ??
                             authState.user?.displayName ??
+                            memberProfile?.publicName ??
                             "Signed out"}
                         </strong>
                         <span>
