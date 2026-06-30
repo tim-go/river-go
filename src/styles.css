@@ -1674,6 +1674,12 @@ button.group-detail__section {
   color: white;
 }
 
+/* Ghost-button icons follow the button's own text colour (like everywhere
+   else — e.g. the club cover controls), not the card's accent tint. */
+.profile-card .ghost-button svg {
+  color: inherit;
+}
+
 .profile-card strong,
 .profile-card span:not(.status-chip) {
   display: block;
