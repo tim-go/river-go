@@ -1340,6 +1340,11 @@ h1 {
 .content-columns__main .entity-toolbar input {
   max-width: 320px;
 }
+/* The group description is free text — let it use the full column width. */
+.content-columns__main .group-about-description,
+.content-columns__main .group-about-description textarea {
+  max-width: none;
+}
 .content-columns__main form button.primary-action {
   justify-self: start;
   width: auto;
@@ -4642,6 +4647,15 @@ input[type="file"]::file-selector-button {
 input[type="file"]::file-selector-button:hover {
   border-color: var(--river-dark);
   color: var(--river-dark);
+}
+
+/* The native date/time picker icon is dark — invert it so it shows on the
+   dark Surge theme. */
+[data-theme="surge"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="surge"] input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+[data-theme="surge"] input[type="time"]::-webkit-calendar-picker-indicator,
+[data-theme="surge"] input[type="month"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.6);
 }
 
 .location-card {

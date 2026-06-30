@@ -174,13 +174,15 @@ export function KitInventoryPanel() {
             Private to you — your gear, notes, and replacement reminders.
           </p>
         </div>
-        <button
-          type="button"
-          className="kit-inventory__add"
-          onClick={() => (isFormOpen ? closeForm() : setIsFormOpen(true))}
-        >
-          {isFormOpen ? "Cancel" : "Add kit"}
-        </button>
+        {!isFormOpen ? (
+          <button
+            type="button"
+            className="kit-inventory__add"
+            onClick={() => setIsFormOpen(true)}
+          >
+            Add kit
+          </button>
+        ) : null}
       </header>
 
       {isFormOpen ? (
@@ -246,17 +248,26 @@ export function KitInventoryPanel() {
               rows={2}
             />
           </label>
-          <button
-            type="submit"
-            className="kit-form__submit"
-            disabled={isSaving}
-          >
-            {isSaving
-              ? "Saving…"
-              : editingId
-                ? "Save changes"
-                : "Save kit"}
-          </button>
+          <div className="form-actions">
+            <button
+              type="button"
+              className="kit-inventory__add"
+              onClick={closeForm}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="kit-form__submit"
+              disabled={isSaving}
+            >
+              {isSaving
+                ? "Saving…"
+                : editingId
+                  ? "Save changes"
+                  : "Save kit"}
+            </button>
+          </div>
         </form>
       ) : null}
 

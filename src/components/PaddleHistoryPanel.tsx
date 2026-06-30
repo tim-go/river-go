@@ -179,13 +179,15 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
             Private to you — a log of the rivers you have paddled.
           </p>
         </div>
-        <button
-          type="button"
-          className="paddle-history__add"
-          onClick={() => (isFormOpen ? closeForm() : setIsFormOpen(true))}
-        >
-          {isFormOpen ? "Cancel" : "Log a paddle"}
-        </button>
+        {!isFormOpen ? (
+          <button
+            type="button"
+            className="paddle-history__add"
+            onClick={() => setIsFormOpen(true)}
+          >
+            Log a paddle
+          </button>
+        ) : null}
       </header>
 
       {stats && stats.totalPaddles > 0 ? (
@@ -292,17 +294,26 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
               rows={2}
             />
           </label>
-          <button
-            type="submit"
-            className="paddle-form__submit"
-            disabled={isSaving}
-          >
-            {isSaving
-              ? "Saving…"
-              : editingId
-                ? "Save changes"
-                : "Save paddle"}
-          </button>
+          <div className="form-actions">
+            <button
+              type="button"
+              className="paddle-history__add"
+              onClick={closeForm}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="paddle-form__submit"
+              disabled={isSaving}
+            >
+              {isSaving
+                ? "Saving…"
+                : editingId
+                  ? "Save changes"
+                  : "Save paddle"}
+            </button>
+          </div>
         </form>
       ) : null}
 

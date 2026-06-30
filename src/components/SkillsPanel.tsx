@@ -162,13 +162,15 @@ export function SkillsPanel() {
             never a claim that you are safe or suitable to lead.
           </p>
         </div>
-        <button
-          type="button"
-          className="skills-panel__add"
-          onClick={() => (isFormOpen ? closeForm() : setIsFormOpen(true))}
-        >
-          {isFormOpen ? "Cancel" : "Add skill"}
-        </button>
+        {!isFormOpen ? (
+          <button
+            type="button"
+            className="skills-panel__add"
+            onClick={() => setIsFormOpen(true)}
+          >
+            Add skill
+          </button>
+        ) : null}
       </header>
 
       {isFormOpen ? (
@@ -227,17 +229,26 @@ export function SkillsPanel() {
               />
             </label>
           </div>
-          <button
-            type="submit"
-            className="skills-form__submit"
-            disabled={isSaving}
-          >
-            {isSaving
-              ? "Saving…"
-              : editingId
-                ? "Save changes"
-                : "Save skill"}
-          </button>
+          <div className="form-actions">
+            <button
+              type="button"
+              className="skills-panel__add"
+              onClick={closeForm}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="skills-form__submit"
+              disabled={isSaving}
+            >
+              {isSaving
+                ? "Saving…"
+                : editingId
+                  ? "Save changes"
+                  : "Save skill"}
+            </button>
+          </div>
         </form>
       ) : null}
 

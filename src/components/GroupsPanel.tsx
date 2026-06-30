@@ -876,8 +876,41 @@ export function GroupsPanel({
     ? filteredMembers
     : filteredMembers.slice(0, 25);
 
+  const inviteMemberForm =
+    gd && canManage ? (
+      <form
+        className="group-invite group-detail__section"
+        onSubmit={handleInviteByEmail}
+      >
+        <h3>Invite a member</h3>
+        <p className="source-note">
+          Sends an in-app invite if they're already on RiverLaunch. To invite
+          someone new, share your group invite link.
+        </p>
+        <label>
+          <UserPlus size={15} /> By email
+          <input
+            type="email"
+            value={inviteEmail}
+            onChange={(event) => setInviteEmail(event.target.value)}
+            placeholder="paddler@example.com"
+          />
+        </label>
+        <button
+          type="submit"
+          className="primary-action primary-action--compact"
+        >
+          Send invite
+        </button>
+        {inviteNotice ? (
+          <p className="group-invite__notice">{inviteNotice}</p>
+        ) : null}
+      </form>
+    ) : null;
+
   const membersPanel = gd ? (
     <>
+      {inviteMemberForm}
       {requestsSection}
       {invitesSection}
       <div className="group-detail__section">
@@ -1235,7 +1268,9 @@ export function GroupsPanel({
             ref={coverFileRef}
             type="file"
             accept="image/*"
-            hidden
+            // Inline display:none — the global input[type=file] rule overrides
+            // the `hidden` attribute. Triggered via the styled button + ref.
+            style={{ display: "none" }}
             disabled={coverUploading}
             onChange={(event) => void handleCoverUpload(event)}
           />
@@ -1251,12 +1286,12 @@ export function GroupsPanel({
               required
             />
           </label>
-          <label>
+          <label className="group-about-description">
             Description
             <textarea
               value={descriptionDraft}
               onChange={(event) => setDescriptionDraft(event.target.value)}
-              rows={3}
+              rows={6}
               placeholder="What's this group about? Where and when do you paddle?"
             />
           </label>
@@ -1316,41 +1351,6 @@ export function GroupsPanel({
             </select>
           </label>
         </div>
-
-        <form
-          className="group-invite group-detail__section"
-          onSubmit={handleInviteByEmail}
-        >
-          <h3>Invite a member</h3>
-          <p className="source-note">
-            Sends an in-app invite if they're already on RiverLaunch. To invite
-            someone new, share your group invite link.
-          </p>
-          <label>
-            <UserPlus size={15} /> By email
-            <input
-              type="email"
-              value={inviteEmail}
-              onChange={(event) => setInviteEmail(event.target.value)}
-              placeholder="paddler@example.com"
-            />
-          </label>
-          <button
-            type="submit"
-            className="primary-action primary-action--compact"
-          >
-            Send invite
-          </button>
-          {pending && pending.invitedCount ? (
-            <p className="group-invite__count">
-              {pending.invitedCount} invite
-              {pending.invitedCount === 1 ? "" : "s"} pending
-            </p>
-          ) : null}
-          {inviteNotice ? (
-            <p className="group-invite__notice">{inviteNotice}</p>
-          ) : null}
-        </form>
       </>
     ) : null;
 
