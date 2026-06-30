@@ -1270,38 +1270,14 @@ h1 {
   flex-wrap: wrap;
 }
 
-/* Segmented tab buttons (matching the Profile tabs) — they wrap onto rows on
-   narrow screens instead of becoming a horizontal scroll bar. */
+/* The entity-page tabs reuse the shared .segmented-control styling (identical to
+   the Profile tabs, incl. per-theme active colours). The only difference: a
+   variable number of tabs that wrap to fit, rather than a fixed 5 columns. */
 .entity-page__tabs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
-  gap: 6px;
   margin-bottom: 18px;
 }
-
-.entity-page__tab {
-  display: inline-flex;
-  min-height: 38px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.entity-page__tab:hover {
-  color: var(--ink);
-}
-
-.entity-page__tab--active {
-  border-color: #ffd60a;
-  background: #ffd60a;
-  color: #1a1300;
+.segmented-control.entity-page__tabs {
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
 }
 
 .entity-page__body {

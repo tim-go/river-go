@@ -96,16 +96,16 @@ export function EntityPage({
         ) : null}
       </header>
 
-      <nav className="entity-page__tabs" role="tablist">
+      {/* Reuse the shared .segmented-control styling (same as the Profile tabs)
+          so the look — including per-theme active colours — stays identical. */}
+      <nav className="segmented-control entity-page__tabs" role="tablist">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             role="tab"
             aria-selected={tab.id === activeTab}
-            className={`entity-page__tab${
-              tab.id === activeTab ? " entity-page__tab--active" : ""
-            }`}
+            className={tab.id === activeTab ? "active" : ""}
             onClick={() => onTabChange(tab.id)}
           >
             {tab.label}
