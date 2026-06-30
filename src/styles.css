@@ -1109,15 +1109,22 @@ h1 {
 }
 
 .entity-page__cover {
+  position: relative;
   height: 170px;
   margin-bottom: 16px;
   border-radius: 14px;
+  overflow: hidden;
   /* Themed muted surface (shows for the empty/loading state; image covers it
      otherwise). --surface-strong is defined per theme, so it stays dark in Surge. */
   background-color: var(--surface-strong, #e7ecea);
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: 50% 50%;
+}
+/* object-fit:cover fills the banner at zoom 100 (no letterbox); the inline
+   transform: scale() zooms in and is clipped by the cover's overflow:hidden. */
+.entity-page__cover-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 @media (max-width: 640px) {

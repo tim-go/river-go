@@ -147,6 +147,7 @@ export function GroupsPanel({
   const [nameDraft, setNameDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [coverPositionDraft, setCoverPositionDraft] = useState(50);
+  const [coverZoomDraft, setCoverZoomDraft] = useState(100);
   const [coverUploading, setCoverUploading] = useState(false);
 
   const [isCreatingSession, setIsCreatingSession] = useState(false);
@@ -254,7 +255,9 @@ export function GroupsPanel({
     setNameDraft(groupDetail?.name ?? "");
     setDescriptionDraft(groupDetail?.description ?? "");
     setCoverPositionDraft(groupDetail?.coverPosition ?? 50);
-  }, [groupDetail?.id]);
+    setCoverZoomDraft(groupDetail?.coverZoom ?? 100);
+    // Re-seed the frame drafts when the cover image itself changes too.
+  }, [groupDetail?.id, groupDetail?.coverImageUrl]);
 
   async function reloadGroup() {
     if (!routeGroup) {
@@ -370,6 +373,14 @@ export function GroupsPanel({
     if (!file || !selectedGroupId) {
       return;
     }
+    if (!file.type.startsWith("image/")) {
+      setError("Choose an image file for the cover.");
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      setError("Image is too large — max 12 MB.");
+      return;
+    }
     setError("");
     setCoverUploading(true);
     try {
@@ -386,13 +397,14 @@ export function GroupsPanel({
     }
   }
 
-  async function handleSaveCoverPosition(position: number) {
+  async function handleSaveCoverFrame() {
     await runGroupAction(
       () =>
         updateGroupSettings(selectedGroupId!, {
-          coverPosition: position,
+          coverPosition: coverPositionDraft,
+          coverZoom: coverZoomDraft,
         }).then(setGroupDetail),
-      "Could not update the cover position.",
+      "Could not update the cover photo.",
     );
   }
 
@@ -1000,37 +1012,62 @@ export function GroupsPanel({
         <div className="group-detail__section">
           <h3>Cover photo</h3>
           {gd.coverImageUrl ? (
-            <div
-              className="entity-page__cover group-cover-preview"
-              style={{
-                backgroundImage: `url(${gd.coverImageUrl})`,
-                backgroundPosition: `50% ${coverPositionDraft}%`,
-              }}
-            />
+            <div className="entity-page__cover group-cover-preview">
+              <img
+                className="entity-page__cover-img"
+                src={gd.coverImageUrl}
+                alt=""
+                style={{
+                  objectPosition: `50% ${coverPositionDraft}%`,
+                  transformOrigin: `50% ${coverPositionDraft}%`,
+                  transform: `scale(${coverZoomDraft / 100})`,
+                }}
+              />
+            </div>
           ) : (
             <div className="entity-page__cover group-cover-preview group-cover-preview--empty">
               No cover photo yet
             </div>
           )}
           {gd.coverImageUrl ? (
-            <label className="group-cover-position">
-              Position
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={coverPositionDraft}
-                onChange={(event) =>
-                  setCoverPositionDraft(Number(event.target.value))
+            <>
+              <label className="group-cover-position">
+                Position
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={coverPositionDraft}
+                  onChange={(event) =>
+                    setCoverPositionDraft(Number(event.target.value))
+                  }
+                />
+              </label>
+              <label className="group-cover-position">
+                Zoom
+                <input
+                  type="range"
+                  min={100}
+                  max={300}
+                  step={5}
+                  value={coverZoomDraft}
+                  onChange={(event) =>
+                    setCoverZoomDraft(Number(event.target.value))
+                  }
+                />
+              </label>
+              <button
+                type="button"
+                className="primary-action primary-action--compact"
+                disabled={
+                  coverPositionDraft === gd.coverPosition &&
+                  coverZoomDraft === gd.coverZoom
                 }
-                onMouseUp={() =>
-                  void handleSaveCoverPosition(coverPositionDraft)
-                }
-                onTouchEnd={() =>
-                  void handleSaveCoverPosition(coverPositionDraft)
-                }
-              />
-            </label>
+                onClick={() => void handleSaveCoverFrame()}
+              >
+                Save cover
+              </button>
+            </>
           ) : null}
           <div className="group-cover-actions">
             <label className="ghost-button ghost-button--compact">
@@ -1306,6 +1343,7 @@ export function GroupsPanel({
               ? {
                   url: groupDetail.coverImageUrl,
                   position: groupDetail.coverPosition,
+                  zoom: groupDetail.coverZoom,
                 }
               : undefined
           }
@@ -1367,6 +1405,7 @@ export function GroupsPanel({
               ? {
                   url: publicGroup.coverImageUrl,
                   position: publicGroup.coverPosition,
+                  zoom: publicGroup.coverZoom,
                 }
               : undefined
           }

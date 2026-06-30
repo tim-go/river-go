@@ -190,6 +190,7 @@ export interface GroupSettingsPatch {
   coverImageUrl?: string | null;
   coverImagePath?: string | null;
   coverPosition?: number;
+  coverZoom?: number;
 }
 
 export async function updateGroupSettings(
