@@ -49,6 +49,7 @@ import { uploadGroupCover } from "../services/groupCoverUpload";
 import { ChangeRoleDialog } from "./ChangeRoleDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { SessionDetailPanel } from "./SessionDetailPanel";
+import { Avatar } from "./Avatar";
 import { EntityPage, type EntityTab } from "./EntityPage";
 
 interface GroupsPanelProps {
@@ -665,9 +666,12 @@ export function GroupsPanel({
 
   const renderMemberRow = (member: GroupMember, withControls = false) => (
     <li key={member.id} className="group-member-row">
-      <span>
-        <strong>{member.publicName}</strong>
-        <small>{GROUP_ROLE_LABELS[member.role]}</small>
+      <span className="group-member-row__person">
+        <Avatar name={member.publicName} avatar={member.avatar} size={36} />
+        <span>
+          <strong>{member.publicName}</strong>
+          <small>{GROUP_ROLE_LABELS[member.role]}</small>
+        </span>
       </span>
       {gd && withControls && canManage && member.role !== "owner" ? (
         <span className="group-member-row__actions">
@@ -743,9 +747,16 @@ export function GroupsPanel({
         <ul className="group-member-list">
           {pending.requests.map((request) => (
             <li key={request.memberId} className="group-member-row">
-              <span>
-                <strong>{request.publicName}</strong>
-                <small>wants to join</small>
+              <span className="group-member-row__person">
+                <Avatar
+                  name={request.publicName}
+                  avatar={request.avatar}
+                  size={36}
+                />
+                <span>
+                  <strong>{request.publicName}</strong>
+                  <small>wants to join</small>
+                </span>
               </span>
               <span className="group-member-row__actions">
                 <button
@@ -786,9 +797,16 @@ export function GroupsPanel({
         <ul className="group-member-list">
           {pending.invites.map((invite) => (
             <li key={invite.memberId} className="group-member-row">
-              <span>
-                <strong>{invite.publicName}</strong>
-                <small>invited · not yet accepted</small>
+              <span className="group-member-row__person">
+                <Avatar
+                  name={invite.publicName}
+                  avatar={invite.avatar}
+                  size={36}
+                />
+                <span>
+                  <strong>{invite.publicName}</strong>
+                  <small>invited · not yet accepted</small>
+                </span>
               </span>
               <span className="group-member-row__actions">
                 <button

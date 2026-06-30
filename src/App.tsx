@@ -176,6 +176,7 @@ import { PlaceholderPage } from "./components/PlaceholderPage";
 import { SignedOutNotice } from "./components/SignedOutNotice";
 import { RiverCard } from "./components/RiverCard";
 import { DashboardHub } from "./components/DashboardHub";
+import { ProfileAvatarEditor } from "./components/ProfileAvatarEditor";
 import { PwaInstallSettingRow } from "./pwa/PwaInstallSettingRow";
 import { GroupsPanel } from "./components/GroupsPanel";
 import { PhotoLightbox } from "./components/PhotoLightbox";
@@ -6477,6 +6478,20 @@ function App() {
                           <LogIn size={16} />
                           Create account / Sign in
                         </button>
+                      </section>
+                    ) : null}
+                    {isSignedIn ? (
+                      <section className="profile-card profile-card--stacked">
+                        <div className="block-title">
+                          <div>
+                            <h3>Profile picture</h3>
+                            <span>A circle headshot shown to other paddlers</span>
+                          </div>
+                        </div>
+                        <ProfileAvatarEditor
+                          profile={memberProfile}
+                          onSaved={(member) => setMemberProfile(member)}
+                        />
                       </section>
                     ) : null}
                     {isSignedIn ? (
