@@ -8,10 +8,13 @@ import {
   type ReactNode,
 } from "react";
 import {
+  Camera,
   Check,
   Copy,
+  Crop,
   LogOut,
   Plus,
+  Trash2,
   UserPlus,
   UsersRound,
   X,
@@ -1096,14 +1099,7 @@ export function GroupsPanel({
           </button>
         </div>
         <ul className="group-member-list">
-          {gd.members.slice(0, 5).map((member) => (
-            <li key={member.id} className="group-member-row">
-              <span>
-                <strong>{member.publicName}</strong>
-                <small>{GROUP_ROLE_LABELS[member.role]}</small>
-              </span>
-            </li>
-          ))}
+          {gd.members.slice(0, 5).map((member) => renderMemberRow(member))}
         </ul>
       </div>
       {canManageMembers &&
@@ -1249,11 +1245,12 @@ export function GroupsPanel({
                   disabled={coverUploading}
                   onClick={() => coverFileRef.current?.click()}
                 >
+                  <Camera size={15} />{" "}
                   {coverUploading
                     ? "Uploading…"
                     : gd.coverImageUrl
-                      ? "Replace photo"
-                      : "Add cover photo"}
+                      ? "Change picture"
+                      : "Add picture"}
                 </button>
                 {gd.coverImageUrl ? (
                   <>
@@ -1262,18 +1259,18 @@ export function GroupsPanel({
                       className="ghost-button ghost-button--compact"
                       onClick={() => setCoverEditMode(true)}
                     >
-                      Edit
+                      <Crop size={15} /> Reframe
                     </button>
                     <button
                       type="button"
-                      className="ghost-button ghost-button--compact"
+                      className="ghost-button ghost-button--compact ghost-button--danger"
                       onClick={() =>
                         setConfirmDialog({
                           eyebrow: "Remove cover photo",
                           title: "Remove the cover photo?",
                           body: (
                             <p>
-                              The group will show no cover banner until you add a
+                              The club will show no cover banner until you add a
                               new one.
                             </p>
                           ),
@@ -1282,7 +1279,7 @@ export function GroupsPanel({
                         })
                       }
                     >
-                      Remove
+                      <Trash2 size={15} /> Remove
                     </button>
                   </>
                 ) : null}

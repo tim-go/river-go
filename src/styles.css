@@ -6175,6 +6175,11 @@ input[type="file"]::file-selector-button:hover {
 .ghost-button--danger {
   color: var(--danger);
 }
+/* On Surge the ghost-button surface is dark navy, where the default dark red
+   (#b42318) barely reads — use a lighter coral that contrasts. */
+[data-theme="surge"] .ghost-button--danger {
+  color: #ff8a80;
+}
 
 /* Invite link row: icon + full URL (truncated) + copy/edit, no full-width input. */
 .group-invite-link__view,

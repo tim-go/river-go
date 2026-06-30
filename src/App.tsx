@@ -6484,20 +6484,6 @@ function App() {
                       <section className="profile-card profile-card--stacked">
                         <div className="block-title">
                           <div>
-                            <h3>Profile picture</h3>
-                            <span>A circle headshot shown to other paddlers</span>
-                          </div>
-                        </div>
-                        <ProfileAvatarEditor
-                          profile={memberProfile}
-                          onSaved={(member) => setMemberProfile(member)}
-                        />
-                      </section>
-                    ) : null}
-                    {isSignedIn ? (
-                      <section className="profile-card profile-card--stacked">
-                        <div className="block-title">
-                          <div>
                             <h3>Your name</h3>
                             <span>
                               For your account and emails — not shown publicly
@@ -6640,6 +6626,19 @@ function App() {
                         </button>
                       </section>
                     ) : (
+                      <>
+                      <section className="profile-card profile-card--stacked">
+                        <div className="block-title">
+                          <div>
+                            <h3>Profile picture</h3>
+                            <span>A circle headshot shown to other paddlers</span>
+                          </div>
+                        </div>
+                        <ProfileAvatarEditor
+                          profile={memberProfile}
+                          onSaved={(member) => setMemberProfile(member)}
+                        />
+                      </section>
                       <section className="profile-card profile-card--stacked">
                         <div className="block-title">
                           <div>
@@ -6685,6 +6684,7 @@ function App() {
                           </button>
                         </div>
                       </section>
+                      </>
                     )}
                   </section>
                 ) : null}
