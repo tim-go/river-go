@@ -1,8 +1,11 @@
 import {
   useEffect,
+  useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from "react";
 import {
   Check,
@@ -43,6 +46,7 @@ import {
   updateGroupSettings,
 } from "../services/groupsApi";
 import { uploadGroupCover } from "../services/groupCoverUpload";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { SessionDetailPanel } from "./SessionDetailPanel";
 import { EntityPage, type EntityTab } from "./EntityPage";
 
@@ -128,6 +132,13 @@ export function GroupsPanel({
   const selectedGroupId = groupDetail?.id ?? publicGroup?.id ?? null;
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{
+    eyebrow?: string;
+    title: string;
+    body: ReactNode;
+    confirmLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [groupName, setGroupName] = useState("");
@@ -147,8 +158,13 @@ export function GroupsPanel({
   const [nameDraft, setNameDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [coverPositionDraft, setCoverPositionDraft] = useState(50);
+  const [coverXDraft, setCoverXDraft] = useState(50);
   const [coverZoomDraft, setCoverZoomDraft] = useState(100);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [coverDragging, setCoverDragging] = useState(false);
+  const coverFileRef = useRef<HTMLInputElement | null>(null);
+  // Drag origin for repositioning the cover (pointer + draft start values).
+  const coverDragStart = useRef({ px: 0, py: 0, x: 50, y: 50 });
 
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [sessionTitle, setSessionTitle] = useState("");
@@ -255,6 +271,7 @@ export function GroupsPanel({
     setNameDraft(groupDetail?.name ?? "");
     setDescriptionDraft(groupDetail?.description ?? "");
     setCoverPositionDraft(groupDetail?.coverPosition ?? 50);
+    setCoverXDraft(groupDetail?.coverX ?? 50);
     setCoverZoomDraft(groupDetail?.coverZoom ?? 100);
     // Re-seed the frame drafts when the cover image itself changes too.
   }, [groupDetail?.id, groupDetail?.coverImageUrl]);
@@ -402,10 +419,48 @@ export function GroupsPanel({
       () =>
         updateGroupSettings(selectedGroupId!, {
           coverPosition: coverPositionDraft,
+          coverX: coverXDraft,
           coverZoom: coverZoomDraft,
         }).then(setGroupDetail),
       "Could not update the cover photo.",
     );
+  }
+
+  // Drag the preview to pan the cover on both axes. Dragging the photo right
+  // reveals its left side → object-position X decreases, so the photo follows
+  // the cursor.
+  function handleCoverPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    coverDragStart.current = {
+      px: event.clientX,
+      py: event.clientY,
+      x: coverXDraft,
+      y: coverPositionDraft,
+    };
+    setCoverDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function handleCoverPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!coverDragging) {
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const start = coverDragStart.current;
+    const clamp = (value: number) => Math.min(100, Math.max(0, value));
+    const nextX = clamp(
+      start.x - ((event.clientX - start.px) / rect.width) * 100,
+    );
+    const nextY = clamp(
+      start.y - ((event.clientY - start.py) / rect.height) * 100,
+    );
+    setCoverXDraft(Math.round(nextX));
+    setCoverPositionDraft(Math.round(nextY));
+  }
+  function handleCoverPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    setCoverDragging(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   }
 
   async function handleRemoveCover() {
@@ -419,20 +474,30 @@ export function GroupsPanel({
     );
   }
 
-  async function handleTransfer(member: GroupMember) {
-    if (
-      !window.confirm(
-        `Transfer ownership of “${gd?.name ?? "this group"}” to ${member.publicName}?\n\n` +
-          `${member.publicName} will become the owner with full control — including the right to remove members, change settings, or delete the group. ` +
-          `You will be demoted to organiser, and only the new owner can transfer ownership back. This cannot be undone by you.`,
-      )
-    ) {
-      return;
-    }
-    await runGroupAction(
-      () => transferOwnership(selectedGroupId!, member.memberId),
-      "Could not transfer ownership.",
-    );
+  function handleTransfer(member: GroupMember) {
+    setConfirmDialog({
+      eyebrow: "Transfer ownership",
+      title: `Make ${member.publicName} the owner?`,
+      body: (
+        <>
+          <p>
+            {member.publicName} will become the owner of “
+            {gd?.name ?? "this group"}” with full control — including removing
+            members, changing settings, or deleting the group.
+          </p>
+          <p>
+            You'll be demoted to organiser, and only the new owner can transfer
+            ownership back. This can't be undone by you.
+          </p>
+        </>
+      ),
+      confirmLabel: "Transfer ownership",
+      onConfirm: () =>
+        void runGroupAction(
+          () => transferOwnership(selectedGroupId!, member.memberId),
+          "Could not transfer ownership.",
+        ),
+    });
   }
 
   async function handleRespond(accept: boolean) {
@@ -609,18 +674,24 @@ export function GroupsPanel({
           <button
             type="button"
             className="ghost-button ghost-button--compact"
-            onClick={() => {
-              if (
-                window.confirm(
-                  `Remove ${member.publicName} from “${gd.name}”? They'll lose access and would need to be re-invited or request to join again.`,
-                )
-              ) {
-                void runGroupAction(
-                  () => removeMember(gd.id, member.memberId),
-                  "Could not remove the member.",
-                );
-              }
-            }}
+            onClick={() =>
+              setConfirmDialog({
+                eyebrow: "Remove member",
+                title: `Remove ${member.publicName}?`,
+                body: (
+                  <p>
+                    They'll lose access to “{gd.name}” and would need to be
+                    re-invited or request to join again.
+                  </p>
+                ),
+                confirmLabel: "Remove",
+                onConfirm: () =>
+                  void runGroupAction(
+                    () => removeMember(gd.id, member.memberId),
+                    "Could not remove the member.",
+                  ),
+              })
+            }
             aria-label={`Remove ${member.publicName}`}
           >
             <X size={14} />
@@ -751,18 +822,24 @@ export function GroupsPanel({
                 <button
                   type="button"
                   className="ghost-button ghost-button--compact"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Cancel the invite to ${invite.publicName}? They won't be able to join unless you invite them again.`,
-                      )
-                    ) {
-                      void runGroupAction(
-                        () => cancelInviteOrWithdraw(gd.id, invite.memberId),
-                        "Could not cancel the invite.",
-                      );
-                    }
-                  }}
+                  onClick={() =>
+                    setConfirmDialog({
+                      eyebrow: "Cancel invite",
+                      title: `Cancel the invite to ${invite.publicName}?`,
+                      body: (
+                        <p>
+                          They won't be able to join unless you invite them
+                          again.
+                        </p>
+                      ),
+                      confirmLabel: "Cancel invite",
+                      onConfirm: () =>
+                        void runGroupAction(
+                          () => cancelInviteOrWithdraw(gd.id, invite.memberId),
+                          "Could not cancel the invite.",
+                        ),
+                    })
+                  }
                 >
                   <X size={14} /> Cancel
                 </button>
@@ -1012,37 +1089,29 @@ export function GroupsPanel({
         <div className="group-detail__section">
           <h3>Cover photo</h3>
           {gd.coverImageUrl ? (
-            <div className="entity-page__cover group-cover-preview">
-              <img
-                className="entity-page__cover-img"
-                src={gd.coverImageUrl}
-                alt=""
-                style={{
-                  objectPosition: `50% ${coverPositionDraft}%`,
-                  transformOrigin: `50% ${coverPositionDraft}%`,
-                  transform: `scale(${coverZoomDraft / 100})`,
-                }}
-              />
-            </div>
-          ) : (
-            <div className="entity-page__cover group-cover-preview group-cover-preview--empty">
-              No cover photo yet
-            </div>
-          )}
-          {gd.coverImageUrl ? (
             <>
-              <label className="group-cover-position">
-                Position
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={coverPositionDraft}
-                  onChange={(event) =>
-                    setCoverPositionDraft(Number(event.target.value))
-                  }
+              <div
+                className={`entity-page__cover group-cover-preview group-cover-preview--draggable${
+                  coverDragging ? " group-cover-preview--dragging" : ""
+                }`}
+                onPointerDown={handleCoverPointerDown}
+                onPointerMove={handleCoverPointerMove}
+                onPointerUp={handleCoverPointerUp}
+                onPointerCancel={handleCoverPointerUp}
+              >
+                <img
+                  className="entity-page__cover-img"
+                  src={gd.coverImageUrl}
+                  alt=""
+                  draggable={false}
+                  style={{
+                    objectPosition: `${coverXDraft}% ${coverPositionDraft}%`,
+                    transformOrigin: `${coverXDraft}% ${coverPositionDraft}%`,
+                    transform: `scale(${coverZoomDraft / 100})`,
+                  }}
                 />
-              </label>
+              </div>
+              <p className="group-cover-hint">Drag the photo to reposition.</p>
               <label className="group-cover-position">
                 Zoom
                 <input
@@ -1060,6 +1129,7 @@ export function GroupsPanel({
                 type="button"
                 className="primary-action primary-action--compact"
                 disabled={
+                  coverXDraft === gd.coverX &&
                   coverPositionDraft === gd.coverPosition &&
                   coverZoomDraft === gd.coverZoom
                 }
@@ -1068,22 +1138,24 @@ export function GroupsPanel({
                 Save cover
               </button>
             </>
-          ) : null}
+          ) : (
+            <div className="entity-page__cover group-cover-preview group-cover-preview--empty">
+              No cover photo yet
+            </div>
+          )}
           <div className="group-cover-actions">
-            <label className="ghost-button ghost-button--compact">
+            <button
+              type="button"
+              className="ghost-button ghost-button--compact"
+              disabled={coverUploading}
+              onClick={() => coverFileRef.current?.click()}
+            >
               {coverUploading
                 ? "Uploading…"
                 : gd.coverImageUrl
-                  ? "Replace"
+                  ? "Replace photo"
                   : "Upload cover"}
-              <input
-                type="file"
-                accept="image/*"
-                hidden
-                disabled={coverUploading}
-                onChange={(event) => void handleCoverUpload(event)}
-              />
-            </label>
+            </button>
             {gd.coverImageUrl ? (
               <button
                 type="button"
@@ -1093,6 +1165,14 @@ export function GroupsPanel({
                 Remove
               </button>
             ) : null}
+            <input
+              ref={coverFileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              disabled={coverUploading}
+              onChange={(event) => void handleCoverUpload(event)}
+            />
           </div>
         </div>
 
@@ -1342,6 +1422,7 @@ export function GroupsPanel({
             groupDetail.coverImageUrl
               ? {
                   url: groupDetail.coverImageUrl,
+                  x: groupDetail.coverX,
                   position: groupDetail.coverPosition,
                   zoom: groupDetail.coverZoom,
                 }
@@ -1404,6 +1485,7 @@ export function GroupsPanel({
             publicGroup.coverImageUrl
               ? {
                   url: publicGroup.coverImageUrl,
+                  x: publicGroup.coverX,
                   position: publicGroup.coverPosition,
                   zoom: publicGroup.coverZoom,
                 }
@@ -1619,6 +1701,20 @@ export function GroupsPanel({
           ) : null}
         </div>
       )}
+
+      {confirmDialog ? (
+        <ConfirmDialog
+          eyebrow={confirmDialog.eyebrow}
+          title={confirmDialog.title}
+          body={confirmDialog.body}
+          confirmLabel={confirmDialog.confirmLabel}
+          onConfirm={() => {
+            confirmDialog.onConfirm();
+            setConfirmDialog(null);
+          }}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      ) : null}
     </section>
   );
 }

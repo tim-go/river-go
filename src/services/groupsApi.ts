@@ -190,6 +190,7 @@ export interface GroupSettingsPatch {
   coverImageUrl?: string | null;
   coverImagePath?: string | null;
   coverPosition?: number;
+  coverX?: number;
   coverZoom?: number;
 }
 

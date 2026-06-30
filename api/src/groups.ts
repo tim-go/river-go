@@ -68,6 +68,7 @@ export interface ApiGroup {
   updatedAt: string;
   coverImageUrl: string | null;
   coverPosition: number;
+  coverX: number;
   coverZoom: number;
   memberCount: number;
   myRole: GroupRole | null;
@@ -86,6 +87,7 @@ export interface ApiGroupPublic {
   accessMode: GroupAccessMode;
   coverImageUrl: string | null;
   coverPosition: number;
+  coverX: number;
   coverZoom: number;
   memberCount: number;
   myStatus: GroupMemberStatus | null;
@@ -147,6 +149,7 @@ interface GroupRow {
   updated_at: Date;
   cover_image_url?: string | null;
   cover_position?: number | string | null;
+  cover_x?: number | string | null;
   cover_zoom?: number | string | null;
   member_count?: string | number;
   my_role?: GroupRole | null;
@@ -187,6 +190,7 @@ function mapGroupRow(row: GroupRow): ApiGroup {
     updatedAt: row.updated_at.toISOString(),
     coverImageUrl: row.cover_image_url ?? null,
     coverPosition: row.cover_position != null ? Number(row.cover_position) : 50,
+    coverX: row.cover_x != null ? Number(row.cover_x) : 50,
     coverZoom: row.cover_zoom != null ? Number(row.cover_zoom) : 100,
     memberCount: row.member_count != null ? Number(row.member_count) : 0,
     myRole: row.my_role ?? null,
@@ -349,7 +353,7 @@ export async function createGroup(
        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id, name, handle, kind, parent_group_id, description,
                  discipline, visibility, access_mode, created_by, created_at,
-                 updated_at, cover_image_url, cover_position, cover_zoom`,
+                 updated_at, cover_image_url, cover_position, cover_x, cover_zoom`,
       [
         input.name,
         handle,
@@ -390,7 +394,7 @@ export async function listGroupsForMember(
   const result = await client.query<GroupRow>(
     `SELECT g.id, g.name, g.handle, g.kind, g.parent_group_id, g.description,
             g.discipline, g.visibility, g.access_mode, g.created_by,
-            g.created_at, g.updated_at, g.cover_image_url, g.cover_position, g.cover_zoom,
+            g.created_at, g.updated_at, g.cover_image_url, g.cover_position, g.cover_x, g.cover_zoom,
             (SELECT count(*) FROM group_members gm2
                WHERE gm2.group_id = g.id AND gm2.status = 'active')
               AS member_count,
@@ -413,7 +417,7 @@ export async function getGroupForMember(
   const result = await client.query<GroupRow>(
     `SELECT g.id, g.name, g.handle, g.kind, g.parent_group_id, g.description,
             g.discipline, g.visibility, g.access_mode, g.created_by,
-            g.created_at, g.updated_at, g.cover_image_url, g.cover_position, g.cover_zoom,
+            g.created_at, g.updated_at, g.cover_image_url, g.cover_position, g.cover_x, g.cover_zoom,
             (SELECT count(*) FROM group_members gm2
                WHERE gm2.group_id = g.id AND gm2.status = 'active')
               AS member_count,
@@ -830,6 +834,13 @@ export async function updateGroupSettings(
     }
     add("cover_position", Math.min(100, Math.max(0, Math.round(raw))));
   }
+  if ("coverX" in patch) {
+    const raw = Number(patch.coverX);
+    if (!Number.isFinite(raw)) {
+      throw new HttpError(400, "Choose a valid cover position.");
+    }
+    add("cover_x", Math.min(100, Math.max(0, Math.round(raw))));
+  }
   if ("coverZoom" in patch) {
     const raw = Number(patch.coverZoom);
     if (!Number.isFinite(raw)) {
@@ -895,7 +906,7 @@ export async function getGroupByIdOrHandle(
   const publicRow = await pool.query<GroupRow>(
     `SELECT g.id, g.name, g.handle, g.kind, g.parent_group_id, g.description,
             g.discipline, g.visibility, g.access_mode, g.created_by,
-            g.created_at, g.updated_at, g.cover_image_url, g.cover_position, g.cover_zoom,
+            g.created_at, g.updated_at, g.cover_image_url, g.cover_position, g.cover_x, g.cover_zoom,
             (SELECT count(*) FROM group_members gm2
                WHERE gm2.group_id = g.id AND gm2.status = 'active')
               AS member_count
@@ -917,6 +928,7 @@ export async function getGroupByIdOrHandle(
       coverImageUrl: row.cover_image_url ?? null,
       coverPosition:
         row.cover_position != null ? Number(row.cover_position) : 50,
+      coverX: row.cover_x != null ? Number(row.cover_x) : 50,
       coverZoom: row.cover_zoom != null ? Number(row.cover_zoom) : 100,
       memberCount: row.member_count != null ? Number(row.member_count) : 0,
       myStatus: found.my_status ?? null,

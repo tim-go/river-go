@@ -1137,6 +1137,23 @@ h1 {
 .group-cover-preview {
   margin-bottom: 10px;
 }
+.group-cover-preview--draggable {
+  cursor: grab;
+  /* Pan the photo by dragging; suppress browser gestures/selection. */
+  touch-action: none;
+  user-select: none;
+}
+.group-cover-preview--draggable .entity-page__cover-img {
+  pointer-events: none;
+}
+.group-cover-preview--dragging {
+  cursor: grabbing;
+}
+.group-cover-hint {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
 .group-cover-preview--empty {
   display: flex;
   align-items: center;

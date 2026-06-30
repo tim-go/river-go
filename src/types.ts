@@ -415,6 +415,7 @@ export interface Group {
   updatedAt: string;
   coverImageUrl: string | null;
   coverPosition: number;
+  coverX: number;
   coverZoom: number;
   memberCount: number;
   myRole: GroupRole | null;
@@ -432,6 +433,7 @@ export interface GroupPublic {
   accessMode: GroupAccessMode;
   coverImageUrl: string | null;
   coverPosition: number;
+  coverX: number;
   coverZoom: number;
   memberCount: number;
   myStatus: GroupMemberStatus | null;

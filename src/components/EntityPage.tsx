@@ -20,10 +20,10 @@ interface EntityPageProps {
   backLabel?: string;
   onBack?: () => void;
   /**
-   * Optional cover banner shown above the header. position = vertical % crop,
-   * zoom = scale % (100 = fill baseline, up to 300 = zoomed in).
+   * Optional cover banner shown above the header. x/position = horizontal &
+   * vertical % crop, zoom = scale % (100 = fill baseline, up to 300 = zoomed in).
    */
-  cover?: { url: string; position: number; zoom: number };
+  cover?: { url: string; x: number; position: number; zoom: number };
   tabs: EntityTab[];
   activeTab: string;
   onTabChange: (id: string) => void;
@@ -62,8 +62,8 @@ export function EntityPage({
             src={cover.url}
             alt=""
             style={{
-              objectPosition: `50% ${cover.position}%`,
-              transformOrigin: `50% ${cover.position}%`,
+              objectPosition: `${cover.x ?? 50}% ${cover.position}%`,
+              transformOrigin: `${cover.x ?? 50}% ${cover.position}%`,
               transform: `scale(${(cover.zoom ?? 100) / 100})`,
             }}
           />
