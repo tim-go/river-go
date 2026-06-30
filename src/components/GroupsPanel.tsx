@@ -241,13 +241,18 @@ export function GroupsPanel({
     // should upgrade to the member view (and vice versa).
   }, [routeGroup, isSignedIn]);
 
-  // Membership managers see pending invites/requests.
+  // canManage (owner/organiser): settings, remove member, role changes, cover
+  // + about edits. canManageMembers (+ leader): membership intake — invite,
+  // see + approve/decline requests, cancel invites. Any active member can
+  // share the group link.
   const canManage =
     groupDetail?.myRole === "owner" || groupDetail?.myRole === "organiser";
+  const canManageMembers = canManage || groupDetail?.myRole === "leader";
   const isOwner = groupDetail?.myRole === "owner";
+  const isActiveMember = groupDetail?.myStatus === "active";
 
   useEffect(() => {
-    if (!selectedGroupId || !canManage) {
+    if (!selectedGroupId || !canManageMembers) {
       setPending(null);
       return;
     }
@@ -266,7 +271,7 @@ export function GroupsPanel({
     return () => {
       active = false;
     };
-  }, [selectedGroupId, canManage, groupDetail?.memberCount]);
+  }, [selectedGroupId, canManageMembers, groupDetail?.memberCount]);
 
   // Seed the editable About fields when a different group loads (kept across
   // in-place reloads, which preserve the id).
@@ -286,7 +291,7 @@ export function GroupsPanel({
     const view = await fetchGroup(routeGroup);
     if (view.access === "member") {
       setGroupDetail(view.group);
-      if (canManage) {
+      if (canManageMembers) {
         setPending(await fetchPending(view.group.id).catch(() => null));
       }
     }
@@ -761,16 +766,18 @@ export function GroupsPanel({
                 {linkCopied ? <Check size={14} /> : <Copy size={14} />}
                 {linkCopied ? "Copied" : "Copy"}
               </button>
-              <button
-                type="button"
-                className="ghost-button ghost-button--compact"
-                onClick={() => {
-                  setHandleDraft(gd.handle ?? "");
-                  setIsEditingHandle(true);
-                }}
-              >
-                Edit
-              </button>
+              {canManage ? (
+                <button
+                  type="button"
+                  className="ghost-button ghost-button--compact"
+                  onClick={() => {
+                    setHandleDraft(gd.handle ?? "");
+                    setIsEditingHandle(true);
+                  }}
+                >
+                  Edit
+                </button>
+              ) : null}
             </span>
           );
         })()
@@ -779,7 +786,7 @@ export function GroupsPanel({
   ) : null;
 
   const requestsSection =
-    gd && canManage && pending && pending.requests.length ? (
+    gd && canManageMembers && pending && pending.requests.length ? (
       <div className="group-detail__section">
         <h3>Join requests</h3>
         <ul className="group-member-list">
@@ -822,7 +829,7 @@ export function GroupsPanel({
     ) : null;
 
   const invitesSection =
-    gd && canManage && pending && pending.invites.length ? (
+    gd && canManageMembers && pending && pending.invites.length ? (
       <div className="group-detail__section">
         <h3>Pending invites · {pending.invites.length}</h3>
         <ul className="group-member-list">
@@ -864,20 +871,36 @@ export function GroupsPanel({
       </div>
     ) : null;
 
-  const memberFilter = memberQuery.trim().toLowerCase();
-  const filteredMembers = gd
-    ? memberFilter
-      ? gd.members.filter((m) =>
-          m.publicName.toLowerCase().includes(memberFilter),
-        )
-      : gd.members
+  // Roster ordered by role (owner → organiser → leader → member), then name.
+  const memberRoleRank: Record<GroupRole, number> = {
+    owner: 0,
+    organiser: 1,
+    leader: 2,
+    member: 3,
+  };
+  const sortedMembers = gd
+    ? [...gd.members].sort(
+        (a, b) =>
+          memberRoleRank[a.role] - memberRoleRank[b.role] ||
+          a.publicName.localeCompare(b.publicName, undefined, {
+            sensitivity: "base",
+          }),
+      )
     : [];
+  const memberFilter = memberQuery.trim().toLowerCase();
+  const filteredMembers = memberFilter
+    ? sortedMembers.filter((m) =>
+        m.publicName.toLowerCase().includes(memberFilter),
+      )
+    : sortedMembers;
+  // TODO: server-side pagination/search for very large rosters (currently the
+  // whole roster ships in one payload and is capped to 25 client-side).
   const visibleMembers = showAllMembers
     ? filteredMembers
     : filteredMembers.slice(0, 25);
 
   const inviteMemberForm =
-    gd && canManage ? (
+    gd && canManageMembers ? (
       <form
         className="group-invite group-detail__section"
         onSubmit={handleInviteByEmail}
@@ -908,11 +931,19 @@ export function GroupsPanel({
       </form>
     ) : null;
 
-  const membersPanel = gd ? (
+  const managePanel = gd ? (
     <>
       {inviteMemberForm}
       {requestsSection}
       {invitesSection}
+      {!requestsSection && !invitesSection ? (
+        <p className="empty-state">No pending requests or invites.</p>
+      ) : null}
+    </>
+  ) : null;
+
+  const membersPanel = gd ? (
+    <>
       <div className="group-detail__section">
         <h3>Members · {gd.memberCount}</h3>
         <div className="entity-toolbar">
@@ -1081,7 +1112,7 @@ export function GroupsPanel({
           ))}
         </ul>
       </div>
-      {canManage &&
+      {canManageMembers &&
       pending &&
       (pending.requests.length || pending.invitedCount) ? (
         <div className="group-detail__section">
@@ -1092,7 +1123,7 @@ export function GroupsPanel({
             <button
               type="button"
               className="ghost-button ghost-button--compact"
-              onClick={() => setGroupTab("members")}
+              onClick={() => setGroupTab("manage")}
             >
               Review
             </button>
@@ -1360,17 +1391,20 @@ export function GroupsPanel({
       ? membersPanel
       : groupTab === "sessions"
         ? sessionsPanel
-        : groupTab === "about"
-          ? aboutPanel
-          : groupTab === "settings"
-            ? settingsPanel
-            : overviewPanel;
+        : groupTab === "manage"
+          ? managePanel
+          : groupTab === "about"
+            ? aboutPanel
+            : groupTab === "settings"
+              ? settingsPanel
+              : overviewPanel;
 
   const groupTabs: EntityTab[] = [
     { id: "overview", label: "Overview" },
     { id: "about", label: "About" },
     { id: "members", label: "Members" },
     { id: "sessions", label: "Sessions" },
+    ...(canManageMembers ? [{ id: "manage", label: "Manage members" }] : []),
     ...(canManage ? [{ id: "settings", label: "Settings" }] : []),
   ];
 
@@ -1411,9 +1445,10 @@ export function GroupsPanel({
           {gd.discipline ? ` · ${gd.discipline}` : ""} · {gd.visibility}
         </p>
       </div>
-      {canManage ? (
+      {isActiveMember ? (
         <div className="group-detail__section">
-          <h3>Invite link</h3>
+          <h3>Group link</h3>
+          <p className="source-note">Share this to invite people to the group.</p>
           {inviteLinkBlock}
         </div>
       ) : null}

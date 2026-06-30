@@ -28,6 +28,11 @@ const GROUP_ACCESS_MODES: GroupAccessMode[] = [
 // manage sessions (see SESSION_MANAGER_ROLES in group-sessions.ts) but NOT
 // membership.
 const MEMBERSHIP_MANAGER_ROLES: GroupRole[] = ["owner", "organiser"];
+// Membership intake — invite, see + approve/decline requests, cancel invites —
+// is open to leaders and above. Removing members, role changes, and settings
+// stay with MEMBERSHIP_MANAGER_ROLES (owner/organiser); roles + transfer are
+// owner-only. Any active member can share the group link (no role gate).
+const MEMBER_MANAGER_ROLES: GroupRole[] = ["owner", "organiser", "leader"];
 // Roles a member can be promoted/demoted between (owner is set via transfer).
 const ASSIGNABLE_ROLES: GroupRole[] = ["organiser", "leader", "member"];
 
@@ -471,7 +476,7 @@ export async function inviteMemberByEmail(
   groupId: string,
   email: string,
 ): Promise<{ ok: true }> {
-  await requireGroupRole(actingMemberId, groupId, MEMBERSHIP_MANAGER_ROLES);
+  await requireGroupRole(actingMemberId, groupId, MEMBER_MANAGER_ROLES);
 
   const normalised = email.trim().toLowerCase();
   if (!normalised || !normalised.includes("@")) {
@@ -608,7 +613,7 @@ export async function respondToJoinRequest(
   targetMemberId: string,
   approve: boolean,
 ): Promise<void> {
-  await requireGroupRole(actingMemberId, groupId, MEMBERSHIP_MANAGER_ROLES);
+  await requireGroupRole(actingMemberId, groupId, MEMBER_MANAGER_ROLES);
   const result = await pool.query(
     `UPDATE group_members
      SET status = $3, joined_at = CASE WHEN $3 = 'active' THEN now()
@@ -640,7 +645,7 @@ export async function cancelInviteOrWithdraw(
 ): Promise<void> {
   const self = actingMemberId === targetMemberId;
   if (!self) {
-    await requireGroupRole(actingMemberId, groupId, MEMBERSHIP_MANAGER_ROLES);
+    await requireGroupRole(actingMemberId, groupId, MEMBER_MANAGER_ROLES);
   }
   const result = await pool.query(
     `UPDATE group_members
@@ -941,7 +946,7 @@ export async function listPending(
   actingMemberId: string,
   groupId: string,
 ): Promise<ApiGroupPending> {
-  await requireGroupRole(actingMemberId, groupId, MEMBERSHIP_MANAGER_ROLES);
+  await requireGroupRole(actingMemberId, groupId, MEMBER_MANAGER_ROLES);
   const requests = await pool.query<{
     member_id: string;
     public_name: string | null;
