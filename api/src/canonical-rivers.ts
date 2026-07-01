@@ -226,7 +226,7 @@ export async function listSourceCandidatePois(
       scp.source_url,
       scp.licence,
       scp.candidate_type,
-      scp.name AS title,
+      scp.title AS title,
       scp.status,
       ST_AsGeoJSON(scp.geometry)::json AS geometry_geojson,
       scp.raw_properties,
@@ -235,7 +235,7 @@ export async function listSourceCandidatePois(
     FROM source_candidate_pois scp
     LEFT JOIN canonical_rivers cr ON cr.id = scp.river_id
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-    ORDER BY cr.display_name ASC NULLS LAST, scp.candidate_type ASC, scp.name ASC
+    ORDER BY cr.display_name ASC NULLS LAST, scp.candidate_type ASC, scp.title ASC
     LIMIT $${values.length}`,
     values,
   );
@@ -324,7 +324,7 @@ export async function updateSourceCandidatePoiStatus(
       scp.source_url,
       scp.licence,
       scp.candidate_type,
-      scp.name AS title,
+      scp.title AS title,
       scp.status,
       ST_AsGeoJSON(scp.geometry)::json AS geometry_geojson,
       scp.raw_properties,
@@ -361,7 +361,7 @@ async function promoteSourceCandidateToMapPoi(
       scp.source_url,
       scp.licence,
       scp.candidate_type,
-      scp.name AS title,
+      scp.title AS title,
       scp.status,
       ST_AsGeoJSON(scp.geometry)::json AS geometry_geojson,
       scp.raw_properties,
