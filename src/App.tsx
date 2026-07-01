@@ -577,6 +577,17 @@ function App() {
   }, []);
   const [selectedCanonicalRiverId, setSelectedCanonicalRiverId] =
     useState<string | null>(null);
+  // Whether the selected river filters/focuses the MAP (its POIs, amenities,
+  // the "river:" layer chip). The panel + its data always follow the selected
+  // river; this gates only the map-side filter so "Details" can open the panel
+  // without touching the map. See the river popup (Details / Snap view / Select).
+  const [riverFilterActive, setRiverFilterActive] = useState(false);
+  // Explicit "fit the whole river" camera move (Select / Discover search),
+  // replacing the old auto-flyToBounds-on-select.
+  const [riverBoundsFocus, setRiverBoundsFocus] = useState<{
+    bbox: [number, number, number, number];
+    nonce: number;
+  } | null>(null);
   const { selectRiver: selectDiscoveryRiver } = useDiscovery();
   useEffect(() => {
     selectDiscoveryRiver(selectedCanonicalRiverId);
@@ -707,7 +718,7 @@ function App() {
   );
   const selectedMapLayers = useMemo(() => {
     const set = new Set<string>();
-    if (selectedCanonicalRiverId) {
+    if (selectedCanonicalRiverId && riverFilterActive) {
       set.add(`river:${selectedCanonicalRiverId}`);
     }
     if (riverDisciplineFilter !== "all") {
@@ -726,6 +737,7 @@ function App() {
     return set;
   }, [
     selectedCanonicalRiverId,
+    riverFilterActive,
     riverDisciplineFilter,
     showRiverLayer,
     showKnownRivers,
@@ -4103,21 +4115,37 @@ function App() {
     });
   }
 
+  function focusRiverBounds(bbox: [number, number, number, number]) {
+    setRiverBoundsFocus((prev) => ({ bbox, nonce: (prev?.nonce ?? 0) + 1 }));
+  }
+
+  // Select a canonical river. `filter` toggles the map filter/focus, `zoom`
+  // moves the camera ("point" = centre on it, "bounds" = fit the whole river,
+  // "none" = leave the map), and `panel` opens the detail panel ("small",
+  // "full", or "none"). Drives the three river-popup buttons + Discover search.
   function selectCanonicalRiver(
     riverId: string | null,
-    options: { expand?: boolean; snap?: boolean } = {},
+    options: {
+      filter?: boolean;
+      zoom?: "point" | "bounds" | "none";
+      panel?: "small" | "full" | "none";
+    } = {},
   ) {
-    const snap = options.snap ?? true;
+    const { filter = true, zoom = "bounds", panel = "small" } = options;
+    const has = Boolean(riverId);
     setSelectedCanonicalRiverId(riverId);
-    setIsSelectedRiverPanelOpen(Boolean(riverId));
-    setIsSelectedRiverPanelExpanded(
-      Boolean(riverId) && (options.expand ?? false),
-    );
+    setRiverFilterActive(has && filter);
+    setIsSelectedRiverPanelOpen(has && panel !== "none");
+    setIsSelectedRiverPanelExpanded(has && panel === "full");
     const river = riverId
       ? canonicalRivers.find((item) => item.id === riverId)
       : null;
-    if (river && snap) {
-      focusDetailLocation(river.centre, "mobile-top-half");
+    if (river) {
+      if (zoom === "point") {
+        focusDetailLocation(river.centre, "mobile-top-half");
+      } else if (zoom === "bounds") {
+        focusRiverBounds(river.bbox);
+      }
     }
     setSelectedPoi(null);
     setIsPoiDetailExpanded(false);
@@ -4741,6 +4769,8 @@ function App() {
           detailFocusLocation={detailFocusLocation}
           detailFocusPlacement={detailFocusPlacement}
           detailFocusNonce={detailFocusNonce}
+          riverFilterActive={riverFilterActive}
+          riverBoundsFocus={riverBoundsFocus}
           searchFocusLocation={searchFocusLocation}
           searchFocusLabel={searchFocusLabel}
           showSearchFocusMarker={showSearchFocusMarker}

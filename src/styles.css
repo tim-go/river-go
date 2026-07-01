@@ -3643,11 +3643,11 @@ button.group-detail__section {
   box-shadow: var(--shadow);
 }
 
+/* Desktop: expanding widens the side panel (still full-height, right-anchored)
+   — it does NOT take over the screen. Mobile goes full-screen (see the 720px
+   query below). */
 .detail-panel--expanded {
-  inset: 0;
-  width: auto;
-  height: auto;
-  max-height: none;
+  width: min(620px, calc(100vw - 44px));
 }
 
 .detail-panel__header {
@@ -5575,6 +5575,7 @@ input[type="file"]::file-selector-button:hover {
 
   .detail-panel--expanded {
     inset: 0;
+    width: auto;
     height: auto;
     max-height: none;
     border-radius: 0;

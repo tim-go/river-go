@@ -166,6 +166,8 @@ export function RiverMap({
   detailFocusLocation,
   detailFocusPlacement,
   detailFocusNonce,
+  riverFilterActive,
+  riverBoundsFocus,
   searchFocusLocation,
   searchFocusLabel,
   showSearchFocusMarker,
@@ -229,6 +231,11 @@ export function RiverMap({
   detailFocusLocation: LatLngTuple | null;
   detailFocusPlacement: MapFocusPlacement;
   detailFocusNonce: number;
+  riverFilterActive: boolean;
+  riverBoundsFocus: {
+    bbox: [number, number, number, number];
+    nonce: number;
+  } | null;
   searchFocusLocation: LatLngTuple | null;
   searchFocusLabel: string;
   showSearchFocusMarker: boolean;
@@ -271,7 +278,11 @@ export function RiverMap({
   onSelectSection: (section: RiverSection) => void;
   onSelectCanonicalRiver: (
     riverId: string | null,
-    options?: { expand?: boolean; snap?: boolean },
+    options?: {
+      filter?: boolean;
+      zoom?: "point" | "bounds" | "none";
+      panel?: "small" | "full" | "none";
+    },
   ) => void;
   onCloseSelectedRiverPanel: () => void;
   onToggleSelectedRiverPanelExpanded: () => void;
@@ -279,11 +290,15 @@ export function RiverMap({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const {
-    selectedRiver,
     riverObservations,
     riverObservationRange,
     setRiverObservationRange,
   } = useDiscovery();
+  // The river drives the panel + its data whenever one is selected; but only
+  // when `riverFilterActive` should it also filter/focus the MAP (its POIs,
+  // amenities, photos). "Details" selects a river for the panel with the filter
+  // off, so the map is left untouched.
+  const mapFilterRiver = riverFilterActive ? selectedCanonicalRiver : null;
   const primaryRiverMeasure = getPrimaryObservationMeasure(riverObservations);
   // riverObservations is flattened across all of the river's sections, so a gauge
   // linked to several sections (multi-section rivers like the Wye/Tryweryn) appears
@@ -299,13 +314,20 @@ export function RiverMap({
     });
   }, [riverObservations]);
 
-  // Spatial connection: selecting a river flies the map to it.
+  // Explicit "fit the whole river" camera move — driven by Select and Discover
+  // search (not by selection itself, so Details/Snap can control the map).
+  const previousBoundsFocusNonceRef = useRef(riverBoundsFocus?.nonce ?? 0);
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !selectedRiver) {
+    if (
+      !map ||
+      !riverBoundsFocus ||
+      previousBoundsFocusNonceRef.current === riverBoundsFocus.nonce
+    ) {
       return;
     }
-    const [west, south, east, north] = selectedRiver.bbox;
+    previousBoundsFocusNonceRef.current = riverBoundsFocus.nonce;
+    const [west, south, east, north] = riverBoundsFocus.bbox;
     map.flyToBounds(
       [
         [south, west],
@@ -313,7 +335,7 @@ export function RiverMap({
       ],
       { padding: [48, 48], duration: 0.7, maxZoom: 14 },
     );
-  }, [selectedRiver]);
+  }, [riverBoundsFocus]);
   const layerRef = useRef<L.LayerGroup | null>(null);
   // The river-level-lines are the heaviest vector layer, so they get their own
   // layer group + canvas renderer and are redrawn (viewport-culled, zoom-
@@ -515,13 +537,18 @@ export function RiverMap({
   const renderedPoiIds = useMemo(() => {
     const ids = new Set<string>();
     for (const poi of mapPois) ids.add(poi.id);
-    if (selectedCanonicalRiver) {
+    if (mapFilterRiver) {
       for (const poi of visibleSelectedRiverMapPois) ids.add(poi.id);
     } else {
       for (const poi of globalPois ?? []) ids.add(poi.id);
     }
     return ids;
-  }, [mapPois, selectedCanonicalRiver, visibleSelectedRiverMapPois, globalPois]);
+  }, [
+    mapPois,
+    mapFilterRiver,
+    visibleSelectedRiverMapPois,
+    globalPois,
+  ]);
   const tabPoiCounts = useMemo(
     () =>
       tabPoiCategories
@@ -938,7 +965,7 @@ export function RiverMap({
     );
     // A selected river's own POIs are owned by the selected-river path (its
     // panel tabs/chips), so don't double-render them here.
-    const selectedRiverPoiIds = selectedCanonicalRiver
+    const selectedRiverPoiIds = mapFilterRiver
       ? new Set(selectedRiverMapPois.map((poi) => poi.id))
       : null;
 
@@ -969,13 +996,13 @@ export function RiverMap({
       // Zoom-gated so the national view isn't flooded with pins — EXCEPT when a
       // river is focused: it's already a narrow scope, so show its pins at any
       // zoom (the selection flies the map to the river).
-      if (poiZoomVisible || selectedCanonicalRiver) {
+      if (poiZoomVisible || mapFilterRiver) {
         const bounds = map.getBounds().pad(0.25);
 
         // When a river is focused, the global paddling-feature layer steps aside:
         // the focused river's own features render via the selected-river path
         // (panel), and other rivers' features are filtered out of focus.
-        (selectedCanonicalRiver ? [] : (globalPois ?? [])).forEach((poi) => {
+        (mapFilterRiver ? [] : (globalPois ?? [])).forEach((poi) => {
           if (selectedRiverPoiIds?.has(poi.id)) {
             return;
           }
@@ -1050,10 +1077,7 @@ export function RiverMap({
 
         (amenities ?? []).forEach((amenity) => {
           // Focused river: show only its amenities (pre-derived riverId, §5).
-          if (
-            selectedCanonicalRiver &&
-            amenity.riverId !== selectedCanonicalRiver.id
-          ) {
+          if (mapFilterRiver && amenity.riverId !== mapFilterRiver.id) {
             return;
           }
           if (!bounds.contains([amenity.lat, amenity.lng])) {
@@ -1119,6 +1143,7 @@ export function RiverMap({
     showPhotoLayer,
     poiIdsWithPhotos,
     selectedCanonicalRiver,
+    riverFilterActive,
     selectedRiverMapPois,
     markerClickMode,
     sections,
@@ -1203,20 +1228,33 @@ export function RiverMap({
           iconAnchor: [18, 18],
         }),
       });
-      // Details: open the river panel expanded (full), without moving the map.
+      // Details: open the river panel full, leaving the map completely alone
+      // (no filter, no zoom).
       const openRiverDetails = () => {
         map.closePopup();
         canonicalRiverSelectRef.current(river.id, {
-          expand: true,
-          snap: false,
+          filter: false,
+          zoom: "none",
+          panel: "full",
         });
       };
-      // Snap: centre the map on the river and open its panel in the small state.
+      // Snap view: centre on the river point, open the panel small, and select
+      // the river (filter). Same as a POI's Snap view.
       const snapToRiver = () => {
         map.closePopup();
         canonicalRiverSelectRef.current(river.id, {
-          expand: false,
-          snap: true,
+          filter: true,
+          zoom: "point",
+          panel: "small",
+        });
+      };
+      // Select: add the river to the filter and zoom to fit it — map only.
+      const selectRiver = () => {
+        map.closePopup();
+        canonicalRiverSelectRef.current(river.id, {
+          filter: true,
+          zoom: "bounds",
+          panel: "none",
         });
       };
 
@@ -1229,10 +1267,12 @@ export function RiverMap({
               river.sectionCount === 1 ? "" : "s"
             }`,
             summary: river.summary,
-            detailsLabel: "Details",
-            onDetails: openRiverDetails,
-            selectLabel: "Snap view",
-            onSelect: snapToRiver,
+            openDetailsLabel: "Details",
+            onOpenDetails: openRiverDetails,
+            detailsLabel: "Snap view",
+            onDetails: snapToRiver,
+            selectLabel: "Select",
+            onSelect: selectRiver,
           }),
         );
       }
@@ -1246,7 +1286,7 @@ export function RiverMap({
       });
     });
 
-    if (selectedCanonicalRiver) {
+    if (mapFilterRiver) {
       visibleSelectedRiverMapPois.forEach((poi) => {
         const displayMeta = mapPoiDisplayMeta(poi);
         const markerSize =
@@ -1276,7 +1316,7 @@ export function RiverMap({
         const openPoiDetails = (options?: OpenPoiDetailsOptions) => {
           map.closePopup();
           poiDetailsRef.current(
-            riverMapPoiToSelectedPoi(poi, selectedCanonicalRiver),
+            riverMapPoiToSelectedPoi(poi, mapFilterRiver),
             options ?? { focusMap: true, focusPlacement: "mobile-top-half" },
           );
         };
@@ -1286,7 +1326,7 @@ export function RiverMap({
           marker.bindPopup(
             createMapPopupContent({
               title: poi.title,
-              subtitle: `${selectedCanonicalRiver.displayName} · ${displayMeta.label}`,
+              subtitle: `${mapFilterRiver.displayName} · ${displayMeta.label}`,
               summary: poi.summary,
               onOpenDetails: () =>
                 openPoiDetails({ focusMap: false, expand: true }),
@@ -1773,7 +1813,7 @@ export function RiverMap({
     // from the river overview, which never load into the section contributions.
     // POI-linked photos are skipped here (their POI carries the badge), as are
     // any already drawn above from the loaded contributions.
-    if (selectedCanonicalRiver && showPhotoLayer) {
+    if (mapFilterRiver && showPhotoLayer) {
       const loadedContributionIds = new Set(
         contributions.map((contribution) => contribution.id),
       );
@@ -2035,6 +2075,7 @@ export function RiverMap({
     searchFocusNonce,
     selectedLocation,
     selectedCanonicalRiver,
+    riverFilterActive,
     selectedWatercourse,
     selectedRiverMapPois,
     visibleSelectedRiverMapPois,
