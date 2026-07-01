@@ -54,6 +54,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { SessionDetailPanel } from "./SessionDetailPanel";
 import { Avatar } from "./Avatar";
 import { EntityPage, type EntityTab } from "./EntityPage";
+import { RiverPicker, type RiverPickerOption } from "./RiverPicker";
 
 interface GroupsPanelProps {
   isSignedIn: boolean;
@@ -63,7 +64,7 @@ interface GroupsPanelProps {
   onOpenGroup: (idOrHandle: string | null) => void;
   onOpenProfile: (idOrHandle: string, backLabel?: string) => void;
   onSignIn: () => void;
-  rivers: { id: string; displayName: string }[];
+  rivers: RiverPickerOption[];
 }
 
 const GROUP_KIND_LABELS: Record<GroupKind, string> = {
@@ -1017,17 +1018,13 @@ export function GroupsPanel({
             </label>
             <label>
               River
-              <select
+              <RiverPicker
+                rivers={rivers}
                 value={sessionRiverId}
-                onChange={(event) => setSessionRiverId(event.target.value)}
-              >
-                <option value="">— optional —</option>
-                {rivers.map((river) => (
-                  <option key={river.id} value={river.id}>
-                    {river.displayName}
-                  </option>
-                ))}
-              </select>
+                onChange={setSessionRiverId}
+                placeholder="Choose a river (optional)"
+                allowClear
+              />
             </label>
             <label>
               Date &amp; time

@@ -6044,6 +6044,102 @@ input[type="file"]::file-selector-button:hover {
   color: var(--ink);
 }
 
+/* ---- Searchable, region-grouped river picker ---- */
+.river-picker {
+  font-weight: 400;
+}
+/* The trigger mimics a normal input/select. */
+.river-picker__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.river-picker__placeholder {
+  color: var(--muted);
+}
+.river-picker__panel {
+  display: flex;
+  flex-direction: column;
+  width: min(440px, calc(100vw - 32px));
+  max-height: min(70vh, 560px);
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  overflow: hidden;
+}
+.river-picker__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+.river-picker__search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+.river-picker__search input:focus {
+  outline: none;
+}
+.river-picker__close {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.river-picker__list {
+  overflow-y: auto;
+  padding: 6px;
+}
+.river-picker__group-head {
+  margin: 8px 8px 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.river-picker__option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.river-picker__option:hover {
+  background: var(--surface-strong, rgba(0, 0, 0, 0.05));
+}
+.river-picker__option--selected {
+  color: var(--river);
+  font-weight: 650;
+}
+.river-picker__option--clear {
+  color: var(--muted);
+}
+
 .group-detail {
   display: grid;
   gap: 16px;
