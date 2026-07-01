@@ -1843,9 +1843,11 @@ export function RiverMap({
 
     // Standalone photos (no POI, so no badge) draw as camera pins at their
     // location whenever the Photos layer is on — across the whole map, not just
-    // a selected river. POI-linked photos are skipped (their POI carries the
-    // badge), as are any already drawn above from the loaded contributions.
-    if (showPhotoLayer) {
+    // a selected river. Gated to the same zoom as POIs (>= POI_MIN_ZOOM) so they
+    // don't clutter the zoomed-out view, or shown at any zoom for a focused
+    // river. POI-linked photos are skipped (their POI carries the badge), as are
+    // any already drawn above from the loaded contributions.
+    if (showPhotoLayer && (poiZoomVisible || mapFilterRiver)) {
       const loadedContributionIds = new Set(
         contributions.map((contribution) => contribution.id),
       );
@@ -2108,6 +2110,7 @@ export function RiverMap({
     selectedLocation,
     selectedCanonicalRiver,
     riverFilterActive,
+    poiZoomVisible,
     selectedWatercourse,
     selectedRiverMapPois,
     visibleSelectedRiverMapPois,
