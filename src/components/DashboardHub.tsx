@@ -4,7 +4,6 @@ import {
   Camera,
   ChevronRight,
   MapPin,
-  UsersRound,
   Waves,
 } from "lucide-react";
 import { fetchGroups, fetchSessions } from "../services/groupsApi";
@@ -78,20 +77,6 @@ export function DashboardHub({
 
   return (
     <div className="dashboard-hub">
-      <div className="placeholder-list">
-        <button
-          className="placeholder-row"
-          type="button"
-          onClick={onOpenGroups}
-        >
-          <span>
-            <strong>Clubs</strong>
-            <small>Your clubs and friends, and planned meetups</small>
-          </span>
-          <UsersRound size={18} />
-        </button>
-      </div>
-
       <section className="dashboard-section">
         <header className="dashboard-section__head">
           <h3>
