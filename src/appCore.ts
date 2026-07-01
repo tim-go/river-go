@@ -191,7 +191,12 @@ export type RouteSnapCandidate = {
   label: string;
   route: LatLngTuple[];
 };
-export type SearchMode = "name" | "waterways" | "point" | "favourites";
+export type SearchMode =
+  | "name"
+  | "waterways"
+  | "point"
+  | "clubs"
+  | "favourites";
 export type ProfileMode =
   | "account"
   | "public"

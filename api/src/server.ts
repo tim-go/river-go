@@ -79,6 +79,7 @@ import {
   getGroupByIdOrHandle,
   inviteMemberByEmail,
   leaveGroup,
+  listDiscoverableClubs,
   listGroupsForMember,
   listPending,
   parseGroupInput,
@@ -521,6 +522,25 @@ async function route(
     );
     return { status: 200, body: { group, access: "member" } };
   }
+  // Discover clubs — all clubs (including private) as public-safe cards.
+  // Optional auth so the viewer's own membership status is included.
+  if (method === "GET" && url.pathname === "/api/discover/clubs") {
+    const authContext = await getOptionalAuthContext(headers);
+    const member = authContext
+      ? await upsertMemberFromAuth(authContext)
+      : null;
+    const limitRaw = Number.parseInt(
+      url.searchParams.get("limit") ?? "100",
+      10,
+    );
+    const clubs = await listDiscoverableClubs(
+      member?.id ?? null,
+      url.searchParams.get("q"),
+      Number.isFinite(limitRaw) ? limitRaw : 100,
+    );
+    return { status: 200, body: { clubs } };
+  }
+
   if (groupDetailMatch && method === "GET") {
     // Optional auth: a group entity page is viewable by anyone — signed-out
     // visitors get the limited public view, members get the full detail.

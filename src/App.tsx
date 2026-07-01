@@ -239,7 +239,9 @@ import type {
   PhotoLightboxItem,
   AuthSheetMode,
   SelectedPoi,
+  GroupPublic,
 } from "./types";
+import { discoverClubs } from "./services/groupsApi";
 import {
   AdminPage,
   bandLabels,
@@ -337,6 +339,15 @@ function parseProfileRoute(): string | null {
   const match = window.location.pathname.match(/^\/p\/([^/]+)\/?$/);
   return match ? decodeURIComponent(match[1]) : null;
 }
+
+const CLUB_KIND_LABELS: Record<string, string> = {
+  club: "Club",
+  subgroup: "Subgroup",
+  friends: "Friends",
+  trip: "Trip",
+};
+const capitalise = (value: string): string =>
+  value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 
 function App() {
   const outboxStore = useMemo(() => createContributionOutboxStore(), []);
@@ -1018,6 +1029,33 @@ function App() {
   const [searchMode, setSearchMode] = useState<SearchMode>("name");
   const [profileMode, setProfileMode] = useState<ProfileMode>("account");
   const [riverSearchTerm, setRiverSearchTerm] = useState("");
+  const [clubSearchTerm, setClubSearchTerm] = useState("");
+  const [discoveredClubs, setDiscoveredClubs] = useState<GroupPublic[]>([]);
+  const [clubsLoading, setClubsLoading] = useState(false);
+  useEffect(() => {
+    if (activeAppSection !== "discover" || searchMode !== "clubs") {
+      return;
+    }
+    let active = true;
+    setClubsLoading(true);
+    const timer = window.setTimeout(() => {
+      void discoverClubs(clubSearchTerm)
+        .then((clubs) => {
+          if (active) setDiscoveredClubs(clubs);
+        })
+        .catch(() => {
+          if (active) setDiscoveredClubs([]);
+        })
+        .finally(() => {
+          if (active) setClubsLoading(false);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAppSection, searchMode, clubSearchTerm]);
   const [watercourseSearchTerm, setWatercourseSearchTerm] = useState("");
   const [watercourseSearchResults, setWatercourseSearchResults] = useState<
     KnownWatercourse[]
@@ -5976,6 +6014,16 @@ function App() {
                     Point
                   </button>
                   <button
+                    className={searchMode === "clubs" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={searchMode === "clubs"}
+                    onClick={() => setSearchMode("clubs")}
+                  >
+                    <UsersRound size={16} />
+                    Clubs
+                  </button>
+                  <button
                     className={searchMode === "favourites" ? "active" : ""}
                     type="button"
                     role="tab"
@@ -6262,6 +6310,93 @@ function App() {
                     </div>
                   ) : null}
                   </form>
+                ) : searchMode === "clubs" ? (
+                  <div className="discover-page">
+                    <div className="discover-filters">
+                      <input
+                        className="discover-search"
+                        value={clubSearchTerm}
+                        onChange={(event) =>
+                          setClubSearchTerm(event.target.value)
+                        }
+                        placeholder="Search clubs by name or handle…"
+                        aria-label="Search clubs"
+                      />
+                    </div>
+                    {clubsLoading && !discoveredClubs.length ? (
+                      <p className="source-note">Searching…</p>
+                    ) : discoveredClubs.length ? (
+                      <ul className="groups-grid">
+                        {discoveredClubs.map((club) => (
+                          <li key={club.id}>
+                            <button
+                              type="button"
+                              className="group-card"
+                              onClick={() =>
+                                openGroup(club.handle ?? club.id)
+                              }
+                            >
+                              <span className="group-card__cover">
+                                {club.coverImageUrl ? (
+                                  <img
+                                    className="group-card__cover-img"
+                                    src={club.coverImageUrl}
+                                    alt=""
+                                    style={{
+                                      objectPosition: `${club.coverX}% ${club.coverPosition}%`,
+                                      transformOrigin: `${club.coverX}% ${club.coverPosition}%`,
+                                      transform: `scale(${club.coverZoom / 100})`,
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="group-card__cover-empty">
+                                    <UsersRound size={26} />
+                                  </span>
+                                )}
+                                {club.myStatus === "active" ? (
+                                  <span className="status-chip status-chip--muted group-card__chip">
+                                    member
+                                  </span>
+                                ) : club.myStatus === "invited" ? (
+                                  <span className="status-chip group-card__chip">
+                                    invited
+                                  </span>
+                                ) : club.myStatus === "requested" ? (
+                                  <span className="status-chip group-card__chip">
+                                    request pending
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="group-card__body">
+                                <strong className="group-card__name">
+                                  {club.name}
+                                </strong>
+                                <span className="group-card__meta">
+                                  {CLUB_KIND_LABELS[club.kind] ?? club.kind}
+                                  {club.discipline
+                                    ? ` · ${capitalise(club.discipline)}`
+                                    : ""}{" "}
+                                  · {club.visibility} · {club.memberCount} member
+                                  {club.memberCount === 1 ? "" : "s"}
+                                </span>
+                                {club.description ? (
+                                  <span className="group-card__desc">
+                                    {club.description}
+                                  </span>
+                                ) : null}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="source-note">
+                        {clubSearchTerm.trim()
+                          ? `No clubs match “${clubSearchTerm.trim()}”.`
+                          : "No clubs yet."}
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <section className="search-mode-panel" aria-label="Favourite routes">
                     {!isSignedIn ? (
