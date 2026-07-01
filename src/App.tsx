@@ -6753,6 +6753,7 @@ function App() {
                         <PublicProfileControls
                           profile={memberProfile}
                           onSaved={(member) => setMemberProfile(member)}
+                          onView={(token) => openProfile(token, "Profile")}
                         />
                       </section>
                       </>

@@ -16,9 +16,11 @@ function errorText(error: unknown, fallback: string): string {
 export function PublicProfileControls({
   profile,
   onSaved,
+  onView,
 }: {
   profile: MemberProfile | null;
   onSaved: (member: MemberProfile) => void;
+  onView: (token: string) => void;
 }) {
   const [isPublic, setIsPublic] = useState(profile?.profilePublic ?? false);
   const [handle, setHandle] = useState(profile?.handle ?? "");
@@ -150,14 +152,15 @@ export function PublicProfileControls({
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 {copied ? "Copied" : "Copy"}
               </button>
-              <a
+              <button
+                type="button"
                 className="ghost-button ghost-button--compact"
-                href={publicUrl}
-                target="_blank"
-                rel="noreferrer"
+                onClick={() =>
+                  profile && onView(profile.handle ?? profile.id)
+                }
               >
                 <ExternalLink size={14} /> View
-              </a>
+              </button>
             </div>
           ) : null}
         </>
