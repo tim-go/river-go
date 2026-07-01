@@ -3647,7 +3647,7 @@ button.group-detail__section {
    — it does NOT take over the screen. Mobile goes full-screen (see the 720px
    query below). */
 .detail-panel--expanded {
-  width: min(620px, calc(100vw - 44px));
+  width: min(560px, calc(100vw - 44px));
 }
 
 .detail-panel__header {
