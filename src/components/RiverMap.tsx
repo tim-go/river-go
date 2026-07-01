@@ -412,7 +412,7 @@ export function RiverMap({
   const [knownWatercourses, setKnownWatercourses] = useState<KnownWatercourse[]>(
     [],
   );
-  const POI_MIN_ZOOM = 9;
+  const POI_MIN_ZOOM = 10;
   const [poiZoomVisible, setPoiZoomVisible] = useState(false);
   const [hiddenPoiCategories, setHiddenPoiCategories] = useState<
     Set<MapPoiDisplayCategory>

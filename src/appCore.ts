@@ -1497,6 +1497,17 @@ export function contributionToSelectedPoi(
  * the shared POI detail panel — showing the image, caption, author and date —
  * exactly like a photo contribution does.
  */
+function formatDateAdded(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? iso
+    : date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+}
+
 export function riverPhotoToSelectedPoi(photo: RiverPhoto): SelectedPoi {
   const contributionPhoto: ContributionPhoto = {
     id: photo.id,
@@ -1525,7 +1536,7 @@ export function riverPhotoToSelectedPoi(photo: RiverPhoto): SelectedPoi {
     location: photo.location ?? [0, 0],
     photos: [contributionPhoto],
     author: photo.author.displayName ?? undefined,
-    createdAt: photo.createdAt,
+    createdAt: formatDateAdded(photo.createdAt),
     contributionType: "photo",
   };
 }
