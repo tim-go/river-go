@@ -42,4 +42,4 @@ Check:
 - visual hierarchy
 - whether current specs still describe the UI
 
-Use `river-go-testing-gate` or `river-testing-gate` for automated checks.
+Use `river-go-testing-gate` for automated checks.
