@@ -1474,7 +1474,7 @@ export function GroupsPanel({
     { id: "about", label: "About" },
     { id: "members", label: "Members" },
     { id: "sessions", label: "Meetups" },
-    ...(canManageMembers ? [{ id: "manage", label: "Manage members" }] : []),
+    ...(canManageMembers ? [{ id: "manage", label: "Memberships" }] : []),
     ...(canManage ? [{ id: "settings", label: "Settings" }] : []),
   ];
 
