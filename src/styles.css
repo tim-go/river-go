@@ -3633,7 +3633,7 @@ button.group-detail__section {
   z-index: 1100;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  width: min(398px, calc(100vw - 44px));
+  width: min(460px, calc(100vw - 44px));
   height: calc(100% - 32px);
   max-height: calc(100% - 32px);
   overflow: hidden;
@@ -3643,11 +3643,11 @@ button.group-detail__section {
   box-shadow: var(--shadow);
 }
 
-/* Desktop: expanding widens the side panel (still full-height, right-anchored)
-   — it does NOT take over the screen. Mobile goes full-screen (see the 720px
-   query below). */
+/* Desktop: "Details" (expanded) and "Snap" (small) render at the same width —
+   the panel is a full-height right-anchored side panel either way, never a
+   screen takeover. Mobile goes full-screen (see the 720px query below). */
 .detail-panel--expanded {
-  width: min(560px, calc(100vw - 44px));
+  width: min(460px, calc(100vw - 44px));
 }
 
 .detail-panel__header {
