@@ -913,9 +913,10 @@ export async function getGroupByIdOrHandle(
   if (!found) {
     throw new HttpError(404, "Group not found.");
   }
-  const isMember =
-    found.my_status === "active" || found.my_status === "invited";
-  if (isMember && viewerMemberId) {
+  // Only ACTIVE members get the full member view. An invited member sees the
+  // same limited public/preview view as a non-member (with myStatus="invited"
+  // so the UI can offer Accept/Decline) until they accept.
+  if (found.my_status === "active" && viewerMemberId) {
     return {
       access: "member",
       group: await getGroupForMember(viewerMemberId, found.id),
