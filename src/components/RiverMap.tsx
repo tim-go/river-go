@@ -1216,8 +1216,10 @@ export function RiverMap({
         map.closePopup();
         canonicalRiverSelectRef.current(river.id);
       };
-      const selectRiverContext = () => {
+      // Snap: centre the map on the river and select it (as context) in one go.
+      const snapToRiver = () => {
         map.closePopup();
+        focusMapOnDetailLocation(map, river.centre, "mobile-top-half");
         canonicalRiverContextSelectRef.current(river.id);
       };
 
@@ -1232,8 +1234,8 @@ export function RiverMap({
             summary: river.summary,
             detailsLabel: "Details",
             onDetails: openRiverDetails,
-            selectLabel: "Select river",
-            onSelect: selectRiverContext,
+            selectLabel: "Snap",
+            onSelect: snapToRiver,
           }),
         );
       }

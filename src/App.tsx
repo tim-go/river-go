@@ -163,7 +163,7 @@ import {
   formatWhat3Words,
 } from "./services/locationReferences";
 import { routeSuggestionStatusLabel, routeAdjustmentStatusLabel } from "./lib/mapPopups";
-import { loadContributions, loadFavouriteSectionIds, loadFavouriteRiverIds, saveFavouriteRiverIds, loadRouteSuggestions, loadAnalyticsConsent, saveAnalyticsConsent, hasDismissedWelcomeForSession, rememberWelcomeDismissedForSession, loadLiveLocationEnabled, saveLiveLocationEnabled, loadMarkerClickMode, saveMarkerClickMode, loadSyncBannerDismissal, saveSyncBannerDismissal, STORAGE_KEY, FAVOURITES_STORAGE_KEY, ROUTE_SUGGESTIONS_STORAGE_KEY } from "./lib/storage";
+import { loadContributions, loadFavouriteSectionIds, loadFavouriteRiverIds, saveFavouriteRiverIds, loadRouteSuggestions, loadAnalyticsConsent, saveAnalyticsConsent, hasDismissedWelcomeForSession, rememberWelcomeDismissedForSession, loadLiveLocationEnabled, saveLiveLocationEnabled, loadSyncBannerDismissal, saveSyncBannerDismissal, STORAGE_KEY, FAVOURITES_STORAGE_KEY, ROUTE_SUGGESTIONS_STORAGE_KEY } from "./lib/storage";
 import { SyncOutboxBanner } from "./components/SyncOutboxBanner";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
@@ -596,9 +596,8 @@ function App() {
   const [routeDraftSnapMessage, setRouteDraftSnapMessage] = useState("");
   const [isRouteSnapLoading, setIsRouteSnapLoading] = useState(false);
   const [showKnownRivers, setShowKnownRivers] = useState(false);
-  const [markerClickMode, setMarkerClickMode] = useState<MarkerClickMode>(
-    loadMarkerClickMode,
-  );
+  // Map markers always open the quick-info popup (which offers Details / Snap).
+  const markerClickMode: MarkerClickMode = "info";
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
   const [showPublicRoutes, setShowPublicRoutes] = useState(false);
   const [showRiverLayer, setShowRiverLayer] = useState(true);
@@ -4439,14 +4438,6 @@ function App() {
     setActiveAppSection("map");
   }
 
-  function toggleMarkerClickMode() {
-    setMarkerClickMode((current) => {
-      const next = current === "info" ? "detail" : "info";
-      saveMarkerClickMode(next);
-      return next;
-    });
-  }
-
   function toggleFavouriteRiver(riverId: string) {
     if (!isSignedIn) {
       requireSignInForSave();
@@ -4691,17 +4682,6 @@ function App() {
               onClick={handleLiveLocationButtonClick}
             >
               <Navigation size={19} />
-            </MapActionButton>
-            <MapActionButton
-              label={
-                markerClickMode === "info"
-                  ? "Marker clicks: quick info"
-                  : "Marker clicks: open details"
-              }
-              active={markerClickMode === "detail"}
-              onClick={toggleMarkerClickMode}
-            >
-              <MessageSquare size={19} />
             </MapActionButton>
             <MapActionButton
               label="Add local knowledge"
