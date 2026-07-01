@@ -1032,7 +1032,7 @@ export function RiverMap({
                 summary: poi.summary,
                 onOpenDetails: () =>
                   openGlobalPoiDetails({ focusMap: false, expand: true }),
-                detailsLabel: "Snap",
+                detailsLabel: "Snap view",
                 onDetails: () => openGlobalPoiDetails(),
               }),
             );
@@ -1231,7 +1231,7 @@ export function RiverMap({
             summary: river.summary,
             detailsLabel: "Details",
             onDetails: openRiverDetails,
-            selectLabel: "Snap",
+            selectLabel: "Snap view",
             onSelect: snapToRiver,
           }),
         );
@@ -1290,7 +1290,7 @@ export function RiverMap({
               summary: poi.summary,
               onOpenDetails: () =>
                 openPoiDetails({ focusMap: false, expand: true }),
-              detailsLabel: "Snap",
+              detailsLabel: "Snap view",
               onDetails: () => openPoiDetails(),
             }),
           );
@@ -1517,7 +1517,7 @@ export function RiverMap({
               summary: poi.summary,
               onOpenDetails: () =>
                 openPoiDetails({ focusMap: false, expand: true }),
-              detailsLabel: "Snap",
+              detailsLabel: "Snap view",
               onDetails: () => openPoiDetails(),
             }),
           );
@@ -1753,7 +1753,7 @@ export function RiverMap({
                 : undefined,
             onOpenDetails: () =>
               openContributionDetails({ focusMap: false, expand: true }),
-            detailsLabel: "Snap",
+            detailsLabel: "Snap view",
             onDetails: () => openContributionDetails(),
           }),
         );
