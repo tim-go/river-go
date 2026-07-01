@@ -177,6 +177,8 @@ import { SignedOutNotice } from "./components/SignedOutNotice";
 import { RiverCard } from "./components/RiverCard";
 import { DashboardHub } from "./components/DashboardHub";
 import { ProfileAvatarEditor } from "./components/ProfileAvatarEditor";
+import { PublicProfilePage } from "./components/PublicProfilePage";
+import { PublicProfileControls } from "./components/PublicProfileControls";
 import { PwaInstallSettingRow } from "./pwa/PwaInstallSettingRow";
 import { GroupsPanel } from "./components/GroupsPanel";
 import { PhotoLightbox } from "./components/PhotoLightbox";
@@ -327,6 +329,15 @@ function parseGroupRoute(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+// A public paddler profile: /p/<handle-or-id>. Same routed-entity shape as clubs.
+function parseProfileRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const match = window.location.pathname.match(/^\/p\/([^/]+)\/?$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 function App() {
   const outboxStore = useMemo(() => createContributionOutboxStore(), []);
   const [activeAppSection, setActiveAppSection] = useState<AppSection>(() =>
@@ -335,6 +346,16 @@ function App() {
   const [groupRoute, setGroupRoute] = useState<string | null>(() =>
     parseGroupRoute(),
   );
+  // The open public paddler profile (/p/<token>), or null.
+  const [profileRoute, setProfileRoute] = useState<string | null>(() =>
+    parseProfileRoute(),
+  );
+  // The label + whether we can browser-back to the page a profile was opened
+  // from (false on a direct/external landing, so "back" falls back to home).
+  const profileReturnRef = useRef<{ label: string; internal: boolean }>({
+    label: "Back",
+    internal: false,
+  });
   // Open a club entity page by handle or id (pushes /club/<token>); null returns
   // to the section view. Clicking a nav section leaves any open club.
   const openGroup = (idOrHandle: string | null) => {
@@ -344,6 +365,7 @@ function App() {
         "",
         `/club/${encodeURIComponent(idOrHandle)}`,
       );
+      setProfileRoute(null);
       setGroupRoute(idOrHandle);
       setActiveAppSection("groups");
     } else {
@@ -353,17 +375,36 @@ function App() {
       setGroupRoute(null);
     }
   };
+  // Open a paddler's public profile, remembering how to get back.
+  const openProfile = (idOrHandle: string, backLabel = "Back") => {
+    profileReturnRef.current = { label: backLabel, internal: true };
+    window.history.pushState({}, "", `/p/${encodeURIComponent(idOrHandle)}`);
+    setProfileRoute(idOrHandle);
+  };
+  const closeProfile = () => {
+    if (profileReturnRef.current.internal) {
+      // The previous history entry is the calling page; popstate restores it.
+      window.history.back();
+    } else {
+      window.history.pushState({}, "", "/");
+      setProfileRoute(null);
+      setActiveAppSection("map");
+    }
+  };
   const navigateSection = (section: AppSection) => {
     setActiveAppSection(section);
-    if (parseGroupRoute()) {
+    if (parseGroupRoute() || parseProfileRoute()) {
       window.history.pushState({}, "", "/");
     }
     setGroupRoute(null);
+    setProfileRoute(null);
   };
   useEffect(() => {
     const onPopState = () => {
       const route = parseGroupRoute();
+      const profile = parseProfileRoute();
       setGroupRoute(route);
+      setProfileRoute(profile);
       if (route) {
         setActiveAppSection("groups");
       }
@@ -4410,10 +4451,12 @@ function App() {
 
         <section
           className={`app-view ${
-            activeAppSection === "map" ? "app-view--with-topbar" : ""
+            activeAppSection === "map" && !profileRoute
+              ? "app-view--with-topbar"
+              : ""
           }`}
         >
-      {activeAppSection === "map" ? (
+      {activeAppSection === "map" && !profileRoute ? (
         <section className="topbar" aria-label="Map controls">
           <div className="topbar-actions">
             <MapFilterControl
@@ -4432,7 +4475,9 @@ function App() {
           </div>
         </section>
       ) : null}
-      {activeAppSection === "map" && !isCanonicalRiverOverviewActive ? (
+      {activeAppSection === "map" &&
+      !isCanonicalRiverOverviewActive &&
+      !profileRoute ? (
         <div className="map-section-toolbar">
           <button
             className={`ghost-button map-panel-toggle ${
@@ -4523,7 +4568,7 @@ function App() {
           </button>
         </div>
       ) : null}
-      {activeAppSection === "map" ? (
+      {activeAppSection === "map" && !profileRoute ? (
         <div className="map-floating-actions">
           <MapFilterControl
             variant="floating"
@@ -4596,7 +4641,18 @@ function App() {
           onSelect={setSelectedRainTs}
         />
       ) : null}
-          {activeAppSection === "map" ? (
+          {profileRoute ? (
+            <section className="app-page app-page--profile">
+              <div className="app-page__content">
+                <PublicProfilePage
+                  token={profileRoute}
+                  onBack={closeProfile}
+                  backLabel={profileReturnRef.current.label}
+                  onOpenPhoto={setLightboxPhoto}
+                />
+              </div>
+            </section>
+          ) : activeAppSection === "map" ? (
       <section className="workspace">
         <SyncOutboxBanner
           queuedOutboxCount={queuedOutboxCount}
@@ -6328,6 +6384,7 @@ function App() {
                   isSignedIn={isSignedIn}
                   routeGroup={groupRoute}
                   onOpenGroup={openGroup}
+                  onOpenProfile={openProfile}
                   onSignIn={handleSignIn}
                   rivers={canonicalRivers.map((river) => ({
                     id: river.id,
@@ -6683,6 +6740,21 @@ function App() {
                             {isProfileSaving ? "Saving" : "Save name"}
                           </button>
                         </div>
+                      </section>
+                      <section className="profile-card profile-card--stacked">
+                        <div className="block-title">
+                          <div>
+                            <h3>Public profile page</h3>
+                            <span>
+                              An opt-in page others can see at /p/your-handle
+                            </span>
+                          </div>
+                        </div>
+                        <PublicProfileControls
+                          profile={memberProfile}
+                          onSaved={(member) => setMemberProfile(member)}
+                          onView={(token) => openProfile(token, "Profile")}
+                        />
                       </section>
                       </>
                     )}

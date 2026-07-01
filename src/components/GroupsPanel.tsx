@@ -61,6 +61,7 @@ interface GroupsPanelProps {
   // for the "My groups" list. Driven by App routing, not internal state.
   routeGroup: string | null;
   onOpenGroup: (idOrHandle: string | null) => void;
+  onOpenProfile: (idOrHandle: string, backLabel?: string) => void;
   onSignIn: () => void;
   rivers: { id: string; displayName: string }[];
 }
@@ -127,6 +128,7 @@ export function GroupsPanel({
   isSignedIn,
   routeGroup,
   onOpenGroup,
+  onOpenProfile,
   onSignIn,
   rivers,
 }: GroupsPanelProps) {
@@ -669,13 +671,17 @@ export function GroupsPanel({
 
   const renderMemberRow = (member: GroupMember, withControls = false) => (
     <li key={member.id} className="group-member-row">
-      <span className="group-member-row__person">
+      <button
+        type="button"
+        className="group-member-row__person group-member-row__person--link"
+        onClick={() => onOpenProfile(member.memberId, gd?.name ?? "Back")}
+      >
         <Avatar name={member.publicName} avatar={member.avatar} size={36} />
         <span>
           <strong>{member.publicName}</strong>
           <small>{GROUP_ROLE_LABELS[member.role]}</small>
         </span>
-      </span>
+      </button>
       {gd && withControls && canManage && member.role !== "owner" ? (
         <span className="group-member-row__actions">
           <button
@@ -750,7 +756,13 @@ export function GroupsPanel({
         <ul className="group-member-list">
           {pending.requests.map((request) => (
             <li key={request.memberId} className="group-member-row">
-              <span className="group-member-row__person">
+              <button
+                type="button"
+                className="group-member-row__person group-member-row__person--link"
+                onClick={() =>
+                  onOpenProfile(request.memberId, gd?.name ?? "Back")
+                }
+              >
                 <Avatar
                   name={request.publicName}
                   avatar={request.avatar}
@@ -760,7 +772,7 @@ export function GroupsPanel({
                   <strong>{request.publicName}</strong>
                   <small>wants to join</small>
                 </span>
-              </span>
+              </button>
               <span className="group-member-row__actions">
                 <button
                   type="button"
@@ -800,7 +812,13 @@ export function GroupsPanel({
         <ul className="group-member-list">
           {pending.invites.map((invite) => (
             <li key={invite.memberId} className="group-member-row">
-              <span className="group-member-row__person">
+              <button
+                type="button"
+                className="group-member-row__person group-member-row__person--link"
+                onClick={() =>
+                  onOpenProfile(invite.memberId, gd?.name ?? "Back")
+                }
+              >
                 <Avatar
                   name={invite.publicName}
                   avatar={invite.avatar}
@@ -810,7 +828,7 @@ export function GroupsPanel({
                   <strong>{invite.publicName}</strong>
                   <small>invited · not yet accepted</small>
                 </span>
-              </span>
+              </button>
               <span className="group-member-row__actions">
                 <button
                   type="button"
@@ -1548,6 +1566,7 @@ export function GroupsPanel({
             setSelectedSessionId(null);
             void loadGroups();
           }}
+          onOpenProfile={onOpenProfile}
         />
       ) : routeGroup ? (
         // A group is open via the route (/g/<token>). Resolve to member or

@@ -20,6 +20,12 @@ export interface Member {
   avatarX: number;
   avatarPosition: number;
   avatarZoom: number;
+  profilePublic: boolean;
+  handle: string | null;
+  bio: string | null;
+  showPaddles: boolean;
+  showSkills: boolean;
+  showPhotos: boolean;
   role: MemberRole;
   trustLevel: MemberTrustLevel;
   createdAt: string;
@@ -41,6 +47,12 @@ interface MemberRow {
   avatar_x: number;
   avatar_position: number;
   avatar_zoom: number;
+  profile_public: boolean;
+  handle: string | null;
+  bio: string | null;
+  show_paddles: boolean;
+  show_skills: boolean;
+  show_photos: boolean;
   role: MemberRole;
   trust_level: MemberTrustLevel;
   created_at: Date;
@@ -177,6 +189,90 @@ export function buildMemberAvatar(row: {
     position: Number(row.avatar_position ?? 50),
     zoom: Number(row.avatar_zoom ?? 100),
   };
+}
+
+// --- Public profile settings (opt-in) ---
+
+const MEMBER_HANDLE_RE = /^[a-z0-9-]{3,30}$/;
+const RESERVED_MEMBER_HANDLES = new Set([
+  "new",
+  "edit",
+  "admin",
+  "api",
+  "me",
+  "settings",
+  "profile",
+  "p",
+  "club",
+  "clubs",
+  "group",
+  "groups",
+]);
+
+/** Normalise + validate a member handle; throws 400 on bad input. */
+function normaliseMemberHandle(value: string): string {
+  const handle = value.trim().toLowerCase();
+  if (!MEMBER_HANDLE_RE.test(handle)) {
+    throw new HttpError(
+      400,
+      "Handle must be 3–30 characters: lowercase letters, numbers, or hyphens.",
+    );
+  }
+  if (RESERVED_MEMBER_HANDLES.has(handle)) {
+    throw new HttpError(400, "That handle is reserved — choose another.");
+  }
+  return handle;
+}
+
+export interface PublicProfileSettingsInput {
+  profilePublic: boolean;
+  handle: string | null;
+  bio: string | null;
+  showPaddles: boolean;
+  showSkills: boolean;
+  showPhotos: boolean;
+}
+
+export async function updateMemberPublicProfileSettings(
+  memberId: string,
+  input: PublicProfileSettingsInput,
+): Promise<Member> {
+  const handle = input.handle ? normaliseMemberHandle(input.handle) : null;
+  if (handle) {
+    const clash = await pool.query(
+      `SELECT 1 FROM members WHERE lower(handle) = $1 AND id <> $2`,
+      [handle, memberId],
+    );
+    if (clash.rowCount) {
+      throw new HttpError(409, "That handle is taken — choose another.");
+    }
+  }
+  const bio = input.bio?.trim() ? input.bio.trim().slice(0, 280) : null;
+  const result = await pool.query<MemberRow>(
+    `UPDATE members
+    SET profile_public = $2,
+      handle = $3,
+      bio = $4,
+      show_paddles = $5,
+      show_skills = $6,
+      show_photos = $7,
+      updated_at = now()
+    WHERE id = $1
+    RETURNING *`,
+    [
+      memberId,
+      input.profilePublic,
+      handle,
+      bio,
+      input.showPaddles,
+      input.showSkills,
+      input.showPhotos,
+    ],
+  );
+  if (!result.rowCount) {
+    throw new HttpError(404, "Member not found.");
+  }
+  return mapMember(result.rows[0]);
 }
 
 const clampPercent = (value: number | undefined, fallback: number): number => {
@@ -429,6 +525,12 @@ function mapMember(row: MemberRow): Member {
     avatarX: row.avatar_x,
     avatarPosition: row.avatar_position,
     avatarZoom: row.avatar_zoom,
+    profilePublic: row.profile_public,
+    handle: row.handle,
+    bio: row.bio,
+    showPaddles: row.show_paddles,
+    showSkills: row.show_skills,
+    showPhotos: row.show_photos,
     role: row.role,
     trustLevel: row.trust_level,
     createdAt: row.created_at.toISOString(),

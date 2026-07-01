@@ -51,6 +51,7 @@ import {
   isMemberTrustLevel,
   updateMemberProfile,
   updateMemberAvatar,
+  updateMemberPublicProfileSettings,
   requireAdmin,
   requireContributorIdentity,
   requireModerator,
@@ -71,6 +72,7 @@ import {
   parsePaddleLogInput,
   updatePaddleLog,
 } from "./paddle-logs.js";
+import { getPublicProfile } from "./public-profile.js";
 import {
   cancelInviteOrWithdraw,
   createGroup,
@@ -246,6 +248,38 @@ async function route(
       zoom: num(body.zoom),
     });
     return { status: 200, body: { member: updatedMember } };
+  }
+
+  if (method === "PATCH" && url.pathname === "/api/me/public-profile") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    if (!isRecord(body)) {
+      throw new HttpError(400, "Invalid public-profile payload.");
+    }
+    const str = (value: unknown): string | null =>
+      typeof value === "string" && value.trim() ? value.trim() : null;
+    const updatedMember = await updateMemberPublicProfileSettings(member.id, {
+      profilePublic: Boolean(body.profilePublic),
+      handle: str(body.handle),
+      bio: str(body.bio),
+      showPaddles: Boolean(body.showPaddles),
+      showSkills: Boolean(body.showSkills),
+      showPhotos: Boolean(body.showPhotos),
+    });
+    return { status: 200, body: { member: updatedMember } };
+  }
+
+  // Public paddler profile — anonymous read. Returns 404 for private/unknown
+  // (neutral: no member-existence disclosure).
+  const publicProfileMatch = url.pathname.match(/^\/api\/p\/([^/]+)$/);
+  if (method === "GET" && publicProfileMatch) {
+    const profile = await getPublicProfile(
+      decodeURIComponent(publicProfileMatch[1]),
+    );
+    if (!profile) {
+      throw new HttpError(404, "Profile not found.");
+    }
+    return { status: 200, body: { profile } };
   }
 
   if (method === "POST" && url.pathname === "/api/me/contributor-terms") {

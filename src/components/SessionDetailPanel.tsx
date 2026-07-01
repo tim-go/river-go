@@ -19,6 +19,7 @@ import {
 interface SessionDetailPanelProps {
   sessionId: string;
   onBack: () => void;
+  onOpenProfile: (idOrHandle: string, backLabel?: string) => void;
 }
 
 const MANAGER_ROLES = ["owner", "organiser", "leader"];
@@ -48,6 +49,7 @@ function formatWhen(iso: string | null): string {
 export function SessionDetailPanel({
   sessionId,
   onBack,
+  onOpenProfile,
 }: SessionDetailPanelProps) {
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -258,7 +260,13 @@ export function SessionDetailPanel({
         <ul className="participant-list">
           {session.participants.map((participant) => (
             <li key={participant.id} className="participant-row">
-              <span className="participant-row__person">
+              <button
+                type="button"
+                className="participant-row__person group-member-row__person--link"
+                onClick={() =>
+                  onOpenProfile(participant.memberId, session.title)
+                }
+              >
                 <Avatar
                   name={participant.publicName}
                   avatar={participant.avatar}
@@ -288,7 +296,7 @@ export function SessionDetailPanel({
                     </small>
                   ) : null}
                 </span>
-              </span>
+              </button>
               {canManage ? (
                 <button
                   type="button"
