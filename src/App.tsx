@@ -340,6 +340,14 @@ function parseProfileRoute(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+// Where an entity page's back button returns to. `section`/`searchMode` restore
+// a React-state view (e.g. Discover ▸ Clubs) that the URL doesn't encode.
+type ReturnTarget = {
+  label: string;
+  section?: AppSection;
+  searchMode?: SearchMode;
+};
+
 const CLUB_KIND_LABELS: Record<string, string> = {
   club: "Club",
   subgroup: "Subgroup",
@@ -361,21 +369,37 @@ function App() {
   const [profileRoute, setProfileRoute] = useState<string | null>(() =>
     parseProfileRoute(),
   );
-  // The label + whether we can browser-back to the page a profile was opened
-  // from (false on a direct/external landing, so "back" falls back to home).
-  const profileReturnRef = useRef<{ label: string; internal: boolean }>({
-    label: "Back",
-    internal: false,
-  });
+  // Shared back-navigation utility. Any page that opens an entity page (a club
+  // or a paddler profile) can pass a return target describing where "back" goes:
+  // a label to show, and — because app sections/search live in React state, not
+  // the URL — the section (and search tab) to restore. Stored in history.state
+  // so nesting and the browser Back button stay in sync. Null means there was no
+  // internal caller, so the entity falls back to its own default exit.
+  const [returnTarget, setReturnTarget] = useState<ReturnTarget | null>(
+    () => (window.history.state?.back as ReturnTarget | undefined) ?? null,
+  );
+  // Restore the caller's section/search-tab (used when the back target points at
+  // a React-state section like Discover, which the URL doesn't carry).
+  const restoreReturnSection = (target: ReturnTarget) => {
+    setActiveAppSection(target.section ?? "map");
+    if (target.searchMode) {
+      setSearchMode(target.searchMode);
+    }
+    setGroupRoute(null);
+    setProfileRoute(null);
+    setReturnTarget(null);
+    window.history.pushState({}, "", "/");
+  };
   // Open a club entity page by handle or id (pushes /club/<token>); null returns
-  // to the section view. Clicking a nav section leaves any open club.
-  const openGroup = (idOrHandle: string | null) => {
+  // to the section view. `back` shows a back button to the calling page.
+  const openGroup = (idOrHandle: string | null, back?: ReturnTarget) => {
     if (idOrHandle) {
       window.history.pushState(
-        {},
+        { back: back ?? null },
         "",
         `/club/${encodeURIComponent(idOrHandle)}`,
       );
+      setReturnTarget(back ?? null);
       setProfileRoute(null);
       setGroupRoute(idOrHandle);
       setActiveAppSection("groups");
@@ -384,22 +408,42 @@ function App() {
         window.history.pushState({}, "", "/");
       }
       setGroupRoute(null);
+      setReturnTarget(null);
     }
   };
   // Open a paddler's public profile, remembering how to get back.
   const openProfile = (idOrHandle: string, backLabel = "Back") => {
-    profileReturnRef.current = { label: backLabel, internal: true };
-    window.history.pushState({}, "", `/p/${encodeURIComponent(idOrHandle)}`);
+    const back: ReturnTarget = { label: backLabel };
+    window.history.pushState(
+      { back },
+      "",
+      `/p/${encodeURIComponent(idOrHandle)}`,
+    );
+    setReturnTarget(back);
     setProfileRoute(idOrHandle);
   };
   const closeProfile = () => {
-    if (profileReturnRef.current.internal) {
+    if (returnTarget?.section) {
+      restoreReturnSection(returnTarget);
+    } else if (returnTarget) {
       // The previous history entry is the calling page; popstate restores it.
       window.history.back();
     } else {
       window.history.pushState({}, "", "/");
       setProfileRoute(null);
       setActiveAppSection("map");
+    }
+  };
+  // Back from a club page: restore the caller's section if it lives in React
+  // state (e.g. Discover), else browser-back to a URL-carried caller, else fall
+  // back to the clubs list.
+  const handleGroupBack = () => {
+    if (returnTarget?.section) {
+      restoreReturnSection(returnTarget);
+    } else if (returnTarget) {
+      window.history.back();
+    } else {
+      openGroup(null);
     }
   };
   const navigateSection = (section: AppSection) => {
@@ -409,6 +453,7 @@ function App() {
     }
     setGroupRoute(null);
     setProfileRoute(null);
+    setReturnTarget(null);
   };
   useEffect(() => {
     const onPopState = () => {
@@ -416,6 +461,9 @@ function App() {
       const profile = parseProfileRoute();
       setGroupRoute(route);
       setProfileRoute(profile);
+      setReturnTarget(
+        (window.history.state?.back as ReturnTarget | undefined) ?? null,
+      );
       if (route) {
         setActiveAppSection("groups");
       }
@@ -4686,7 +4734,7 @@ function App() {
                 <PublicProfilePage
                   token={profileRoute}
                   onBack={closeProfile}
-                  backLabel={profileReturnRef.current.label}
+                  backLabel={returnTarget?.label ?? "Back"}
                   onOpenPhoto={setLightboxPhoto}
                 />
               </div>
@@ -6031,7 +6079,7 @@ function App() {
                     onClick={() => setSearchMode("favourites")}
                   >
                     <Heart size={16} />
-                    Favourites
+                    Section Favs
                   </button>
                 </div>
 
@@ -6333,7 +6381,11 @@ function App() {
                               type="button"
                               className="group-card"
                               onClick={() =>
-                                openGroup(club.handle ?? club.id)
+                                openGroup(club.handle ?? club.id, {
+                                  label: "Discover",
+                                  section: "discover",
+                                  searchMode: "clubs",
+                                })
                               }
                             >
                               <span className="group-card__cover">
@@ -6520,6 +6572,8 @@ function App() {
                   isSignedIn={isSignedIn}
                   routeGroup={groupRoute}
                   onOpenGroup={openGroup}
+                  onGroupBack={handleGroupBack}
+                  groupBackLabel={returnTarget?.label ?? "Clubs"}
                   onOpenProfile={openProfile}
                   onSignIn={handleSignIn}
                   rivers={canonicalRivers.map((river) => ({
