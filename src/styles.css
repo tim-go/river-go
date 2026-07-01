@@ -2222,6 +2222,19 @@ button.group-detail__section {
   color: var(--ink);
 }
 
+/* Green success box (the base .profile-message is the red/error box). The
+   compound selector keeps specificity above the later per-theme base rules. */
+.profile-message.profile-message--success {
+  border-color: #a6d9bf;
+  background: #e7f6ee;
+  color: #0f5f45;
+}
+[data-theme="surge"] .profile-message.profile-message--success {
+  border-color: rgba(64, 200, 140, 0.4);
+  background: rgba(30, 90, 62, 0.55);
+  color: #b6f0d2;
+}
+
 .system-job-row {
   align-items: flex-start;
   min-height: 58px;
@@ -6120,6 +6133,23 @@ input[type="file"]::file-selector-button:hover {
   /* Don't let the content area's height stretch the EntityPage (which would
      balloon the tab bar); keep everything sized to content, aligned to top. */
   align-content: start;
+}
+/* The header avatar is larger than a normal entity icon — let the icon slot
+   size to it (a circle) instead of clipping to the fixed 44px tile. */
+.public-profile .entity-page__icon {
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 50%;
+  overflow: visible;
+}
+.public-profile__avatar-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  border-radius: 50%;
+  cursor: zoom-in;
+  line-height: 0;
 }
 .public-profile__paddles {
   list-style: none;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { EntityPage, type EntityTab } from "./EntityPage";
 import { Avatar } from "./Avatar";
+import type { PhotoLightboxItem } from "../types";
 import {
   fetchPublicProfile,
   type PublicProfile,
@@ -23,10 +24,12 @@ export function PublicProfilePage({
   token,
   onBack,
   backLabel,
+  onOpenPhoto,
 }: {
   token: string;
   onBack: () => void;
   backLabel: string;
+  onOpenPhoto: (item: PhotoLightboxItem) => void;
 }) {
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "error">(
@@ -46,6 +49,18 @@ export function PublicProfilePage({
         }
         setProfile(result);
         setState("ready");
+        // Prefer the handle in the address bar (nicer + shareable) once loaded,
+        // even when the visitor arrived via /p/<id>.
+        if (
+          result.handle &&
+          window.location.pathname !== `/p/${result.handle}`
+        ) {
+          window.history.replaceState(
+            {},
+            "",
+            `/p/${encodeURIComponent(result.handle)}`,
+          );
+        }
       })
       .catch(() => {
         if (active) setState("error");
@@ -177,7 +192,28 @@ export function PublicProfilePage({
         backLabel={backLabel}
         onBack={onBack}
         icon={
-          <Avatar name={profile.publicName} avatar={profile.avatar} size={64} />
+          profile.avatar ? (
+            <button
+              type="button"
+              className="public-profile__avatar-button"
+              onClick={() =>
+                onOpenPhoto({
+                  src: profile.avatar!.imageUrl,
+                  title: profile.publicName,
+                  alt: `${profile.publicName}'s profile picture`,
+                })
+              }
+              aria-label="View profile picture"
+            >
+              <Avatar
+                name={profile.publicName}
+                avatar={profile.avatar}
+                size={84}
+              />
+            </button>
+          ) : (
+            <Avatar name={profile.publicName} avatar={profile.avatar} size={84} />
+          )
         }
         title={profile.publicName}
         subtitle={profile.handle ? `@${profile.handle}` : undefined}

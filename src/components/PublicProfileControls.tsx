@@ -163,10 +163,10 @@ export function PublicProfileControls({
         </>
       ) : null}
 
-      {error ? (
-        <p className="profile-message profile-message--error">{error}</p>
+      {error ? <p className="profile-message">{error}</p> : null}
+      {message ? (
+        <p className="profile-message profile-message--success">{message}</p>
       ) : null}
-      {message ? <p className="profile-message">{message}</p> : null}
 
       <div className="profile-actions">
         <button

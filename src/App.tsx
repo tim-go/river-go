@@ -4642,11 +4642,16 @@ function App() {
         />
       ) : null}
           {profileRoute ? (
-            <PublicProfilePage
-              token={profileRoute}
-              onBack={closeProfile}
-              backLabel={profileReturnRef.current.label}
-            />
+            <section className="app-page app-page--profile">
+              <div className="app-page__content app-page__content--wide">
+                <PublicProfilePage
+                  token={profileRoute}
+                  onBack={closeProfile}
+                  backLabel={profileReturnRef.current.label}
+                  onOpenPhoto={setLightboxPhoto}
+                />
+              </div>
+            </section>
           ) : activeAppSection === "map" ? (
       <section className="workspace">
         <SyncOutboxBanner
