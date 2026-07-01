@@ -85,6 +85,24 @@ export async function listRiverPhotos(
   return result.rows.map(mapPhotoRow);
 }
 
+/**
+ * All published, located photos across every river — for the map's Photos
+ * layer, which shows standalone photo pins regardless of which river (if any)
+ * is selected. Standalone vs POI-linked is decided client-side via mapPoiId.
+ */
+export async function listMapPhotos(): Promise<ApiMemberPhoto[]> {
+  const result = await pool.query<PhotoRow>(
+    `${photoSelectSql()}
+    WHERE c.visibility = 'published'
+      AND p.moderation_status NOT IN ('hidden', 'rejected')
+      AND c.geometry IS NOT NULL
+    ORDER BY p.created_at DESC
+    LIMIT 500`,
+  );
+
+  return result.rows.map(mapPhotoRow);
+}
+
 export async function softDeletePhoto(
   photoId: string,
   actor: Member,

@@ -60,6 +60,7 @@ import {
   upsertMemberFromAuth,
 } from "./members.js";
 import {
+  listMapPhotos,
   listPhotosForMember,
   listRiverPhotos,
   softDeletePhoto,
@@ -919,6 +920,12 @@ async function route(
     const photos = await listRiverPhotos(
       decodeURIComponent(riverPhotosMatch[1]),
     );
+    return { status: 200, body: { photos } };
+  }
+
+  // All located photos for the map's Photos layer (river-independent).
+  if (method === "GET" && url.pathname === "/api/map-photos") {
+    const photos = await listMapPhotos();
     return { status: 200, body: { photos } };
   }
 

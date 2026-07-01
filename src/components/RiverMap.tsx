@@ -35,7 +35,11 @@ import type {
 } from "../types";
 import type { CanonicalRiverSummary } from "../services/canonicalRiverApi";
 import { fetchWatercoursesForBounds, type KnownWatercourse } from "../services/watercourseApi";
-import { fetchRiverPhotos, type RiverPhoto } from "../services/riverPhotoApi";
+import {
+  fetchMapPhotos,
+  fetchRiverPhotos,
+  type RiverPhoto,
+} from "../services/riverPhotoApi";
 import { getApiBaseUrl } from "../services/apiConfig";
 import type { RouteAdjustment } from "../services/routeAdjustmentApi";
 import type { RouteSuggestion } from "../services/routeSuggestionApi";
@@ -601,6 +605,26 @@ export function RiverMap({
     };
   }, [selectedCanonicalRiver?.id]);
   const riverPhotoCount = riverPhotos.length;
+  // The Photos layer shows standalone photo pins across the whole map, not just
+  // the selected river — so these are fetched globally whenever the layer is on.
+  const [mapPhotos, setMapPhotos] = useState<RiverPhoto[]>([]);
+  useEffect(() => {
+    if (!showPhotoLayer) {
+      setMapPhotos([]);
+      return;
+    }
+    let active = true;
+    fetchMapPhotos()
+      .then((photos) => {
+        if (active) setMapPhotos(photos);
+      })
+      .catch(() => {
+        if (active) setMapPhotos([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [showPhotoLayer]);
 
   useEffect(() => {
     setRiverTab("levels");
@@ -1024,7 +1048,9 @@ export function RiverMap({
                 displayMeta.markerLabel,
                 "",
                 attachmentBadgesHtml({
-                  photo: showPhotoLayer && poiIdsWithPhotos.has(poi.id),
+                  photo:
+                    showPhotoLayer &&
+                    (poi.hasPhotos || poiIdsWithPhotos.has(poi.id)),
                 }),
               ),
               iconSize: [28, 28],
@@ -1815,16 +1841,15 @@ export function RiverMap({
       });
     });
 
-    // A focused river's standalone photos (no POI, so no badge) draw as camera
-    // pins at their location — this is the only path that surfaces photos added
-    // from the river overview, which never load into the section contributions.
-    // POI-linked photos are skipped here (their POI carries the badge), as are
-    // any already drawn above from the loaded contributions.
-    if (mapFilterRiver && showPhotoLayer) {
+    // Standalone photos (no POI, so no badge) draw as camera pins at their
+    // location whenever the Photos layer is on — across the whole map, not just
+    // a selected river. POI-linked photos are skipped (their POI carries the
+    // badge), as are any already drawn above from the loaded contributions.
+    if (showPhotoLayer) {
       const loadedContributionIds = new Set(
         contributions.map((contribution) => contribution.id),
       );
-      riverPhotos.forEach((photo) => {
+      mapPhotos.forEach((photo) => {
         if (
           photo.mapPoiId ||
           !photo.location ||
@@ -2068,7 +2093,7 @@ export function RiverMap({
     showPhotoLayer,
     poiIdsWithPhotos,
     renderedPoiIds,
-    riverPhotos,
+    mapPhotos,
     focusNonce,
     markerClickMode,
     mapPois,
