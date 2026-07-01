@@ -6050,6 +6050,22 @@ input[type="file"]::file-selector-button:hover {
   color: var(--ink);
 }
 
+/* Keep a label's leading icon on the same line as its text. */
+.field-label-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* The club link is shown in the right gutter on desktop; surface it in the
+   Overview only on narrow screens (where the gutter is hidden). It's a normal
+   group-detail__section (grid) by default; hide it on wide screens. */
+@media (min-width: 1025px) {
+  .group-detail__section.overview-club-link {
+    display: none;
+  }
+}
+
 /* ---- Searchable, region-grouped river picker ---- */
 .river-picker {
   font-weight: 400;

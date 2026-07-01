@@ -902,7 +902,9 @@ export function GroupsPanel({
           someone new, share your group invite link.
         </p>
         <label>
-          <UserPlus size={15} /> By email
+          <span className="field-label-icon">
+            <UserPlus size={15} /> By email
+          </span>
           <input
             type="email"
             value={inviteEmail}
@@ -997,13 +999,13 @@ export function GroupsPanel({
       <div className="group-detail__section">
         <div className="group-detail__section-head">
           <h3>Upcoming meetups</h3>
-          {canManageSessions ? (
+          {canManageSessions && !isCreatingSession ? (
             <button
               type="button"
               className="ghost-button ghost-button--compact"
-              onClick={() => setIsCreatingSession((open) => !open)}
+              onClick={() => setIsCreatingSession(true)}
             >
-              <Plus size={15} /> {isCreatingSession ? "Cancel" : "Plan meetup"}
+              <Plus size={15} /> Plan meetup
             </button>
           ) : null}
         </div>
@@ -1052,9 +1054,18 @@ export function GroupsPanel({
                 placeholder="Shuttle, parking, food plans…"
               />
             </label>
-            <button type="submit" className="primary-action">
-              Plan meetup
-            </button>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => setIsCreatingSession(false)}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="primary-action">
+                Plan meetup
+              </button>
+            </div>
           </form>
         ) : upcomingGroupSessions.length ? (
           <ul className="session-list">
@@ -1132,6 +1143,15 @@ export function GroupsPanel({
               Review
             </button>
           </p>
+        </div>
+      ) : null}
+      {isActiveMember ? (
+        <div className="group-detail__section overview-club-link">
+          <h3>Club link</h3>
+          <p className="source-note">
+            Share this to invite people to the club.
+          </p>
+          {inviteLinkBlock}
         </div>
       ) : null}
     </>
