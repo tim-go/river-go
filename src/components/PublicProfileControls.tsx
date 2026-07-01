@@ -91,17 +91,17 @@ export function PublicProfileControls({
                 maxLength={30}
               />
             </label>
-            <label className="group-about-description">
-              <span>Bio (optional)</span>
-              <textarea
-                value={bio}
-                onChange={(event) => setBio(event.target.value)}
-                placeholder="A line about your paddling."
-                rows={2}
-                maxLength={280}
-              />
-            </label>
           </div>
+          <label className="group-about-description">
+            <span>Bio (optional)</span>
+            <textarea
+              value={bio}
+              onChange={(event) => setBio(event.target.value)}
+              placeholder="A line about your paddling."
+              rows={4}
+              maxLength={280}
+            />
+          </label>
 
           <fieldset className="public-profile-controls__sections">
             <legend>Show on my public profile</legend>
