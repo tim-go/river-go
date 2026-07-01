@@ -76,6 +76,7 @@ import {
   mapPoiDisplayMeta,
   mapPoiToSelectedPoi,
   riverMapPoiToSelectedPoi,
+  riverPhotoToSelectedPoi,
   routeImpactPoiLabel,
   disciplineLabel,
   watercourseHintRows,
@@ -1880,6 +1881,15 @@ export function RiverMap({
             iconAnchor: [15, 15],
           }),
         });
+        // Details: open the shared POI detail panel for this photo (full, no
+        // map move) — same as other POIs.
+        const openPhotoDetails = () => {
+          map.closePopup();
+          poiDetailsRef.current(riverPhotoToSelectedPoi(photo), {
+            focusMap: false,
+            expand: true,
+          });
+        };
         photoMarker.addTo(layers);
         if (markerClickMode === "info") {
           photoMarker.bindPopup(
@@ -1890,7 +1900,8 @@ export function RiverMap({
               imageUrl: thumb ?? undefined,
               imageAlt: title,
               onImageClick: openPhoto,
-              navigationLocation: photo.location,
+              openDetailsLabel: "Details",
+              onOpenDetails: openPhotoDetails,
             }),
           );
         }
@@ -1900,7 +1911,7 @@ export function RiverMap({
             photoMarker.openPopup();
             return;
           }
-          openPhoto?.();
+          openPhotoDetails();
         });
       });
     }

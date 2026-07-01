@@ -12,6 +12,7 @@ export interface RiverPhoto {
   // POI-linked ones are represented by the POI's camera badge instead.
   mapPoiId: string | null;
   location: LatLngTuple | null;
+  createdAt: string;
   author: { displayName: string | null };
 }
 
@@ -24,6 +25,7 @@ interface ApiRiverPhoto {
   originalName: string | null;
   mapPoiId: string | null;
   geometry: { type: string; coordinates: [number, number] } | null;
+  createdAt: string;
   author: { displayName: string | null };
 }
 
@@ -64,6 +66,7 @@ function mapApiRiverPhoto(photo: ApiRiverPhoto): RiverPhoto {
     location: photo.geometry
       ? [photo.geometry.coordinates[1], photo.geometry.coordinates[0]]
       : null,
+    createdAt: photo.createdAt,
     author: photo.author,
   };
 }

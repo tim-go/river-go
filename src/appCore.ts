@@ -13,6 +13,7 @@ import { googleMapsDirectionsUrl } from "./services/locationReferences";
 import type {
   Contribution,
   ContributionOutboxRecord,
+  ContributionPhoto,
   ContributionSyncStatus,
   ContributionType,
   LatLngTuple,
@@ -21,6 +22,7 @@ import type {
   RiverSection,
   SelectedPoi,
 } from "./types";
+import type { RiverPhoto } from "./services/riverPhotoApi";
 import type {
   CanonicalRiverSummary,
   SourceCandidatePoiStatus,
@@ -1487,6 +1489,44 @@ export function contributionToSelectedPoi(
     dateObserved: contribution.dateObserved,
     createdAt: contribution.createdAt,
     contributionType: contribution.type,
+  };
+}
+
+/**
+ * A standalone map photo (RiverPhoto) as a SelectedPoi, so a photo pin can open
+ * the shared POI detail panel — showing the image, caption, author and date —
+ * exactly like a photo contribution does.
+ */
+export function riverPhotoToSelectedPoi(photo: RiverPhoto): SelectedPoi {
+  const contributionPhoto: ContributionPhoto = {
+    id: photo.id,
+    caption: photo.caption,
+    storagePath: "",
+    displayPath: "",
+    thumbnailPath: "",
+    displayUrl: photo.displayUrl ?? "",
+    thumbnailUrl: photo.thumbnailUrl ?? photo.displayUrl ?? "",
+    width: 0,
+    height: 0,
+    thumbnailWidth: 0,
+    thumbnailHeight: 0,
+    sizeBytes: 0,
+    thumbnailSizeBytes: 0,
+    mimeType: "",
+    originalName: photo.originalName ?? undefined,
+  };
+  return {
+    id: `photo:${photo.id}`,
+    kind: "contribution",
+    title: photo.caption || "Photo",
+    subtitle: "Photo",
+    summary: "",
+    sectionLabel: "",
+    location: photo.location ?? [0, 0],
+    photos: [contributionPhoto],
+    author: photo.author.displayName ?? undefined,
+    createdAt: photo.createdAt,
+    contributionType: "photo",
   };
 }
 
