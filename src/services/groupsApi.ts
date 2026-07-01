@@ -5,6 +5,7 @@ import type {
   GroupDiscipline,
   GroupKind,
   GroupPending,
+  GroupPublic,
   GroupRole,
   GroupSession,
   GroupView,
@@ -73,6 +74,19 @@ export interface SessionDraft {
 }
 
 // --- Groups ---
+
+/** Discover all clubs (including private) as public-safe cards. Anonymous-ok. */
+export async function discoverClubs(query: string): Promise<GroupPublic[]> {
+  const params = new URLSearchParams();
+  if (query.trim()) params.set("q", query.trim());
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  const result = await authedFetch<{ clubs: GroupPublic[] }>(
+    `/api/discover/clubs${suffix}`,
+    {},
+    true,
+  );
+  return result.clubs ?? [];
+}
 
 export async function fetchGroups(): Promise<Group[]> {
   const result = await authedFetch<{ groups?: Group[] }>("/api/me/clubs");

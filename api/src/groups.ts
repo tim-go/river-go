@@ -401,6 +401,55 @@ export async function createGroup(
   }
 }
 
+/**
+ * All clubs, discoverable by anyone — including private ones. Returns the
+ * public-safe card (name, handle, kind, discipline, description, cover, member
+ * count) plus the viewer's own membership status. Private clubs are listed;
+ * their private content stays gated behind the member/public view resolver.
+ */
+export async function listDiscoverableClubs(
+  viewerMemberId: string | null,
+  query: string | null,
+  limit: number,
+): Promise<ApiGroupPublic[]> {
+  const q = query && query.trim() ? query.trim() : null;
+  const result = await pool.query<GroupRow>(
+    `SELECT g.id, g.name, g.handle, g.kind, g.parent_group_id, g.description,
+            g.discipline, g.visibility, g.access_mode, g.created_by,
+            g.created_at, g.updated_at, g.cover_image_url, g.cover_position,
+            g.cover_x, g.cover_zoom,
+            (SELECT count(*) FROM group_members gm2
+               WHERE gm2.group_id = g.id AND gm2.status = 'active') AS member_count,
+            gm.status AS my_status
+     FROM groups g
+     LEFT JOIN group_members gm
+       ON gm.group_id = g.id AND gm.member_id = $1
+     WHERE $2::text IS NULL
+        OR g.name ILIKE '%' || $2 || '%'
+        OR g.handle ILIKE '%' || $2 || '%'
+     ORDER BY g.name ASC
+     LIMIT $3`,
+    [viewerMemberId, q, Math.max(1, Math.min(limit, 100))],
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    handle: row.handle,
+    kind: row.kind,
+    description: row.description,
+    discipline: row.discipline,
+    visibility: row.visibility,
+    accessMode: row.access_mode,
+    coverImageUrl: row.cover_image_url ?? null,
+    coverPosition:
+      row.cover_position != null ? Number(row.cover_position) : 50,
+    coverX: row.cover_x != null ? Number(row.cover_x) : 50,
+    coverZoom: row.cover_zoom != null ? Number(row.cover_zoom) : 100,
+    memberCount: row.member_count != null ? Number(row.member_count) : 0,
+    myStatus: row.my_status ?? null,
+  }));
+}
+
 export async function listGroupsForMember(
   memberId: string,
   client: PoolClient | typeof pool = pool,

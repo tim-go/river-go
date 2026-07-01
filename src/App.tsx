@@ -163,7 +163,7 @@ import {
   formatWhat3Words,
 } from "./services/locationReferences";
 import { routeSuggestionStatusLabel, routeAdjustmentStatusLabel } from "./lib/mapPopups";
-import { loadContributions, loadFavouriteSectionIds, loadFavouriteRiverIds, saveFavouriteRiverIds, loadRouteSuggestions, loadAnalyticsConsent, saveAnalyticsConsent, hasDismissedWelcomeForSession, rememberWelcomeDismissedForSession, loadLiveLocationEnabled, saveLiveLocationEnabled, loadMarkerClickMode, saveMarkerClickMode, loadSyncBannerDismissal, saveSyncBannerDismissal, STORAGE_KEY, FAVOURITES_STORAGE_KEY, ROUTE_SUGGESTIONS_STORAGE_KEY } from "./lib/storage";
+import { loadContributions, loadFavouriteSectionIds, loadFavouriteRiverIds, saveFavouriteRiverIds, loadRouteSuggestions, loadAnalyticsConsent, saveAnalyticsConsent, hasDismissedWelcomeForSession, rememberWelcomeDismissedForSession, loadLiveLocationEnabled, saveLiveLocationEnabled, loadSyncBannerDismissal, saveSyncBannerDismissal, STORAGE_KEY, FAVOURITES_STORAGE_KEY, ROUTE_SUGGESTIONS_STORAGE_KEY } from "./lib/storage";
 import { SyncOutboxBanner } from "./components/SyncOutboxBanner";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
@@ -239,7 +239,9 @@ import type {
   PhotoLightboxItem,
   AuthSheetMode,
   SelectedPoi,
+  GroupPublic,
 } from "./types";
+import { discoverClubs } from "./services/groupsApi";
 import {
   AdminPage,
   bandLabels,
@@ -338,6 +340,23 @@ function parseProfileRoute(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+// Where an entity page's back button returns to. `section`/`searchMode` restore
+// a React-state view (e.g. Discover ▸ Clubs) that the URL doesn't encode.
+type ReturnTarget = {
+  label: string;
+  section?: AppSection;
+  searchMode?: SearchMode;
+};
+
+const CLUB_KIND_LABELS: Record<string, string> = {
+  club: "Club",
+  subgroup: "Subgroup",
+  friends: "Friends",
+  trip: "Trip",
+};
+const capitalise = (value: string): string =>
+  value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+
 function App() {
   const outboxStore = useMemo(() => createContributionOutboxStore(), []);
   const [activeAppSection, setActiveAppSection] = useState<AppSection>(() =>
@@ -350,21 +369,37 @@ function App() {
   const [profileRoute, setProfileRoute] = useState<string | null>(() =>
     parseProfileRoute(),
   );
-  // The label + whether we can browser-back to the page a profile was opened
-  // from (false on a direct/external landing, so "back" falls back to home).
-  const profileReturnRef = useRef<{ label: string; internal: boolean }>({
-    label: "Back",
-    internal: false,
-  });
+  // Shared back-navigation utility. Any page that opens an entity page (a club
+  // or a paddler profile) can pass a return target describing where "back" goes:
+  // a label to show, and — because app sections/search live in React state, not
+  // the URL — the section (and search tab) to restore. Stored in history.state
+  // so nesting and the browser Back button stay in sync. Null means there was no
+  // internal caller, so the entity falls back to its own default exit.
+  const [returnTarget, setReturnTarget] = useState<ReturnTarget | null>(
+    () => (window.history.state?.back as ReturnTarget | undefined) ?? null,
+  );
+  // Restore the caller's section/search-tab (used when the back target points at
+  // a React-state section like Discover, which the URL doesn't carry).
+  const restoreReturnSection = (target: ReturnTarget) => {
+    setActiveAppSection(target.section ?? "map");
+    if (target.searchMode) {
+      setSearchMode(target.searchMode);
+    }
+    setGroupRoute(null);
+    setProfileRoute(null);
+    setReturnTarget(null);
+    window.history.pushState({}, "", "/");
+  };
   // Open a club entity page by handle or id (pushes /club/<token>); null returns
-  // to the section view. Clicking a nav section leaves any open club.
-  const openGroup = (idOrHandle: string | null) => {
+  // to the section view. `back` shows a back button to the calling page.
+  const openGroup = (idOrHandle: string | null, back?: ReturnTarget) => {
     if (idOrHandle) {
       window.history.pushState(
-        {},
+        { back: back ?? null },
         "",
         `/club/${encodeURIComponent(idOrHandle)}`,
       );
+      setReturnTarget(back ?? null);
       setProfileRoute(null);
       setGroupRoute(idOrHandle);
       setActiveAppSection("groups");
@@ -373,22 +408,42 @@ function App() {
         window.history.pushState({}, "", "/");
       }
       setGroupRoute(null);
+      setReturnTarget(null);
     }
   };
   // Open a paddler's public profile, remembering how to get back.
   const openProfile = (idOrHandle: string, backLabel = "Back") => {
-    profileReturnRef.current = { label: backLabel, internal: true };
-    window.history.pushState({}, "", `/p/${encodeURIComponent(idOrHandle)}`);
+    const back: ReturnTarget = { label: backLabel };
+    window.history.pushState(
+      { back },
+      "",
+      `/p/${encodeURIComponent(idOrHandle)}`,
+    );
+    setReturnTarget(back);
     setProfileRoute(idOrHandle);
   };
   const closeProfile = () => {
-    if (profileReturnRef.current.internal) {
+    if (returnTarget?.section) {
+      restoreReturnSection(returnTarget);
+    } else if (returnTarget) {
       // The previous history entry is the calling page; popstate restores it.
       window.history.back();
     } else {
       window.history.pushState({}, "", "/");
       setProfileRoute(null);
       setActiveAppSection("map");
+    }
+  };
+  // Back from a club page: restore the caller's section if it lives in React
+  // state (e.g. Discover), else browser-back to a URL-carried caller, else fall
+  // back to the clubs list.
+  const handleGroupBack = () => {
+    if (returnTarget?.section) {
+      restoreReturnSection(returnTarget);
+    } else if (returnTarget) {
+      window.history.back();
+    } else {
+      openGroup(null);
     }
   };
   const navigateSection = (section: AppSection) => {
@@ -398,6 +453,7 @@ function App() {
     }
     setGroupRoute(null);
     setProfileRoute(null);
+    setReturnTarget(null);
   };
   useEffect(() => {
     const onPopState = () => {
@@ -405,6 +461,9 @@ function App() {
       const profile = parseProfileRoute();
       setGroupRoute(route);
       setProfileRoute(profile);
+      setReturnTarget(
+        (window.history.state?.back as ReturnTarget | undefined) ?? null,
+      );
       if (route) {
         setActiveAppSection("groups");
       }
@@ -518,6 +577,17 @@ function App() {
   }, []);
   const [selectedCanonicalRiverId, setSelectedCanonicalRiverId] =
     useState<string | null>(null);
+  // Whether the selected river filters/focuses the MAP (its POIs, amenities,
+  // the "river:" layer chip). The panel + its data always follow the selected
+  // river; this gates only the map-side filter so "Details" can open the panel
+  // without touching the map. See the river popup (Details / Snap view / Select).
+  const [riverFilterActive, setRiverFilterActive] = useState(false);
+  // Explicit "fit the whole river" camera move (Select / Discover search),
+  // replacing the old auto-flyToBounds-on-select.
+  const [riverBoundsFocus, setRiverBoundsFocus] = useState<{
+    bbox: [number, number, number, number];
+    nonce: number;
+  } | null>(null);
   const { selectRiver: selectDiscoveryRiver } = useDiscovery();
   useEffect(() => {
     selectDiscoveryRiver(selectedCanonicalRiverId);
@@ -537,9 +607,8 @@ function App() {
   const [routeDraftSnapMessage, setRouteDraftSnapMessage] = useState("");
   const [isRouteSnapLoading, setIsRouteSnapLoading] = useState(false);
   const [showKnownRivers, setShowKnownRivers] = useState(false);
-  const [markerClickMode, setMarkerClickMode] = useState<MarkerClickMode>(
-    loadMarkerClickMode,
-  );
+  // Map markers always open the quick-info popup (which offers Details / Snap).
+  const markerClickMode: MarkerClickMode = "info";
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
   const [showPublicRoutes, setShowPublicRoutes] = useState(false);
   const [showRiverLayer, setShowRiverLayer] = useState(true);
@@ -649,7 +718,7 @@ function App() {
   );
   const selectedMapLayers = useMemo(() => {
     const set = new Set<string>();
-    if (selectedCanonicalRiverId) {
+    if (selectedCanonicalRiverId && riverFilterActive) {
       set.add(`river:${selectedCanonicalRiverId}`);
     }
     if (riverDisciplineFilter !== "all") {
@@ -668,6 +737,7 @@ function App() {
     return set;
   }, [
     selectedCanonicalRiverId,
+    riverFilterActive,
     riverDisciplineFilter,
     showRiverLayer,
     showKnownRivers,
@@ -868,7 +938,6 @@ function App() {
   const [detailFocusPlacement, setDetailFocusPlacement] =
     useState<MapFocusPlacement>("center");
   const [detailFocusNonce, setDetailFocusNonce] = useState(0);
-  const [detailRestoreNonce, setDetailRestoreNonce] = useState(0);
   const [selectedTargetLabel, setSelectedTargetLabel] = useState(
     "Selected map location",
   );
@@ -1018,6 +1087,33 @@ function App() {
   const [searchMode, setSearchMode] = useState<SearchMode>("name");
   const [profileMode, setProfileMode] = useState<ProfileMode>("account");
   const [riverSearchTerm, setRiverSearchTerm] = useState("");
+  const [clubSearchTerm, setClubSearchTerm] = useState("");
+  const [discoveredClubs, setDiscoveredClubs] = useState<GroupPublic[]>([]);
+  const [clubsLoading, setClubsLoading] = useState(false);
+  useEffect(() => {
+    if (activeAppSection !== "discover" || searchMode !== "clubs") {
+      return;
+    }
+    let active = true;
+    setClubsLoading(true);
+    const timer = window.setTimeout(() => {
+      void discoverClubs(clubSearchTerm)
+        .then((clubs) => {
+          if (active) setDiscoveredClubs(clubs);
+        })
+        .catch(() => {
+          if (active) setDiscoveredClubs([]);
+        })
+        .finally(() => {
+          if (active) setClubsLoading(false);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAppSection, searchMode, clubSearchTerm]);
   const [watercourseSearchTerm, setWatercourseSearchTerm] = useState("");
   const [watercourseSearchResults, setWatercourseSearchResults] = useState<
     KnownWatercourse[]
@@ -4019,15 +4115,37 @@ function App() {
     });
   }
 
-  function selectCanonicalRiver(riverId: string | null) {
+  function focusRiverBounds(bbox: [number, number, number, number]) {
+    setRiverBoundsFocus((prev) => ({ bbox, nonce: (prev?.nonce ?? 0) + 1 }));
+  }
+
+  // Select a canonical river. `filter` toggles the map filter/focus, `zoom`
+  // moves the camera ("point" = centre on it, "bounds" = fit the whole river,
+  // "none" = leave the map), and `panel` opens the detail panel ("small",
+  // "full", or "none"). Drives the three river-popup buttons + Discover search.
+  function selectCanonicalRiver(
+    riverId: string | null,
+    options: {
+      filter?: boolean;
+      zoom?: "point" | "bounds" | "none";
+      panel?: "small" | "full" | "none";
+    } = {},
+  ) {
+    const { filter = true, zoom = "bounds", panel = "small" } = options;
+    const has = Boolean(riverId);
     setSelectedCanonicalRiverId(riverId);
-    setIsSelectedRiverPanelOpen(Boolean(riverId));
-    setIsSelectedRiverPanelExpanded(false);
+    setRiverFilterActive(has && filter);
+    setIsSelectedRiverPanelOpen(has && panel !== "none");
+    setIsSelectedRiverPanelExpanded(has && panel === "full");
     const river = riverId
       ? canonicalRivers.find((item) => item.id === riverId)
       : null;
     if (river) {
-      focusDetailLocation(river.centre, "mobile-top-half");
+      if (zoom === "point") {
+        focusDetailLocation(river.centre, "mobile-top-half");
+      } else if (zoom === "bounds") {
+        focusRiverBounds(river.bbox);
+      }
     }
     setSelectedPoi(null);
     setIsPoiDetailExpanded(false);
@@ -4044,27 +4162,8 @@ function App() {
     setShowSearchFocusMarker(false);
   }
 
-  function selectCanonicalRiverContext(riverId: string | null) {
-    setSelectedCanonicalRiverId(riverId);
-    setIsSelectedRiverPanelOpen(false);
-    setIsSelectedRiverPanelExpanded(false);
-    setSelectedPoi(null);
-    setIsPoiDetailExpanded(false);
-    setIsPanelOpen(false);
-    setIsFormOpen(false);
-    setIsAddMode(false);
-    setRouteCreateMode("idle");
-    setRouteDraftPoints([]);
-    setRouteDraftOriginalPoints(null);
-    setRouteDraftSnapMessage("");
-    setMapPoiReviewMessage("");
-    setSearchFocusLocation(null);
-    setSearchFocusLabel("Searched location");
-    setShowSearchFocusMarker(false);
-  }
-
+  // Closing the river panel keeps the map where it is — no snap-back.
   function closeSelectedRiverPanel() {
-    restoreDetailMapView();
     setIsSelectedRiverPanelOpen(false);
     setIsSelectedRiverPanelExpanded(false);
   }
@@ -4076,10 +4175,6 @@ function App() {
     setDetailFocusLocation(location);
     setDetailFocusPlacement(placement);
     setDetailFocusNonce((current) => current + 1);
-  }
-
-  function restoreDetailMapView() {
-    setDetailRestoreNonce((current) => current + 1);
   }
 
   function openRouteDetails(section: RiverSection) {
@@ -4124,7 +4219,7 @@ function App() {
     options: OpenPoiDetailsOptions = {},
   ) {
     setSelectedPoi(poi);
-    setIsPoiDetailExpanded(false);
+    setIsPoiDetailExpanded(options.expand ?? false);
     setIsSelectedRiverPanelOpen(false);
     setIsSelectedRiverPanelExpanded(false);
     if (options.focusMap) {
@@ -4149,7 +4244,8 @@ function App() {
   }
 
   function closePoiDetails() {
-    restoreDetailMapView();
+    // Keep the map where it is on close — tapping a POI's map icon flies the
+    // map to it; closing the panel should NOT snap back to the prior view.
     setSelectedPoi(null);
     setIsPoiDetailExpanded(false);
     setIsSelectedRiverPanelOpen(false);
@@ -4350,14 +4446,6 @@ function App() {
     setIsFormOpen(false);
     setIsAddMode(false);
     setActiveAppSection("map");
-  }
-
-  function toggleMarkerClickMode() {
-    setMarkerClickMode((current) => {
-      const next = current === "info" ? "detail" : "info";
-      saveMarkerClickMode(next);
-      return next;
-    });
   }
 
   function toggleFavouriteRiver(riverId: string) {
@@ -4606,17 +4694,6 @@ function App() {
               <Navigation size={19} />
             </MapActionButton>
             <MapActionButton
-              label={
-                markerClickMode === "info"
-                  ? "Marker clicks: quick info"
-                  : "Marker clicks: open details"
-              }
-              active={markerClickMode === "detail"}
-              onClick={toggleMarkerClickMode}
-            >
-              <MessageSquare size={19} />
-            </MapActionButton>
-            <MapActionButton
               label="Add local knowledge"
               onClick={() => requestAddContribution()}
             >
@@ -4647,7 +4724,7 @@ function App() {
                 <PublicProfilePage
                   token={profileRoute}
                   onBack={closeProfile}
-                  backLabel={profileReturnRef.current.label}
+                  backLabel={returnTarget?.label ?? "Back"}
                   onOpenPhoto={setLightboxPhoto}
                 />
               </div>
@@ -4692,7 +4769,8 @@ function App() {
           detailFocusLocation={detailFocusLocation}
           detailFocusPlacement={detailFocusPlacement}
           detailFocusNonce={detailFocusNonce}
-          detailRestoreNonce={detailRestoreNonce}
+          riverFilterActive={riverFilterActive}
+          riverBoundsFocus={riverBoundsFocus}
           searchFocusLocation={searchFocusLocation}
           searchFocusLabel={searchFocusLabel}
           showSearchFocusMarker={showSearchFocusMarker}
@@ -4727,7 +4805,6 @@ function App() {
           onOpenPhoto={setLightboxPhoto}
           onSelectSection={selectSection}
           onSelectCanonicalRiver={selectCanonicalRiver}
-          onSelectCanonicalRiverContext={selectCanonicalRiverContext}
           onCloseSelectedRiverPanel={closeSelectedRiverPanel}
           onToggleSelectedRiverPanelExpanded={() =>
             setIsSelectedRiverPanelExpanded((current) => !current)
@@ -5975,6 +6052,16 @@ function App() {
                     Point
                   </button>
                   <button
+                    className={searchMode === "clubs" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={searchMode === "clubs"}
+                    onClick={() => setSearchMode("clubs")}
+                  >
+                    <UsersRound size={16} />
+                    Clubs
+                  </button>
+                  <button
                     className={searchMode === "favourites" ? "active" : ""}
                     type="button"
                     role="tab"
@@ -5982,7 +6069,7 @@ function App() {
                     onClick={() => setSearchMode("favourites")}
                   >
                     <Heart size={16} />
-                    Favourites
+                    Section Favs
                   </button>
                 </div>
 
@@ -6261,6 +6348,97 @@ function App() {
                     </div>
                   ) : null}
                   </form>
+                ) : searchMode === "clubs" ? (
+                  <div className="discover-page">
+                    <div className="discover-filters">
+                      <input
+                        className="discover-search"
+                        value={clubSearchTerm}
+                        onChange={(event) =>
+                          setClubSearchTerm(event.target.value)
+                        }
+                        placeholder="Search clubs by name or handle…"
+                        aria-label="Search clubs"
+                      />
+                    </div>
+                    {clubsLoading && !discoveredClubs.length ? (
+                      <p className="source-note">Searching…</p>
+                    ) : discoveredClubs.length ? (
+                      <ul className="groups-grid">
+                        {discoveredClubs.map((club) => (
+                          <li key={club.id}>
+                            <button
+                              type="button"
+                              className="group-card"
+                              onClick={() =>
+                                openGroup(club.handle ?? club.id, {
+                                  label: "Discover",
+                                  section: "discover",
+                                  searchMode: "clubs",
+                                })
+                              }
+                            >
+                              <span className="group-card__cover">
+                                {club.coverImageUrl ? (
+                                  <img
+                                    className="group-card__cover-img"
+                                    src={club.coverImageUrl}
+                                    alt=""
+                                    style={{
+                                      objectPosition: `${club.coverX}% ${club.coverPosition}%`,
+                                      transformOrigin: `${club.coverX}% ${club.coverPosition}%`,
+                                      transform: `scale(${club.coverZoom / 100})`,
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="group-card__cover-empty">
+                                    <UsersRound size={26} />
+                                  </span>
+                                )}
+                                {club.myStatus === "active" ? (
+                                  <span className="status-chip status-chip--muted group-card__chip">
+                                    member
+                                  </span>
+                                ) : club.myStatus === "invited" ? (
+                                  <span className="status-chip group-card__chip">
+                                    invited
+                                  </span>
+                                ) : club.myStatus === "requested" ? (
+                                  <span className="status-chip group-card__chip">
+                                    request pending
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="group-card__body">
+                                <strong className="group-card__name">
+                                  {club.name}
+                                </strong>
+                                <span className="group-card__meta">
+                                  {CLUB_KIND_LABELS[club.kind] ?? club.kind}
+                                  {club.discipline
+                                    ? ` · ${capitalise(club.discipline)}`
+                                    : ""}{" "}
+                                  · {club.visibility} · {club.memberCount} member
+                                  {club.memberCount === 1 ? "" : "s"}
+                                </span>
+                                {club.description ? (
+                                  <span className="group-card__desc">
+                                    {club.description}
+                                  </span>
+                                ) : null}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="source-note">
+                        {clubSearchTerm.trim()
+                          ? `No clubs match “${clubSearchTerm.trim()}”.`
+                          : "No clubs yet."}
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <section className="search-mode-panel" aria-label="Favourite routes">
                     {!isSignedIn ? (
@@ -6384,6 +6562,8 @@ function App() {
                   isSignedIn={isSignedIn}
                   routeGroup={groupRoute}
                   onOpenGroup={openGroup}
+                  onGroupBack={handleGroupBack}
+                  groupBackLabel={returnTarget?.label ?? "Clubs"}
                   onOpenProfile={openProfile}
                   onSignIn={handleSignIn}
                   rivers={canonicalRivers.map((river) => ({

@@ -13,6 +13,7 @@ import { googleMapsDirectionsUrl } from "./services/locationReferences";
 import type {
   Contribution,
   ContributionOutboxRecord,
+  ContributionPhoto,
   ContributionSyncStatus,
   ContributionType,
   LatLngTuple,
@@ -21,6 +22,7 @@ import type {
   RiverSection,
   SelectedPoi,
 } from "./types";
+import type { RiverPhoto } from "./services/riverPhotoApi";
 import type {
   CanonicalRiverSummary,
   SourceCandidatePoiStatus,
@@ -191,7 +193,12 @@ export type RouteSnapCandidate = {
   label: string;
   route: LatLngTuple[];
 };
-export type SearchMode = "name" | "waterways" | "point" | "favourites";
+export type SearchMode =
+  | "name"
+  | "waterways"
+  | "point"
+  | "clubs"
+  | "favourites";
 export type ProfileMode =
   | "account"
   | "public"
@@ -348,6 +355,8 @@ export interface MapPoiDisplayMeta {
 export interface OpenPoiDetailsOptions {
   focusMap?: boolean;
   focusPlacement?: MapFocusPlacement;
+  // Open the detail panel expanded (full-screen on mobile).
+  expand?: boolean;
 }
 
 
@@ -1480,6 +1489,55 @@ export function contributionToSelectedPoi(
     dateObserved: contribution.dateObserved,
     createdAt: contribution.createdAt,
     contributionType: contribution.type,
+  };
+}
+
+/**
+ * A standalone map photo (RiverPhoto) as a SelectedPoi, so a photo pin can open
+ * the shared POI detail panel — showing the image, caption, author and date —
+ * exactly like a photo contribution does.
+ */
+function formatDateAdded(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? iso
+    : date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+}
+
+export function riverPhotoToSelectedPoi(photo: RiverPhoto): SelectedPoi {
+  const contributionPhoto: ContributionPhoto = {
+    id: photo.id,
+    caption: photo.caption,
+    storagePath: "",
+    displayPath: "",
+    thumbnailPath: "",
+    displayUrl: photo.displayUrl ?? "",
+    thumbnailUrl: photo.thumbnailUrl ?? photo.displayUrl ?? "",
+    width: 0,
+    height: 0,
+    thumbnailWidth: 0,
+    thumbnailHeight: 0,
+    sizeBytes: 0,
+    thumbnailSizeBytes: 0,
+    mimeType: "",
+    originalName: photo.originalName ?? undefined,
+  };
+  return {
+    id: `photo:${photo.id}`,
+    kind: "contribution",
+    title: photo.caption || "Photo",
+    subtitle: "Photo",
+    summary: "",
+    sectionLabel: "",
+    location: photo.location ?? [0, 0],
+    photos: [contributionPhoto],
+    author: photo.author.displayName ?? undefined,
+    createdAt: formatDateAdded(photo.createdAt),
+    contributionType: "photo",
   };
 }
 

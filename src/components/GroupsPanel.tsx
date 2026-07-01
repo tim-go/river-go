@@ -62,6 +62,10 @@ interface GroupsPanelProps {
   // for the "My groups" list. Driven by App routing, not internal state.
   routeGroup: string | null;
   onOpenGroup: (idOrHandle: string | null) => void;
+  // Back button on an open club page: where it goes + its label (set by the
+  // page that opened the club, e.g. "Discover"). Defaults to the clubs list.
+  onGroupBack: () => void;
+  groupBackLabel: string;
   onOpenProfile: (idOrHandle: string, backLabel?: string) => void;
   onSignIn: () => void;
   rivers: RiverPickerOption[];
@@ -129,6 +133,8 @@ export function GroupsPanel({
   isSignedIn,
   routeGroup,
   onOpenGroup,
+  onGroupBack,
+  groupBackLabel,
   onOpenProfile,
   onSignIn,
   rivers,
@@ -1593,6 +1599,8 @@ export function GroupsPanel({
           icon={<UsersRound size={22} />}
           title={groupDetail.name}
           subtitle={`@${groupDetail.handle ?? groupDetail.id}`}
+          onBack={onGroupBack}
+          backLabel={groupBackLabel}
           cover={
             groupDetail.coverImageUrl
               ? {
@@ -1649,6 +1657,8 @@ export function GroupsPanel({
           icon={<UsersRound size={22} />}
           title={publicGroup.name}
           subtitle={`@${publicGroup.handle ?? publicGroup.id}`}
+          onBack={onGroupBack}
+          backLabel={groupBackLabel}
           cover={
             publicGroup.coverImageUrl
               ? {

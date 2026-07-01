@@ -25,6 +25,8 @@ export function createMapPopupContent({
   imageUrl,
   imageAlt,
   onImageClick,
+  openDetailsLabel = "Details",
+  onOpenDetails,
   detailsLabel = "Details",
   navigationLocation,
   navigationLabel = "Maps",
@@ -39,6 +41,9 @@ export function createMapPopupContent({
   imageUrl?: string;
   imageAlt?: string;
   onImageClick?: () => void;
+  // Opens the detail panel without moving the map (rendered first).
+  openDetailsLabel?: string;
+  onOpenDetails?: () => void;
   detailsLabel?: string;
   navigationLocation?: LatLngTuple;
   navigationLabel?: string;
@@ -86,6 +91,20 @@ export function createMapPopupContent({
   body.textContent = summary;
 
   const actions = L.DomUtil.create("div", "map-popup-actions", container);
+  if (onOpenDetails) {
+    const openButton = L.DomUtil.create("button", "", actions);
+    openButton.type = "button";
+    openButton.textContent = openDetailsLabel;
+    L.DomEvent.on(openButton, "click", (event) => {
+      L.DomEvent.stop(event);
+      container
+        .closest(".leaflet-popup")
+        ?.querySelector<HTMLAnchorElement>(".leaflet-popup-close-button")
+        ?.click();
+      onOpenDetails();
+    });
+  }
+
   if (onDetails) {
     const detailsButton = L.DomUtil.create("button", "", actions);
     detailsButton.type = "button";
