@@ -4643,7 +4643,7 @@ function App() {
       ) : null}
           {profileRoute ? (
             <section className="app-page app-page--profile">
-              <div className="app-page__content app-page__content--wide">
+              <div className="app-page__content">
                 <PublicProfilePage
                   token={profileRoute}
                   onBack={closeProfile}
