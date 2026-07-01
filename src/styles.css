@@ -4364,9 +4364,9 @@ button.group-detail__section {
   display: grid;
   gap: 2px;
   padding: 9px 10px;
-  border: 1px solid rgba(91, 169, 188, 0.28);
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--surface);
 }
 
 .poi-updates li p {
