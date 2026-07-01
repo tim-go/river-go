@@ -1597,7 +1597,21 @@ export function GroupsPanel({
               <button
                 type="button"
                 className="ghost-button ghost-button--compact"
-                onClick={() => void handleLeave()}
+                onClick={() =>
+                  setConfirmDialog({
+                    eyebrow: "Leave club",
+                    title: `Leave “${groupDetail.name}”?`,
+                    body: (
+                      <p>
+                        You'll lose access to this club's meetups and members,
+                        and would need to be re-invited or request to join
+                        again.
+                      </p>
+                    ),
+                    confirmLabel: "Leave club",
+                    onConfirm: () => void handleLeave(),
+                  })
+                }
               >
                 <LogOut size={15} /> Leave
               </button>
