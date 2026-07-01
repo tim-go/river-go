@@ -926,7 +926,6 @@ function App() {
   const [detailFocusPlacement, setDetailFocusPlacement] =
     useState<MapFocusPlacement>("center");
   const [detailFocusNonce, setDetailFocusNonce] = useState(0);
-  const [detailRestoreNonce, setDetailRestoreNonce] = useState(0);
   const [selectedTargetLabel, setSelectedTargetLabel] = useState(
     "Selected map location",
   );
@@ -4135,8 +4134,8 @@ function App() {
     setShowSearchFocusMarker(false);
   }
 
+  // Closing the river panel keeps the map where it is — no snap-back.
   function closeSelectedRiverPanel() {
-    restoreDetailMapView();
     setIsSelectedRiverPanelOpen(false);
     setIsSelectedRiverPanelExpanded(false);
   }
@@ -4148,10 +4147,6 @@ function App() {
     setDetailFocusLocation(location);
     setDetailFocusPlacement(placement);
     setDetailFocusNonce((current) => current + 1);
-  }
-
-  function restoreDetailMapView() {
-    setDetailRestoreNonce((current) => current + 1);
   }
 
   function openRouteDetails(section: RiverSection) {
@@ -4746,7 +4741,6 @@ function App() {
           detailFocusLocation={detailFocusLocation}
           detailFocusPlacement={detailFocusPlacement}
           detailFocusNonce={detailFocusNonce}
-          detailRestoreNonce={detailRestoreNonce}
           searchFocusLocation={searchFocusLocation}
           searchFocusLabel={searchFocusLabel}
           showSearchFocusMarker={showSearchFocusMarker}

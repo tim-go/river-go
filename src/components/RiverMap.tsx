@@ -83,7 +83,6 @@ import {
   SELECTED_WATERCOURSE_FALLBACK_COLOUR,
 } from "../appCore";
 import type {
-  MapCameraSnapshot,
   MapFocusPlacement,
   MapPoiDisplayCategory,
   OpenPoiDetailsOptions,
@@ -167,7 +166,6 @@ export function RiverMap({
   detailFocusLocation,
   detailFocusPlacement,
   detailFocusNonce,
-  detailRestoreNonce,
   searchFocusLocation,
   searchFocusLabel,
   showSearchFocusMarker,
@@ -231,7 +229,6 @@ export function RiverMap({
   detailFocusLocation: LatLngTuple | null;
   detailFocusPlacement: MapFocusPlacement;
   detailFocusNonce: number;
-  detailRestoreNonce: number;
   searchFocusLocation: LatLngTuple | null;
   searchFocusLabel: string;
   showSearchFocusMarker: boolean;
@@ -379,8 +376,6 @@ export function RiverMap({
   const previousRouteAdjustmentFocusNonceRef = useRef(routeAdjustmentFocusNonce);
   const previousLiveLocationFocusNonceRef = useRef(liveLocationFocusNonce);
   const previousDetailFocusNonceRef = useRef(detailFocusNonce);
-  const previousDetailRestoreNonceRef = useRef(detailRestoreNonce);
-  const detailRestoreViewRef = useRef<MapCameraSnapshot | null>(null);
   const previousWatercourseFocusNonceRef = useRef(watercourseFocusNonce);
   const shouldFitActiveSectionRef = useRef(true);
   // True while a view restored from storage should win over the load-time
@@ -2125,35 +2120,8 @@ export function RiverMap({
     }
 
     previousDetailFocusNonceRef.current = detailFocusNonce;
-    const centre = map.getCenter();
-    detailRestoreViewRef.current = {
-      centre: [centre.lat, centre.lng],
-      zoom: map.getZoom(),
-    };
     focusMapOnDetailLocation(map, detailFocusLocation, detailFocusPlacement);
   }, [detailFocusLocation, detailFocusPlacement, detailFocusNonce]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-
-    if (
-      !map ||
-      previousDetailRestoreNonceRef.current === detailRestoreNonce
-    ) {
-      return;
-    }
-
-    previousDetailRestoreNonceRef.current = detailRestoreNonce;
-    const restoreView = detailRestoreViewRef.current;
-
-    if (!restoreView) {
-      return;
-    }
-
-    map.invalidateSize();
-    map.setView(restoreView.centre, restoreView.zoom, { animate: false });
-    detailRestoreViewRef.current = null;
-  }, [detailRestoreNonce]);
 
   function openWatercoursePoi(poi: WatercourseContextPoi) {
     if (poi.kind === "contribution") {
