@@ -4104,35 +4104,22 @@ function App() {
     });
   }
 
-  function selectCanonicalRiver(riverId: string | null) {
+  function selectCanonicalRiver(
+    riverId: string | null,
+    options: { expand?: boolean; snap?: boolean } = {},
+  ) {
+    const snap = options.snap ?? true;
     setSelectedCanonicalRiverId(riverId);
     setIsSelectedRiverPanelOpen(Boolean(riverId));
-    setIsSelectedRiverPanelExpanded(false);
+    setIsSelectedRiverPanelExpanded(
+      Boolean(riverId) && (options.expand ?? false),
+    );
     const river = riverId
       ? canonicalRivers.find((item) => item.id === riverId)
       : null;
-    if (river) {
+    if (river && snap) {
       focusDetailLocation(river.centre, "mobile-top-half");
     }
-    setSelectedPoi(null);
-    setIsPoiDetailExpanded(false);
-    setIsPanelOpen(false);
-    setIsFormOpen(false);
-    setIsAddMode(false);
-    setRouteCreateMode("idle");
-    setRouteDraftPoints([]);
-    setRouteDraftOriginalPoints(null);
-    setRouteDraftSnapMessage("");
-    setMapPoiReviewMessage("");
-    setSearchFocusLocation(null);
-    setSearchFocusLabel("Searched location");
-    setShowSearchFocusMarker(false);
-  }
-
-  function selectCanonicalRiverContext(riverId: string | null) {
-    setSelectedCanonicalRiverId(riverId);
-    setIsSelectedRiverPanelOpen(false);
-    setIsSelectedRiverPanelExpanded(false);
     setSelectedPoi(null);
     setIsPoiDetailExpanded(false);
     setIsPanelOpen(false);
@@ -4794,7 +4781,6 @@ function App() {
           onOpenPhoto={setLightboxPhoto}
           onSelectSection={selectSection}
           onSelectCanonicalRiver={selectCanonicalRiver}
-          onSelectCanonicalRiverContext={selectCanonicalRiverContext}
           onCloseSelectedRiverPanel={closeSelectedRiverPanel}
           onToggleSelectedRiverPanelExpanded={() =>
             setIsSelectedRiverPanelExpanded((current) => !current)

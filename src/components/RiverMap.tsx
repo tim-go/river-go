@@ -202,7 +202,6 @@ export function RiverMap({
   onOpenPhoto,
   onSelectSection,
   onSelectCanonicalRiver,
-  onSelectCanonicalRiverContext,
   onCloseSelectedRiverPanel,
   onToggleSelectedRiverPanelExpanded,
 }: {
@@ -273,8 +272,10 @@ export function RiverMap({
   onOpenRouteDetails: (section: RiverSection) => void;
   onOpenPhoto: (photo: PhotoLightboxItem) => void;
   onSelectSection: (section: RiverSection) => void;
-  onSelectCanonicalRiver: (riverId: string | null) => void;
-  onSelectCanonicalRiverContext: (riverId: string | null) => void;
+  onSelectCanonicalRiver: (
+    riverId: string | null,
+    options?: { expand?: boolean; snap?: boolean },
+  ) => void;
   onCloseSelectedRiverPanel: () => void;
   onToggleSelectedRiverPanelExpanded: () => void;
 }) {
@@ -367,7 +368,6 @@ export function RiverMap({
   }, [rainTs]);
   const callbackRef = useRef(onSelectSection);
   const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
-  const canonicalRiverContextSelectRef = useRef(onSelectCanonicalRiverContext);
   const mapClickRef = useRef(onMapClick);
   const moveRouteDraftPointRef = useRef(onMoveRouteDraftPoint);
   const poiDetailsRef = useRef(onOpenPoiDetails);
@@ -592,10 +592,6 @@ export function RiverMap({
   useEffect(() => {
     canonicalRiverSelectRef.current = onSelectCanonicalRiver;
   }, [onSelectCanonicalRiver]);
-
-  useEffect(() => {
-    canonicalRiverContextSelectRef.current = onSelectCanonicalRiverContext;
-  }, [onSelectCanonicalRiverContext]);
 
   useEffect(() => {
     mapClickRef.current = onMapClick;
@@ -1212,15 +1208,21 @@ export function RiverMap({
           iconAnchor: [18, 18],
         }),
       });
+      // Details: open the river panel expanded (full), without moving the map.
       const openRiverDetails = () => {
         map.closePopup();
-        canonicalRiverSelectRef.current(river.id);
+        canonicalRiverSelectRef.current(river.id, {
+          expand: true,
+          snap: false,
+        });
       };
-      // Snap: centre the map on the river and select it (as context) in one go.
+      // Snap: centre the map on the river and open its panel in the small state.
       const snapToRiver = () => {
         map.closePopup();
-        focusMapOnDetailLocation(map, river.centre, "mobile-top-half");
-        canonicalRiverContextSelectRef.current(river.id);
+        canonicalRiverSelectRef.current(river.id, {
+          expand: false,
+          snap: true,
+        });
       };
 
       marker.addTo(layers);
