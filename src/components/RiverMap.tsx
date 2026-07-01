@@ -1257,6 +1257,13 @@ export function RiverMap({
           panel: "none",
         });
       };
+      // Deselect: this river is the active filter — clear it.
+      const deselectRiver = () => {
+        map.closePopup();
+        canonicalRiverSelectRef.current(null);
+      };
+      const isActiveFilter =
+        riverFilterActive && mapFilterRiver?.id === river.id;
 
       marker.addTo(layers);
       if (markerClickMode === "info") {
@@ -1271,8 +1278,8 @@ export function RiverMap({
             onOpenDetails: openRiverDetails,
             detailsLabel: "Snap view",
             onDetails: snapToRiver,
-            selectLabel: "Select",
-            onSelect: selectRiver,
+            selectLabel: isActiveFilter ? "Deselect" : "Select",
+            onSelect: isActiveFilter ? deselectRiver : selectRiver,
           }),
         );
       }
