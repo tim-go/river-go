@@ -4149,7 +4149,8 @@ function App() {
   }
 
   function closePoiDetails() {
-    restoreDetailMapView();
+    // Keep the map where it is on close — tapping a POI's map icon flies the
+    // map to it; closing the panel should NOT snap back to the prior view.
     setSelectedPoi(null);
     setIsPoiDetailExpanded(false);
     setIsSelectedRiverPanelOpen(false);
