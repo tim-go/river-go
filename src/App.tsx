@@ -6389,6 +6389,7 @@ function App() {
                   rivers={canonicalRivers.map((river) => ({
                     id: river.id,
                     displayName: river.displayName,
+                    region: river.region,
                   }))}
                 />
               )}
@@ -6623,6 +6624,7 @@ function App() {
                         rivers={canonicalRivers.map((river) => ({
                           id: river.id,
                           displayName: river.displayName,
+                          region: river.region,
                         }))}
                       />
                     ) : (

@@ -8,14 +8,10 @@ import {
   updatePaddleLog,
 } from "../services/paddleLogApi";
 import { ConfirmDialog } from "./ConfirmDialog";
-
-interface RiverOption {
-  id: string;
-  displayName: string;
-}
+import { RiverPicker, type RiverPickerOption } from "./RiverPicker";
 
 interface PaddleHistoryPanelProps {
-  rivers: RiverOption[];
+  rivers: RiverPickerOption[];
 }
 
 const CRAFT_TYPES = ["Kayak", "Canoe", "SUP", "Raft", "Other"];
@@ -226,17 +222,13 @@ export function PaddleHistoryPanel({ rivers }: PaddleHistoryPanelProps) {
         <form className="paddle-form" onSubmit={handleSubmit}>
           <label className="paddle-form__field">
             River
-            <select
+            <RiverPicker
+              rivers={rivers}
               value={riverId}
-              onChange={(event) => handleRiverChange(event.target.value)}
-            >
-              <option value="">— choose a river —</option>
-              {rivers.map((river) => (
-                <option key={river.id} value={river.id}>
-                  {river.displayName}
-                </option>
-              ))}
-            </select>
+              onChange={handleRiverChange}
+              placeholder="Choose a river"
+              allowClear
+            />
           </label>
           <label className="paddle-form__field">
             Or name a venue / river

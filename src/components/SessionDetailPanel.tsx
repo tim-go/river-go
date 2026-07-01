@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   Check,
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { Rsvp, SessionDetail } from "../types";
 import { Avatar } from "./Avatar";
+import { ConfirmDialog } from "./ConfirmDialog";
 import {
   fetchSession,
   setSessionCheckIn,
@@ -57,6 +58,13 @@ export function SessionDetailPanel({
   const [busy, setBusy] = useState(false);
   const [availabilityNote, setAvailabilityNote] = useState("");
   const [outcomeNotes, setOutcomeNotes] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{
+    eyebrow: string;
+    title: string;
+    body: ReactNode;
+    confirmLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   async function load() {
     try {
@@ -334,7 +342,18 @@ export function SessionDetailPanel({
               disabled={busy}
               className="primary-action primary-action--compact"
               onClick={() =>
-                void run(() => setSessionStatus(sessionId, "active"))
+                setConfirmDialog({
+                  eyebrow: "Start meetup",
+                  title: "Start this meetup now?",
+                  body: (
+                    <p>
+                      This marks the meetup as live so paddlers can check in.
+                    </p>
+                  ),
+                  confirmLabel: "Start meetup",
+                  onConfirm: () =>
+                    void run(() => setSessionStatus(sessionId, "active")),
+                })
               }
             >
               Start meetup
@@ -353,11 +372,23 @@ export function SessionDetailPanel({
                 disabled={busy}
                 className="primary-action primary-action--compact"
                 onClick={() =>
-                  void run(() =>
-                    setSessionStatus(sessionId, "completed", {
-                      outcomeNotes: outcomeNotes.trim() || null,
-                    }),
-                  )
+                  setConfirmDialog({
+                    eyebrow: "Complete meetup",
+                    title: "Complete this meetup?",
+                    body: (
+                      <p>
+                        This closes the meetup and records your outcome notes.
+                        It can’t be reopened.
+                      </p>
+                    ),
+                    confirmLabel: "Complete meetup",
+                    onConfirm: () =>
+                      void run(() =>
+                        setSessionStatus(sessionId, "completed", {
+                          outcomeNotes: outcomeNotes.trim() || null,
+                        }),
+                      ),
+                  })
                 }
               >
                 Complete meetup
@@ -370,7 +401,18 @@ export function SessionDetailPanel({
               disabled={busy}
               className="ghost-button ghost-button--compact"
               onClick={() =>
-                void run(() => setSessionStatus(sessionId, "cancelled"))
+                setConfirmDialog({
+                  eyebrow: "Cancel meetup",
+                  title: "Cancel this meetup?",
+                  body: (
+                    <p>
+                      Paddlers will see it as cancelled. This can’t be undone.
+                    </p>
+                  ),
+                  confirmLabel: "Cancel meetup",
+                  onConfirm: () =>
+                    void run(() => setSessionStatus(sessionId, "cancelled")),
+                })
               }
             >
               Cancel meetup
@@ -380,6 +422,20 @@ export function SessionDetailPanel({
             <p className="session-note">Outcome: {session.outcomeNotes}</p>
           ) : null}
         </div>
+      ) : null}
+
+      {confirmDialog ? (
+        <ConfirmDialog
+          eyebrow={confirmDialog.eyebrow}
+          title={confirmDialog.title}
+          body={confirmDialog.body}
+          confirmLabel={confirmDialog.confirmLabel}
+          onConfirm={() => {
+            confirmDialog.onConfirm();
+            setConfirmDialog(null);
+          }}
+          onCancel={() => setConfirmDialog(null)}
+        />
       ) : null}
     </section>
   );

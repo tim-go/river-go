@@ -54,6 +54,7 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { SessionDetailPanel } from "./SessionDetailPanel";
 import { Avatar } from "./Avatar";
 import { EntityPage, type EntityTab } from "./EntityPage";
+import { RiverPicker, type RiverPickerOption } from "./RiverPicker";
 
 interface GroupsPanelProps {
   isSignedIn: boolean;
@@ -63,7 +64,7 @@ interface GroupsPanelProps {
   onOpenGroup: (idOrHandle: string | null) => void;
   onOpenProfile: (idOrHandle: string, backLabel?: string) => void;
   onSignIn: () => void;
-  rivers: { id: string; displayName: string }[];
+  rivers: RiverPickerOption[];
 }
 
 const GROUP_KIND_LABELS: Record<GroupKind, string> = {
@@ -901,7 +902,9 @@ export function GroupsPanel({
           someone new, share your group invite link.
         </p>
         <label>
-          <UserPlus size={15} /> By email
+          <span className="field-label-icon">
+            <UserPlus size={15} /> By email
+          </span>
           <input
             type="email"
             value={inviteEmail}
@@ -975,12 +978,14 @@ export function GroupsPanel({
     ) : null;
 
   const managePanel = gd ? (
-    <>
-      {inviteMemberForm}
-      {requestsSection}
-      {invitesSection}
-      {renderRoster(true)}
-    </>
+    <div className="manage-panel">
+      <div className="manage-panel__intake">
+        {inviteMemberForm}
+        {requestsSection}
+        {invitesSection}
+      </div>
+      <div className="manage-panel__members">{renderRoster(true)}</div>
+    </div>
   ) : null;
 
   const membersPanel = gd ? (
@@ -994,13 +999,13 @@ export function GroupsPanel({
       <div className="group-detail__section">
         <div className="group-detail__section-head">
           <h3>Upcoming meetups</h3>
-          {canManageSessions ? (
+          {canManageSessions && !isCreatingSession ? (
             <button
               type="button"
               className="ghost-button ghost-button--compact"
-              onClick={() => setIsCreatingSession((open) => !open)}
+              onClick={() => setIsCreatingSession(true)}
             >
-              <Plus size={15} /> {isCreatingSession ? "Cancel" : "Plan meetup"}
+              <Plus size={15} /> Plan meetup
             </button>
           ) : null}
         </div>
@@ -1017,17 +1022,13 @@ export function GroupsPanel({
             </label>
             <label>
               River
-              <select
+              <RiverPicker
+                rivers={rivers}
                 value={sessionRiverId}
-                onChange={(event) => setSessionRiverId(event.target.value)}
-              >
-                <option value="">— optional —</option>
-                {rivers.map((river) => (
-                  <option key={river.id} value={river.id}>
-                    {river.displayName}
-                  </option>
-                ))}
-              </select>
+                onChange={setSessionRiverId}
+                placeholder="Choose a river (optional)"
+                allowClear
+              />
             </label>
             <label>
               Date &amp; time
@@ -1053,12 +1054,20 @@ export function GroupsPanel({
                 placeholder="Shuttle, parking, food plans…"
               />
             </label>
-            <button type="submit" className="primary-action">
-              Plan meetup
-            </button>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => setIsCreatingSession(false)}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="primary-action">
+                Plan meetup
+              </button>
+            </div>
           </form>
-        ) : null}
-        {upcomingGroupSessions.length ? (
+        ) : upcomingGroupSessions.length ? (
           <ul className="session-list">
             {upcomingGroupSessions.map(renderSessionRow)}
           </ul>
@@ -1066,7 +1075,7 @@ export function GroupsPanel({
           <p className="empty-state">No meetups planned yet.</p>
         )}
       </div>
-      {pastGroupSessions.length ? (
+      {!isCreatingSession && pastGroupSessions.length ? (
         <div className="group-detail__section">
           <h3>Past meetups</h3>
           <ul className="session-list">
@@ -1087,15 +1096,13 @@ export function GroupsPanel({
       <div className="group-detail__section">
         <div className="group-detail__section-head">
           <h3>Next meetup</h3>
-          {canManageSessions ? (
-            <button
-              type="button"
-              className="ghost-button ghost-button--compact"
-              onClick={() => setGroupTab("sessions")}
-            >
-              <Plus size={15} /> Plan meetup
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className="ghost-button ghost-button--compact"
+            onClick={() => setGroupTab("sessions")}
+          >
+            View all
+          </button>
         </div>
         {upcomingGroupSessions.length ? (
           <ul className="session-list">
@@ -1136,6 +1143,15 @@ export function GroupsPanel({
               Review
             </button>
           </p>
+        </div>
+      ) : null}
+      {isActiveMember ? (
+        <div className="group-detail__section overview-club-link">
+          <h3>Club link</h3>
+          <p className="source-note">
+            Share this to invite people to the club.
+          </p>
+          {inviteLinkBlock}
         </div>
       ) : null}
     </>
@@ -1458,7 +1474,7 @@ export function GroupsPanel({
     { id: "about", label: "About" },
     { id: "members", label: "Members" },
     { id: "sessions", label: "Meetups" },
-    ...(canManageMembers ? [{ id: "manage", label: "Manage members" }] : []),
+    ...(canManageMembers ? [{ id: "manage", label: "Memberships" }] : []),
     ...(canManage ? [{ id: "settings", label: "Settings" }] : []),
   ];
 
@@ -1625,27 +1641,6 @@ export function GroupsPanel({
           onTabChange={setGroupTab}
           aside={memberAside}
         >
-          {groupDetail.myStatus === "invited" ? (
-            <div className="group-invite-banner">
-              <span>You have been invited to this club.</span>
-              <span className="group-invite-banner__actions">
-                <button
-                  type="button"
-                  className="primary-action primary-action--compact"
-                  onClick={() => void handleRespond(true)}
-                >
-                  Accept
-                </button>
-                <button
-                  type="button"
-                  className="ghost-button ghost-button--compact"
-                  onClick={() => void handleRespond(false)}
-                >
-                  Decline
-                </button>
-              </span>
-            </div>
-          ) : null}
           {groupTabBody}
         </EntityPage>
         ) : publicGroup ? (
@@ -1681,6 +1676,8 @@ export function GroupsPanel({
               >
                 Sign in to join
               </button>
+            ) : publicGroup.myStatus === "invited" ? (
+              <span className="status-chip">invited</span>
             ) : publicGroup.myStatus === "requested" ? (
               <span className="status-chip">request pending</span>
             ) : publicGroup.accessMode === "request_to_join" ? (
@@ -1705,6 +1702,27 @@ export function GroupsPanel({
           onTabChange={setGroupTab}
           aside={publicAside}
         >
+          {publicGroup.myStatus === "invited" ? (
+            <div className="group-invite-banner">
+              <span>You have been invited to this club.</span>
+              <span className="group-invite-banner__actions">
+                <button
+                  type="button"
+                  className="primary-action primary-action--compact"
+                  onClick={() => void handleRespond(true)}
+                >
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  className="ghost-button ghost-button--compact"
+                  onClick={() => void handleRespond(false)}
+                >
+                  Decline
+                </button>
+              </span>
+            </div>
+          ) : null}
           {groupTab === "about" ? (
             <>
               <div className="group-detail__section">
