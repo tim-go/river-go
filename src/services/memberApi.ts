@@ -22,6 +22,12 @@ export interface MemberProfile {
   avatarX: number;
   avatarPosition: number;
   avatarZoom: number;
+  profilePublic: boolean;
+  handle: string | null;
+  bio: string | null;
+  showPaddles: boolean;
+  showSkills: boolean;
+  showPhotos: boolean;
   role: MemberRole;
   trustLevel: MemberTrustLevel;
   createdAt: string;
@@ -29,6 +35,15 @@ export interface MemberProfile {
   lastSeenAt: string | null;
   contributorTermsAcceptedAt: string | null;
   contributorTermsVersion: string | null;
+}
+
+export interface PublicProfileSettings {
+  profilePublic: boolean;
+  handle: string | null;
+  bio: string | null;
+  showPaddles: boolean;
+  showSkills: boolean;
+  showPhotos: boolean;
 }
 
 export interface MemberEmergencyProfile {
@@ -75,6 +90,15 @@ export async function updateMyAvatar(input: {
     method: "PATCH",
     body: JSON.stringify(input),
   }).then((result) => result.member);
+}
+
+export async function updateMyPublicProfile(
+  input: PublicProfileSettings,
+): Promise<MemberProfile> {
+  return fetchMemberEndpoint<{ member: MemberProfile }>(
+    "/api/me/public-profile",
+    { method: "PATCH", body: JSON.stringify(input) },
+  ).then((result) => result.member);
 }
 
 export async function acceptContributorTerms(

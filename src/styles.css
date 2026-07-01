@@ -6094,6 +6094,129 @@ input[type="file"]::file-selector-button:hover {
   min-width: 0;
 }
 
+/* A member row that links to the paddler's public profile. */
+.group-member-row__person--link {
+  border: 0;
+  background: none;
+  padding: 4px;
+  margin: -4px;
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.group-member-row__person--link:hover strong {
+  text-decoration: underline;
+}
+.group-member-row__person--link:hover {
+  background: var(--surface-strong, rgba(0, 0, 0, 0.04));
+}
+
+/* ---- Public paddler profile page ---- */
+.public-profile {
+  display: grid;
+  gap: 12px;
+  /* Don't let the content area's height stretch the EntityPage (which would
+     balloon the tab bar); keep everything sized to content, aligned to top. */
+  align-content: start;
+}
+.public-profile__paddles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.public-profile__paddle {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.public-profile__paddle small {
+  color: var(--muted);
+}
+.public-profile__skills {
+  display: grid;
+  gap: 14px;
+}
+.public-profile__skill-group h4 {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.public-profile__skill-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.public-profile__skill-group li {
+  display: grid;
+  gap: 1px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.public-profile__skill-group small {
+  color: var(--muted);
+}
+.public-profile__photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+.public-profile__photos img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+/* ---- Public profile controls (Profile › Public tab) ---- */
+.public-profile-controls {
+  display: grid;
+  gap: 12px;
+}
+.public-profile-controls__sections {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 0;
+}
+.public-profile-controls__sections legend {
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding: 0 4px;
+}
+.public-profile-controls__link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.public-profile-controls__link code {
+  flex: 1 1 200px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.8rem;
+}
+
 .group-member-row small {
   text-transform: capitalize;
 }
