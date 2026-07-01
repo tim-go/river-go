@@ -4162,7 +4162,7 @@ function App() {
     options: OpenPoiDetailsOptions = {},
   ) {
     setSelectedPoi(poi);
-    setIsPoiDetailExpanded(false);
+    setIsPoiDetailExpanded(options.expand ?? false);
     setIsSelectedRiverPanelOpen(false);
     setIsSelectedRiverPanelExpanded(false);
     if (options.focusMap) {

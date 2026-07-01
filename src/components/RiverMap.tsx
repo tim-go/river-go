@@ -1024,11 +1024,11 @@ export function RiverMap({
             : undefined;
           // Details works for every POI, river-selected or not — the river is
           // just context (its name when we can resolve it, else the section).
-          const openGlobalPoiDetails = () => {
+          const openGlobalPoiDetails = (options?: OpenPoiDetailsOptions) => {
             map.closePopup();
             poiDetailsRef.current(
               riverMapPoiToSelectedPoi(poi, poiRiver, poiSection?.riverName),
-              { focusMap: true, focusPlacement: "mobile-top-half" },
+              options ?? { focusMap: true, focusPlacement: "mobile-top-half" },
             );
           };
 
@@ -1039,10 +1039,10 @@ export function RiverMap({
                 title: poi.title,
                 subtitle: displayMeta.label,
                 summary: poi.summary,
-                navigationLocation: poi.location,
-                navigationLabel: poi.kind === "access" ? "Directions" : "Maps",
-                navigationMode: poi.kind === "access" ? "directions" : "map",
-                onDetails: openGlobalPoiDetails,
+                onOpenDetails: () =>
+                  openGlobalPoiDetails({ focusMap: false, expand: true }),
+                detailsLabel: "Snap",
+                onDetails: () => openGlobalPoiDetails(),
               }),
             );
           }
@@ -1274,11 +1274,11 @@ export function RiverMap({
             iconAnchor: [markerSize / 2, markerSize / 2],
           }),
         });
-        const openPoiDetails = () => {
+        const openPoiDetails = (options?: OpenPoiDetailsOptions) => {
           map.closePopup();
           poiDetailsRef.current(
             riverMapPoiToSelectedPoi(poi, selectedCanonicalRiver),
-            { focusMap: true, focusPlacement: "mobile-top-half" },
+            options ?? { focusMap: true, focusPlacement: "mobile-top-half" },
           );
         };
 
@@ -1289,10 +1289,10 @@ export function RiverMap({
               title: poi.title,
               subtitle: `${selectedCanonicalRiver.displayName} · ${displayMeta.label}`,
               summary: poi.summary,
-              navigationLocation: poi.location,
-              navigationLabel: poi.kind === "access" ? "Directions" : "Maps",
-              navigationMode: poi.kind === "access" ? "directions" : "map",
-              onDetails: openPoiDetails,
+              onOpenDetails: () =>
+                openPoiDetails({ focusMap: false, expand: true }),
+              detailsLabel: "Snap",
+              onDetails: () => openPoiDetails(),
             }),
           );
         }
@@ -1501,12 +1501,12 @@ export function RiverMap({
             iconAnchor: [markerSize / 2, markerSize / 2],
           }),
         });
-        const openPoiDetails = () => {
+        const openPoiDetails = (options?: OpenPoiDetailsOptions) => {
           map.closePopup();
-          poiDetailsRef.current(mapPoiToSelectedPoi(poi, section), {
-            focusMap: true,
-            focusPlacement: "mobile-top-half",
-          });
+          poiDetailsRef.current(
+            mapPoiToSelectedPoi(poi, section),
+            options ?? { focusMap: true, focusPlacement: "mobile-top-half" },
+          );
         };
 
         marker.addTo(layers);
@@ -1516,10 +1516,10 @@ export function RiverMap({
               title: poi.title,
               subtitle: displayMeta.label,
               summary: poi.summary,
-              navigationLocation: poi.location,
-              navigationLabel: poi.kind === "access" ? "Directions" : "Maps",
-              navigationMode: poi.kind === "access" ? "directions" : "map",
-              onDetails: openPoiDetails,
+              onOpenDetails: () =>
+                openPoiDetails({ focusMap: false, expand: true }),
+              detailsLabel: "Snap",
+              onDetails: () => openPoiDetails(),
             }),
           );
         }
@@ -1715,7 +1715,7 @@ export function RiverMap({
           iconAnchor: [15, 15],
         }),
       });
-      const openContributionDetails = () => {
+      const openContributionDetails = (options?: OpenPoiDetailsOptions) => {
         map.closePopup();
         poiDetailsRef.current(
           contributionToSelectedPoi(
@@ -1724,7 +1724,7 @@ export function RiverMap({
               activeSection,
             syncStatus,
           ),
-          { focusMap: true, focusPlacement: "mobile-top-half" },
+          options ?? { focusMap: true, focusPlacement: "mobile-top-half" },
         );
       };
       const popupPhoto =
@@ -1752,8 +1752,10 @@ export function RiverMap({
                       alt: popupPhotoTitle,
                     })
                 : undefined,
-            navigationLocation: contribution.location,
-            onDetails: openContributionDetails,
+            onOpenDetails: () =>
+              openContributionDetails({ focusMap: false, expand: true }),
+            detailsLabel: "Snap",
+            onDetails: () => openContributionDetails(),
           }),
         );
       }

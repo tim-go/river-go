@@ -353,6 +353,8 @@ export interface MapPoiDisplayMeta {
 export interface OpenPoiDetailsOptions {
   focusMap?: boolean;
   focusPlacement?: MapFocusPlacement;
+  // Open the detail panel expanded (full-screen on mobile).
+  expand?: boolean;
 }
 
 
