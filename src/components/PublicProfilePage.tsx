@@ -107,12 +107,12 @@ export function PublicProfilePage({
           <h3>
             {state === "error"
               ? "Couldn’t load this profile"
-              : "This profile is private"}
+              : "Paddler not found"}
           </h3>
           <p>
             {state === "error"
               ? "Something went wrong — try again."
-              : "This paddler hasn’t made their profile public, or it doesn’t exist."}
+              : "We couldn’t find this paddler."}
           </p>
         </div>
       </div>
@@ -226,7 +226,9 @@ export function PublicProfilePage({
           body()
         ) : (
           <p className="empty-state">
-            This paddler hasn’t shared any sections yet.
+            {profile.profilePublic
+              ? "This paddler hasn’t shared any sections yet."
+              : "This paddler hasn’t set up a public profile yet."}
           </p>
         )}
       </EntityPage>

@@ -33,6 +33,7 @@ export interface PublicProfile {
   bio: string | null;
   avatar: MemberAvatar | null;
   memberSince: string;
+  profilePublic: boolean;
   showPaddles: boolean;
   showSkills: boolean;
   showPhotos: boolean;

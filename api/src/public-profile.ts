@@ -35,6 +35,7 @@ export interface PublicProfile {
   bio: string | null;
   avatar: MemberAvatar | null;
   memberSince: string;
+  profilePublic: boolean;
   showPaddles: boolean;
   showSkills: boolean;
   showPhotos: boolean;
@@ -53,6 +54,7 @@ interface MemberHeadRow {
   avatar_position: number | string | null;
   avatar_zoom: number | string | null;
   handle: string | null;
+  profile_public: boolean;
   show_paddles: boolean;
   show_skills: boolean;
   show_photos: boolean;
@@ -62,10 +64,11 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Resolve a public profile by handle or id. Returns null when the member does
- * not exist OR has not made their profile public (neutral — no existence
- * disclosure). Only the sections the member opted into are populated, and each
- * is a public-safe subset selected here (private columns are never read).
+ * Resolve a paddler profile by handle or id. The header (name, handle, avatar,
+ * bio) is public for any member — it's the same info shown in club rosters — so
+ * it is always returned. The opted-in sections (paddles/skills/photos) are only
+ * populated when the member has made their profile public. Returns null only
+ * when no such member exists. Private columns are never read.
  */
 export async function getPublicProfile(
   handleOrId: string,
@@ -74,10 +77,9 @@ export async function getPublicProfile(
   const head = await pool.query<MemberHeadRow>(
     `SELECT id, public_name, bio, created_at,
        avatar_image_url, avatar_x, avatar_position, avatar_zoom,
-       handle, show_paddles, show_skills, show_photos
+       handle, profile_public, show_paddles, show_skills, show_photos
      FROM members
-     WHERE profile_public = true
-       AND ${isUuid ? "id = $1" : "lower(handle) = lower($1)"}
+     WHERE ${isUuid ? "id = $1" : "lower(handle) = lower($1)"}
      LIMIT 1`,
     [handleOrId],
   );
@@ -85,9 +87,13 @@ export async function getPublicProfile(
   if (!row) {
     return null;
   }
+  // Sections only when the member opted in; the header is always public.
+  const showPaddles = row.profile_public && row.show_paddles;
+  const showSkills = row.profile_public && row.show_skills;
+  const showPhotos = row.profile_public && row.show_photos;
 
   const paddles: PublicProfilePaddle[] = [];
-  if (row.show_paddles) {
+  if (showPaddles) {
     const result = await pool.query<{
       id: string;
       title: string;
@@ -121,7 +127,7 @@ export async function getPublicProfile(
   }
 
   const skills: PublicProfileSkill[] = [];
-  if (row.show_skills) {
+  if (showSkills) {
     const result = await pool.query<{
       id: string;
       category: string;
@@ -150,7 +156,7 @@ export async function getPublicProfile(
   }
 
   const photos: PublicProfilePhoto[] = [];
-  if (row.show_photos) {
+  if (showPhotos) {
     const memberPhotos = await listPhotosForMember(row.id);
     for (const photo of memberPhotos) {
       photos.push({
@@ -166,12 +172,14 @@ export async function getPublicProfile(
     id: row.id,
     handle: row.handle,
     publicName: row.public_name ?? "RiverLaunch paddler",
-    bio: row.bio,
+    // Bio is part of the opt-in public profile, so only when public.
+    bio: row.profile_public ? row.bio : null,
     avatar: buildMemberAvatar(row),
     memberSince: row.created_at.toISOString(),
-    showPaddles: row.show_paddles,
-    showSkills: row.show_skills,
-    showPhotos: row.show_photos,
+    profilePublic: row.profile_public,
+    showPaddles,
+    showSkills,
+    showPhotos,
     paddles,
     skills,
     photos,
