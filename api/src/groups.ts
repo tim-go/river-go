@@ -402,10 +402,10 @@ export async function createGroup(
 }
 
 /**
- * All clubs, discoverable by anyone — including private ones. Returns the
- * public-safe card (name, handle, kind, discipline, description, cover, member
- * count) plus the viewer's own membership status. Private clubs are listed;
- * their private content stays gated behind the member/public view resolver.
+ * Discoverable clubs — every club except Private ones (Private clubs are found
+ * only via invite / My Clubs, never listed on Discover). Returns the public-safe
+ * card (name, handle, kind, discipline, description, cover, member count) plus
+ * the viewer's own membership status.
  */
 export async function listDiscoverableClubs(
   viewerMemberId: string | null,
@@ -424,9 +424,12 @@ export async function listDiscoverableClubs(
      FROM groups g
      LEFT JOIN group_members gm
        ON gm.group_id = g.id AND gm.member_id = $1
-     WHERE $2::text IS NULL
-        OR g.name ILIKE '%' || $2 || '%'
-        OR g.handle ILIKE '%' || $2 || '%'
+     WHERE g.visibility <> 'private'
+       AND (
+         $2::text IS NULL
+         OR g.name ILIKE '%' || $2 || '%'
+         OR g.handle ILIKE '%' || $2 || '%'
+       )
      ORDER BY g.name ASC
      LIMIT $3`,
     [viewerMemberId, q, Math.max(1, Math.min(limit, 100))],
