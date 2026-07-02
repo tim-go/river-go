@@ -1626,8 +1626,20 @@ export function RiverMap({
       });
     });
 
+    // Only the member's in-progress drafts render here (drawn regardless of the
+    // Sections layer). Approved suggestions draw via the candidate layer, and
+    // promoted ones have graduated into a canonical section — neither should
+    // linger as a member draft.
+    const DRAFT_SUGGESTION_STATUSES = new Set([
+      "local-draft",
+      "pending-review",
+      "needs-info",
+    ]);
     routeSuggestions.forEach((suggestion) => {
-      if (suggestion.status === "approved" || suggestion.route.length < 2) {
+      if (
+        !DRAFT_SUGGESTION_STATUSES.has(suggestion.status) ||
+        suggestion.route.length < 2
+      ) {
         return;
       }
 
