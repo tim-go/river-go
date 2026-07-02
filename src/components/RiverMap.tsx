@@ -402,7 +402,10 @@ export function RiverMap({
   const previousRouteSuggestionFocusNonceRef = useRef(routeSuggestionFocusNonce);
   const previousRouteAdjustmentFocusNonceRef = useRef(routeAdjustmentFocusNonce);
   const previousLiveLocationFocusNonceRef = useRef(liveLocationFocusNonce);
-  const previousDetailFocusNonceRef = useRef(detailFocusNonce);
+  // Seeded to a sentinel (not the current nonce) so a river focus requested
+  // before the map mounted (Discover/Dashboard → Map) is applied on mount, and
+  // re-applied on StrictMode's dev double-mount, rather than being swallowed.
+  const previousDetailFocusNonceRef = useRef(-1);
   const previousWatercourseFocusNonceRef = useRef(watercourseFocusNonce);
   const shouldFitActiveSectionRef = useRef(true);
   // True while a view restored from storage should win over the load-time
@@ -2017,6 +2020,16 @@ export function RiverMap({
       shouldFitActiveSectionRef.current = false;
     }
 
+    // A fresh river/POI focus (Snap view, a Discover/Dashboard river card) claims
+    // the view — don't let the on-mount auto-fit override it. The focus effect
+    // runs after this one, so its ref is still un-applied here when pending.
+    if (
+      detailFocusLocation &&
+      previousDetailFocusNonceRef.current !== detailFocusNonce
+    ) {
+      shouldFitActiveSectionRef.current = false;
+    }
+
     if (shouldFitActiveSectionRef.current && !restoredViewActiveRef.current) {
       const bounds = routeEndpointBounds(activeSection.route);
       let rafId = 0;
@@ -2209,8 +2222,15 @@ export function RiverMap({
       return;
     }
 
+    const restore = previousDetailFocusNonceRef.current;
     previousDetailFocusNonceRef.current = detailFocusNonce;
+    map.invalidateSize();
     focusMapOnDetailLocation(map, detailFocusLocation, detailFocusPlacement);
+    return () => {
+      // StrictMode/remount safety: undo the applied marker so the real (re)mount
+      // re-applies the focus onto the new map rather than skipping it.
+      previousDetailFocusNonceRef.current = restore;
+    };
   }, [detailFocusLocation, detailFocusPlacement, detailFocusNonce]);
 
   function openWatercoursePoi(poi: WatercourseContextPoi) {

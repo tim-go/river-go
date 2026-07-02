@@ -4161,7 +4161,9 @@ function App() {
       : null;
     if (river) {
       if (zoom === "point") {
-        focusDetailLocation(river.centre, "mobile-top-half");
+        // "or-center" so it centres on desktop too — plain "mobile-top-half"
+        // is a no-op above the mobile breakpoint.
+        focusDetailLocation(river.centre, "mobile-top-half-or-center");
       } else if (zoom === "bounds") {
         focusRiverBounds(river.bbox);
       }
