@@ -1509,6 +1509,47 @@ export function RiverMap({
         }
       });
 
+      // Anchor the section's pin at its put-in (route start) rather than its
+      // centre — the centre coincides with the river's own overview pin, which
+      // made the section badge look like the river marker "turning into" an R.
+      const sectionMarkerAnchor = section.route[0] ?? section.centre;
+      const sectionMarker = L.marker(sectionMarkerAnchor, {
+        bubblingMouseEvents: false,
+        icon: L.divIcon({
+          className: "",
+          html: markerHtml(
+            isActive && isCandidate
+              ? "section-candidate-active"
+              : isActive
+                ? "section-active"
+                : isCandidate
+                  ? "section-candidate"
+                  : "section",
+            isCandidate ? "C" : "R",
+          ),
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+        }),
+      });
+
+      sectionMarker
+        .addTo(layers)
+        .bindPopup(
+          createMapPopupContent({
+            title: section.sectionName,
+            subtitle: section.riverName,
+            summary: section.summary,
+            detailsLabel: "Details",
+            selectLabel: "Select",
+            onDetails: () => routeDetailsRef.current(section),
+            onSelect: () => callbackRef.current(section),
+          }),
+        )
+        .on("click", (event) => {
+          L.DomEvent.stop(event.originalEvent);
+          sectionMarker.openPopup();
+        });
+
       mapPois
         .filter((poi) => poi.sectionId === section.id)
         .forEach((poi) => {
