@@ -183,7 +183,6 @@ export function RiverMap({
   routeCreateMode,
   markerClickMode,
   showRoutesLayer,
-  showPublicRoutes,
   approvedRouteSuggestions,
   showRiverLayer,
   sectionLevelStates,
@@ -252,7 +251,6 @@ export function RiverMap({
   routeCreateMode: RouteCreateMode;
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
-  showPublicRoutes: boolean;
   approvedRouteSuggestions: RouteSuggestion[];
   showRiverLayer: boolean;
   sectionLevelStates?: Map<string, SectionLevelState>;
@@ -1467,7 +1465,7 @@ export function RiverMap({
         subtitle: section.riverName,
         summary: section.summary,
         detailsLabel: "Details",
-        selectLabel: "Select route",
+        selectLabel: "Select",
         onDetails: () => routeDetailsRef.current(section),
         onSelect: () => callbackRef.current(section),
       });
@@ -1510,43 +1508,6 @@ export function RiverMap({
           routeLine.setStyle(defaultRouteStyle);
         }
       });
-
-      const sectionMarker = L.marker(section.centre, {
-        bubblingMouseEvents: false,
-        icon: L.divIcon({
-          className: "",
-          html: markerHtml(
-            isActive && isCandidate
-              ? "section-candidate-active"
-              : isActive
-                ? "section-active"
-                : isCandidate
-                  ? "section-candidate"
-                  : "section",
-            isCandidate ? "C" : "R",
-          ),
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
-        }),
-      });
-
-      sectionMarker
-        .addTo(layers)
-        .bindPopup(
-          createMapPopupContent({
-            title: section.sectionName,
-            subtitle: section.riverName,
-            summary: section.summary,
-            detailsLabel: "Details",
-            selectLabel: "Select route",
-            onDetails: () => routeDetailsRef.current(section),
-            onSelect: () => callbackRef.current(section),
-          }),
-        )
-        .on("click", (event) => {
-          L.DomEvent.stop(event.originalEvent);
-          sectionMarker.openPopup();
-        });
 
       mapPois
         .filter((poi) => poi.sectionId === section.id)
@@ -1689,7 +1650,7 @@ export function RiverMap({
 
     // Approved public routes (community-contributed, moderator-approved) — solid
     // green polylines, distinct from the dashed pending suggestions/adjustments.
-    if (showPublicRoutes) {
+    if (showRoutesLayer) {
       approvedRouteSuggestions.forEach((suggestion) => {
         if (suggestion.route.length < 2) {
           return;

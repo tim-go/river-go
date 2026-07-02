@@ -631,7 +631,6 @@ function App() {
   // Map markers always open the quick-info popup (which offers Details / Snap).
   const markerClickMode: MarkerClickMode = "info";
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
-  const [showPublicRoutes, setShowPublicRoutes] = useState(false);
   const [showRiverLayer, setShowRiverLayer] = useState(true);
   // Community photo points are a normal layer, on by default; the Layers control
   // owns visibility. Distinct from POI kinds — these are photo-type contributions.
@@ -692,8 +691,7 @@ function App() {
         options: [
           { id: "rivers", label: "Rivers" },
           { id: "waterways", label: "Waterways" },
-          { id: "routes", label: "Routes" },
-          { id: "routes:public", label: "Public routes" },
+          { id: "routes", label: "Sections" },
         ],
       },
       {
@@ -748,7 +746,6 @@ function App() {
     if (showRiverLayer) set.add("rivers");
     if (showKnownRivers) set.add("waterways");
     if (showRoutesLayer) set.add("routes");
-    if (showPublicRoutes) set.add("routes:public");
     if (showPhotoLayer) set.add("photos");
     for (const kind of activePoiKinds) set.add(`poi:${kind}`);
     for (const kind of activeAmenityKinds) set.add(`amenity:${kind}`);
@@ -763,7 +760,6 @@ function App() {
     showRiverLayer,
     showKnownRivers,
     showRoutesLayer,
-    showPublicRoutes,
     showPhotoLayer,
     activePoiKinds,
     activeAmenityKinds,
@@ -786,7 +782,6 @@ function App() {
     } else if (id === "rivers") setShowRiverLayer((value) => !value);
     else if (id === "waterways") setShowKnownRivers((value) => !value);
     else if (id === "routes") setShowRoutesLayer((value) => !value);
-    else if (id === "routes:public") setShowPublicRoutes((value) => !value);
     else if (id === "photos") setShowPhotoLayer((value) => !value);
     else if (id === "weather:rain") setShowRain((value) => !value);
     else if (id === "stations:paddler")
@@ -822,7 +817,6 @@ function App() {
     setShowRiverLayer(false);
     setShowKnownRivers(false);
     setShowRoutesLayer(false);
-    setShowPublicRoutes(false);
     setShowPhotoLayer(false);
     setActivePoiKinds(new Set());
     setActiveAmenityKinds(new Set());
@@ -908,7 +902,6 @@ function App() {
     }
     return [...nations].sort();
   }, [canonicalRivers]);
-  const [showSelectedRoutePath, setShowSelectedRoutePath] = useState(false);
   const [routeFormError, setRouteFormError] = useState("");
   const [routeRiverName, setRouteRiverName] = useState("");
   const [routeSectionName, setRouteSectionName] = useState("");
@@ -3998,7 +3991,6 @@ function App() {
     setSelectedPoi(null);
     setIsPoiDetailExpanded(false);
     setShowRoutesLayer(!isRiverOverview);
-    setShowSelectedRoutePath(!isRiverOverview);
     setSectionFocusNonce((current) => current + 1);
     setSearchFocusLocation(null);
     setSearchFocusLabel("Searched location");
@@ -4076,7 +4068,6 @@ function App() {
 
   function openRouteDetails(section: RiverSection) {
     setActiveSectionId(section.id);
-    setShowSelectedRoutePath(true);
     setSelectedPoi(null);
     setIsPanelOpen(true);
     // The river panel occupies the same slot — never show both stacked.
@@ -4578,7 +4569,6 @@ function App() {
           routeCreateMode={routeCreateMode}
           markerClickMode={markerClickMode}
           showRoutesLayer={showRoutesLayer}
-          showPublicRoutes={showPublicRoutes}
           approvedRouteSuggestions={approvedRouteSuggestions}
           showRiverLayer={showRiverLayer}
           sectionLevelStates={sectionLevelStates}
@@ -4591,7 +4581,7 @@ function App() {
           showRain={showRain}
           stations={displayedStations}
           rainTs={selectedRainTs}
-          showSelectedRoutePath={showSelectedRoutePath}
+          showSelectedRoutePath={!isCanonicalRiverOverviewActive}
           showKnownRivers={showKnownRivers}
           isLevelLegendOpen={isLevelLegendOpen}
           watercourseFocusId={watercourseFocusId}
@@ -5133,27 +5123,6 @@ function App() {
               </>
             }
           >
-            <div className="route-layer-options">
-              <span>Section path</span>
-              <button
-                className={`ghost-button ghost-button--compact ${
-                  showSelectedRoutePath ? "map-panel-toggle--active" : ""
-                }`}
-                type="button"
-                onClick={() =>
-                  setShowSelectedRoutePath((current) => {
-                    const next = !current;
-                    if (next) {
-                      setShowRoutesLayer(true);
-                    }
-                    return next;
-                  })
-                }
-                aria-pressed={showSelectedRoutePath}
-              >
-                {showSelectedRoutePath ? "Hide path" : "Show path"}
-              </button>
-            </div>
               <div className="route-tab-panel" role="tabpanel">
                 <div className="route-summary-panel" aria-label="Route summary">
                   <div className="route-summary-item">
