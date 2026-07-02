@@ -3683,7 +3683,10 @@ function App() {
     );
   }
 
-  function startRouteSuggestionMode(watercourse?: KnownWatercourse) {
+  function startRouteSuggestionMode(
+    watercourse?: KnownWatercourse,
+    riverNameOverride?: string,
+  ) {
     if (!isSignedIn) {
       requireSignInForSave();
       return;
@@ -3697,7 +3700,9 @@ function App() {
     setRouteDraftSnapMessage("");
     setRouteCreateMode("tracing");
     setRouteFormError("");
-    setRouteRiverName(watercourse?.name ?? activeSection.riverName);
+    setRouteRiverName(
+      watercourse?.name ?? riverNameOverride ?? activeSection.riverName,
+    );
     setRouteSectionName("");
     setRouteDifficulty("");
     setRouteSummary("");
@@ -4699,13 +4704,13 @@ function App() {
                 routeDraftTarget.type !== "new" ? "map-panel-toggle--active" : ""
               }`}
               type="button"
-              title="Edit this route"
-              aria-label="Edit this route"
+              title="Edit this section"
+              aria-label="Edit this section"
               aria-pressed={routeDraftTarget.type !== "new"}
               onClick={() => startRouteAdjustmentMode(activeSection)}
             >
               <Route size={16} />
-              Edit route
+              Edit section
             </button>
           ) : null}
           <button
@@ -4715,13 +4720,13 @@ function App() {
                 : ""
             }`}
             type="button"
-            title="Suggest a missing route"
-            aria-label="Suggest a missing route"
+            title="Suggest a missing section"
+            aria-label="Suggest a missing section"
             aria-pressed={routeCreateMode !== "idle"}
             onClick={() => startRouteSuggestionMode()}
           >
             <Route size={16} />
-            Suggest route
+            Suggest section
           </button>
         </div>
       ) : null}
@@ -4767,6 +4772,20 @@ function App() {
               onClick={() => requestAddContribution()}
             >
               <Plus size={19} />
+            </MapActionButton>
+            <MapActionButton
+              label="Suggest a section"
+              active={routeCreateMode !== "idle" && routeDraftTarget.type === "new"}
+              onClick={() => startRouteSuggestionMode()}
+            >
+              <span className="map-action-combo">
+                <Route size={18} />
+                <Plus
+                  size={11}
+                  strokeWidth={3}
+                  className="map-action-combo__plus"
+                />
+              </span>
             </MapActionButton>
             <MapActionButton
               label={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
@@ -4823,6 +4842,10 @@ function App() {
           selectedRiverMapPois={selectedRiverMapPois}
           favouriteRiverIds={favouriteRiverIds}
           onToggleFavouriteRiver={toggleFavouriteRiver}
+          onSuggestSection={(riverName) => {
+            setIsSelectedRiverPanelOpen(false);
+            startRouteSuggestionMode(undefined, riverName);
+          }}
           contributions={contributions}
           routeSuggestions={routeSuggestions}
           routeAdjustments={routeAdjustments}
@@ -5155,18 +5178,20 @@ function App() {
           <section className="add-mode-banner route-draft-banner" aria-label="Route tracing active">
             <div>
               <p className="eyebrow">
-                {routeDraftTarget.type !== "new" ? "Edit route" : "Suggest route"}
+                {routeDraftTarget.type !== "new"
+                  ? "Edit section"
+                  : "Suggest section"}
               </p>
               <strong>
                 {routeDraftTarget.type !== "new"
-                  ? "Drag existing points or click the map to extend the corrected route."
-                  : "Click along the river to sketch the candidate route."}
+                  ? "Drag existing points or click the map to extend the corrected section."
+                  : "Click along the river to sketch the candidate section."}
               </strong>
               <span>
                 {routeDraftPoints.length
                   ? `${routeDraftPoints.length} point${
                       routeDraftPoints.length === 1 ? "" : "s"
-                    } added. This will be reviewed before changing published route data.`
+                    } added. This will be reviewed before changing published section data.`
                   : routeDraftTarget.type !== "new"
                     ? "Existing route points are loaded. Drag a point to move it, or click the map to add another point."
                     : "Start at the put-in or upstream end, then add points downstream."}
@@ -5226,17 +5251,19 @@ function App() {
         ) : null}
 
         {routeCreateMode === "form" ? (
-          <section className="quick-add-panel route-suggestion-panel" aria-label="Suggest route">
+          <section className="quick-add-panel route-suggestion-panel" aria-label="Suggest section">
             <div className="quick-add-panel__header">
               <div>
                 <p className="eyebrow">
-                  {routeDraftTarget.type !== "new" ? "Edit route" : "Suggest route"}
+                  {routeDraftTarget.type !== "new"
+                    ? "Edit section"
+                    : "Suggest section"}
                 </p>
                 <h2>
                   {routeDraftTarget.type === "route_suggestion_edit"
-                    ? "Route suggestion"
+                    ? "Suggested section"
                     : routeDraftTarget.type !== "new"
-                    ? "Route adjustment"
+                    ? "Section adjustment"
                     : "Candidate river section"}
                 </h2>
               </div>
@@ -6304,7 +6331,7 @@ function App() {
                                   onClick={() => startRouteSuggestionMode(watercourse)}
                                 >
                                   <Route size={15} />
-                                  Suggest route
+                                  Suggest section
                                 </button>
                               </div>
                             </div>
@@ -6592,7 +6619,7 @@ function App() {
                         <div>
                           <p className="eyebrow">Remove favourite</p>
                           <h3>{pendingUnfavouriteSection.sectionName}</h3>
-                          <p>Remove this route from your favourites?</p>
+                          <p>Remove this section from your favourites?</p>
                         </div>
                         <div className="form-actions">
                           <button
@@ -7282,7 +7309,7 @@ function App() {
                   <section className="profile-card profile-card--stacked">
                     <div className="block-title">
                       <div>
-                        <h3>My route suggestions</h3>
+                        <h3>My suggested sections</h3>
                         <span>{routeSuggestions.length} saved</span>
                       </div>
                       <button
@@ -7296,7 +7323,7 @@ function App() {
                       </button>
                     </div>
                     {isMemberRouteSuggestionsLoading ? (
-                      <p className="source-note">Loading your route suggestions...</p>
+                      <p className="source-note">Loading your suggested sections...</p>
                     ) : routeSuggestions.length ? (
                       <div className="profile-photo-list">
                         {routeSuggestions.map((suggestion) => (

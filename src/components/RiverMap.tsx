@@ -208,6 +208,7 @@ export function RiverMap({
   onOpenRouteDetails,
   onOpenPhoto,
   onSelectSection,
+  onSuggestSection,
   onSelectCanonicalRiver,
   onCloseSelectedRiverPanel,
   onToggleSelectedRiverPanelExpanded,
@@ -283,6 +284,7 @@ export function RiverMap({
   onOpenRouteDetails: (section: RiverSection) => void;
   onOpenPhoto: (photo: PhotoLightboxItem) => void;
   onSelectSection: (section: RiverSection) => void;
+  onSuggestSection: (riverName: string) => void;
   onSelectCanonicalRiver: (
     riverId: string | null,
     options?: {
@@ -2491,10 +2493,20 @@ export function RiverMap({
                 </div>
               ) : (
                 <p className="empty-state">
-                  No community-promoted sections for this river yet — members
-                  can suggest one from the map.
+                  No sections for this river yet — be the first to add one.
+                  Sections are community-added and reviewed before they appear.
                 </p>
               )}
+              <button
+                className="ghost-button ghost-button--compact"
+                type="button"
+                onClick={() =>
+                  onSuggestSection(selectedCanonicalRiver.displayName)
+                }
+              >
+                <Route size={15} />
+                Suggest a section
+              </button>
             </div>
           ) : null}
 
