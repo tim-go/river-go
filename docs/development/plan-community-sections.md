@@ -267,6 +267,11 @@ Nothing user-visible changes in this phase; it only makes Phase 1 safe.
 
 ## Phase 3 — Deferred (do NOT build now; record only)
 
+- **"On this stretch" (decided 2026-07-02):** the section panel is a thin view
+  over the river, not a second river. Next slice: a derived block listing the
+  river's POIs within a corridor of the section line (PostGIS `ST_DWithin` on
+  `pois` against `routes.route`), plus the river's relevant gauge reading
+  labelled "river level, not section-specific". Sections never own POI data.
 - Per-section gauge links (`route_measure_links` keyed by `routes.id`,
   moderator-curated) lighting up per-section level bands.
 - Section-selected POIs via `poi_route_links` with `route_source='route'`
