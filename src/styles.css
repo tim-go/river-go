@@ -1549,6 +1549,57 @@ button.group-detail__section {
   background: var(--surface);
 }
 
+/* FAQs — accordion list (native <details>) */
+.faq-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.faq-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.faq-item > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-weight: 650;
+  color: var(--ink);
+  list-style: none;
+}
+.faq-item > summary::-webkit-details-marker {
+  display: none;
+}
+.faq-item > summary::after {
+  content: "+";
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--muted);
+}
+.faq-item[open] > summary::after {
+  content: "–";
+}
+.faq-item > p {
+  margin: 0;
+  padding: 0 14px 14px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.faq-item a,
+.faq-contact a {
+  color: var(--river);
+  font-weight: 600;
+}
+.faq-contact {
+  margin-top: 14px;
+}
+
 .settings-panel__header,
 .setting-toggle {
   display: flex;

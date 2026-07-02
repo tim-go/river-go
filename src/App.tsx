@@ -10,6 +10,7 @@ import {
   Flag,
   Heart,
   Info,
+  HelpCircle,
   LogIn,
   LogOut,
   Map as MapIcon,
@@ -168,6 +169,7 @@ import { SyncOutboxBanner } from "./components/SyncOutboxBanner";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
 import { AboutScreen } from "./components/AboutScreen";
+import { FaqsScreen } from "./components/FaqsScreen";
 import { PaddleHistoryPanel } from "./components/PaddleHistoryPanel";
 import { KitInventoryPanel } from "./components/KitInventoryPanel";
 import { SkillsPanel } from "./components/SkillsPanel";
@@ -7441,6 +7443,17 @@ function App() {
                   </span>
                   <Info size={18} />
                 </button>
+                <button
+                  className="placeholder-row"
+                  type="button"
+                  onClick={() => setActiveAppSection("faqs")}
+                >
+                  <span>
+                    <strong>FAQs</strong>
+                    <small>Common questions and how things work</small>
+                  </span>
+                  <HelpCircle size={18} />
+                </button>
                 {canAccessAdminTools ? (
                   <button
                     className="placeholder-row"
@@ -7569,6 +7582,8 @@ function App() {
             </PlaceholderPage>
           ) : activeAppSection === "about" ? (
             <AboutScreen onBack={() => setActiveAppSection("more")} />
+          ) : activeAppSection === "faqs" ? (
+            <FaqsScreen onBack={() => setActiveAppSection("more")} />
           ) : (
             <PlaceholderPage section="admin" title="Admin">
               {canAccessAdminTools ? (
