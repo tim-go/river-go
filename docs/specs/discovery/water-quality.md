@@ -18,7 +18,7 @@ Water quality is now one of the highest-salience concerns for UK paddlers (see `
 
 The relevant data is free and open via official providers, so this is trusted-provider context of the same kind the product already uses for levels and warnings — not a community-contribution type. The differentiation is not the data itself (Surfers Against Sewage and the Rivers Trust already publish it for surf/swim/bathing spots) but **tying spill status and classifications to the specific put-ins, take-outs, and reaches paddlers actually use**, alongside levels and access.
 
-Strategically this is a cold-start lever: it is useful on day one without community seeding, refreshes constantly, and is national in coverage, so it can make first use compelling before the contribution flywheel turns.
+Strategically this is a cold-start lever: it is useful on day one without community seeding and refreshes constantly. The **providers** are national, so any newly added canonical river gets water-quality context immediately — but RiverLaunch only ingests and stores sites for its target rivers (see Coverage scope below), the same way gauges and amenities are scoped.
 
 ## Product Role
 
@@ -53,9 +53,27 @@ The first providers should be UK official/open sources, ingested server-side. Br
 
 The model must not assume a single provider or a single data shape. Spill data is **event/interval-based**; bathing classifications are **categorical and annual**. Neither fits the numeric `observation_readings` time-series in `observation-ingestion`, so water quality uses its own storage (below) while sharing that spec's ingestion, scheduling, attribution, and monitoring patterns.
 
+### Coverage scope — target rivers only
+
+RiverLaunch does not mirror the national asset base (England alone has roughly
+15,000 monitored storm overflows). Scope follows the two existing precedents:
+gauges (only stations mapped to canonical rivers) and the amenities importer
+(spatial filter against a buffer around featured-river geometry).
+
+- Ingest and persist a water-quality site **only if** it falls within a
+  configurable buffer (default ~1 km, tune in the pilot) of a canonical river's
+  geometry (`canonical_rivers.matched_geometry`), or is explicitly
+  moderator-added.
+- Adding a new canonical river triggers a **site re-scan** for that river —
+  same operational lifecycle as the amenity re-import; add it to the runbook in
+  `/docs/specs/foundations/seed-data-operations.md`.
+- Event ingestion and refresh run **only for persisted (in-scope) sites**, so
+  the near-real-time polling load stays proportional to the target set, not the
+  national network.
+
 ### Linking to paddler locations
 
-- Storm overflows have point locations; the app links the **nearest relevant overflow(s)** to a put-in/take-out POI and to a river reach/section, with a stored proximity and a confidence/relevance label (candidate vs moderator-verified), mirroring `section_measure_links`.
+- Storm overflows have point locations; the app links the **nearest relevant overflow(s)** to a put-in/take-out POI and to a river reach/section, with a stored proximity and a confidence/relevance label (candidate vs moderator-verified), mirroring `river_measure_links` (the river-keyed gauge-link pattern — see `/docs/development/plan-community-sections.md`).
 - Bathing-water sites link to the reach/POI they cover.
 - Links start as **distance-based candidates** and are confirmed by moderators or trusted contributors; an overflow being physically near a put-in does not prove it is the relevant discharge for that stretch.
 
@@ -85,6 +103,11 @@ Water quality is official-data context. Members may additionally submit **observ
 - Provider `429`/`5xx` responses must not fail unrelated providers or observation ingestion.
 
 ### Target read shape
+
+The spill summary state (`discharging` / `recent` / `none-reported` / `offline`
+/ `unknown`) is computed **server-side** from the event history over the
+summary window; clients render the state and never derive risk states
+themselves.
 
 ```ts
 {
@@ -127,19 +150,28 @@ Proposed tables (shared ingestion/monitoring with `observation-ingestion`, disti
 | `geometry` | `geometry(Point, 4326)` | Asset location. |
 | `operator` | `text` | Water company / operator where known (overflows). |
 | `source_url` | `text` | Provider/source URL. |
+| `status` | `text` | `active`, `retired`, or `offline` (provider asset lifecycle). |
 | `metadata` | `jsonb` | Provider-specific metadata. |
+| `created_at` / `updated_at` | `timestamptz` | Audit timestamps. |
+
+Upsert key: `UNIQUE (provider, provider_asset_id)` — sites are refreshed in
+place (mirrors `observation_stations`); assets that disappear from the provider
+are marked `retired`, not deleted.
 
 ### `water_quality_events`
 
 | Column | Type | Purpose |
 | --- | --- | --- |
+| `id` | `uuid primary key` | Event ID. |
 | `site_id` | `uuid` | Parent `water_quality_sites` (storm overflow). |
-| `event_type` | `text` | `discharge_start`, `discharge_stop`, or `status_snapshot`. |
+| `event_type` | `text` | `discharge_start`, `discharge_stop`, or `status_snapshot` (for providers that only expose current-state polling, letting the summariser interpolate intervals). |
 | `started_at` | `timestamptz` | Discharge start where known. |
 | `ended_at` | `timestamptz` | Discharge end where known (null if ongoing). |
 | `observed_at` | `timestamptz` | Provider observation timestamp. |
 | `fetched_at` | `timestamptz` | When RiverLaunch fetched it. |
 | `raw` | `jsonb` | Minimal provider payload for diagnostics. |
+
+Index on `(site_id, observed_at DESC)` — the read is "recent events per site".
 
 ### `water_quality_classifications`
 
@@ -154,12 +186,15 @@ Proposed tables (shared ingestion/monitoring with `observation-ingestion`, disti
 
 | Column | Type | Purpose |
 | --- | --- | --- |
-| `location_id` | `text` | POI or section ID. |
+| `location_type` | `text` | `poi`, `river`, or `route` (community section). |
+| `location_id` | `text` | POI id, canonical river id, or `routes.id`. |
 | `site_id` | `uuid` | Linked `water_quality_sites` asset. |
 | `relevance` | `text` | `nearest`, `upstream`, `reach`, or `covers`. |
 | `distance_meters` | `double precision` | Distance from the paddler location to the asset. |
 | `confidence` | `text` | `distance-candidate`, `community-confirmed`, or `moderator-verified`. |
+| `status` | `text` | `active` or `retired`. |
 | `notes` | `text` | Human rationale for the link. |
+| `created_at` / `updated_at` | `timestamptz` | Audit timestamps. |
 
 ## Open Questions
 
@@ -177,9 +212,9 @@ Proposed tables (shared ingestion/monitoring with `observation-ingestion`, disti
 | Key | Feature | Surface | Status | Target | Delivered | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | WQ-F1 | Water-quality data model | Backend/data | Queued | MVP | — | Sites, events, classifications, and location links; distinct from numeric observation readings. |
-| WQ-F2 | Storm Overflow Hub adapter | Backend/provider | Queued | MVP | — | Ingest near-real-time discharge status/events via the public API, server-side. |
+| WQ-F2 | Storm Overflow Hub adapter | Backend/provider | Queued | MVP | — | Ingest near-real-time discharge status/events via the public API, server-side (target-river scoped). |
 | WQ-F3 | Bathing-water classification adapter | Backend/provider | Queued | MVP | — | Ingest EA annual bathing classifications for designated sites. |
-| WQ-F4 | Location linking (proximity → confirmed) | Backend/data | Queued | MVP | — | Distance-based candidate links to POIs/reaches, confirmable by moderators/trusted contributors. |
+| WQ-F4 | Location linking (proximity → confirmed) | Backend/data | Queued | MVP | — | Distance-based candidate links to POIs/reaches (target-river scoped), confirmable by moderators/trusted contributors. |
 | WQ-F5 | Water-quality read API | Backend/frontend | Queued | MVP | — | Per-location spill summary + bathing classification with source/freshness. |
 | WQ-F6 | River-card / POI indicator | UI | Queued | MVP | — | No-advice indicator: recent-discharge summary + classification with timestamps. |
 | WQ-F7 | Water-quality map layer | UI | Queued | Later | — | Optional layer showing nearby overflow points and recent-activity state. |
@@ -197,9 +232,12 @@ Proposed tables (shared ingestion/monitoring with `observation-ingestion`, disti
 | WQ-B5 | risk | No-advice framing of spill absence | Open | MVP | Absence of reported spill must not imply clean/safe water. |
 | WQ-B6 | risk | Sensor fault / monitoring-offline states | Open | MVP | Must be distinguishable from "no discharge". |
 | WQ-B7 | enhancement | Watch/alert on water quality for a saved location | Open | Later | Aligns with future level alerts; keep no-advice framing. |
+| WQ-B8 | dependency | Storm Overflow Hub query shape | Open | MVP | Confirm whether the API supports spatial/bbox or per-asset queries (fetch only target areas) vs bulk-only (fetch all, filter at ingest); determines adapter shape. |
+| WQ-B9 | task | Site re-scan on new canonical rivers | Open | MVP | Runbook entry in `/docs/specs/foundations/seed-data-operations.md`: adding a river triggers a water-quality site re-scan. |
 
 ## Change Log
 
 | Date | Change |
 | --- | --- |
 | 2026-07-02 | Created from the July 2026 market review, elevating water quality from a "later opportunity" to a Tier-1 discovery layer. |
+| 2026-07-02 | Scoped ingestion to target canonical rivers only (providers are national; storage/refresh is not); aligned linking with `river_measure_links` and the community-sections model; hardened site/event/link lifecycle columns; summary states computed server-side. |
