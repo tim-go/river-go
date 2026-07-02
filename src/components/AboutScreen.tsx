@@ -1,4 +1,4 @@
-import { ChevronLeft, Info } from "lucide-react";
+import { ChevronLeft, Info, Mail } from "lucide-react";
 import { AppBrandPanel } from "./AppBrandPanel";
 import { PlaceholderPage } from "./PlaceholderPage";
 
@@ -37,6 +37,37 @@ export function AboutScreen({ onBack }: { onBack: () => void }) {
           <Info size={18} />
         </div>
         <p className="source-note">Built {formatBuiltAt(__APP_BUILT_AT__)}</p>
+      </section>
+      <section className="settings-panel" aria-label="Contact">
+        <div className="settings-panel__header">
+          <span>
+            <strong>Contact</strong>
+            <small>Support, feedback, and suggestions</small>
+          </span>
+          <Mail size={18} />
+        </div>
+        <p className="source-note">
+          Questions, ideas, or something not quite right? Email{" "}
+          <a href="mailto:support@riverlaunch.app">support@riverlaunch.app</a>{" "}
+          and we'll get back to you.
+        </p>
+        <p className="source-note about-legal">
+          <a
+            href="https://riverlaunch.app/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Privacy Statement
+          </a>
+          {" · "}
+          <a
+            href="https://riverlaunch.app/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Terms of Use
+          </a>
+        </p>
       </section>
     </PlaceholderPage>
   );

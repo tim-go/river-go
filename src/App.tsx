@@ -10,6 +10,7 @@ import {
   Flag,
   Heart,
   Info,
+  HelpCircle,
   LogIn,
   LogOut,
   Map as MapIcon,
@@ -168,6 +169,7 @@ import { SyncOutboxBanner } from "./components/SyncOutboxBanner";
 import { AnalyticsConsentBanner } from "./components/AnalyticsConsentBanner";
 import { AppNavigation, MobileBottomNav } from "./components/AppNavigation";
 import { AboutScreen } from "./components/AboutScreen";
+import { FaqsScreen } from "./components/FaqsScreen";
 import { PaddleHistoryPanel } from "./components/PaddleHistoryPanel";
 import { KitInventoryPanel } from "./components/KitInventoryPanel";
 import { SkillsPanel } from "./components/SkillsPanel";
@@ -472,7 +474,24 @@ function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
   const [activeAdminPage, setActiveAdminPage] = useState<AdminPage>("index");
-  const [isAppNavCollapsed, setIsAppNavCollapsed] = useState(false);
+  // The left nav collapses by default at iPad width and below (<= 1024px). The
+  // user can still toggle it; the auto-collapse only fires when the viewport
+  // crosses the breakpoint, so a manual choice isn't clobbered on every resize.
+  const [isAppNavCollapsed, setIsAppNavCollapsed] = useState(
+    () => typeof window !== "undefined" && window.innerWidth <= 1024,
+  );
+  useEffect(() => {
+    let wasNarrow = window.innerWidth <= 1024;
+    const onResize = () => {
+      const isNarrow = window.innerWidth <= 1024;
+      if (isNarrow !== wasNarrow) {
+        wasNarrow = isNarrow;
+        setIsAppNavCollapsed(isNarrow);
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const [theme, setTheme] = useState<"tide" | "daybreak" | "surge">(() => {
     if (typeof localStorage !== "undefined") {
       const saved = localStorage.getItem("rl-theme");
@@ -5999,7 +6018,7 @@ function App() {
                         level={riverLevels[river.id]}
                         onToggleFavourite={toggleFavouriteRiver}
                         onOpen={(riverId) => {
-                          selectCanonicalRiver(riverId);
+                          selectCanonicalRiver(riverId, { zoom: "point" });
                           setActiveAppSection("map");
                         }}
                       />
@@ -6146,7 +6165,7 @@ function App() {
                             onToggleFavourite={toggleFavouriteRiver}
                             onVisible={requestRiverLevel}
                             onOpen={(riverId) => {
-                              selectCanonicalRiver(riverId);
+                              selectCanonicalRiver(riverId, { zoom: "point" });
                               setActiveAppSection("map");
                             }}
                           />
@@ -7424,6 +7443,17 @@ function App() {
                   </span>
                   <Info size={18} />
                 </button>
+                <button
+                  className="placeholder-row"
+                  type="button"
+                  onClick={() => setActiveAppSection("faqs")}
+                >
+                  <span>
+                    <strong>FAQs</strong>
+                    <small>Common questions and how things work</small>
+                  </span>
+                  <HelpCircle size={18} />
+                </button>
                 {canAccessAdminTools ? (
                   <button
                     className="placeholder-row"
@@ -7552,6 +7582,8 @@ function App() {
             </PlaceholderPage>
           ) : activeAppSection === "about" ? (
             <AboutScreen onBack={() => setActiveAppSection("more")} />
+          ) : activeAppSection === "faqs" ? (
+            <FaqsScreen onBack={() => setActiveAppSection("more")} />
           ) : (
             <PlaceholderPage section="admin" title="Admin">
               {canAccessAdminTools ? (

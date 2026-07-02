@@ -22,6 +22,7 @@ export type AppSection =
   | "profile"
   | "more"
   | "about"
+  | "faqs"
   | "settings"
   | "admin";
 
