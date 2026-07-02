@@ -762,12 +762,16 @@ export function communitySectionToRiverSection(
     summary: section.summary ?? "No summary provided yet.",
     centre,
     route: section.route,
-    distanceKm: section.distanceKm ?? routeDistanceKm(section.route),
+    // Round once here so every consumer (stats, lists, popups) shows a clean
+    // figure — the API value comes from ST_Length with full float precision.
+    distanceKm:
+      Math.round((section.distanceKm ?? routeDistanceKm(section.route)) * 10) /
+      10,
     estimatedTime: "Not set",
     difficulty: section.grade ?? "Needs grading",
     suitability: [],
     levelBand: "unknown",
-    levelLabel: "No gauge linked to this section yet",
+    levelLabel: "No gauge linked",
     runnableGuidance: `Community section (${evidenceStatusLabel(
       section.evidenceStatus,
     )}) — not verified advice. Check conditions locally before paddling.`,

@@ -2678,7 +2678,8 @@ export function RiverMap({
                     <span>
                       <strong>{section.sectionName}</strong>
                       <small>
-                        {section.difficulty} · {section.distanceKm} km
+                        {section.difficulty} · {section.distanceKm.toFixed(1)}{" "}
+                        km
                       </small>
                     </span>
                     <Route size={15} />

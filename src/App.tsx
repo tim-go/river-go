@@ -5451,7 +5451,7 @@ function App() {
 
           <div className="panel-content panel-content--tabbed">
             <div className="route-layer-options">
-              <span>Route display</span>
+              <span>Section path</span>
               <button
                 className={`ghost-button ghost-button--compact ${
                   showSelectedRoutePath ? "map-panel-toggle--active" : ""
@@ -5474,7 +5474,7 @@ function App() {
             <div
               className="segmented-control route-detail-tabs"
               role="tablist"
-              aria-label="Route details"
+              aria-label="Section details"
             >
               {routeDetailsTabs.map((tab) => (
                 <button
@@ -5496,7 +5496,7 @@ function App() {
                   <div className="route-summary-item">
                     <Navigation size={15} />
                     <span>Distance</span>
-                    <strong>{activeSection.distanceKm} km</strong>
+                    <strong>{formatDistanceKm(activeSection.distanceKm)}</strong>
                   </div>
                   <div className="route-summary-item">
                     <Clock3 size={15} />
