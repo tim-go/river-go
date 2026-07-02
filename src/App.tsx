@@ -72,7 +72,6 @@ import {
   type RainFrameInfo,
 } from "./services/weatherApi";
 import {
-  fetchCanonicalRiver,
   fetchCanonicalRivers,
   fetchSourceCandidatePois,
   updateSourceCandidatePoiStatus,
@@ -140,7 +139,7 @@ import {
 import { uploadContributionPhoto } from "./services/photoUpload";
 import {
   fetchObservationJobRuns,
-  fetchSectionObservations,
+  fetchRiverObservations,
   runObservationIngestion,
   type ObservationJobRun,
   type SectionObservationMeasure,
@@ -1895,18 +1894,10 @@ function App() {
     void (async () => {
       let measure: SectionObservationMeasure | null = null;
       try {
-        // The synthetic overview section carries no gauge — a river's gauges
-        // live on its linked sections, so fetch the detail for the section ids
-        // then flatten their observations (mirrors DiscoveryContext's fetch).
-        const river = await fetchCanonicalRiver(riverId);
-        const groups = await Promise.all(
-          (river.sectionLinks ?? []).map((link) =>
-            fetchSectionObservations(link.sectionId, 48).catch(
-              () => [] as SectionObservationMeasure[],
-            ),
-          ),
-        );
-        measure = getPrimaryObservationMeasure(groups.flat()) ?? null;
+        // River gauges are keyed by river (river_measure_links) — pick the
+        // primary measure from the river's observations.
+        const measures = await fetchRiverObservations(riverId, 48);
+        measure = getPrimaryObservationMeasure(measures) ?? null;
       } catch {
         measure = null;
       }

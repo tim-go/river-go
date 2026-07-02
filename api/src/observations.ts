@@ -359,6 +359,78 @@ export async function listObservationsForSection(
   return result.rows.map(sectionObservationMeasureRow);
 }
 
+// River-keyed gauge history (via river_measure_links) — the durable path after
+// the fixture section_measure_links chain was retired. Same shape/ordering as
+// listObservationsForSection so the frontend consumes it identically.
+export async function listObservationsForRiver(
+  riverId: string,
+  hours = 48,
+): Promise<SectionObservationMeasure[]> {
+  const boundedHours = Math.max(1, Math.min(hours, 672));
+  const result = await pool.query(
+    `SELECT m.id,
+      m.provider,
+      m.provider_measure_id,
+      m.parameter,
+      m.unit,
+      m.source_url,
+      s.provider_station_id,
+      s.name AS station_name,
+      l.relevance,
+      NULL::text AS confidence,
+      latest.observed_at AS latest_observed_at,
+      latest.value AS latest_value,
+      latest.quality AS latest_quality,
+      latest.fetched_at AS latest_fetched_at,
+      latest.state AS latest_state,
+      COALESCE(
+        jsonb_agg(
+          jsonb_build_object(
+            'observedAt', r.observed_at,
+            'value', r.value,
+            'quality', r.quality
+          )
+          ORDER BY r.observed_at
+        ) FILTER (WHERE r.observed_at IS NOT NULL),
+        '[]'::jsonb
+      ) AS history
+    FROM river_measure_links l
+    JOIN observation_measures m ON m.id = l.measure_id
+    JOIN observation_stations s ON s.id = m.station_id
+    LEFT JOIN observation_latest_readings latest ON latest.measure_id = m.id
+    LEFT JOIN observation_readings r
+      ON r.measure_id = m.id
+      AND r.observed_at >= now() - ($2::int * interval '1 hour')
+    WHERE l.river_id = $1
+    GROUP BY m.id,
+      m.provider,
+      m.provider_measure_id,
+      m.parameter,
+      m.unit,
+      m.source_url,
+      s.provider_station_id,
+      s.name,
+      l.relevance,
+      latest.observed_at,
+      latest.value,
+      latest.quality,
+      latest.fetched_at,
+      latest.state
+    ORDER BY
+      CASE l.relevance
+        WHEN 'primary' THEN 1
+        WHEN 'secondary' THEN 2
+        WHEN 'upstream' THEN 3
+        ELSE 4
+      END,
+      m.parameter,
+      s.name`,
+    [riverId, boundedHours],
+  );
+
+  return result.rows.map(sectionObservationMeasureRow);
+}
+
 const LEVEL_STATE_HISTORY_DAYS = 90;
 const LEVEL_STATE_MIN_SAMPLES = 20;
 

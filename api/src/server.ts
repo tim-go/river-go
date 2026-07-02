@@ -149,6 +149,7 @@ import {
   getRecentObservationIngestionJobRun,
   listObservationJobRuns,
   listObservationsForSection,
+  listObservationsForRiver,
   listRiverLevelStates,
   listSectionLevelStates,
   listStations,
@@ -1276,6 +1277,18 @@ async function route(
     const hours = Number.parseInt(url.searchParams.get("hours") ?? "48", 10);
     const measures = await listObservationsForSection(
       decodeURIComponent(sectionObservationsMatch[1]),
+      Number.isFinite(hours) ? hours : 48,
+    );
+    return { status: 200, body: { measures } };
+  }
+
+  const riverObservationsMatch = url.pathname.match(
+    /^\/api\/rivers\/([^/]+)\/observations$/,
+  );
+  if (method === "GET" && riverObservationsMatch) {
+    const hours = Number.parseInt(url.searchParams.get("hours") ?? "48", 10);
+    const measures = await listObservationsForRiver(
+      decodeURIComponent(riverObservationsMatch[1]),
       Number.isFinite(hours) ? hours : 48,
     );
     return { status: 200, body: { measures } };
