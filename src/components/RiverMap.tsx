@@ -124,6 +124,7 @@ type RiverDetailTab =
   | "rapids"
   | "hazards"
   | "access"
+  | "sections"
   | "photos"
   | "about";
 
@@ -132,6 +133,7 @@ const RIVER_DETAIL_TABS: { id: RiverDetailTab; label: string }[] = [
   { id: "rapids", label: "Rapids" },
   { id: "hazards", label: "Hazards" },
   { id: "access", label: "Access" },
+  { id: "sections", label: "Sections" },
   { id: "photos", label: "Photos" },
   { id: "about", label: "About" },
 ];
@@ -181,7 +183,6 @@ export function RiverMap({
   routeCreateMode,
   markerClickMode,
   showRoutesLayer,
-  showPublicRoutes,
   approvedRouteSuggestions,
   showRiverLayer,
   sectionLevelStates,
@@ -206,6 +207,7 @@ export function RiverMap({
   onOpenRouteDetails,
   onOpenPhoto,
   onSelectSection,
+  onSuggestSection,
   onSelectCanonicalRiver,
   onCloseSelectedRiverPanel,
   onToggleSelectedRiverPanelExpanded,
@@ -249,7 +251,6 @@ export function RiverMap({
   routeCreateMode: RouteCreateMode;
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
-  showPublicRoutes: boolean;
   approvedRouteSuggestions: RouteSuggestion[];
   showRiverLayer: boolean;
   sectionLevelStates?: Map<string, SectionLevelState>;
@@ -281,6 +282,7 @@ export function RiverMap({
   onOpenRouteDetails: (section: RiverSection) => void;
   onOpenPhoto: (photo: PhotoLightboxItem) => void;
   onSelectSection: (section: RiverSection) => void;
+  onSuggestSection: (riverName: string) => void;
   onSelectCanonicalRiver: (
     riverId: string | null,
     options?: {
@@ -566,6 +568,18 @@ export function RiverMap({
     });
     return totals;
   }, [selectedRiverPoiCategoryCounts]);
+  // Community-promoted sections belonging to the selected river (Sections tab).
+  // Real sections only — excludes the "canonical-river:"/"candidate-route:"
+  // pseudo-sections rendered elsewhere.
+  const promotedSectionsForRiver = useMemo(() => {
+    if (!selectedCanonicalRiver) return [];
+    return sections.filter(
+      (section) =>
+        !isCanonicalOverviewSection(section) &&
+        !isCandidateSection(section) &&
+        section.riverName === selectedCanonicalRiver.displayName,
+    );
+  }, [sections, selectedCanonicalRiver]);
   // Points that carry at least one photo — advertised on the Photos tab label and
   // used to filter the map when that tab is active.
   // A focused river's published photos (rolled up by river_id). Drives both the
@@ -1415,7 +1429,12 @@ export function RiverMap({
 
     const renderedSections = showRoutesLayer
       ? sections.filter(
-          (section) => section.id !== activeSection.id || showSelectedRoutePath,
+          (section) =>
+            // River-overview placeholders aren't real sections — they carry a
+            // single-point route at the river centre, so drawing them would put
+            // a section marker on top of the river's own pin.
+            !isCanonicalOverviewSection(section) &&
+            (section.id !== activeSection.id || showSelectedRoutePath),
         )
       : [];
     let clickedRouteLine: L.Polyline | null = null;
@@ -1451,7 +1470,7 @@ export function RiverMap({
         subtitle: section.riverName,
         summary: section.summary,
         detailsLabel: "Details",
-        selectLabel: "Select route",
+        selectLabel: "Select",
         onDetails: () => routeDetailsRef.current(section),
         onSelect: () => callbackRef.current(section),
       });
@@ -1495,42 +1514,56 @@ export function RiverMap({
         }
       });
 
-      const sectionMarker = L.marker(section.centre, {
-        bubblingMouseEvents: false,
-        icon: L.divIcon({
-          className: "",
-          html: markerHtml(
-            isActive && isCandidate
-              ? "section-candidate-active"
-              : isActive
-                ? "section-active"
-                : isCandidate
-                  ? "section-candidate"
-                  : "section",
-            isCandidate ? "C" : "R",
-          ),
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
-        }),
-      });
-
-      sectionMarker
-        .addTo(layers)
-        .bindPopup(
-          createMapPopupContent({
-            title: section.sectionName,
-            subtitle: section.riverName,
-            summary: section.summary,
-            detailsLabel: "Details",
-            selectLabel: "Select route",
-            onDetails: () => routeDetailsRef.current(section),
-            onSelect: () => callbackRef.current(section),
+      // A section reads as a stretch, not a single point: mark its put-in (start)
+      // and take-out (end) rather than one central badge. This differentiates a
+      // section (line + two endpoints) from POIs (single pins) and from the
+      // river's overview pin, which the old centre badge used to sit on top of.
+      const putIn = section.route[0] ?? section.centre;
+      const takeOut = section.route[section.route.length - 1] ?? section.centre;
+      const endpointStyle = isCandidate
+        ? "background:#7c3aed;border-color:#7c3aed;"
+        : "";
+      const addEndpointMarker = (
+        latlng: LatLngTuple,
+        role: "put-in" | "take-out",
+      ) => {
+        const roleLabel = role === "put-in" ? "Put-in" : "Take-out";
+        const marker = L.marker(latlng, {
+          bubblingMouseEvents: false,
+          title: `${roleLabel} · ${section.sectionName}`,
+          icon: L.divIcon({
+            className: "",
+            html: markerHtml(
+              `section-${role}${isActive ? " map-marker--section-endpoint-active" : ""}`,
+              role === "put-in" ? "▸" : "◼",
+              endpointStyle,
+            ),
+            iconSize: [26, 26],
+            iconAnchor: [13, 13],
           }),
-        )
-        .on("click", (event) => {
-          L.DomEvent.stop(event.originalEvent);
-          sectionMarker.openPopup();
         });
+        marker
+          .addTo(layers)
+          .bindPopup(
+            createMapPopupContent({
+              title: section.sectionName,
+              subtitle: `${section.riverName} · ${roleLabel}`,
+              summary: section.summary,
+              detailsLabel: "Details",
+              selectLabel: "Select",
+              onDetails: () => routeDetailsRef.current(section),
+              onSelect: () => callbackRef.current(section),
+            }),
+          )
+          .on("click", (event) => {
+            L.DomEvent.stop(event.originalEvent);
+            marker.openPopup();
+          });
+      };
+      addEndpointMarker(putIn, "put-in");
+      if (takeOut[0] !== putIn[0] || takeOut[1] !== putIn[1]) {
+        addEndpointMarker(takeOut, "take-out");
+      }
 
       mapPois
         .filter((poi) => poi.sectionId === section.id)
@@ -1673,7 +1706,7 @@ export function RiverMap({
 
     // Approved public routes (community-contributed, moderator-approved) — solid
     // green polylines, distinct from the dashed pending suggestions/adjustments.
-    if (showPublicRoutes) {
+    if (showRoutesLayer) {
       approvedRouteSuggestions.forEach((suggestion) => {
         if (suggestion.route.length < 2) {
           return;
@@ -2415,7 +2448,9 @@ export function RiverMap({
                   ? riverTabPoiTotals[tab.id]
                   : tab.id === "photos"
                     ? riverPhotoCount
-                    : null;
+                    : tab.id === "sections"
+                      ? promotedSectionsForRiver.length
+                      : null;
               return (
                 <button
                   key={tab.id}
@@ -2433,6 +2468,64 @@ export function RiverMap({
               );
             })}
           </div>
+
+          {riverTab === "sections" ? (
+            <div className="watercourse-context">
+              {promotedSectionsForRiver.length ? (
+                <div className="placeholder-list">
+                  {promotedSectionsForRiver.map((section) => (
+                    <div className="placeholder-row" key={section.id}>
+                      <span>
+                        <strong>{section.sectionName}</strong>
+                        <small>
+                          {section.difficulty}
+                          {section.distanceKm
+                            ? ` · ${section.distanceKm.toFixed(1)} km`
+                            : ""}
+                        </small>
+                        <small>{section.summary}</small>
+                        <small className="source-note">
+                          {section.source?.label ?? "Community section"} — not
+                          verified advice
+                        </small>
+                      </span>
+                      <div className="favourite-row__actions">
+                        <button
+                          className="ghost-button ghost-button--compact"
+                          type="button"
+                          onClick={() => routeDetailsRef.current(section)}
+                        >
+                          Details
+                        </button>
+                        <button
+                          className="ghost-button ghost-button--compact"
+                          type="button"
+                          onClick={() => callbackRef.current(section)}
+                        >
+                          Select
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-state">
+                  No sections for this river yet — be the first to add one.
+                  Sections are community-added and reviewed before they appear.
+                </p>
+              )}
+              <button
+                className="ghost-button ghost-button--compact"
+                type="button"
+                onClick={() =>
+                  onSuggestSection(selectedCanonicalRiver.displayName)
+                }
+              >
+                <Route size={15} />
+                Suggest a section
+              </button>
+            </div>
+          ) : null}
 
           {riverTab === "about" ? (
             <RiverPaddleHistory riverId={selectedCanonicalRiver.id} />
@@ -2602,7 +2695,8 @@ export function RiverMap({
                     <span>
                       <strong>{section.sectionName}</strong>
                       <small>
-                        {section.difficulty} · {section.distanceKm} km
+                        {section.difficulty} · {section.distanceKm.toFixed(1)}{" "}
+                        km
                       </small>
                     </span>
                     <Route size={15} />

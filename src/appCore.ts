@@ -36,6 +36,7 @@ import type {
   RouteAdjustmentDecision,
 } from "./services/routeAdjustmentApi";
 import type { RouteSuggestionDecision } from "./services/routeSuggestionApi";
+import type { CommunitySection } from "./services/routesApi";
 
 export const SYNC_BANNER_DISMISS_MS = 60 * 60 * 1000;
 export const SEARCH_FOCUS_ZOOM = 15;
@@ -734,6 +735,76 @@ export function canonicalRiverToOverviewSection(river: CanonicalRiverSummary): R
   };
 }
 
+function evidenceStatusLabel(evidenceStatus: string): string {
+  if (evidenceStatus === "community-reported") return "community-reported";
+  return evidenceStatus.replaceAll("-", " ");
+}
+
+// A community-promoted section (routes.id — a plain uuid, distinct from the
+// "canonical-river:"/"candidate-route:" pseudo-ids) mapped into the existing
+// RiverSection shape so the map's section-polyline renderer, favouriting, and
+// river Details panel all work unchanged. riverDisplayName comes from the
+// caller's already-loaded canonical rivers list (section.riverId), falling
+// back to the free-text river name captured at promote time.
+export function communitySectionToRiverSection(
+  section: CommunitySection,
+  riverDisplayName?: string,
+): RiverSection {
+  const centre =
+    section.route[Math.floor(section.route.length / 2)] ??
+    section.route[0] ??
+    ([54.5, -3] as LatLngTuple);
+
+  return {
+    id: section.id,
+    riverName: riverDisplayName ?? section.riverName ?? "Unknown river",
+    sectionName: section.name,
+    summary: section.summary ?? "No summary provided yet.",
+    centre,
+    route: section.route,
+    // Round once here so every consumer (stats, lists, popups) shows a clean
+    // figure — the API value comes from ST_Length with full float precision.
+    distanceKm:
+      Math.round((section.distanceKm ?? routeDistanceKm(section.route)) * 10) /
+      10,
+    estimatedTime: "Not set",
+    difficulty: section.grade ?? "Needs grading",
+    suitability: [],
+    levelBand: "unknown",
+    levelLabel: "No gauge linked",
+    runnableGuidance: `Community section (${evidenceStatusLabel(
+      section.evidenceStatus,
+    )}) — not verified advice. Check conditions locally before paddling.`,
+    accessSummary:
+      section.accessSummary ?? "No reviewed access information yet.",
+    gauge: {
+      id: "no-linked-gauge",
+      name: "No linked gauge",
+      location: centre,
+      value: "No reading",
+      trend: "steady",
+      observedAt: "Not recorded",
+    },
+    accessPoints: [],
+    hazards: [],
+    features: [],
+    photos: [],
+    reports: [],
+    source: {
+      kind: "community",
+      label: `Added by ${section.attribution.submittedBy ?? "a RiverLaunch member"}`,
+      confidence: "low",
+      updatedAt: section.updatedAt.slice(0, 10),
+      // Rendered verbatim in the section detail panel (Source confidence
+      // block) — carries both the attribution and the non-advice wording the
+      // no-advice-and-liability-language principles require in one place.
+      notes: `Added by ${
+        section.attribution.submittedBy ?? "a RiverLaunch member"
+      } · community section — not verified advice.`,
+    },
+  };
+}
+
 export function isCanonicalOverviewSection(section: RiverSection) {
   return section.id.startsWith("canonical-river:");
 }
@@ -1087,6 +1158,7 @@ export function formatDistanceKm(distanceKm: number) {
     ? `${Math.round(distanceKm * 1000)} m`
     : `${distanceKm.toFixed(1)} km`;
 }
+
 
 export function formatDistanceMetres(distanceMetres: number) {
   if (!Number.isFinite(distanceMetres)) {

@@ -9,14 +9,25 @@ maturity: Draft
 # Route Submissions
 
 **Work state:** Active
-**Last updated:** 2026-06-05
-**Scope:** Member workflow for suggesting missing river sections, plus moderator workflow for adjusting existing route records and rough route traces.
+**Last updated:** 2026-07-02
+**Scope:** Member workflow for suggesting missing river sections, moderator workflow for adjusting existing route records and rough route traces, and promotion of approved suggestions into canonical `routes` records.
+
+> **User-facing language:** members create and see **Sections**. `route` is
+> internal schema/API vocabulary only (`route_suggestions`, `routes`, …) and
+> must not appear in public UI copy.
 
 ## Purpose
 
 Route submissions let members add candidate river sections where RiverLaunch.app does not yet have good coverage.
 
 This is essential to the community-led model. RiverLaunch.app cannot safely map all paddleable routes centrally, and map geometry alone does not prove that a river section is suitable, accessible, or current.
+
+**Community-origin only (decided 2026-07-02):** this workflow is the *sole*
+source of sections. RiverLaunch does not seed or declare paddleable sections
+itself — doing so would make RiverLaunch the author of paddleability claims,
+which the liability stance (`/docs/specs/principles/no-advice-and-liability-language.md`)
+rules out. The retired Wye/Tryweryn fixtures are not grandfathered in; the
+catalogue starts empty and grows through members.
 
 Route maintenance lets trusted moderators adjust any existing route, regardless of whether it began as seed data, an imported/public-source candidate, or a member-submitted route. Seeded or candidate data must not become uneditable just because it is no longer in the pending submission queue.
 
@@ -97,7 +108,23 @@ The backend MVP should expose:
 - `GET /api/moderation/route-suggestions` for moderators/admins to review pending route suggestions
 - `POST /api/moderation/route-suggestions/:id/decision` for moderation decisions
 
-Initial moderation decisions should be limited to approving the candidate for further catalogue work, requesting more information, rejecting, or hiding. Approval does not yet promote the suggestion into a canonical route record; that remains a separate data-editor/promotion workflow.
+Initial moderation decisions should be limited to approving the candidate for further catalogue work, requesting more information, rejecting, or hiding. Approval does not itself promote the suggestion.
+
+**Promotion (specified 2026-07-02, build per `/docs/development/plan-community-sections.md`):**
+a separate, explicit moderator action on an *approved* suggestion creates a
+canonical `routes` record. Promotion rules:
+
+- Promotion is a deliberate second step ("Promote to section"), never automatic
+  and never bundled into the approve decision.
+- The `routes` record stores its origin (`source_route_suggestion_id`), the
+  submitting member, and the promoting moderator. Attribution is permanent.
+- Promoted sections still present as community knowledge with evidence/source
+  copy — promotion raises catalogue status, it does not certify paddleability,
+  access, or safety.
+- The suggestion record is kept (status `promoted`) for audit; it stops
+  rendering as a candidate once the canonical section exists.
+- Confidence threshold is moderator judgment against the evidence notes; no
+  numeric auto-threshold for the first slice (ROUTESUB-B4 resolved).
 
 Reviewed route suggestions may be public-visible as low-confidence `Candidate` sections in Map and Search. Candidate display should use distinct styling, low-confidence source copy, and explicit warnings that the section still needs local verification before it is treated as trip advice. Pending, needs-info, hidden, and rejected route suggestions should remain private to the submitter and moderation surfaces.
 
@@ -107,12 +134,11 @@ The moderation area should split route edits, route suggestions, point/photo con
 
 Admins and contribution moderators must be able to create route adjustment records for any existing route target:
 
-- seeded/static section fixtures
-- public-source or imported candidate sections
-- public candidate sections
-- future promoted canonical route records
+- public candidate sections (approved suggestions)
+- promoted canonical `routes` records
+- ~~seeded/static section fixtures~~ (retired 2026-07-02 — no seeded sections exist)
 
-Route adjustments should capture the target type, target id, corrected route trace, edited river/section/difficulty/access/source text, evidence notes, status, moderator identity, revision, and timestamps. For existing fixture-backed sections, approving a section route adjustment may publish the corrected geometry to a route override record. The source fixture and route adjustment audit history must remain intact; later canonical route records should replace this override bridge.
+Route adjustments should capture the target type, target id, corrected route trace, edited river/section/difficulty/access/source text, evidence notes, status, moderator identity, revision, and timestamps. Route overrides were the fixture-era publishing bridge; with fixtures retired, approved adjustments to canonical `routes` records update the route's geometry/metadata directly (with revision + audit history), and the override bridge is retired with the fixtures.
 
 Route adjustment must support metadata-only edits as well as geometry edits. Starting an edit for an existing route should prefill the current route name, section name, difficulty, summary, access notes, and route trace, then open the details form directly. Moderators should only enter trace editing when the geometry needs changing; when they do, existing route points should be editable rather than forcing the moderator to redraw the whole route.
 
@@ -127,10 +153,9 @@ This is a review aid, not a safety guarantee.
 
 ## Open Questions
 
-- Should route suggestions allow full multi-point tracing in the MVP, or start/end plus evidence only?
 - What moderation status vocabulary should route submissions share with POIs and contributions?
-- When should a suggested route become visible to all users?
 - What additional impact review should run before approved route adjustments update public route geometry?
+- When a promoted section's suggestion evidence is later disputed, what demotion path applies (back to candidate, or hidden)?
 
 ## Tracking
 
@@ -159,12 +184,12 @@ This is a review aid, not a safety guarantee.
 | Key | Type | Item | Status | Target | Notes |
 | --- | --- | --- | --- | --- | --- |
 | ROUTESUB-B1 | decision | Candidate visibility | Resolved | MVP | Pending routes stay private to the submitter and moderation surfaces; approved suggestions are visible as low-confidence public candidates. |
-| ROUTESUB-B2 | dependency | Backend schema | Open | MVP | Needs route suggestion table or generic submission envelope. |
+| ROUTESUB-B2 | dependency | Backend schema | Resolved | MVP | Canonical `routes` table specified — see `/docs/development/plan-community-sections.md`. |
 | ROUTESUB-B3 | enhancement | Attach POIs during route submission | Open | Later | Let submitters add put-in/take-out/hazards/photos in one guided flow. |
-| ROUTESUB-B4 | validation | Promotion rules | Open | MVP | Define confidence threshold before a suggested route becomes a canonical section. |
+| ROUTESUB-B4 | validation | Promotion rules | Resolved | MVP | Promotion is an explicit moderator action on approved suggestions; moderator judgment, no numeric auto-threshold in the first slice. |
 | ROUTESUB-B5 | enhancement | Retry local drafts | Resolved | MVP | Local fallback drafts now have a `Send` action in Profile. |
 | ROUTESUB-B6 | enhancement | Edit public candidate sections | Active | MVP | Admin/moderator route-adjustment records now cover existing seeded routes and public candidate sections; applying them to canonical data remains separate. |
-| ROUTESUB-B7 | migration | Canonical route publishing | Active | MVP | Section fixture route overrides are implemented as the first publishing bridge; future work should promote this into canonical route records. |
+| ROUTESUB-B7 | migration | Canonical route publishing | Active | MVP | Fixture route overrides were the first bridge; the durable path is promotion into `routes` records, after which the override bridge retires (see plan doc). |
 | ROUTESUB-B8 | enhancement | Store rough and snapped traces | Open | MVP | Current POC saves the reviewed trace; backend should later persist original user trace, snapped trace, snap source, and confidence warnings separately. |
 | ROUTESUB-B9 | enhancement | Backend spatial impact review | Open | MVP | Move route impact calculation to PostGIS once canonical routes and full location-owned POI reads exist. |
 
@@ -175,3 +200,4 @@ This is a review aid, not a safety guarantee.
 | 2026-05-25 | Added route submission spec for community-created candidate sections. |
 | 2026-05-25 | Defined reviewed route suggestions as public low-confidence candidate sections rather than canonical route records. |
 | 2026-06-05 | Adjusted public candidate wording to avoid implying approved route guidance. |
+| 2026-07-02 | Locked community-origin-only sections (no seeding; Wye/Tryweryn fixtures retired), specified the promotion workflow into canonical `routes` records, and fixed user-facing language to "Section". |

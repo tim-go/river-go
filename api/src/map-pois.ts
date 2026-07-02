@@ -130,7 +130,6 @@ export async function listMapPoisForSection(
     JOIN paddling_features p ON p.id = lp.source_entity_id
     WHERE lp.source_entity_type = 'paddling_feature'
       AND lp.status != 'hidden'
-      AND prl.route_source = 'section_fixture'
       AND prl.route_id = $1
       AND prl.status = 'active'
     ORDER BY
@@ -156,11 +155,10 @@ export async function listMapPoisForRiver(
     `SELECT DISTINCT ON (p.id)
       ${mapPoiSelectColumnsSql(viewerMemberId)}
     FROM paddling_features p
-    JOIN canonical_river_section_links crsl
-      ON crsl.section_id = p.section_id
-      AND crsl.route_source = 'section_fixture'
-      AND crsl.status = 'active'
-    WHERE crsl.river_id = $1
+    JOIN pois lp
+      ON lp.source_entity_type = 'paddling_feature'
+      AND lp.source_entity_id = p.id
+    WHERE lp.river_id = $1
       AND p.verification_status IN ('confirmed', 'needs-confirmation')
     ORDER BY p.id, p.category ASC, p.name ASC`,
     viewerMemberId ? [riverId, viewerMemberId] : [riverId],

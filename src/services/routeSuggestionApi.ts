@@ -8,7 +8,9 @@ export type RouteSuggestionStatus =
   | "needs-info"
   | "approved"
   | "rejected"
-  | "hidden";
+  | "hidden"
+  // Set once a moderator has promoted this suggestion into a canonical section.
+  | "promoted";
 
 export type RouteSuggestionDecision =
   | "approve"
@@ -31,6 +33,8 @@ export interface RouteSuggestion {
   createdAt: string;
   updatedAt?: string;
   revision?: number;
+  // Set once a moderator has promoted this suggestion (links to routes.id).
+  promotedRouteId: string | null;
 }
 
 interface ApiRouteSuggestion {
@@ -52,12 +56,13 @@ interface ApiRouteSuggestion {
     email: string | null;
     trustLevel: string | null;
   };
+  promotedRouteId: string | null;
 }
 
 export async function createRouteSuggestion(
   suggestion: Omit<
     RouteSuggestion,
-    "id" | "status" | "author" | "createdAt" | "updatedAt" | "revision"
+    "id" | "status" | "author" | "createdAt" | "updatedAt" | "revision" | "promotedRouteId"
   >,
 ): Promise<RouteSuggestion> {
   const result = await fetchRouteSuggestionEndpoint<{
@@ -125,7 +130,7 @@ export async function updateModerationRouteSuggestion(
   routeSuggestionId: string,
   suggestion: Omit<
     RouteSuggestion,
-    "id" | "status" | "author" | "createdAt" | "updatedAt" | "revision"
+    "id" | "status" | "author" | "createdAt" | "updatedAt" | "revision" | "promotedRouteId"
   >,
 ): Promise<RouteSuggestion> {
   const result = await fetchRouteSuggestionEndpoint<{
@@ -184,6 +189,7 @@ function mapApiRouteSuggestion(
     createdAt: suggestion.createdAt,
     updatedAt: suggestion.updatedAt,
     revision: suggestion.revision,
+    promotedRouteId: suggestion.promotedRouteId,
   };
 }
 
@@ -193,5 +199,6 @@ function normaliseStatus(status: string): RouteSuggestionStatus {
   if (status === "approved") return "approved";
   if (status === "rejected") return "rejected";
   if (status === "hidden") return "hidden";
+  if (status === "promoted") return "promoted";
   return "local-draft";
 }

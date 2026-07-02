@@ -9,7 +9,7 @@ maturity: Draft
 # Geospatial Domain Model
 
 **Work state:** Active
-**Last updated:** 2026-06-05
+**Last updated:** 2026-07-02
 **Scope:** Defines the durable domain objects and relationship model for watercourses/rivers, routes, POIs, observations, photos, reports, and future group/session features.
 
 ## Purpose
@@ -133,6 +133,21 @@ Route and section records should be described as human/community interpretations
 with source, evidence, confidence, and moderation state. Public navigation may
 prefer `Rivers`, but the backend still needs route geometry and section records
 for put-in/take-out, distance, grade, access, level, and impact-review logic.
+
+**Decisions locked (2026-07-02):**
+
+- The durable entity is a **`routes` table** — matching the existing internal
+  naming (`route_suggestions`, `route_adjustments`, `route_overrides`,
+  `poi_route_links.route_id`). "Section" is a `route_type` value, not a table.
+- **"Section" is the only user-facing word.** UI copy, tabs, and public pages
+  never say "Route"; `route` remains internal schema/API vocabulary.
+- **Routes are community-origin only.** RiverLaunch does not seed, import, or
+  declare paddleable routes/sections. Every `routes` row is created by
+  promoting a moderated member route suggestion, carries attribution to its
+  submitting member and the promoting moderator, and uses candidate/confidence
+  language per `/docs/specs/principles/no-advice-and-liability-language.md`.
+  The Wye/Tryweryn section fixtures are retired, not promoted — they were
+  centrally authored, which is exactly what this stance rules out.
 
 #### Point Of Interest
 
@@ -309,19 +324,22 @@ river identity is uncertain.
 
 ### Migration From Current Model
 
-The current implementation is section-centric:
+The remaining section-centric residue (2026-07-02 audit):
 
-- contributions carry `sectionId`
-- map POIs carry `section_id`
-- photos are mostly contribution/section scoped
-- route suggestions and route adjustments are separate records
-- fixtures store route geometry inside `RiverSection`
+- `paddling_features.section_id` / `contributions.section_id` still carry
+  fixture section ids, and several live reads pivot on
+  `route_source = 'section_fixture'` link rows: river POI reads
+  (`listMapPoisForRiver`), river photo stamping in the sync write path, and —
+  most critically — **river level states** (`listRiverLevelStates` joins
+  `canonical_river_section_links` → `section_measure_links`).
+- The frontend fabricates one placeholder "River overview" section per
+  canonical river; the rich Wye/Tryweryn fixtures are dead code.
 
-This is acceptable for the prototype, but new work should move toward the
-decoupled model. The current migration path keeps fixture/source records intact,
-adds location-owned POI shadow records, relationship links, and published route
-overrides, then gradually switches API reads to those relationship-backed
-records.
+The retirement path (owned by
+`/docs/development/plan-community-sections.md`): re-key those reads to
+`pois.river_id` and a new `river_measure_links` table first, then delete the
+fixture seeds and `section_fixture` link rows, then introduce the community
+`routes` table via suggestion promotion.
 
 ## Open Questions
 
@@ -358,7 +376,7 @@ records.
 | GEO-B2 | decision | Watercourse vs waterbody | Open | MVP | Decide whether canals, lakes, estuaries, sea routes, and tidal reaches use one shared abstraction. |
 | GEO-B3 | enhancement | Derived relationship engine | Open | MVP | Build spatial relationship queries for route corridor, current location, watercourse, and observation relevance. |
 | GEO-B4 | validation | Route impact thresholds | Active | MVP | First-pass frontend thresholds use a 120 m route corridor and 350 m endpoint warning distance; tune with field feedback and backend spatial queries. |
-| GEO-B5 | migration | Canonical route publishing | Active | MVP | Approved section route adjustments now publish to route overrides without rewriting seed/source route records. |
+| GEO-B5 | migration | Canonical route publishing | Active | MVP | Route overrides were the fixture-era bridge. With fixtures retiring, the durable path is suggestion → promotion → `routes` records (see `/docs/development/plan-community-sections.md`). |
 | GEO-B6 | task | Watercourse imports | Active | MVP | Import OSM waterways for visual snapping and map context. |
 | GEO-B7 | validation | Known rivers overlay density | Open | MVP | Tune viewport limits, simplification, and styling after testing on dense urban/canal areas and small mobile screens. |
 | GEO-B8 | validation | OSM waterway routing quality | Active | MVP | Validate graph routing, branch handling, midpoint disambiguation, and snap distance thresholds on real user route submissions. |
@@ -372,3 +390,4 @@ records.
 | 2026-05-25 | Created core geospatial domain model spec after route/POI ownership review. |
 | 2026-05-26 | Changed snap authority to OSM waterway visual routing. |
 | 2026-06-05 | Added river-first discovery direction while retaining route/section records as sourced paddling interpretations. |
+| 2026-07-02 | Locked decisions: durable `routes` table (section = route_type; "Section" user-facing only); routes are community-origin only — no seeded/declared paddleable routes; Wye/Tryweryn fixtures retired. |

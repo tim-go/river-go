@@ -80,6 +80,11 @@ import {
   type SourceCandidatePoi,
 } from "./services/canonicalRiverApi";
 import {
+  fetchPublicSections,
+  promoteRouteSuggestionToSection,
+  type CommunitySection,
+} from "./services/routesApi";
+import {
   applyContributionModerationDecision,
   deleteContribution,
   fetchModerationContributions,
@@ -128,7 +133,6 @@ import {
 } from "./lib/contributorTerms";
 import { generateUuid } from "./lib/uuid";
 import { evaluateContributorGate } from "./lib/contributorGate";
-import { fetchEnvironmentAgencyGaugeReading } from "./services/riverLevels";
 import {
   processContributionPhoto,
   type ProcessedContributionPhoto,
@@ -141,7 +145,8 @@ import {
   type ObservationJobRun,
   type SectionObservationMeasure,
 } from "./services/observationApi";
-import { formatLocation, formatDateTime, formatObservationValue, formatObservationRange, getObservationStats, getPrimaryObservationMeasure, formatShortDateTime, buildObservationChartPoints, parseCoordinateSearch, looksLikeWhat3Words, normaliseWhat3WordsSearch, routeDistanceKm } from "./lib/format";
+import { messageTone, profileMessageToneClass } from "./lib/messageTone";
+import { formatLocation, formatDateTime, getPrimaryObservationMeasure, parseCoordinateSearch, looksLikeWhat3Words, normaliseWhat3WordsSearch, routeDistanceKm } from "./lib/format";
 import {
   deletePhoto,
   fetchMyPhotos,
@@ -189,12 +194,13 @@ import {
   ContributorOnramp,
   type ContributorActionResult,
 } from "./components/ContributorOnramp";
+import { DetailPanel } from "./components/DetailPanel";
 import { PoiDetailPanel } from "./components/PoiDetailPanel";
 import { RiverMap } from "./components/RiverMap";
 import { useDiscovery } from "./discovery/DiscoveryContext";
 import { RouteAdjustmentImpactPanel } from "./components/RouteAdjustmentImpactPanel";
 import { Metric } from "./components/Metric";
-import { contributionStatusLabel, moderationActions, syncStatusLabel } from "./lib/contributionLabels";
+import { contributionStatusLabel, moderationActions } from "./lib/contributionLabels";
 import {
   applyRouteSuggestionDecision,
   createRouteSuggestion,
@@ -214,10 +220,6 @@ import {
 } from "./services/routeAdjustmentApi";
 import { snapRouteToWatercourses } from "./services/routeSnapApi";
 import {
-  fetchRouteOverrides,
-  type RouteOverride,
-} from "./services/routeOverrideApi";
-import {
   fetchWatercourseImportStatus,
   searchWatercourses,
   type KnownWatercourse,
@@ -229,7 +231,6 @@ import type {
   ContributionType,
   HazardSeverity,
   LatLngTuple,
-  LiveGaugeReading,
   LiveLocationSnapshot,
   MapPoi,
   RiverSection,
@@ -251,6 +252,7 @@ import {
   candidateRouteSuggestionId,
   canonicalRiverOverviewSectionId,
   canonicalRiverToOverviewSection,
+  communitySectionToRiverSection,
   categoryOptions,
   contributionOptions,
   defaultObservedDate,
@@ -258,7 +260,6 @@ import {
   fallbackMapPoisForSection,
   formatDistanceKm,
   formatSourceCandidateValue,
-  getObservationRangeOption,
   hasAdminAccess,
   distanceMetersToRoute,
   hasModeratorAccess,
@@ -279,12 +280,8 @@ import {
   ModerationDraftDecision,
   moderationResultMessage,
   ModerationTab,
-  navigationUrl,
   nearbyPoisForLocation,
   nearestSectionsForLocation,
-  observationParameterLabels,
-  ObservationRangeHours,
-  observationRangeOptions,
   OpenPoiDetailsOptions,
   optionForType,
   PendingPhotoDelete,
@@ -293,8 +290,6 @@ import {
   routeAdjustmentActions,
   RouteAdjustmentDraftDecision,
   RouteCreateMode,
-  RouteDetailsTab,
-  routeDetailsTabs,
   RouteDraftTarget,
   RouteModerationDraftDecision,
   RouteSnapCandidate,
@@ -514,6 +509,12 @@ function App() {
   const hasCenteredOnFirstRiverRef = useRef(false);
   const [pendingUnfavouriteSection, setPendingUnfavouriteSection] =
     useState<RiverSection | null>(null);
+  const [pendingPromoteSuggestionId, setPendingPromoteSuggestionId] = useState<
+    string | null
+  >(null);
+  const [promotingSuggestionId, setPromotingSuggestionId] = useState<
+    string | null
+  >(null);
   const [contributions, setContributions] = useState<Contribution[]>(() =>
     loadContributions(),
   );
@@ -536,7 +537,9 @@ function App() {
     RouteSuggestion[]
   >([]);
   const [routeAdjustments, setRouteAdjustments] = useState<RouteAdjustment[]>([]);
-  const [, setRouteOverrides] = useState<RouteOverride[]>([]);
+  const [communitySections, setCommunitySections] = useState<CommunitySection[]>(
+    [],
+  );
   const [canonicalRivers, setCanonicalRivers] = useState<CanonicalRiverSummary[]>(
     [],
   );
@@ -629,7 +632,6 @@ function App() {
   // Map markers always open the quick-info popup (which offers Details / Snap).
   const markerClickMode: MarkerClickMode = "info";
   const [showRoutesLayer, setShowRoutesLayer] = useState(false);
-  const [showPublicRoutes, setShowPublicRoutes] = useState(false);
   const [showRiverLayer, setShowRiverLayer] = useState(true);
   // Community photo points are a normal layer, on by default; the Layers control
   // owns visibility. Distinct from POI kinds — these are photo-type contributions.
@@ -690,8 +692,7 @@ function App() {
         options: [
           { id: "rivers", label: "Rivers" },
           { id: "waterways", label: "Waterways" },
-          { id: "routes", label: "Routes" },
-          { id: "routes:public", label: "Public routes" },
+          { id: "routes", label: "Sections" },
         ],
       },
       {
@@ -746,7 +747,6 @@ function App() {
     if (showRiverLayer) set.add("rivers");
     if (showKnownRivers) set.add("waterways");
     if (showRoutesLayer) set.add("routes");
-    if (showPublicRoutes) set.add("routes:public");
     if (showPhotoLayer) set.add("photos");
     for (const kind of activePoiKinds) set.add(`poi:${kind}`);
     for (const kind of activeAmenityKinds) set.add(`amenity:${kind}`);
@@ -761,7 +761,6 @@ function App() {
     showRiverLayer,
     showKnownRivers,
     showRoutesLayer,
-    showPublicRoutes,
     showPhotoLayer,
     activePoiKinds,
     activeAmenityKinds,
@@ -784,7 +783,6 @@ function App() {
     } else if (id === "rivers") setShowRiverLayer((value) => !value);
     else if (id === "waterways") setShowKnownRivers((value) => !value);
     else if (id === "routes") setShowRoutesLayer((value) => !value);
-    else if (id === "routes:public") setShowPublicRoutes((value) => !value);
     else if (id === "photos") setShowPhotoLayer((value) => !value);
     else if (id === "weather:rain") setShowRain((value) => !value);
     else if (id === "stations:paddler")
@@ -820,7 +818,6 @@ function App() {
     setShowRiverLayer(false);
     setShowKnownRivers(false);
     setShowRoutesLayer(false);
-    setShowPublicRoutes(false);
     setShowPhotoLayer(false);
     setActivePoiKinds(new Set());
     setActiveAmenityKinds(new Set());
@@ -906,7 +903,6 @@ function App() {
     }
     return [...nations].sort();
   }, [canonicalRivers]);
-  const [showSelectedRoutePath, setShowSelectedRoutePath] = useState(false);
   const [routeFormError, setRouteFormError] = useState("");
   const [routeRiverName, setRouteRiverName] = useState("");
   const [routeSectionName, setRouteSectionName] = useState("");
@@ -915,9 +911,6 @@ function App() {
   const [routeAccessNotes, setRouteAccessNotes] = useState("");
   const [routeEvidence, setRouteEvidence] = useState("");
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [isRouteStatusCardVisible, setIsRouteStatusCardVisible] = useState(true);
-  const [routeDetailsTab, setRouteDetailsTab] =
-    useState<RouteDetailsTab>("details");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [contributionType, setContributionType] =
     useState<ContributionType>("hazard");
@@ -965,7 +958,7 @@ function App() {
     null,
   );
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
-  const [syncMessage, setSyncMessage] = useState("");
+  const [, setSyncMessage] = useState("");
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
@@ -1063,18 +1056,6 @@ function App() {
     useState<ModerationTab>("route-edits");
   const [isModerationLoading, setIsModerationLoading] = useState(false);
   const [moderationMessage, setModerationMessage] = useState("");
-  const [liveGauge, setLiveGauge] = useState<LiveGaugeReading | null>(null);
-  const [isGaugeLoading, setIsGaugeLoading] = useState(false);
-  const [sectionObservations, setSectionObservations] = useState<
-    SectionObservationMeasure[]
-  >([]);
-  const [observationRangeHours, setObservationRangeHours] =
-    useState<ObservationRangeHours>(48);
-  const [displayedObservationRangeHours, setDisplayedObservationRangeHours] =
-    useState<ObservationRangeHours>(48);
-  const [isSectionObservationsLoading, setIsSectionObservationsLoading] =
-    useState(false);
-  const [sectionObservationMessage, setSectionObservationMessage] = useState("");
   const [observationJobRuns, setObservationJobRuns] = useState<
     ObservationJobRun[]
   >([]);
@@ -1151,8 +1132,17 @@ function App() {
   const [isLocationSearchLoading, setIsLocationSearchLoading] = useState(false);
 
   const appRiverSections = useMemo(
-    () => canonicalRivers.map(canonicalRiverToOverviewSection),
-    [canonicalRivers],
+    () => [
+      ...canonicalRivers.map(canonicalRiverToOverviewSection),
+      ...communitySections.map((section) =>
+        communitySectionToRiverSection(
+          section,
+          canonicalRivers.find((river) => river.id === section.riverId)
+            ?.displayName,
+        ),
+      ),
+    ],
+    [canonicalRivers, communitySections],
   );
   const activeSection = useMemo(
     () =>
@@ -1192,11 +1182,6 @@ function App() {
         : mapLayerCategories,
     [mapLayerCategories, selectedCanonicalRiver],
   );
-  const observationSectionIdRef = useRef(activeSection.id);
-
-  const sectionContributions = contributions.filter(
-    (contribution) => contribution.sectionId === activeSection.id,
-  );
   const fallbackSectionMapPois = useMemo(
     () => fallbackMapPoisForSection(activeSection),
     [activeSection],
@@ -1204,53 +1189,6 @@ function App() {
   const visibleSectionMapPois = isSectionMapPoisLoaded
     ? sectionMapPois
     : fallbackSectionMapPois;
-  const visibleAccessPois = visibleSectionMapPois.filter(
-    (poi) => poi.kind === "access",
-  );
-  const visibleHazardPois = visibleSectionMapPois.filter(
-    (poi) => poi.kind === "hazard",
-  );
-  const primaryObservationMeasure = useMemo(
-    () => getPrimaryObservationMeasure(sectionObservations),
-    [sectionObservations],
-  );
-  const primaryObservationStats = primaryObservationMeasure
-    ? getObservationStats(primaryObservationMeasure)
-    : null;
-  const routeStatusSummary = primaryObservationMeasure
-    ? {
-        label: observationParameterLabels[primaryObservationMeasure.parameter],
-        value: formatObservationValue(
-          primaryObservationMeasure.latest?.value,
-          primaryObservationMeasure.unit,
-        ),
-        trend: primaryObservationStats?.trend ?? "steady",
-        source: primaryObservationMeasure.stationName,
-        observedAt: formatShortDateTime(
-          primaryObservationMeasure.latest?.observedAt,
-        ),
-        state: primaryObservationMeasure.latest?.state ?? "unavailable",
-      }
-    : liveGauge
-      ? {
-          label: "River level",
-          value:
-            liveGauge.gauge.latestValue != null
-              ? `${liveGauge.gauge.latestValue.toFixed(2)} ${liveGauge.gauge.unit}`
-              : activeSection.gauge.value,
-          trend: liveGauge.state ?? liveGauge.gauge.trend,
-          source: liveGauge.gauge.name,
-          observedAt: formatShortDateTime(liveGauge.gauge.observedAt),
-          state: liveGauge.state ?? "checking",
-        }
-      : {
-          label: "Level",
-          value: activeSection.levelLabel,
-          trend: activeSection.gauge.trend,
-          source: activeSection.gauge.name,
-          observedAt: activeSection.gauge.observedAt,
-          state: activeSection.levelBand,
-        };
   const latestObservationIngestionJob = observationJobRuns.find(
     (jobRun) => jobRun.jobType === "observations.ingest",
   );
@@ -1273,18 +1211,7 @@ function App() {
     observationIngestionCooldownMs > 0
       ? `${Math.ceil(observationIngestionCooldownMs / 60000)} min`
       : "";
-  const sectionContributionPhotos = sectionContributions.flatMap((contribution) =>
-    (contribution.photos ?? []).map((photo) => ({ contribution, photo })),
-  );
-
   const currentContributionOption = optionForType(contributionType);
-  const outboxByContributionId = useMemo(
-    () =>
-      new Map(
-        outboxRecords.map((record) => [record.contribution.id, record] as const),
-      ),
-    [outboxRecords],
-  );
   const queuedOutboxCount = outboxRecords.filter((record) =>
     ["draft", "queued", "syncing", "failed"].includes(record.syncStatus),
   ).length;
@@ -1413,7 +1340,13 @@ function App() {
 
   useEffect(() => {
     void loadCanonicalRivers();
+    void loadCommunitySections();
   }, []);
+
+  useEffect(() => {
+    if (!selectedCanonicalRiverId) return;
+    void loadCommunitySections();
+  }, [selectedCanonicalRiverId]);
 
   // On first load, centre the map on the first river once its record arrives;
   // the initial empty overview otherwise parks the map on empty space.
@@ -1777,26 +1710,6 @@ function App() {
   useEffect(() => {
     let isMounted = true;
 
-    fetchRouteOverrides()
-      .then((overrides) => {
-        if (isMounted) {
-          setRouteOverrides(overrides);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setRouteOverrides([]);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
     fetchApprovedRouteSuggestions()
       .then((suggestions) => {
         if (isMounted) {
@@ -2023,70 +1936,6 @@ function App() {
       isMounted = false;
     };
   }, [outboxStore]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const isNewSection = observationSectionIdRef.current !== activeSection.id;
-
-    if (isCanonicalOverviewSection(activeSection)) {
-      if (isNewSection) {
-        observationSectionIdRef.current = activeSection.id;
-      }
-      setLiveGauge(null);
-      setSectionObservations([]);
-      setIsGaugeLoading(false);
-      setIsSectionObservationsLoading(false);
-      setSectionObservationMessage("");
-
-      return () => {
-        isMounted = false;
-      };
-    }
-
-    if (isNewSection) {
-      observationSectionIdRef.current = activeSection.id;
-      setLiveGauge(null);
-      setSectionObservations([]);
-      setDisplayedObservationRangeHours(observationRangeHours);
-    }
-
-    setIsGaugeLoading(true);
-    setIsSectionObservationsLoading(true);
-    setSectionObservationMessage("");
-
-    Promise.allSettled([
-      fetchSectionObservations(activeSection.id, observationRangeHours),
-      fetchEnvironmentAgencyGaugeReading(activeSection),
-    ])
-      .then(([observationsResult, liveGaugeResult]) => {
-        if (isMounted) {
-          if (observationsResult.status === "fulfilled") {
-            setSectionObservations(observationsResult.value);
-            setDisplayedObservationRangeHours(observationRangeHours);
-          } else {
-            setSectionObservationMessage(
-              observationsResult.reason instanceof Error
-                ? observationsResult.reason.message
-                : "Could not load stored observation history.",
-            );
-          }
-
-          if (liveGaugeResult.status === "fulfilled") {
-            setLiveGauge(liveGaugeResult.value);
-          }
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsGaugeLoading(false);
-          setIsSectionObservationsLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [activeSection, observationRangeHours]);
 
   async function submitContribution(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -3147,6 +2996,18 @@ function App() {
     }
   }
 
+  // Canonical, community-promoted sections (routes.ts). Public + unauthenticated;
+  // loaded whole (the catalogue is community-origin only, so it stays small) on
+  // app load and again whenever a river is selected, so a freshly promoted
+  // section shows up without a full reload.
+  async function loadCommunitySections() {
+    try {
+      setCommunitySections(await fetchPublicSections());
+    } catch {
+      setCommunitySections([]);
+    }
+  }
+
   async function openAdminPanel() {
     setActiveAppSection("admin");
     setActiveAdminPage("members");
@@ -3312,13 +3173,6 @@ function App() {
       setObservationJobMessage(
         `River levels refreshed: ${jobRun.readingsFetched} readings fetched, ${jobRun.readingsInserted} inserted.`,
       );
-
-      if (activeAppSection === "map") {
-        setDisplayedObservationRangeHours(observationRangeHours);
-        setSectionObservations(
-          await fetchSectionObservations(activeSection.id, observationRangeHours),
-        );
-      }
     } catch (error) {
       setObservationJobMessage(
         error instanceof Error
@@ -3462,6 +3316,38 @@ function App() {
     }
   }
 
+  // Promote an approved route suggestion into a canonical, published section.
+  // A distinct, explicit second moderator action from approve — never
+  // automatic — with a confirm step (see docs/development/plan-community-sections.md).
+  async function confirmPromoteRouteSuggestion(suggestion: RouteSuggestion) {
+    setModerationMessage("");
+    setPromotingSuggestionId(suggestion.id);
+
+    try {
+      await promoteRouteSuggestionToSection(suggestion.id);
+      setPendingPromoteSuggestionId(null);
+      setModerationRouteSuggestions(await fetchModerationRouteSuggestions());
+      await loadCommunitySections();
+      setModerationMessage(`Promoted ${suggestion.sectionName} to a section.`);
+    } catch (error) {
+      setModerationMessage(
+        error instanceof Error ? error.message : "Could not promote this suggestion.",
+      );
+    } finally {
+      setPromotingSuggestionId(null);
+    }
+  }
+
+  function viewPromotedSection(routeId: string) {
+    const section = appRiverSections.find((item) => item.id === routeId);
+    if (!section) {
+      showAppNotification("That section hasn't loaded yet — try again shortly.", "error");
+      return;
+    }
+    selectSection(section);
+    setActiveAppSection("map");
+  }
+
   async function applyRouteAdjustmentModerationDecision(
     routeAdjustment: RouteAdjustment,
     decision: RouteAdjustmentDecision,
@@ -3494,12 +3380,10 @@ function App() {
       );
       if (
         updatedAdjustment.status === "approved" &&
-        updatedAdjustment.targetType === "section"
+        updatedAdjustment.targetType === "section" &&
+        updatedAdjustment.targetId === activeSection.id
       ) {
-        setRouteOverrides(await fetchRouteOverrides());
-        if (updatedAdjustment.targetId === activeSection.id) {
-          setSectionFocusNonce((current) => current + 1);
-        }
+        setSectionFocusNonce((current) => current + 1);
       }
       if (
         updatedAdjustment.status === "approved" &&
@@ -3616,27 +3500,11 @@ function App() {
     }
   }
 
-  function updateContributionStatus(
-    contributionId: string,
-    status: "confirmed" | "resolved",
-  ) {
-    setContributions((current) =>
-      current.map((contribution) =>
-        contribution.id === contributionId
-          ? {
-              ...contribution,
-              confirmations:
-                status === "confirmed"
-                  ? contribution.confirmations + 1
-                  : contribution.confirmations,
-              lastConfirmed: "Just now",
-            }
-          : contribution,
-      ),
-    );
-  }
 
-  function startRouteSuggestionMode(watercourse?: KnownWatercourse) {
+  function startRouteSuggestionMode(
+    watercourse?: KnownWatercourse,
+    riverNameOverride?: string,
+  ) {
     if (!isSignedIn) {
       requireSignInForSave();
       return;
@@ -3650,7 +3518,9 @@ function App() {
     setRouteDraftSnapMessage("");
     setRouteCreateMode("tracing");
     setRouteFormError("");
-    setRouteRiverName(watercourse?.name ?? activeSection.riverName);
+    setRouteRiverName(
+      watercourse?.name ?? riverNameOverride ?? activeSection.riverName,
+    );
     setRouteSectionName("");
     setRouteDifficulty("");
     setRouteSummary("");
@@ -3997,6 +3867,7 @@ function App() {
         authState.user?.displayName ??
         "Route contributor",
       createdAt: new Date().toISOString(),
+      promotedRouteId: null,
     };
 
     try {
@@ -4121,8 +3992,6 @@ function App() {
     setSelectedPoi(null);
     setIsPoiDetailExpanded(false);
     setShowRoutesLayer(!isRiverOverview);
-    setShowSelectedRoutePath(!isRiverOverview);
-    setIsRouteStatusCardVisible(true);
     setSectionFocusNonce((current) => current + 1);
     setSearchFocusLocation(null);
     setSearchFocusLabel("Searched location");
@@ -4200,38 +4069,14 @@ function App() {
 
   function openRouteDetails(section: RiverSection) {
     setActiveSectionId(section.id);
-    setShowSelectedRoutePath(true);
-    setIsRouteStatusCardVisible(true);
     setSelectedPoi(null);
-    setRouteDetailsTab("details");
     setIsPanelOpen(true);
+    // The river panel occupies the same slot — never show both stacked.
+    setIsSelectedRiverPanelOpen(false);
     void trackProductEvent("select_content", {
       content_type: "route_details",
       item_id: section.id,
       river_name: section.riverName,
-    });
-  }
-
-  function openCurrentRouteDetailsTab(tab: RouteDetailsTab) {
-    setSelectedPoi(null);
-    setRouteDetailsTab(tab);
-    setIsPanelOpen(true);
-    if (tab === "levels") {
-      void trackProductEvent("route_level_viewed", {
-        section_id: activeSection.id,
-        river_name: activeSection.riverName,
-      });
-    }
-  }
-
-  function toggleRouteDetailsPanel() {
-    setSelectedPoi(null);
-    setIsPanelOpen((current) => {
-      const next = !current;
-      if (next) {
-        setRouteDetailsTab("details");
-      }
-      return next;
     });
   }
 
@@ -4584,99 +4429,6 @@ function App() {
           </div>
         </section>
       ) : null}
-      {activeAppSection === "map" &&
-      !isCanonicalRiverOverviewActive &&
-      !profileRoute ? (
-        <div className="map-section-toolbar">
-          <button
-            className={`ghost-button map-panel-toggle ${
-              isPanelOpen && routeDetailsTab === "levels"
-                ? "map-panel-toggle--active"
-                : ""
-            }`}
-            type="button"
-            onClick={() => openCurrentRouteDetailsTab("levels")}
-            title="View levels"
-            aria-label="View levels"
-            aria-pressed={isPanelOpen && routeDetailsTab === "levels"}
-          >
-            <Droplets size={16} />
-            Levels
-          </button>
-          <button
-            className={`ghost-button map-panel-toggle ${
-              isPanelOpen && routeDetailsTab !== "levels"
-                ? "map-panel-toggle--active"
-                : ""
-            }`}
-            type="button"
-            onClick={toggleRouteDetailsPanel}
-            title="Section details"
-            aria-label="Section details"
-            aria-pressed={isPanelOpen && routeDetailsTab !== "levels"}
-          >
-            <MapPinned size={16} />
-            Details
-          </button>
-          <button
-            className={`icon-button topbar-secondary-control ${
-              isActiveSectionFavourite ? "icon-button--active" : ""
-            }`}
-            type="button"
-            title={
-              !isSignedIn
-                ? "Create account to save favourites"
-                : isActiveSectionFavourite
-                ? "Remove from favourites"
-                : "Add to favourites"
-            }
-            aria-label={
-              !isSignedIn
-                ? "Create account to save favourites"
-                : isActiveSectionFavourite
-                ? "Remove from favourites"
-                : "Add to favourites"
-            }
-            aria-pressed={isActiveSectionFavourite}
-            onClick={() => toggleFavouriteSection(activeSection)}
-          >
-            <Star size={18} fill={isActiveSectionFavourite ? "currentColor" : "none"} />
-            <span className="topbar-control-label">
-              {isActiveSectionFavourite ? "Saved" : "Favourite"}
-            </span>
-          </button>
-          {canAccessAdminTools ? (
-            <button
-              className={`ghost-button map-panel-toggle topbar-secondary-control ${
-                routeDraftTarget.type !== "new" ? "map-panel-toggle--active" : ""
-              }`}
-              type="button"
-              title="Edit this route"
-              aria-label="Edit this route"
-              aria-pressed={routeDraftTarget.type !== "new"}
-              onClick={() => startRouteAdjustmentMode(activeSection)}
-            >
-              <Route size={16} />
-              Edit route
-            </button>
-          ) : null}
-          <button
-            className={`ghost-button map-panel-toggle topbar-secondary-control ${
-              routeCreateMode !== "idle" && routeDraftTarget.type === "new"
-                ? "map-panel-toggle--active"
-                : ""
-            }`}
-            type="button"
-            title="Suggest a missing route"
-            aria-label="Suggest a missing route"
-            aria-pressed={routeCreateMode !== "idle"}
-            onClick={() => startRouteSuggestionMode()}
-          >
-            <Route size={16} />
-            Suggest route
-          </button>
-        </div>
-      ) : null}
       {activeAppSection === "map" && !profileRoute ? (
         <div className="map-floating-actions">
           <MapFilterControl
@@ -4719,6 +4471,20 @@ function App() {
               onClick={() => requestAddContribution()}
             >
               <Plus size={19} />
+            </MapActionButton>
+            <MapActionButton
+              label="Suggest a section"
+              active={routeCreateMode !== "idle" && routeDraftTarget.type === "new"}
+              onClick={() => startRouteSuggestionMode()}
+            >
+              <span className="map-action-combo">
+                <Route size={18} />
+                <Plus
+                  size={11}
+                  strokeWidth={3}
+                  className="map-action-combo__plus"
+                />
+              </span>
             </MapActionButton>
             <MapActionButton
               label={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
@@ -4775,6 +4541,10 @@ function App() {
           selectedRiverMapPois={selectedRiverMapPois}
           favouriteRiverIds={favouriteRiverIds}
           onToggleFavouriteRiver={toggleFavouriteRiver}
+          onSuggestSection={(riverName) => {
+            setIsSelectedRiverPanelOpen(false);
+            startRouteSuggestionMode(undefined, riverName);
+          }}
           contributions={contributions}
           routeSuggestions={routeSuggestions}
           routeAdjustments={routeAdjustments}
@@ -4800,7 +4570,6 @@ function App() {
           routeCreateMode={routeCreateMode}
           markerClickMode={markerClickMode}
           showRoutesLayer={showRoutesLayer}
-          showPublicRoutes={showPublicRoutes}
           approvedRouteSuggestions={approvedRouteSuggestions}
           showRiverLayer={showRiverLayer}
           sectionLevelStates={sectionLevelStates}
@@ -4813,7 +4582,7 @@ function App() {
           showRain={showRain}
           stations={displayedStations}
           rainTs={selectedRainTs}
-          showSelectedRoutePath={showSelectedRoutePath}
+          showSelectedRoutePath={!isCanonicalRiverOverviewActive}
           showKnownRivers={showKnownRivers}
           isLevelLegendOpen={isLevelLegendOpen}
           watercourseFocusId={watercourseFocusId}
@@ -4831,50 +4600,6 @@ function App() {
             setIsSelectedRiverPanelExpanded((current) => !current)
           }
         />
-
-        {!isCanonicalRiverOverviewActive && isRouteStatusCardVisible ? (
-          <section className="route-status-card" aria-label="Selected route level">
-            <div className="route-status-card__main">
-              <span className="route-status-card__icon">
-                <Droplets size={16} />
-              </span>
-              <div>
-                <span>{routeStatusSummary.label}</span>
-                <strong>{routeStatusSummary.value}</strong>
-              </div>
-            </div>
-            <button
-              className="ghost-button ghost-button--compact"
-              type="button"
-              onClick={() => openCurrentRouteDetailsTab("levels")}
-            >
-              View levels
-            </button>
-            <button
-              className="icon-button icon-button--compact route-status-card__hide"
-              type="button"
-              title="Hide level summary"
-              aria-label="Hide level summary"
-              onClick={() => setIsRouteStatusCardVisible(false)}
-            >
-              <X size={14} />
-            </button>
-            <div className="route-status-card__meta">
-              <span>{routeStatusSummary.trend}</span>
-              <span>{routeStatusSummary.source}</span>
-              <span>Updated {routeStatusSummary.observedAt}</span>
-            </div>
-          </section>
-        ) : !isCanonicalRiverOverviewActive ? (
-          <button
-            className="route-status-toggle"
-            type="button"
-            onClick={() => setIsRouteStatusCardVisible(true)}
-          >
-            <Droplets size={15} />
-            Show levels
-          </button>
-        ) : null}
 
         {isFormOpen ? (
           <section className="quick-add-panel" aria-label="Add contribution">
@@ -5107,18 +4832,20 @@ function App() {
           <section className="add-mode-banner route-draft-banner" aria-label="Route tracing active">
             <div>
               <p className="eyebrow">
-                {routeDraftTarget.type !== "new" ? "Edit route" : "Suggest route"}
+                {routeDraftTarget.type !== "new"
+                  ? "Edit section"
+                  : "Suggest section"}
               </p>
               <strong>
                 {routeDraftTarget.type !== "new"
-                  ? "Drag existing points or click the map to extend the corrected route."
-                  : "Click along the river to sketch the candidate route."}
+                  ? "Drag existing points or click the map to extend the corrected section."
+                  : "Click along the river to sketch the candidate section."}
               </strong>
               <span>
                 {routeDraftPoints.length
                   ? `${routeDraftPoints.length} point${
                       routeDraftPoints.length === 1 ? "" : "s"
-                    } added. This will be reviewed before changing published route data.`
+                    } added. This will be reviewed before changing published section data.`
                   : routeDraftTarget.type !== "new"
                     ? "Existing route points are loaded. Drag a point to move it, or click the map to add another point."
                     : "Start at the put-in or upstream end, then add points downstream."}
@@ -5178,17 +4905,19 @@ function App() {
         ) : null}
 
         {routeCreateMode === "form" ? (
-          <section className="quick-add-panel route-suggestion-panel" aria-label="Suggest route">
+          <section className="quick-add-panel route-suggestion-panel" aria-label="Suggest section">
             <div className="quick-add-panel__header">
               <div>
                 <p className="eyebrow">
-                  {routeDraftTarget.type !== "new" ? "Edit route" : "Suggest route"}
+                  {routeDraftTarget.type !== "new"
+                    ? "Edit section"
+                    : "Suggest section"}
                 </p>
                 <h2>
                   {routeDraftTarget.type === "route_suggestion_edit"
-                    ? "Route suggestion"
+                    ? "Suggested section"
                     : routeDraftTarget.type !== "new"
-                    ? "Route adjustment"
+                    ? "Section adjustment"
                     : "Candidate river section"}
                 </h2>
               </div>
@@ -5346,77 +5075,61 @@ function App() {
           />
         ) : null}
 
-        {!isCanonicalRiverOverviewActive ? (
-          <section
-            className={`detail-panel ${isPanelOpen ? "detail-panel--open" : ""}`}
-            aria-label="Selected river section"
-          >
-          <button
-            className="panel-close"
-            type="button"
-            aria-label="Close section panel"
-            title="Close"
-            onClick={() => setIsPanelOpen(false)}
-          >
-            <X size={18} />
-          </button>
-
-          <div className="section-hero">
-            <img src={activeSection.photos[0]?.url} alt="" />
-            <div className="section-hero__overlay">
-              <p>{activeSection.riverName}</p>
-              <h2>{activeSection.sectionName}</h2>
-            </div>
-          </div>
-
-          <div className="panel-content panel-content--tabbed">
-            <div className="route-layer-options">
-              <span>Route display</span>
-              <button
-                className={`ghost-button ghost-button--compact ${
-                  showSelectedRoutePath ? "map-panel-toggle--active" : ""
-                }`}
-                type="button"
-                onClick={() =>
-                  setShowSelectedRoutePath((current) => {
-                    const next = !current;
-                    if (next) {
-                      setShowRoutesLayer(true);
-                    }
-                    return next;
-                  })
-                }
-                aria-pressed={showSelectedRoutePath}
-              >
-                {showSelectedRoutePath ? "Hide path" : "Show path"}
-              </button>
-            </div>
-            <div
-              className="segmented-control route-detail-tabs"
-              role="tablist"
-              aria-label="Route details"
-            >
-              {routeDetailsTabs.map((tab) => (
+        {!isCanonicalRiverOverviewActive && isPanelOpen ? (
+          <DetailPanel
+            title={activeSection.sectionName}
+            eyebrow={activeSection.riverName}
+            onClose={() => setIsPanelOpen(false)}
+            ariaLabel="Selected river section"
+            actions={
+              <>
+                {canAccessAdminTools ? (
+                  <button
+                    className="icon-button icon-button--compact"
+                    type="button"
+                    aria-label="Edit this section"
+                    title="Edit section"
+                    onClick={() => startRouteAdjustmentMode(activeSection)}
+                  >
+                    <Route size={16} />
+                  </button>
+                ) : null}
                 <button
-                  className={routeDetailsTab === tab.id ? "active" : ""}
-                  key={tab.id}
+                  className={`icon-button icon-button--compact ${
+                    isActiveSectionFavourite ? "icon-button--active" : ""
+                  }`}
                   type="button"
-                  role="tab"
-                  aria-selected={routeDetailsTab === tab.id}
-                  onClick={() => setRouteDetailsTab(tab.id)}
+                  aria-label={
+                    !isSignedIn
+                      ? "Create account to save favourites"
+                      : isActiveSectionFavourite
+                        ? "Remove from favourites"
+                        : "Add to favourites"
+                  }
+                  title={
+                    !isSignedIn
+                      ? "Create account to save favourites"
+                      : isActiveSectionFavourite
+                        ? "Remove from favourites"
+                        : "Add to favourites"
+                  }
+                  aria-pressed={isActiveSectionFavourite}
+                  onClick={() => toggleFavouriteSection(activeSection)}
                 >
-                  {tab.label}
+                  <Star
+                    size={16}
+                    fill={isActiveSectionFavourite ? "currentColor" : "none"}
+                  />
                 </button>
-              ))}
-            </div>
-
-            {routeDetailsTab === "details" ? (
+              </>
+            }
+          >
               <div className="route-tab-panel" role="tabpanel">
                 <div className="route-summary-panel" aria-label="Route summary">
                   <div className="route-summary-item">
                     <Navigation size={15} />
                     <span>Distance</span>
-                    <strong>{activeSection.distanceKm} km</strong>
+                    <strong>{formatDistanceKm(activeSection.distanceKm)}</strong>
                   </div>
                   <div className="route-summary-item">
                     <Clock3 size={15} />
@@ -5441,9 +5154,9 @@ function App() {
                   <div className="notice notice--candidate">
                     <Flag size={18} />
                     <span>
-                      This is an approved community candidate route. It still
-                      needs local verification before being treated as trip
-                      advice.
+                      This is an approved community candidate section. It
+                      still needs local verification before being treated as
+                      trip advice.
                     </span>
                   </div>
                 ) : null}
@@ -5464,528 +5177,7 @@ function App() {
                   </p>
                 </section>
               </div>
-            ) : null}
-
-            {routeDetailsTab === "levels" ? (
-              <div className="route-tab-panel" role="tabpanel">
-                <section className="info-block info-block--first">
-                  <div className="block-title">
-                    <h3>Observations</h3>
-                    <span>
-                      {isSectionObservationsLoading
-                        ? sectionObservations.length
-                          ? "Updating"
-                          : "Loading"
-                        : sectionObservations.length
-                          ? `${sectionObservations.length} linked`
-                          : "No gauge linked yet"}
-                    </span>
-                  </div>
-                  <div
-                    className="segmented-control observation-range-tabs"
-                    aria-label="Observation range"
-                  >
-                    {observationRangeOptions.map((option) => (
-                      <button
-                        className={
-                          option.hours === observationRangeHours ? "active" : ""
-                        }
-                        type="button"
-                        key={option.hours}
-                        onClick={() => setObservationRangeHours(option.hours)}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                  {sectionObservations.length ? (
-                    <div
-                      className={`observation-list ${
-                        isSectionObservationsLoading ? "observation-list--updating" : ""
-                      }`}
-                    >
-                      {sectionObservations.map((measure) => {
-                        const rangeOption =
-                          getObservationRangeOption(displayedObservationRangeHours);
-                        const chartPoints = buildObservationChartPoints(measure);
-                        const latestChartPoint = chartPoints
-                          .split(" ")
-                          .at(-1)
-                          ?.split(",");
-                        const stats = getObservationStats(measure);
-                        const midValue =
-                          stats.min != null && stats.max != null
-                            ? (stats.min + stats.max) / 2
-                            : null;
-
-                        return (
-                          <article className="observation-card" key={measure.id}>
-                            <div className="observation-card__header">
-                              <div>
-                                <strong>{measure.stationName}</strong>
-                                <span>
-                                  {observationParameterLabels[measure.parameter]} ·{" "}
-                                  {measure.relevance.replaceAll("_", " ")}
-                                </span>
-                              </div>
-                              <span
-                                className={`status-chip status-chip--${
-                                  measure.latest?.state ?? "unavailable"
-                                }`}
-                              >
-                                {measure.latest?.state ?? "unavailable"}
-                              </span>
-                            </div>
-                            <div className="observation-metrics">
-                              <span>
-                                <strong>
-                                  {formatObservationValue(
-                                    measure.latest?.value,
-                                    measure.unit,
-                                  )}
-                                </strong>
-                                Latest
-                              </span>
-                              <span>
-                                <strong>{formatObservationRange(measure)}</strong>
-                                {rangeOption.rangeLabel}
-                              </span>
-                              <span>
-                                <strong className={`trend-label trend-label--${stats.trend}`}>
-                                  {stats.trend}
-                                </strong>
-                                Trend
-                              </span>
-                            </div>
-                            {chartPoints ? (
-                              <div
-                                className="observation-chart"
-                                role="img"
-                                aria-label={`${rangeOption.chartLabel} ${observationParameterLabels[
-                                  measure.parameter
-                                ].toLowerCase()} trend from ${formatObservationValue(
-                                  stats.min,
-                                  measure.unit,
-                                )} to ${formatObservationValue(stats.max, measure.unit)}`}
-                              >
-                                <div
-                                  className="observation-chart__axis"
-                                  aria-hidden="true"
-                                >
-                                  <span>{formatObservationValue(stats.max, measure.unit)}</span>
-                                  <span>{formatObservationValue(midValue, measure.unit)}</span>
-                                  <span>{formatObservationValue(stats.min, measure.unit)}</span>
-                                </div>
-                                <svg
-                                  viewBox="0 0 240 72"
-                                  aria-hidden="true"
-                                  preserveAspectRatio="none"
-                                >
-                                  <line
-                                    className="observation-chart__grid observation-chart__grid--major"
-                                    x1="0"
-                                    x2="240"
-                                    y1="8"
-                                    y2="8"
-                                  />
-                                  <line
-                                    className="observation-chart__grid"
-                                    x1="0"
-                                    x2="240"
-                                    y1="36"
-                                    y2="36"
-                                  />
-                                  <line
-                                    className="observation-chart__grid observation-chart__grid--major"
-                                    x1="0"
-                                    x2="240"
-                                    y1="64"
-                                    y2="64"
-                                  />
-                                  <polyline
-                                    className="observation-chart__line"
-                                    points={chartPoints}
-                                  />
-                                  <circle
-                                    className="observation-chart__point"
-                                    cx={latestChartPoint?.[0]}
-                                    cy={latestChartPoint?.[1]}
-                                    r="3"
-                                  />
-                                </svg>
-                                <div
-                                  className="observation-chart__xaxis"
-                                  aria-hidden="true"
-                                >
-                                  <span>
-                                    {formatShortDateTime(
-                                      measure.history[0]?.observedAt,
-                                    )}
-                                  </span>
-                                  <span>
-                                    {formatShortDateTime(
-                                      measure.history.at(-1)?.observedAt,
-                                    )}
-                                  </span>
-                                </div>
-                              </div>
-                            ) : null}
-                            <div className="observation-meta">
-                              <span>
-                                Observed{" "}
-                                {formatDateTime(measure.latest?.observedAt ?? null)}
-                              </span>
-                              <span>{measure.confidence.replaceAll("-", " ")}</span>
-                            </div>
-                            {measure.sourceUrl ? (
-                              <a
-                                className="source-link"
-                                href={measure.sourceUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                Source
-                              </a>
-                            ) : null}
-                          </article>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="gauge-card">
-                      <div>
-                        <strong>
-                          {liveGauge?.gauge.name ?? activeSection.gauge.name}
-                        </strong>
-                        <span>
-                          {isGaugeLoading
-                            ? "Checking Environment Agency"
-                            : liveGauge?.gauge.observedAt
-                              ? new Date(liveGauge.gauge.observedAt).toLocaleString()
-                              : activeSection.gauge.observedAt}
-                        </span>
-                      </div>
-                      <div>
-                        <strong>
-                          {liveGauge?.gauge.latestValue != null
-                            ? `${liveGauge.gauge.latestValue.toFixed(2)} ${liveGauge.gauge.unit}`
-                            : activeSection.gauge.value}
-                        </strong>
-                        <span>{liveGauge?.state ?? activeSection.gauge.trend}</span>
-                      </div>
-                    </div>
-                  )}
-                  <p className="source-note">
-                    {sectionObservationMessage ||
-                      (sectionObservations.length
-                        ? "Gauge readings shown for context — interpret conditions locally."
-                        : liveGauge?.message ??
-                          "No confirmed gauge for this section yet.")}
-                  </p>
-                </section>
-
-                <section className="info-block">
-                  <h3>Runnable guidance</h3>
-                  <div className="notice">
-                    <AlertTriangle size={18} />
-                    <span>{activeSection.runnableGuidance}</span>
-                  </div>
-                </section>
-              </div>
-            ) : null}
-
-            {routeDetailsTab === "access" ? (
-              <div className="route-tab-panel" role="tabpanel">
-                <section className="info-block info-block--first">
-                  <h3>Access</h3>
-                  <p>{activeSection.accessSummary}</p>
-                  <div className="access-list">
-                    {visibleAccessPois.map((accessPoint) => (
-                      <div className="compact-item" key={accessPoint.id}>
-                        <MapPin size={16} />
-                        <div>
-                          <strong>{accessPoint.title}</strong>
-                          <span>{accessPoint.summary}</span>
-                          <a
-                            className="compact-nav-link"
-                            href={navigationUrl(accessPoint.location)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <ExternalLink size={14} />
-                            Navigate
-                          </a>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              </div>
-            ) : null}
-
-            {routeDetailsTab === "hazards" ? (
-              <div className="route-tab-panel" role="tabpanel">
-                <section className="info-block info-block--first">
-                  <div className="block-title">
-                    <h3>Hazards</h3>
-                    <span>{visibleHazardPois.length}</span>
-                  </div>
-                  {visibleHazardPois.map((hazard) => (
-                    <div className="hazard-item" key={hazard.id}>
-                      <AlertTriangle size={17} />
-                      <div>
-                        <strong>{hazard.title}</strong>
-                        <span>{hazard.subtitle}</span>
-                        <p>{hazard.summary}</p>
-                        <div className="verification-row">
-                          <span
-                            className={`status-chip status-chip--${hazard.verificationStatus}`}
-                          >
-                            {hazard.verificationStatus}
-                          </span>
-                          {hazard.confirmations > 0 ? (
-                            <span>{hazard.confirmations} confirmations</span>
-                          ) : (
-                            <span>needs local confirmation</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </section>
-              </div>
-            ) : null}
-
-            {routeDetailsTab === "updates" ? (
-              <div className="route-tab-panel" role="tabpanel">
-                <section className="contribution-box contribution-box--prominent">
-                  <div className="block-title">
-                    <h3>Add info</h3>
-                    <span>{sectionContributions.length} local updates</span>
-                  </div>
-                  <div className="contribution-actions">
-                    {contributionOptions.slice(0, 4).map((option) => {
-                      const Icon = option.icon;
-                      return (
-                        <button
-                          className="ghost-button"
-                          key={option.type}
-                          type="button"
-                          onClick={() => requestAddContribution(option.type)}
-                        >
-                          <Icon size={16} />
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                <section className="info-block">
-                  <div className="block-title">
-                    <h3>Community Updates</h3>
-                    <span>{sectionContributions.length} local</span>
-                  </div>
-                  {syncMessage ? (
-                    <p className="source-note">{syncMessage}</p>
-                  ) : null}
-                  <div className="report-list">
-                    {activeSection.reports.map((report) => (
-                      <div className="report-item" key={report.id}>
-                        <MessageSquare size={16} />
-                        <div>
-                          <strong>{report.type}</strong>
-                          <span>
-                            {report.author} · {report.dateObserved}
-                          </span>
-                          <p>{report.text}</p>
-                        </div>
-                      </div>
-                    ))}
-                    {sectionContributions.map((contribution) => (
-                      <div className="report-item" key={contribution.id}>
-                        {contribution.type === "hazard" ? (
-                          <AlertTriangle size={16} />
-                        ) : contribution.type === "photo" ? (
-                          <Camera size={16} />
-                        ) : contribution.type === "feature" ? (
-                          <MapPin size={16} />
-                        ) : contribution.type === "access" ? (
-                          <MapPinned size={16} />
-                        ) : (
-                          <MessageSquare size={16} />
-                        )}
-                        <div>
-                          <strong>{contribution.title}</strong>
-                          <span>
-                            {contribution.author} · {contribution.type} · observed{" "}
-                            {contribution.dateObserved ?? "today"} ·{" "}
-                            {contribution.createdAt}
-                          </span>
-                          {contribution.craftType ? (
-                            <span>{contribution.craftType}</span>
-                          ) : null}
-                          {contribution.location ? (
-                            <span>{formatLocation(contribution.location)}</span>
-                          ) : null}
-                          <p>{contribution.detail}</p>
-                          {contribution.photos?.length ? (
-                            <div className="contribution-photo-strip">
-                              {contribution.photos.map((photo) => (
-                                <button
-                                  className="photo-open-button"
-                                  key={photo.id}
-                                  type="button"
-                                  onClick={() =>
-                                    setLightboxPhoto({
-                                      src: photo.displayUrl || photo.thumbnailUrl,
-                                      title: photo.caption || contribution.title,
-                                      caption: contribution.detail,
-                                      alt: photo.caption || contribution.title,
-                                    })
-                                  }
-                                >
-                                  <img
-                                    src={photo.thumbnailUrl || photo.displayUrl}
-                                    alt=""
-                                  />
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
-                          <div className="verification-row">
-                            <span
-                              className={`status-chip status-chip--${
-                                contribution.status ?? "confirmed"
-                              }`}
-                            >
-                              {contributionStatusLabel(
-                                contribution.status ?? "confirmed",
-                              )}
-                            </span>
-                            <span>
-                              {contribution.confirmations ?? 0} confirmations
-                            </span>
-                            <span
-                              className={`status-chip status-chip--sync-${
-                                outboxByContributionId.get(contribution.id)
-                                  ?.syncStatus ?? "local"
-                              }`}
-                            >
-                              {syncStatusLabel(
-                                outboxByContributionId.get(contribution.id)
-                                  ?.syncStatus,
-                              )}
-                            </span>
-                          </div>
-                          {outboxByContributionId.get(contribution.id)
-                            ?.lastSyncError ? (
-                            <p className="sync-error">
-                              {
-                                outboxByContributionId.get(contribution.id)
-                                  ?.lastSyncError
-                              }
-                            </p>
-                          ) : null}
-                          {contribution.type === "hazard" ? (
-                            <div className="inline-actions">
-                              <button
-                                className="ghost-button ghost-button--compact"
-                                type="button"
-                                onClick={() =>
-                                  updateContributionStatus(
-                                    contribution.id,
-                                    "confirmed",
-                                  )
-                                }
-                              >
-                                <CheckCircle2 size={15} />
-                                Confirm
-                              </button>
-                              <button
-                                className="ghost-button ghost-button--compact"
-                                type="button"
-                                onClick={() =>
-                                  updateContributionStatus(
-                                    contribution.id,
-                                    "resolved",
-                                  )
-                                }
-                              >
-                                <Flag size={15} />
-                                Resolve
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              </div>
-            ) : null}
-
-            {routeDetailsTab === "photos" ? (
-              <div className="route-tab-panel" role="tabpanel">
-                <section className="info-block info-block--first">
-                  <h3>Photos</h3>
-                  <div className="photo-grid">
-                    {activeSection.photos.map((photo) => (
-                      <figure key={photo.id}>
-                        <button
-                          className="photo-open-button"
-                          type="button"
-                          onClick={() =>
-                            setLightboxPhoto({
-                              src: photo.url,
-                              title: photo.title,
-                              caption: photo.caption,
-                              alt: photo.title,
-                            })
-                          }
-                        >
-                          <img src={photo.url} alt="" />
-                        </button>
-                        <figcaption>
-                          <strong>{photo.title}</strong>
-                          <span>{photo.caption}</span>
-                        </figcaption>
-                      </figure>
-                    ))}
-                    {sectionContributionPhotos.map(({ contribution, photo }) => (
-                      <figure key={photo.id}>
-                        {photo.displayUrl ? (
-                          <button
-                            className="photo-open-button"
-                            type="button"
-                            onClick={() =>
-                              setLightboxPhoto({
-                                src: photo.displayUrl || photo.thumbnailUrl,
-                                title: photo.caption || contribution.title,
-                                caption: contribution.detail,
-                                alt: photo.caption || contribution.title,
-                              })
-                            }
-                          >
-                            <img src={photo.displayUrl} alt="" />
-                          </button>
-                        ) : (
-                          <div className="photo-placeholder">
-                            <Camera size={24} />
-                          </div>
-                        )}
-                        <figcaption>
-                          <strong>{contribution.title}</strong>
-                          <span>{photo.caption || contribution.detail}</span>
-                        </figcaption>
-                      </figure>
-                    ))}
-                  </div>
-                </section>
-              </div>
-            ) : null}
-          </div>
-        </section>
+        </DetailPanel>
         ) : null}
       </section>
           ) : activeAppSection === "dashboard" ? (
@@ -6256,7 +5448,7 @@ function App() {
                                   onClick={() => startRouteSuggestionMode(watercourse)}
                                 >
                                   <Route size={15} />
-                                  Suggest route
+                                  Suggest section
                                 </button>
                               </div>
                             </div>
@@ -6544,7 +5736,7 @@ function App() {
                         <div>
                           <p className="eyebrow">Remove favourite</p>
                           <h3>{pendingUnfavouriteSection.sectionName}</h3>
-                          <p>Remove this route from your favourites?</p>
+                          <p>Remove this section from your favourites?</p>
                         </div>
                         <div className="form-actions">
                           <button
@@ -6930,7 +6122,7 @@ function App() {
                           represent.
                         </p>
                         {memberMessage ? (
-                          <p className="profile-message">{memberMessage}</p>
+                          <p className={`profile-message${profileMessageToneClass(memberMessage)}`}>{memberMessage}</p>
                         ) : null}
                         <div className="profile-actions">
                           <button
@@ -7048,7 +6240,7 @@ function App() {
                               organiser.
                             </p>
                             {memberMessage ? (
-                              <p className="profile-message">{memberMessage}</p>
+                              <p className={`profile-message${profileMessageToneClass(memberMessage)}`}>{memberMessage}</p>
                             ) : null}
                             <div className="profile-actions">
                               <button
@@ -7160,7 +6352,7 @@ function App() {
                       </button>
                     </div>
                     {pointMessage ? (
-                      <p className="profile-message">{pointMessage}</p>
+                      <p className={`profile-message${profileMessageToneClass(pointMessage)}`}>{pointMessage}</p>
                     ) : null}
                     {isMemberContributionsLoading ? (
                       <p className="source-note">Loading your points...</p>
@@ -7234,7 +6426,7 @@ function App() {
                   <section className="profile-card profile-card--stacked">
                     <div className="block-title">
                       <div>
-                        <h3>My route suggestions</h3>
+                        <h3>My suggested sections</h3>
                         <span>{routeSuggestions.length} saved</span>
                       </div>
                       <button
@@ -7248,7 +6440,7 @@ function App() {
                       </button>
                     </div>
                     {isMemberRouteSuggestionsLoading ? (
-                      <p className="source-note">Loading your route suggestions...</p>
+                      <p className="source-note">Loading your suggested sections...</p>
                     ) : routeSuggestions.length ? (
                       <div className="profile-photo-list">
                         {routeSuggestions.map((suggestion) => (
@@ -7342,7 +6534,7 @@ function App() {
                       </button>
                     </div>
                     {photoMessage ? (
-                      <p className="profile-message">{photoMessage}</p>
+                      <p className={`profile-message${profileMessageToneClass(photoMessage)}`}>{photoMessage}</p>
                     ) : null}
                     {isMemberPhotosLoading ? (
                       <p className="source-note">Loading your photos...</p>
@@ -7814,7 +7006,11 @@ function App() {
                             </div>
                           </div>
                           {adminMemberDetailMessage ? (
-                            <p className="profile-message">
+                            <p
+                              className={`profile-message${profileMessageToneClass(
+                                adminMemberDetailMessage,
+                              )}`}
+                            >
                               {adminMemberDetailMessage}
                             </p>
                           ) : null}
@@ -8095,7 +7291,7 @@ function App() {
                             </button>
                           </div>
                           {moderationMessage ? (
-                            <p className="profile-message">{moderationMessage}</p>
+                            <p className={`profile-message${profileMessageToneClass(moderationMessage)}`}>{moderationMessage}</p>
                           ) : null}
                           {isModerationLoading ? (
                             <p className="source-note">Loading moderation queue...</p>
@@ -8583,6 +7779,77 @@ function App() {
                                             <Route size={15} />
                                             Edit
                                           </button>
+                                          {suggestion.status === "approved" ? (
+                                            pendingPromoteSuggestionId ===
+                                            suggestion.id ? (
+                                              <>
+                                                <span className="moderation-row__meta">
+                                                  Promote to a canonical section?
+                                                  Members will see it as
+                                                  community-reported, not
+                                                  verified advice.
+                                                </span>
+                                                <button
+                                                  className="ghost-button ghost-button--compact"
+                                                  type="button"
+                                                  disabled={
+                                                    promotingSuggestionId ===
+                                                    suggestion.id
+                                                  }
+                                                  onClick={() =>
+                                                    void confirmPromoteRouteSuggestion(
+                                                      suggestion,
+                                                    )
+                                                  }
+                                                >
+                                                  <CheckCircle2 size={15} />
+                                                  Confirm promote
+                                                </button>
+                                                <button
+                                                  className="ghost-button ghost-button--compact"
+                                                  type="button"
+                                                  onClick={() =>
+                                                    setPendingPromoteSuggestionId(null)
+                                                  }
+                                                >
+                                                  Cancel
+                                                </button>
+                                              </>
+                                            ) : (
+                                              <button
+                                                className="ghost-button ghost-button--compact"
+                                                type="button"
+                                                onClick={() =>
+                                                  setPendingPromoteSuggestionId(
+                                                    suggestion.id,
+                                                  )
+                                                }
+                                              >
+                                                <Star size={15} />
+                                                Promote to section
+                                              </button>
+                                            )
+                                          ) : null}
+                                          {suggestion.status === "promoted" &&
+                                          suggestion.promotedRouteId ? (
+                                            <>
+                                              <span className="candidate-pill">
+                                                Promoted
+                                              </span>
+                                              <button
+                                                className="ghost-button ghost-button--compact"
+                                                type="button"
+                                                onClick={() =>
+                                                  viewPromotedSection(
+                                                    suggestion.promotedRouteId!,
+                                                  )
+                                                }
+                                              >
+                                                <MapIcon size={15} />
+                                                View section
+                                              </button>
+                                            </>
+                                          ) : null}
                                           <label>
                                             <span>Decision</span>
                                             <select
@@ -8820,7 +8087,14 @@ function App() {
                               </button>
                             </div>
                             {observationJobMessage ? (
-                              <p className="profile-message profile-message--neutral">
+                              <p
+                                className={`profile-message ${
+                                  messageTone(observationJobMessage) ===
+                                  "success"
+                                    ? "profile-message--success"
+                                    : "profile-message--neutral"
+                                }`}
+                              >
                                 {observationJobMessage}
                               </p>
                             ) : null}

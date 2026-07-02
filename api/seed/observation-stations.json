@@ -9,15 +9,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4153?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "tryweryn-dam-centre",
-        "relevance": "downstream",
-        "confidence": "nearby-candidate",
-        "notes": "NRW Bala Weir X is downstream of the upper Tryweryn section. Useful release/level context, but needs local validation before interpreting conditions near the dam or centre."
-      },
-      {
-        "sectionId": "tryweryn-centre-bala",
+        "riverId": "afon-tryweryn",
         "relevance": "primary",
         "confidence": "section-candidate",
         "notes": "NRW Bala Weir X is a candidate primary level measure for the lower Tryweryn toward Bala. Runnable interpretation needs local validation."
@@ -34,18 +28,12 @@
     "samplingInterval": "15_min",
     "datum": "rainfall",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/1018?lang=en&parameterType=2",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "tryweryn-dam-centre",
+        "riverId": "afon-tryweryn",
         "relevance": "rainfall_context",
         "confidence": "nearby-candidate",
         "notes": "NRW rainfall measure at Tryweryn Dam provides local catchment context only. Release-managed flow still needs release schedule and local interpretation."
-      },
-      {
-        "sectionId": "tryweryn-centre-bala",
-        "relevance": "rainfall_context",
-        "confidence": "nearby-candidate",
-        "notes": "NRW rainfall measure at Tryweryn Dam provides upstream rainfall context for the lower Tryweryn."
       }
     ]
   },
@@ -59,9 +47,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4014?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "wye-glasbury-hay",
+        "riverId": "river-wye",
         "relevance": "primary",
         "confidence": "section-candidate",
         "notes": "NRW Glasbury is a candidate primary level measure for Glasbury to Hay-on-Wye. Runnable ranges need local validation."
@@ -78,15 +66,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4016?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "wye-glasbury-hay",
-        "relevance": "downstream",
-        "confidence": "section-candidate",
-        "notes": "NRW Hay-on-Wye is a downstream candidate for Glasbury to Hay-on-Wye."
-      },
-      {
-        "sectionId": "wye-hay-whitney",
+        "riverId": "river-wye",
         "relevance": "primary",
         "confidence": "section-candidate",
         "notes": "NRW Hay-on-Wye is a candidate primary level measure for Hay-on-Wye to Whitney Bridge."
@@ -103,9 +85,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4004?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "wye-whitney-bredwardine",
+        "riverId": "river-wye",
         "relevance": "primary",
         "confidence": "section-candidate",
         "notes": "NRW/EA Bredwardine is a candidate primary level measure for Whitney Bridge to Bredwardine."
@@ -122,9 +104,9 @@
     "samplingInterval": "15_min",
     "datum": "mASD",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/055807_TG_320-level-stage-i-15_min-mASD",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "wye-hoarwithy-ross",
+        "riverId": "river-wye",
         "relevance": "upstream",
         "confidence": "nearby-candidate",
         "notes": "EA Old Wye Bridge is upstream of Hoarwithy to Ross-on-Wye. Use as context until a better section-specific link is validated."
@@ -141,24 +123,12 @@
     "samplingInterval": "15_min",
     "datum": "mASD",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/055817_TG_323-level-stage-i-15_min-mASD",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "wye-hoarwithy-ross",
-        "relevance": "downstream",
-        "confidence": "section-candidate",
-        "notes": "EA Ross-on-Wye is a downstream candidate for Hoarwithy to Ross-on-Wye."
-      },
-      {
-        "sectionId": "wye-ross-kerne",
+        "riverId": "river-wye",
         "relevance": "primary",
         "confidence": "section-candidate",
         "notes": "EA Ross-on-Wye is a candidate primary level measure for Ross-on-Wye to Kerne Bridge."
-      },
-      {
-        "sectionId": "wye-kerne-symonds-yat",
-        "relevance": "upstream",
-        "confidence": "section-candidate",
-        "notes": "EA Ross-on-Wye is an upstream candidate for Kerne Bridge to Symonds Yat."
       }
     ]
   },
@@ -172,21 +142,9 @@
     "samplingInterval": "15_min",
     "datum": "mASD",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/2320-level-stage-i-15_min-mASD",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "wye-ross-kerne",
-        "relevance": "downstream",
-        "confidence": "section-candidate",
-        "notes": "EA Lydbrook is downstream of Ross-on-Wye to Kerne Bridge. Needs local validation before interpreting runnable ranges."
-      },
-      {
-        "sectionId": "wye-kerne-symonds-yat",
-        "relevance": "primary",
-        "confidence": "section-candidate",
-        "notes": "Lower Wye candidate EA level measure. Needs local validation before interpreting runnable ranges."
-      },
-      {
-        "sectionId": "wye-symonds-yat-monmouth",
+        "riverId": "river-wye",
         "relevance": "primary",
         "confidence": "section-candidate",
         "notes": "Lower Wye candidate EA level measure. Needs local validation before interpreting runnable ranges."
@@ -203,9 +161,9 @@
     "samplingInterval": "15_min",
     "datum": "m",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/46122-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "dart-loop",
+        "riverId": "river-dart-loop",
         "relevance": "primary",
         "confidence": "section-candidate",
         "notes": "EA Austins Bridge is the standard paddler gauge for the Dart Loop (Newbridge to Buckfastleigh). Runnable ranges need local validation."
@@ -222,9 +180,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4163?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "dee-llangollen",
+        "riverId": "river-dee-llangollen",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "NRW Dee at Corwen is the nearest online gauge upstream of Llangollen (Town Falls/Serpent's Tail); there is no telemetered gauge in Llangollen itself. Runnable ranges need local validation."
@@ -241,9 +199,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55173010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "tay-grandtully",
+        "riverId": "river-tay-grandtully",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "SEPA Pitnacree is the closest gauge (about 2 km downstream) to Grandtully; the de-facto Tay-at-Grandtully level. Runnable ranges need local validation."
@@ -260,9 +218,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/750801-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-greta-cumbria-main",
+        "riverId": "river-greta-cumbria",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -279,9 +237,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/730511-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-kent-main",
+        "riverId": "river-kent",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -298,9 +256,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/735430-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-leven-main",
+        "riverId": "river-leven",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -317,9 +275,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/737537-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-crake-main",
+        "riverId": "river-crake",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -336,9 +294,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/740101-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-duddon-main",
+        "riverId": "river-duddon",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -355,9 +313,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/742006-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-esk-eskdale-main",
+        "riverId": "river-esk-eskdale",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -374,9 +332,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/735123-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-brathay-main",
+        "riverId": "river-brathay",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -393,9 +351,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/760502-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-eden-cumbria-main",
+        "riverId": "river-eden-cumbria",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -412,9 +370,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/722242-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-lune-main",
+        "riverId": "river-lune",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -431,9 +389,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/723423-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-rawthey-main",
+        "riverId": "river-rawthey",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -450,9 +408,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/F3505-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-tees-upper-main",
+        "riverId": "river-tees-upper",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -469,9 +427,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/F2306-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-swale-main",
+        "riverId": "river-swale",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -488,9 +446,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/L2208-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-ure-main",
+        "riverId": "river-ure",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -507,9 +465,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/L1907-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-wharfe-main",
+        "riverId": "river-wharfe",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -526,9 +484,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/023003-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-north-tyne-main",
+        "riverId": "river-north-tyne",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -545,9 +503,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/47135-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-tavy-main",
+        "riverId": "river-tavy",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -564,9 +522,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/45121-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-barle-main",
+        "riverId": "river-barle",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -583,9 +541,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://environment.data.gov.uk/flood-monitoring/id/measures/50150-level-stage-i-15_min-m",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-east-lyn-main",
+        "riverId": "river-east-lyn",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -602,21 +560,21 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4145?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-conwy-main",
+        "riverId": "river-conwy",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
       },
       {
-        "sectionId": "river-llugwy-main",
+        "riverId": "river-llugwy",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
       },
       {
-        "sectionId": "river-lledr-main",
+        "riverId": "river-lledr",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -633,15 +591,15 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4155?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-glaslyn-main",
+        "riverId": "river-glaslyn",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
       },
       {
-        "sectionId": "river-colwyn-main",
+        "riverId": "river-colwyn",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -658,9 +616,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4171?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-dwyfor-main",
+        "riverId": "river-dwyfor",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -677,9 +635,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4179?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-seiont-main",
+        "riverId": "river-seiont",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -696,9 +654,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4150?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-mawddach-main",
+        "riverId": "river-mawddach",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -715,9 +673,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4146?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-dyfi-main",
+        "riverId": "river-dyfi",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -734,9 +692,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4210?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-teifi-main",
+        "riverId": "river-teifi",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -753,9 +711,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4286?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-usk-main",
+        "riverId": "river-usk",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -772,9 +730,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4010?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-irfon-main",
+        "riverId": "river-irfon",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -791,9 +749,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4196?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-tywi-main",
+        "riverId": "river-tywi",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -810,9 +768,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4091?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-tawe-main",
+        "riverId": "river-tawe",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -829,9 +787,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://rivers-and-seas.naturalresources.wales/Station/4121?lang=en&parameterType=1",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-mellte-main",
+        "riverId": "river-mellte",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -848,9 +806,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=52986010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-orchy-main",
+        "riverId": "river-orchy",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -867,9 +825,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=52539010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-nevis-main",
+        "riverId": "river-nevis",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -886,9 +844,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57174010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-garry-invergarry-main",
+        "riverId": "river-garry-invergarry",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -905,9 +863,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57823010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-moriston-main",
+        "riverId": "river-moriston",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -924,9 +882,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57395010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-affric-main",
+        "riverId": "river-affric",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -943,9 +901,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=58017010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-carron-wester-ross-main",
+        "riverId": "river-carron-wester-ross",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -962,9 +920,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=58236010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-findhorn-main",
+        "riverId": "river-findhorn",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -981,9 +939,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=56932010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-spey-main",
+        "riverId": "river-spey",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -1000,9 +958,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57411010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-feshie-main",
+        "riverId": "river-feshie",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -1019,9 +977,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57912010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-dee-aberdeenshire-main",
+        "riverId": "river-dee-aberdeenshire",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -1038,15 +996,15 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55554010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-tummel-main",
+        "riverId": "river-tummel",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
       },
       {
-        "sectionId": "river-garry-perthshire-main",
+        "riverId": "river-garry-perthshire",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -1063,9 +1021,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55383010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-lyon-main",
+        "riverId": "river-lyon",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -1082,9 +1040,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55481010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-ericht-main",
+        "riverId": "river-ericht",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -1101,9 +1059,9 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=55822010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-tweed-main",
+        "riverId": "river-tweed",
         "relevance": "primary",
         "confidence": "nearby-candidate",
         "notes": "Research-discovered paddler gauge; auto-attached and needs local confirmation."
@@ -1120,12 +1078,12 @@
     "samplingInterval": "15_min",
     "datum": "stage",
     "sourceUrl": "https://timeseries.sepa.org.uk/KiWIS/KiWIS?service=kisters&type=queryServices&datasource=0&request=getTimeseriesValues&ts_id=57960010&format=html",
-    "sectionLinks": [
+    "riverLinks": [
       {
-        "sectionId": "river-conon-main",
+        "riverId": "river-conon",
         "relevance": "primary",
         "confidence": "nearby-candidate",
-        "notes": "SEPA Conon at Moy Bridge — closest live gauge to the paddled Conon (Moy/Luichart). Dam-influenced (Conon hydro scheme); runnable ranges need local validation."
+        "notes": "SEPA Conon at Moy Bridge \u2014 closest live gauge to the paddled Conon (Moy/Luichart). Dam-influenced (Conon hydro scheme); runnable ranges need local validation."
       }
     ]
   }

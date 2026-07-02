@@ -35,3 +35,23 @@
   border: 2px solid #fff;
   background: #2bb673;
 }
+
+/* Composite glyph: primary icon with a small "+" pinned to the corner
+   (e.g. suggest-a-section = route line + plus). */
+.map-action-combo {
+  position: relative;
+  display: inline-flex;
+}
+
+.map-action-combo__plus {
+  position: absolute;
+  right: -7px;
+  bottom: -4px;
+  background: #fff;
+  border-radius: 50%;
+  padding: 1px;
+}
+
+.map-action--active .map-action-combo__plus {
+  background: #ffd60a;
+}

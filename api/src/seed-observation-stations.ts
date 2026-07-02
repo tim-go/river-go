@@ -41,12 +41,12 @@ export function loadObservationStationsSeed(): SeedObservationMeasure[] {
     ]) {
       requireString(measure?.[key], `${at}.${key}`);
     }
-    if (!Array.isArray(measure.sectionLinks)) {
-      throw new Error(`observation-stations seed: ${at}.sectionLinks must be an array`);
+    if (!Array.isArray(measure.riverLinks)) {
+      throw new Error(`observation-stations seed: ${at}.riverLinks must be an array`);
     }
-    measure.sectionLinks.forEach((link: unknown, j: number) => {
-      const linkAt = `${at}.sectionLinks[${j}]`;
-      for (const key of ["sectionId", "relevance", "confidence"]) {
+    measure.riverLinks.forEach((link: unknown, j: number) => {
+      const linkAt = `${at}.riverLinks[${j}]`;
+      for (const key of ["riverId", "relevance", "confidence"]) {
         requireString((link as Record<string, unknown>)?.[key], `${linkAt}.${key}`);
       }
     });

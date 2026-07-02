@@ -9,7 +9,12 @@ export type RouteSuggestionStatus =
   | "needs_info"
   | "approved"
   | "rejected"
-  | "hidden";
+  | "hidden"
+  // Terminal status set only by promoteRouteSuggestion() (routes.ts): an
+  // approved suggestion that a moderator has promoted into a canonical
+  // `routes` row. Drops out of the public "approved" list (superseded by the
+  // route) but stays visible in moderation with a link to the route.
+  | "promoted";
 
 export type RouteSuggestionDecision =
   | "approve"
@@ -37,6 +42,8 @@ export interface ApiRouteSuggestion {
     email: string | null;
     trustLevel: string | null;
   };
+  // Set once a moderator has promoted this suggestion (routes.ts).
+  promotedRouteId: string | null;
 }
 
 interface RouteSuggestionRow {
@@ -56,6 +63,7 @@ interface RouteSuggestionRow {
   display_name: string | null;
   email: string | null;
   trust_level: string | null;
+  promoted_route_id: string | null;
 }
 
 export async function createRouteSuggestion(
@@ -138,8 +146,9 @@ export async function listModerationRouteSuggestions(
         WHEN 'pending_review' THEN 1
         WHEN 'needs_info' THEN 2
         WHEN 'approved' THEN 3
-        WHEN 'rejected' THEN 4
-        ELSE 5
+        WHEN 'promoted' THEN 4
+        WHEN 'rejected' THEN 5
+        ELSE 6
       END,
       rs.created_at DESC
     LIMIT 200`,
@@ -271,9 +280,11 @@ function routeSuggestionSelectSql() {
     rs.member_id,
     COALESCE(m.public_name, m.display_name) AS display_name,
     m.email,
-    m.trust_level
+    m.trust_level,
+    promoted.id AS promoted_route_id
   FROM route_suggestions rs
-  LEFT JOIN members m ON m.id = rs.member_id`;
+  LEFT JOIN members m ON m.id = rs.member_id
+  LEFT JOIN routes promoted ON promoted.source_route_suggestion_id = rs.id`;
 }
 
 function validateRouteSuggestionInput(input: unknown) {
@@ -353,6 +364,7 @@ function mapRouteSuggestionRow(row: RouteSuggestionRow): ApiRouteSuggestion {
       email: row.email,
       trustLevel: row.trust_level,
     },
+    promotedRouteId: row.promoted_route_id,
   };
 }
 

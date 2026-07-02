@@ -113,7 +113,6 @@ export async function listContributionsForSection(
       SELECT route_id
       FROM poi_route_links
       WHERE poi_id = 'contribution:' || c.id::text
-        AND route_source = 'section_fixture'
         AND route_id = $1
         AND status = 'active'
       LIMIT 1

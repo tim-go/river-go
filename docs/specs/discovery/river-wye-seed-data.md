@@ -8,9 +8,17 @@ maturity: Trial
 
 # River Wye Seed Data
 
-**Work state:** Active
-**Last updated:** 2026-05-21
+**Work state:** Retired (2026-07-02)
+**Last updated:** 2026-07-02
 **Scope:** Draft River Wye pilot section data, route traces, marker placement, and validation requirements.
+
+> **Retired:** sections are community-origin only — RiverLaunch does not seed or
+> declare paddleable sections (liability decision, see
+> `/docs/specs/contributions/route-submissions.md`). The Wye section fixtures
+> and their `section_fixture` link rows are being removed per
+> `/docs/development/plan-community-sections.md`. This spec is kept for
+> historical reference; the gauge research below remains useful for river-level
+> mapping.
 
 ## Purpose
 

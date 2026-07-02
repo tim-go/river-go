@@ -18,8 +18,8 @@ Specs are grouped by the product tier model (see `/docs/strategy/feature-registe
 | Public source seeding | `/docs/specs/discovery/public-source-seeding.md` | Source register, licence/permission classification, public reference handling, and candidate route seeding workflow. |
 | River level providers | `/docs/specs/discovery/river-level-providers.md` | EA-first provider model and future backend ingestion. |
 | Water quality | `/docs/specs/discovery/water-quality.md` | Sewage-spill status (National Storm Overflow Hub) and bathing-water classifications tied to put-ins/reaches, presented as risk context under the no-advice principle. |
-| River Wye seed data | `/docs/specs/discovery/river-wye-seed-data.md` | Wye pilot sections, seed geometry, and validation status. |
-| River Tryweryn seed data | `/docs/specs/discovery/river-tryweryn-seed-data.md` | Tryweryn dam-release demo sections, route geometry, release context, and validation status. |
+| River Wye seed data | `/docs/specs/discovery/river-wye-seed-data.md` | **Retired 2026-07-02** — seeded sections dropped (community-origin only); kept for gauge research/history. |
+| River Tryweryn seed data | `/docs/specs/discovery/river-tryweryn-seed-data.md` | **Retired 2026-07-02** — seeded sections dropped (community-origin only); kept for release-context history. |
 | UK kayaking sample catalogue | `/docs/specs/discovery/uk-kayaking-sample-catalogue.md` | Prototype catalogue of well-known UK paddling rivers for discovery, search, favourites, and map browsing. |
 | Nearby amenities and emergency points | `/docs/specs/discovery/nearby-amenities-and-emergency-points.md` | Later-phase toilets/facilities and emergency points (defibrillators, hospitals, payphones) near paddleable rivers, with proximity filtering and source/freshness labelling. |
 
@@ -36,7 +36,7 @@ Specs are grouped by the product tier model (see `/docs/strategy/feature-registe
 | Community contributions | `/docs/specs/contributions/community-contributions.md` | Add mode, saved contributions, status, and contribution UX. |
 | Photo uploads | `/docs/specs/contributions/photo-uploads.md` | Signed-in photo upload workflow, media storage, metadata, moderation, and offline upload queue. |
 | Trust and moderation | `/docs/specs/contributions/trust-and-moderation.md` | Confirmation, resolution, staleness, moderation rules. |
-| Community-sourced sections (route submissions) | `/docs/specs/contributions/route-submissions.md` | Member-created candidate river sections, rough route traces, evidence capture, and moderation/promotion. Demoted: a contribution type, not a primary surface. |
+| Community-sourced sections (route submissions) | `/docs/specs/contributions/route-submissions.md` | Member-created candidate river sections, rough route traces, evidence capture, moderation, and promotion into canonical `routes` records. The **only** source of sections (community-origin only; no seeding). Implementation plan: `/docs/development/plan-community-sections.md`. |
 
 ### Member tools
 

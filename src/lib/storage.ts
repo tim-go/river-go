@@ -25,10 +25,19 @@ export function loadContributions(): Contribution[] {
   }
 }
 
+// Favourite sections (routes.id, community sections). Re-enabled once real
+// (community-promoted) sections exist to favourite — mirrors
+// loadFavouriteRiverIds just below.
 export function loadFavouriteSectionIds(): string[] {
   try {
-    localStorage.removeItem(FAVOURITES_STORAGE_KEY);
-    return [];
+    const stored = localStorage.getItem(FAVOURITES_STORAGE_KEY);
+    if (!stored) {
+      return [];
+    }
+    const value = JSON.parse(stored);
+    return Array.isArray(value)
+      ? value.filter((id): id is string => typeof id === "string")
+      : [];
   } catch {
     return [];
   }

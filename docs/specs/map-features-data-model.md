@@ -12,6 +12,10 @@ see new §5. Many-to-many was considered and **dropped** as over-modelling for t
 POI · grouping/route); contributor- and group-owned **routes with privacy are deferred**
 (§5 "Forward view").
 
+Revised **2026-07-02**: layer 3 is scheduled as **community-origin-only sections** (a canonical
+`routes` table populated solely by promoting member route suggestions; no seeded sections —
+the Wye/Tryweryn fixtures retire). See §5 and `/docs/development/plan-community-sections.md`.
+
 ## 1. The real shape: domain source tables + one shared index
 
 The codebase already has **`pois`** — a **trigger-maintained, polymorphic location index**
@@ -125,13 +129,17 @@ model we're naming but not fully building yet:
    river-scoped.
 2. **POI (now).** The atomic, location-indexed feature in `pois`; shared across plans, owns its
    own identity. *Not* owned by a section.
-3. **Grouping: routes/sections (later).** "Section" generalises to a first-class **route/plan**
-   that *selects* POIs via `poi_route_links` (role = put-in / take-out / stop / scout) and can be
-   owned by a **member or group** with a **visibility** scope. Privacy arrives only here — a
-   group's "river day" is a private route bundling public reference POIs + the group's own
-   points. **Deferred** until a create-route flow exists; legacy fixed sections already live as
-   the public, system-owned case (`poi_route_links.route_source='section_fixture'`), so they
-   become row-zero of this type rather than being torn out.
+3. **Grouping: routes/sections (now scheduled).** "Section" generalises to a first-class
+   **route/plan** that *selects* POIs via `poi_route_links` (role = put-in / take-out / stop /
+   scout) and can later be owned by a **member or group** with a **visibility** scope. Privacy
+   arrives only here — a group's "river day" is a private route bundling public reference POIs +
+   the group's own points. *Revised 2026-07-02:* the earlier idea that legacy fixed sections
+   "become row-zero of this type" is **dropped** — sections are **community-origin only** (no
+   seeded/declared paddleable sections), so the fixtures and their
+   `route_source='section_fixture'` link rows are retired instead. Row-zero of this layer is the
+   first member-suggested section promoted into the canonical `routes` table — see
+   `/docs/development/plan-community-sections.md` and
+   `/docs/specs/contributions/route-submissions.md`.
 
 **Upgrade path — many-to-many, only if needed.** If confluence / shared **access points** ("this
 get-out is also the Tryweryn put-in") turn out to matter enough that one river is wrong, promote

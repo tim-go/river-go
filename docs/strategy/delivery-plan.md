@@ -18,8 +18,9 @@ This document gives a clear view of the current delivery state. The full feature
 | Demo app shell | `/docs/specs/foundations/demo-prototype.md` | Landed | React/Vite/Leaflet prototype exists. |
 | River section map | `/docs/specs/discovery/river-section-map.md` | Active | The active frontend map now uses canonical river API records for overview browsing; old Wye/Tryweryn/sample section fixtures are no longer imported into the active app path. |
 | Offline mode | `/docs/specs/foundations/offline-mode.md` | Active | Contribution saves now queue local outbox operations and can be manually synced; app-shell cache and automatic/background sync are not complete. |
-| River Wye pilot dataset | `/docs/specs/discovery/river-wye-seed-data.md` | Active | Seven Wye sections are seeded with OSM-derived route traces and source/confidence metadata; access/hazard data remains unverified. |
-| River Tryweryn active sample | `/docs/specs/discovery/river-tryweryn-seed-data.md` | Active | Active demo fixture now starts near the Llyn Celyn dam release/stilling-basin outflow and follows the Tryweryn to the centre and Bala. |
+| River Wye pilot dataset | `/docs/specs/discovery/river-wye-seed-data.md` | Retired | Sections are community-origin only (2026-07-02): seeded Wye section fixtures are being removed; gauge research retained for river-level mapping. |
+| River Tryweryn active sample | `/docs/specs/discovery/river-tryweryn-seed-data.md` | Retired | Sections are community-origin only (2026-07-02): seeded Tryweryn fixtures are being removed; release/venue context retained as background. |
+| Community sections (canonical routes) | `/docs/specs/contributions/route-submissions.md` | Queued | Bring sections back community-only: retire fixtures, re-key river reads, add the canonical `routes` table + promotion flow. Plan: `/docs/development/plan-community-sections.md`. |
 | Community add mode | `/docs/specs/contributions/community-contributions.md` | Active | Add mode, map placement, and typed contributions are backend-persisted and identity-gated; contributors can attach updates/photos to an existing POI (CON-F19) without creating duplicate markers. |
 | Hazard confirmation/resolution | `/docs/specs/contributions/trust-and-moderation.md` | Active | Identity-gated confirm/suggest-correction on POIs (CON-F16) is backed by the API; POI verification status (confirmed/needs-correction/resolved) is tracked server-side. |
 | Environment Agency live levels | `/docs/specs/discovery/river-level-providers.md` | Active | Temporary frontend EA adapter exists for mapped lower Wye gauge candidates and falls back for unmapped sections. |
@@ -40,12 +41,13 @@ This document gives a clear view of the current delivery state. The full feature
 
 ## Recommended Next Sprint
 
-1. Light up live levels on the remaining pilot rivers so every pilot opens to a level. The Dart (EA) and Dee/Llangollen (NRW) need only the paddler-relevant station + measure mapped — a `section_measure_links` seed alongside the existing Wye/Tryweryn entries in `api/src/observations.ts`. The Tay/Grandtully is in Scotland (SEPA), which is outside the current EA + NRW adapters and needs a new provider adapter — a code task, not just data.
-2. Discovery depth: river detail page (RIVERDISC-F3), nearby-river list ranked by distance (F4), and fact-based filters (grade/craft/level-state).
-3. Begin Tier 3a Member Tools: paddle history log and personal river history, building on the now-solid contribution identity.
-4. Re-enable email verification once Resend is wired (`VITE_REQUIRE_EMAIL_VERIFICATION` + `REQUIRE_EMAIL_VERIFICATION`).
-5. Run first Wye/Tryweryn feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
-6. Carry-over foundations: keep the offline outbox in the critical path; seed GB OSM waterway geometry for route snapping.
+1. Community sections v1 (`/docs/development/plan-community-sections.md`): re-key river-level/POI reads off the fixture link chain, delete the retired Wye/Tryweryn seeds, then add the canonical `routes` table, suggestion promotion, and section display/favourites.
+2. Light up live levels on the remaining pilot rivers so every pilot opens to a level. The Dart (EA) and Dee/Llangollen (NRW) need only the paddler-relevant station + measure mapped — after the plan's re-key step this becomes a `river_measure_links` seed keyed by canonical river id. The Tay/Grandtully is in Scotland (SEPA), which is outside the current EA + NRW adapters and needs a new provider adapter — a code task, not just data.
+3. Discovery depth: river detail page (RIVERDISC-F3), nearby-river list ranked by distance (F4), and fact-based filters (grade/craft/level-state).
+4. Begin Tier 3a Member Tools: paddle history log and personal river history, building on the now-solid contribution identity.
+5. Re-enable email verification once Resend is wired (`VITE_REQUIRE_EMAIL_VERIFICATION` + `REQUIRE_EMAIL_VERIFICATION`).
+6. Run first Wye/Tryweryn feedback sessions with `/docs/product/wye-pilot-feedback-template.md`.
+7. Carry-over foundations: keep the offline outbox in the critical path; seed GB OSM waterway geometry for route snapping.
 
 ## Release Interpretation
 
