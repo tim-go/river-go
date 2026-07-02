@@ -194,6 +194,7 @@ import {
   ContributorOnramp,
   type ContributorActionResult,
 } from "./components/ContributorOnramp";
+import { DetailPanel } from "./components/DetailPanel";
 import { PoiDetailPanel } from "./components/PoiDetailPanel";
 import { RiverMap } from "./components/RiverMap";
 import { useDiscovery } from "./discovery/DiscoveryContext";
@@ -5424,32 +5425,13 @@ function App() {
           />
         ) : null}
 
-        {!isCanonicalRiverOverviewActive ? (
-          <section
-            className={`detail-panel ${isPanelOpen ? "detail-panel--open" : ""}`}
-            aria-label="Selected river section"
+        {!isCanonicalRiverOverviewActive && isPanelOpen ? (
+          <DetailPanel
+            title={activeSection.sectionName}
+            eyebrow={activeSection.riverName}
+            onClose={() => setIsPanelOpen(false)}
+            ariaLabel="Selected river section"
           >
-          <button
-            className="panel-close"
-            type="button"
-            aria-label="Close section panel"
-            title="Close"
-            onClick={() => setIsPanelOpen(false)}
-          >
-            <X size={18} />
-          </button>
-
-          <div className="section-hero">
-            {activeSection.photos[0]?.url ? (
-              <img src={activeSection.photos[0].url} alt="" />
-            ) : null}
-            <div className="section-hero__overlay">
-              <p>{activeSection.riverName}</p>
-              <h2>{activeSection.sectionName}</h2>
-            </div>
-          </div>
-
-          <div className="panel-content panel-content--tabbed">
             <div className="route-layer-options">
               <span>Section path</span>
               <button
@@ -6064,8 +6046,7 @@ function App() {
                 </section>
               </div>
             ) : null}
-          </div>
-        </section>
+        </DetailPanel>
         ) : null}
       </section>
           ) : activeAppSection === "dashboard" ? (
