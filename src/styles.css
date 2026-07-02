@@ -2891,22 +2891,19 @@ button.group-detail__section {
   background: #7048e8;
 }
 
-.map-marker--section,
-.map-marker--section-active {
-  background: var(--river);
+/* Section endpoints: put-in (start, green) and take-out (end, rust). Together
+   with the route line they mark a section as a stretch, distinct from single
+   POI pins. Candidate sections override the colour inline (purple). */
+.map-marker--section-put-in {
+  background: #1f8a70;
 }
 
-.map-marker--section-candidate,
-.map-marker--section-candidate-active {
-  background: #7c3aed;
+.map-marker--section-take-out {
+  background: #b45309;
 }
 
-.map-marker--section-active {
+.map-marker--section-endpoint-active {
   outline: 4px solid rgba(31, 138, 112, 0.25);
-}
-
-.map-marker--section-candidate-active {
-  outline: 4px solid rgba(124, 58, 237, 0.25);
 }
 
 .map-marker--river {

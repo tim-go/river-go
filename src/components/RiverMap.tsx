@@ -1429,7 +1429,12 @@ export function RiverMap({
 
     const renderedSections = showRoutesLayer
       ? sections.filter(
-          (section) => section.id !== activeSection.id || showSelectedRoutePath,
+          (section) =>
+            // River-overview placeholders aren't real sections — they carry a
+            // single-point route at the river centre, so drawing them would put
+            // a section marker on top of the river's own pin.
+            !isCanonicalOverviewSection(section) &&
+            (section.id !== activeSection.id || showSelectedRoutePath),
         )
       : [];
     let clickedRouteLine: L.Polyline | null = null;
@@ -1509,46 +1514,56 @@ export function RiverMap({
         }
       });
 
-      // Anchor the section's pin at its put-in (route start) rather than its
-      // centre — the centre coincides with the river's own overview pin, which
-      // made the section badge look like the river marker "turning into" an R.
-      const sectionMarkerAnchor = section.route[0] ?? section.centre;
-      const sectionMarker = L.marker(sectionMarkerAnchor, {
-        bubblingMouseEvents: false,
-        icon: L.divIcon({
-          className: "",
-          html: markerHtml(
-            isActive && isCandidate
-              ? "section-candidate-active"
-              : isActive
-                ? "section-active"
-                : isCandidate
-                  ? "section-candidate"
-                  : "section",
-            isCandidate ? "C" : "R",
-          ),
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
-        }),
-      });
-
-      sectionMarker
-        .addTo(layers)
-        .bindPopup(
-          createMapPopupContent({
-            title: section.sectionName,
-            subtitle: section.riverName,
-            summary: section.summary,
-            detailsLabel: "Details",
-            selectLabel: "Select",
-            onDetails: () => routeDetailsRef.current(section),
-            onSelect: () => callbackRef.current(section),
+      // A section reads as a stretch, not a single point: mark its put-in (start)
+      // and take-out (end) rather than one central badge. This differentiates a
+      // section (line + two endpoints) from POIs (single pins) and from the
+      // river's overview pin, which the old centre badge used to sit on top of.
+      const putIn = section.route[0] ?? section.centre;
+      const takeOut = section.route[section.route.length - 1] ?? section.centre;
+      const endpointStyle = isCandidate
+        ? "background:#7c3aed;border-color:#7c3aed;"
+        : "";
+      const addEndpointMarker = (
+        latlng: LatLngTuple,
+        role: "put-in" | "take-out",
+      ) => {
+        const roleLabel = role === "put-in" ? "Put-in" : "Take-out";
+        const marker = L.marker(latlng, {
+          bubblingMouseEvents: false,
+          title: `${roleLabel} · ${section.sectionName}`,
+          icon: L.divIcon({
+            className: "",
+            html: markerHtml(
+              `section-${role}${isActive ? " map-marker--section-endpoint-active" : ""}`,
+              role === "put-in" ? "▸" : "◼",
+              endpointStyle,
+            ),
+            iconSize: [26, 26],
+            iconAnchor: [13, 13],
           }),
-        )
-        .on("click", (event) => {
-          L.DomEvent.stop(event.originalEvent);
-          sectionMarker.openPopup();
         });
+        marker
+          .addTo(layers)
+          .bindPopup(
+            createMapPopupContent({
+              title: section.sectionName,
+              subtitle: `${section.riverName} · ${roleLabel}`,
+              summary: section.summary,
+              detailsLabel: "Details",
+              selectLabel: "Select",
+              onDetails: () => routeDetailsRef.current(section),
+              onSelect: () => callbackRef.current(section),
+            }),
+          )
+          .on("click", (event) => {
+            L.DomEvent.stop(event.originalEvent);
+            marker.openPopup();
+          });
+      };
+      addEndpointMarker(putIn, "put-in");
+      if (takeOut[0] !== putIn[0] || takeOut[1] !== putIn[1]) {
+        addEndpointMarker(takeOut, "take-out");
+      }
 
       mapPois
         .filter((poi) => poi.sectionId === section.id)
