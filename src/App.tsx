@@ -214,10 +214,6 @@ import {
 } from "./services/routeAdjustmentApi";
 import { snapRouteToWatercourses } from "./services/routeSnapApi";
 import {
-  fetchRouteOverrides,
-  type RouteOverride,
-} from "./services/routeOverrideApi";
-import {
   fetchWatercourseImportStatus,
   searchWatercourses,
   type KnownWatercourse,
@@ -536,7 +532,6 @@ function App() {
     RouteSuggestion[]
   >([]);
   const [routeAdjustments, setRouteAdjustments] = useState<RouteAdjustment[]>([]);
-  const [, setRouteOverrides] = useState<RouteOverride[]>([]);
   const [canonicalRivers, setCanonicalRivers] = useState<CanonicalRiverSummary[]>(
     [],
   );
@@ -1773,26 +1768,6 @@ function App() {
     void loadMemberPhotos();
     void loadMemberContributions();
   }, [activeAppSection, authState.user]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    fetchRouteOverrides()
-      .then((overrides) => {
-        if (isMounted) {
-          setRouteOverrides(overrides);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setRouteOverrides([]);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -3494,12 +3469,10 @@ function App() {
       );
       if (
         updatedAdjustment.status === "approved" &&
-        updatedAdjustment.targetType === "section"
+        updatedAdjustment.targetType === "section" &&
+        updatedAdjustment.targetId === activeSection.id
       ) {
-        setRouteOverrides(await fetchRouteOverrides());
-        if (updatedAdjustment.targetId === activeSection.id) {
-          setSectionFocusNonce((current) => current + 1);
-        }
+        setSectionFocusNonce((current) => current + 1);
       }
       if (
         updatedAdjustment.status === "approved" &&

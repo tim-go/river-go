@@ -134,7 +134,6 @@ import {
   isRouteAdjustmentDecision,
   listModerationRouteAdjustments,
 } from "./route-adjustments.js";
-import { listRouteOverrides } from "./route-overrides.js";
 import { listAmenities } from "./amenities.js";
 import { pushSyncOperations } from "./sync.js";
 import {
@@ -885,11 +884,6 @@ async function route(
     const member = await upsertMemberFromAuth(authContext);
     const routeSuggestions = await listRouteSuggestionsForMember(member.id);
     return { status: 200, body: { routeSuggestions } };
-  }
-
-  if (method === "GET" && url.pathname === "/api/route-overrides") {
-    const routeOverrides = await listRouteOverrides();
-    return { status: 200, body: { routeOverrides } };
   }
 
   if (method === "GET" && url.pathname === "/api/route-suggestions/approved") {
