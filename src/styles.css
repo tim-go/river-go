@@ -3326,9 +3326,13 @@ button.group-detail__section {
   place-items: center;
   padding: 0 5px;
   border-radius: 999px;
-  background: #edf1eb;
-  color: var(--muted);
+  /* Themed subtle chip with primary-text number — the old pale hardcoded fill
+     + --muted text washed out in the dark Surge theme. --ink always contrasts
+     with the tab surface behind it. */
+  background: var(--line);
+  color: var(--ink);
   font-size: 0.68rem;
+  font-weight: 700;
 }
 
 .moderation-tabs button.active span {
@@ -3429,7 +3433,8 @@ button.group-detail__section {
   align-items: baseline;
   padding: 3px 6px;
   border-radius: 999px;
-  background: #eef4ef;
+  /* Themed chip — the hardcoded pale fill washed out in Surge. */
+  background: var(--line);
   color: var(--muted);
   white-space: nowrap;
 }
@@ -3852,16 +3857,18 @@ button.group-detail__section {
   height: 15px;
   padding: 0 4px;
   border-radius: 999px;
-  background: rgba(31, 59, 51, 0.1);
-  color: var(--muted);
+  /* Themed subtle chip; see .moderation-tabs button span — the old translucent
+     dark-green fill + --muted text was near-invisible in Surge. */
+  background: var(--line);
+  color: var(--ink);
   font-size: 0.64rem;
   font-weight: 700;
   line-height: 1;
 }
 
 .river-detail-tabs button.active .river-detail-tab-count {
-  background: rgba(31, 59, 51, 0.18);
-  color: var(--river-dark);
+  background: var(--river-dark);
+  color: #fff;
 }
 
 .river-safety-toggle {

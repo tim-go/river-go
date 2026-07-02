@@ -54,10 +54,30 @@ export async function fetchSectionObservations(
   sectionId: string,
   hours = 48,
 ): Promise<SectionObservationMeasure[]> {
+  return fetchObservationMeasures(
+    `/api/sections/${encodeURIComponent(sectionId)}/observations`,
+    hours,
+  );
+}
+
+// River-keyed gauge history (via river_measure_links) — the durable path for the
+// river Levels tab after section_measure_links was retired.
+export async function fetchRiverObservations(
+  riverId: string,
+  hours = 48,
+): Promise<SectionObservationMeasure[]> {
+  return fetchObservationMeasures(
+    `/api/rivers/${encodeURIComponent(riverId)}/observations`,
+    hours,
+  );
+}
+
+async function fetchObservationMeasures(
+  path: string,
+  hours: number,
+): Promise<SectionObservationMeasure[]> {
   const response = await fetch(
-    `${getApiBaseUrl()}/api/sections/${encodeURIComponent(
-      sectionId,
-    )}/observations?hours=${encodeURIComponent(String(hours))}`,
+    `${getApiBaseUrl()}${path}?hours=${encodeURIComponent(String(hours))}`,
     {
       headers: { Accept: "application/json" },
     },
