@@ -240,15 +240,29 @@ button:disabled {
 /* Section tools (shown when a river/section is selected) — a wrapping button bar
    that floats just under the filter bar, over the map, so the top bar stays just
    the filter control. Out of flow, so it never steals a grid row. */
-.map-section-toolbar {
+/* Top-left overlay stack: the section toolbar with the level summary card
+   below it — one absolute container so the two can never overlap. */
+.map-section-stack {
   position: absolute;
   top: 56px;
   left: 12px;
   z-index: 590;
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+  pointer-events: none;
+}
+
+.map-section-stack > * {
+  pointer-events: auto;
+}
+
+.map-section-toolbar {
+  display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  max-width: calc(100% - 24px);
 }
 
 .app-nav {
@@ -792,24 +806,16 @@ h1 {
 }
 
 .route-status-card {
-  position: absolute;
-  top: 12px;
-  left: 16px;
-  z-index: 420;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 7px 10px;
-  width: min(370px, calc(100% - 32px));
+  width: min(370px, 100%);
   padding: 9px 10px;
   border: 1px solid rgba(199, 212, 205, 0.92);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 10px 28px rgba(22, 34, 46, 0.14);
   backdrop-filter: blur(10px);
-}
-
-.workspace--sections-open .route-status-card {
-  left: 308px;
 }
 
 .route-status-card__main {
@@ -902,10 +908,6 @@ h1 {
 }
 
 .route-status-toggle {
-  position: absolute;
-  top: 12px;
-  left: 16px;
-  z-index: 420;
   display: inline-flex;
   min-height: 32px;
   align-items: center;
@@ -919,10 +921,6 @@ h1 {
   font-size: 0.78rem;
   font-weight: 650;
   backdrop-filter: blur(10px);
-}
-
-.workspace--sections-open .route-status-toggle {
-  left: 308px;
 }
 
 .icon-button,
@@ -5487,18 +5485,15 @@ input[type="file"]::file-selector-button:hover {
     width: calc(100% - 16px);
   }
 
-  .route-status-card,
-  .workspace--sections-open .route-status-card,
-  .route-status-toggle,
-  .workspace--sections-open .route-status-toggle {
-    top: 8px;
+  .map-section-stack {
     right: 8px;
     left: 8px;
-    width: auto;
+    max-width: none;
+    align-items: stretch;
   }
 
-  .route-status-card,
-  .workspace--sections-open .route-status-card {
+  .route-status-card {
+    width: auto;
     padding: 8px;
   }
 
@@ -5510,10 +5505,8 @@ input[type="file"]::file-selector-button:hover {
     font-size: 0.66rem;
   }
 
-  .route-status-toggle,
-  .workspace--sections-open .route-status-toggle {
+  .route-status-toggle {
     width: fit-content;
-    right: auto;
   }
 
   .section-list {

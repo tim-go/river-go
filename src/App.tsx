@@ -4258,6 +4258,8 @@ function App() {
     setSelectedPoi(null);
     setRouteDetailsTab("details");
     setIsPanelOpen(true);
+    // The river panel occupies the same slot — never show both stacked.
+    setIsSelectedRiverPanelOpen(false);
     void trackProductEvent("select_content", {
       content_type: "route_details",
       item_id: section.id,
@@ -4640,6 +4642,7 @@ function App() {
       {activeAppSection === "map" &&
       !isCanonicalRiverOverviewActive &&
       !profileRoute ? (
+        <div className="map-section-stack">
         <div className="map-section-toolbar">
           <button
             className={`ghost-button map-panel-toggle ${
@@ -4728,6 +4731,50 @@ function App() {
             <Route size={16} />
             Suggest section
           </button>
+        </div>
+        {isRouteStatusCardVisible ? (
+          <section className="route-status-card" aria-label="Selected section level">
+            <div className="route-status-card__main">
+              <span className="route-status-card__icon">
+                <Droplets size={16} />
+              </span>
+              <div>
+                <span>{routeStatusSummary.label}</span>
+                <strong>{routeStatusSummary.value}</strong>
+              </div>
+            </div>
+            <button
+              className="ghost-button ghost-button--compact"
+              type="button"
+              onClick={() => openCurrentRouteDetailsTab("levels")}
+            >
+              View levels
+            </button>
+            <button
+              className="icon-button icon-button--compact route-status-card__hide"
+              type="button"
+              title="Hide level summary"
+              aria-label="Hide level summary"
+              onClick={() => setIsRouteStatusCardVisible(false)}
+            >
+              <X size={14} />
+            </button>
+            <div className="route-status-card__meta">
+              <span>{routeStatusSummary.trend}</span>
+              <span>{routeStatusSummary.source}</span>
+              <span>Updated {routeStatusSummary.observedAt}</span>
+            </div>
+          </section>
+        ) : (
+          <button
+            className="route-status-toggle"
+            type="button"
+            onClick={() => setIsRouteStatusCardVisible(true)}
+          >
+            <Droplets size={15} />
+            Show levels
+          </button>
+        )}
         </div>
       ) : null}
       {activeAppSection === "map" && !profileRoute ? (
@@ -4902,50 +4949,6 @@ function App() {
             setIsSelectedRiverPanelExpanded((current) => !current)
           }
         />
-
-        {!isCanonicalRiverOverviewActive && isRouteStatusCardVisible ? (
-          <section className="route-status-card" aria-label="Selected route level">
-            <div className="route-status-card__main">
-              <span className="route-status-card__icon">
-                <Droplets size={16} />
-              </span>
-              <div>
-                <span>{routeStatusSummary.label}</span>
-                <strong>{routeStatusSummary.value}</strong>
-              </div>
-            </div>
-            <button
-              className="ghost-button ghost-button--compact"
-              type="button"
-              onClick={() => openCurrentRouteDetailsTab("levels")}
-            >
-              View levels
-            </button>
-            <button
-              className="icon-button icon-button--compact route-status-card__hide"
-              type="button"
-              title="Hide level summary"
-              aria-label="Hide level summary"
-              onClick={() => setIsRouteStatusCardVisible(false)}
-            >
-              <X size={14} />
-            </button>
-            <div className="route-status-card__meta">
-              <span>{routeStatusSummary.trend}</span>
-              <span>{routeStatusSummary.source}</span>
-              <span>Updated {routeStatusSummary.observedAt}</span>
-            </div>
-          </section>
-        ) : !isCanonicalRiverOverviewActive ? (
-          <button
-            className="route-status-toggle"
-            type="button"
-            onClick={() => setIsRouteStatusCardVisible(true)}
-          >
-            <Droplets size={15} />
-            Show levels
-          </button>
-        ) : null}
 
         {isFormOpen ? (
           <section className="quick-add-panel" aria-label="Add contribution">
@@ -5437,7 +5440,9 @@ function App() {
           </button>
 
           <div className="section-hero">
-            <img src={activeSection.photos[0]?.url} alt="" />
+            {activeSection.photos[0]?.url ? (
+              <img src={activeSection.photos[0].url} alt="" />
+            ) : null}
             <div className="section-hero__overlay">
               <p>{activeSection.riverName}</p>
               <h2>{activeSection.sectionName}</h2>
