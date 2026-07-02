@@ -14,7 +14,7 @@ import {
 } from "../services/canonicalRiverApi";
 import { fetchRiverMapPois } from "../services/mapPoiApi";
 import {
-  fetchSectionObservations,
+  fetchRiverObservations,
   type SectionObservationMeasure,
 } from "../services/observationApi";
 import type { ObservationRangeHours } from "../appCore";
@@ -124,18 +124,13 @@ export function DiscoveryProvider({ children }: { children: ReactNode }) {
     }
 
     let active = true;
-    const sectionIds = selectedRiver.sectionLinks.map((link) => link.sectionId);
-    void Promise.all(
-      sectionIds.map((sectionId) =>
-        fetchSectionObservations(sectionId, riverObservationRange).catch(
-          () => [] as SectionObservationMeasure[],
-        ),
-      ),
-    ).then((groups) => {
-      if (active) {
-        setRiverObservations(groups.flat());
-      }
-    });
+    fetchRiverObservations(selectedRiver.id, riverObservationRange)
+      .catch(() => [] as SectionObservationMeasure[])
+      .then((measures) => {
+        if (active) {
+          setRiverObservations(measures);
+        }
+      });
 
     return () => {
       active = false;
