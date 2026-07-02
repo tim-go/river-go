@@ -4161,7 +4161,9 @@ function App() {
       : null;
     if (river) {
       if (zoom === "point") {
-        focusDetailLocation(river.centre, "mobile-top-half");
+        // "or-center" so it centres on desktop too — plain "mobile-top-half"
+        // is a no-op above the mobile breakpoint.
+        focusDetailLocation(river.centre, "mobile-top-half-or-center");
       } else if (zoom === "bounds") {
         focusRiverBounds(river.bbox);
       }
@@ -6018,7 +6020,7 @@ function App() {
                         level={riverLevels[river.id]}
                         onToggleFavourite={toggleFavouriteRiver}
                         onOpen={(riverId) => {
-                          selectCanonicalRiver(riverId, { zoom: "point" });
+                          selectCanonicalRiver(riverId, { zoom: "bounds" });
                           setActiveAppSection("map");
                         }}
                       />
@@ -6165,7 +6167,7 @@ function App() {
                             onToggleFavourite={toggleFavouriteRiver}
                             onVisible={requestRiverLevel}
                             onOpen={(riverId) => {
-                              selectCanonicalRiver(riverId, { zoom: "point" });
+                              selectCanonicalRiver(riverId, { zoom: "bounds" });
                               setActiveAppSection("map");
                             }}
                           />

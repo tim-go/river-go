@@ -1,5 +1,7 @@
 # Market Analysis
 
+> Refreshed July 2026 — see `/docs/strategy/market-review-2026-07.md` for the dated competitive/demand-side sweep this incorporates (added: Paddle Logger, Wild Open Water; water-quality gap; distribution question).
+
 ## Summary
 
 There is a viable gap, but not for a generic river-level app. Established competitors already cover gauges, maps, route planning, and broad paddling data. The stronger opportunity is a UK-first, community-maintained river intelligence layer for canoeists.
@@ -79,6 +81,22 @@ The viable wedge is narrower and more demanding:
 
 Reference: https://gopaddling.info/paddlepoints/
 
+### Paddle Logger
+
+Paddle Logger is an active UK paddling app focused on tracking and safety, not river knowledge. It ships PaddlePLAN (route navigation with Apple Watch off-course haptics) and PaddleLIVE (automatic safety tracking with rescue alerts), on a subscription. It is an official Paddle UK partner and offers members a 50% discount.
+
+Implication: Paddle Logger does not compete on content — it has no hazard/route/access knowledge layer — so RiverLaunch.app does not meet it head-on. But it occupies the same paddler's phone and, more importantly, holds the Paddle UK partner relationship and its member-discount distribution channel. RiverLaunch.app must form an explicit view on distribution: whether to compete for, partner with, or route around the Paddle UK / club channel. This is currently an open strategic question, not a decision.
+
+Reference: https://paddlelogger.com/
+
+### Wild Open Water
+
+Wild Open Water is the closest structural analogue to RiverLaunch.app's model, executed for a different audience. It combines a map with live conditions (tide, temperature, water quality), community-verified reports, and per-spot risk assessments, with 40,000+ reports, free, on web and native apps. It is aimed at open-water swimmers.
+
+Implication: Wild Open Water proves the exact model RiverLaunch.app is pursuing — map + live conditions + verified community reports + risk framing — is viable and can be populated at scale. It is both a template to learn from and a crossover threat, since swimmers and paddlers share access and water-quality interests. RiverLaunch.app should differentiate on canoe/section-level depth and paddling-specific knowledge, and should assume the water-quality layer is table stakes, not a novelty.
+
+Reference: https://www.wildopenwater.com/
+
 ## Gap Analysis
 
 ### Gap 1: Section-Level Canoe Planning
@@ -129,6 +147,16 @@ Community data is only useful if users can judge whether it is current and credi
 
 The gap is a structured contribution system where users add typed, reviewable, date-stamped river knowledge.
 
+### Gap 6: Water Quality and Sewage Awareness
+
+Water quality is now one of the highest-salience concerns for UK paddlers, not a niche interest. Paddle UK attributed part of the 2024 participation dip to water-quality concerns. 2024 saw a record volume of monitored sewage-spill hours, Surfers Against Sewage logged over 1,800 sickness reports, and Paddle UK's own testing found the large majority of samples above safe-swimming guidance.
+
+The data is free and open — the National Storm Overflow Hub (live since November 2024) exposes near-real-time spill data via a public API, alongside the Rivers Trust sewage map and Environment Agency bathing-water classifications. No proprietary deal is required.
+
+The paddling-specific gap is open: existing services (Surfers Against Sewage's Safer Seas & Rivers Service, the Rivers Trust map) orient around surf/swim/bathing spots. None ties spill status and classifications to the put-ins, take-outs, and river reaches that paddlers actually use. This is a natural extension of RiverLaunch.app's POI/section model and fits the no-advice principle if framed as risk indication rather than a safety guarantee (spill monitoring shows presence/absence, not measured pathogen levels, and sensors can fault).
+
+Strategically this may be a stronger cold-start hook than community hazards, because it is high-salience, national, constantly refreshing, and useful on day one without requiring community seeding.
+
 ## Strategic Recommendation
 
 Build RiverLaunch.app as a UK-first community river intelligence app for canoeists.
@@ -141,6 +169,7 @@ Avoid a feature war with established apps. Instead, compete by making a smaller 
 - what hazards exist
 - what has changed recently
 - what local access context matters
+- whether the water is likely to be polluted right now
 
 The core strategic rule is:
 

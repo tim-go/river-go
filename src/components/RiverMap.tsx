@@ -319,28 +319,11 @@ export function RiverMap({
     });
   }, [riverObservations]);
 
-  // Explicit "fit the whole river" camera move — driven by Select and Discover
-  // search (not by selection itself, so Details/Snap can control the map).
-  const previousBoundsFocusNonceRef = useRef(riverBoundsFocus?.nonce ?? 0);
-  useEffect(() => {
-    const map = mapRef.current;
-    if (
-      !map ||
-      !riverBoundsFocus ||
-      previousBoundsFocusNonceRef.current === riverBoundsFocus.nonce
-    ) {
-      return;
-    }
-    previousBoundsFocusNonceRef.current = riverBoundsFocus.nonce;
-    const [west, south, east, north] = riverBoundsFocus.bbox;
-    map.flyToBounds(
-      [
-        [south, west],
-        [north, east],
-      ],
-      { padding: [48, 48], duration: 0.7, maxZoom: 14 },
-    );
-  }, [riverBoundsFocus]);
+  // Explicit "fit the whole river" camera move — driven by Select and the
+  // Discover/Dashboard river cards. Seeded to a sentinel so a fit requested
+  // before the map mounted is applied on mount. The effect itself lives below
+  // the map-init effect (so mapRef is set when it runs) — see riverBoundsFocus.
+  const previousBoundsFocusNonceRef = useRef(-1);
   const layerRef = useRef<L.LayerGroup | null>(null);
   // The river-level-lines are the heaviest vector layer, so they get their own
   // layer group + canvas renderer and are redrawn (viewport-culled, zoom-
@@ -402,7 +385,10 @@ export function RiverMap({
   const previousRouteSuggestionFocusNonceRef = useRef(routeSuggestionFocusNonce);
   const previousRouteAdjustmentFocusNonceRef = useRef(routeAdjustmentFocusNonce);
   const previousLiveLocationFocusNonceRef = useRef(liveLocationFocusNonce);
-  const previousDetailFocusNonceRef = useRef(detailFocusNonce);
+  // Seeded to a sentinel (not the current nonce) so a river focus requested
+  // before the map mounted (Discover/Dashboard → Map) is applied on mount, and
+  // re-applied on StrictMode's dev double-mount, rather than being swallowed.
+  const previousDetailFocusNonceRef = useRef(-1);
   const previousWatercourseFocusNonceRef = useRef(watercourseFocusNonce);
   const shouldFitActiveSectionRef = useRef(true);
   // True while a view restored from storage should win over the load-time
@@ -2017,6 +2003,18 @@ export function RiverMap({
       shouldFitActiveSectionRef.current = false;
     }
 
+    // A fresh river/POI focus (Snap view, Select, a Discover/Dashboard river
+    // card) claims the view — don't let the on-mount auto-fit override it. Those
+    // effects run after this one, so their refs are still un-applied when pending.
+    if (
+      (detailFocusLocation &&
+        previousDetailFocusNonceRef.current !== detailFocusNonce) ||
+      (riverBoundsFocus &&
+        previousBoundsFocusNonceRef.current !== riverBoundsFocus.nonce)
+    ) {
+      shouldFitActiveSectionRef.current = false;
+    }
+
     if (shouldFitActiveSectionRef.current && !restoredViewActiveRef.current) {
       const bounds = routeEndpointBounds(activeSection.route);
       let rafId = 0;
@@ -2209,9 +2207,44 @@ export function RiverMap({
       return;
     }
 
+    const restore = previousDetailFocusNonceRef.current;
     previousDetailFocusNonceRef.current = detailFocusNonce;
+    map.invalidateSize();
     focusMapOnDetailLocation(map, detailFocusLocation, detailFocusPlacement);
+    return () => {
+      // StrictMode/remount safety: undo the applied marker so the real (re)mount
+      // re-applies the focus onto the new map rather than skipping it.
+      previousDetailFocusNonceRef.current = restore;
+    };
   }, [detailFocusLocation, detailFocusPlacement, detailFocusNonce]);
+
+  // Fit the map to a whole river's bounds (Select, Discover/Dashboard cards).
+  // Defined here — after the map-init effect — so mapRef is set when it runs on
+  // mount; seeded ref + cleanup keep it robust across remounts / StrictMode.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (
+      !map ||
+      !riverBoundsFocus ||
+      previousBoundsFocusNonceRef.current === riverBoundsFocus.nonce
+    ) {
+      return;
+    }
+    const restore = previousBoundsFocusNonceRef.current;
+    previousBoundsFocusNonceRef.current = riverBoundsFocus.nonce;
+    map.invalidateSize();
+    const [west, south, east, north] = riverBoundsFocus.bbox;
+    map.flyToBounds(
+      [
+        [south, west],
+        [north, east],
+      ],
+      { padding: [48, 48], duration: 0.7, maxZoom: 14 },
+    );
+    return () => {
+      previousBoundsFocusNonceRef.current = restore;
+    };
+  }, [riverBoundsFocus]);
 
   function openWatercoursePoi(poi: WatercourseContextPoi) {
     if (poi.kind === "contribution") {
