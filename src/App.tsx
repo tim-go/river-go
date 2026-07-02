@@ -145,6 +145,7 @@ import {
   type ObservationJobRun,
   type SectionObservationMeasure,
 } from "./services/observationApi";
+import { messageTone, profileMessageToneClass } from "./lib/messageTone";
 import { formatLocation, formatDateTime, getPrimaryObservationMeasure, parseCoordinateSearch, looksLikeWhat3Words, normaliseWhat3WordsSearch, routeDistanceKm } from "./lib/format";
 import {
   deletePhoto,
@@ -6121,7 +6122,7 @@ function App() {
                           represent.
                         </p>
                         {memberMessage ? (
-                          <p className="profile-message">{memberMessage}</p>
+                          <p className={`profile-message${profileMessageToneClass(memberMessage)}`}>{memberMessage}</p>
                         ) : null}
                         <div className="profile-actions">
                           <button
@@ -6239,7 +6240,7 @@ function App() {
                               organiser.
                             </p>
                             {memberMessage ? (
-                              <p className="profile-message">{memberMessage}</p>
+                              <p className={`profile-message${profileMessageToneClass(memberMessage)}`}>{memberMessage}</p>
                             ) : null}
                             <div className="profile-actions">
                               <button
@@ -6351,7 +6352,7 @@ function App() {
                       </button>
                     </div>
                     {pointMessage ? (
-                      <p className="profile-message">{pointMessage}</p>
+                      <p className={`profile-message${profileMessageToneClass(pointMessage)}`}>{pointMessage}</p>
                     ) : null}
                     {isMemberContributionsLoading ? (
                       <p className="source-note">Loading your points...</p>
@@ -6533,7 +6534,7 @@ function App() {
                       </button>
                     </div>
                     {photoMessage ? (
-                      <p className="profile-message">{photoMessage}</p>
+                      <p className={`profile-message${profileMessageToneClass(photoMessage)}`}>{photoMessage}</p>
                     ) : null}
                     {isMemberPhotosLoading ? (
                       <p className="source-note">Loading your photos...</p>
@@ -7005,7 +7006,11 @@ function App() {
                             </div>
                           </div>
                           {adminMemberDetailMessage ? (
-                            <p className="profile-message">
+                            <p
+                              className={`profile-message${profileMessageToneClass(
+                                adminMemberDetailMessage,
+                              )}`}
+                            >
                               {adminMemberDetailMessage}
                             </p>
                           ) : null}
@@ -7286,7 +7291,7 @@ function App() {
                             </button>
                           </div>
                           {moderationMessage ? (
-                            <p className="profile-message">{moderationMessage}</p>
+                            <p className={`profile-message${profileMessageToneClass(moderationMessage)}`}>{moderationMessage}</p>
                           ) : null}
                           {isModerationLoading ? (
                             <p className="source-note">Loading moderation queue...</p>
@@ -8082,7 +8087,14 @@ function App() {
                               </button>
                             </div>
                             {observationJobMessage ? (
-                              <p className="profile-message profile-message--neutral">
+                              <p
+                                className={`profile-message ${
+                                  messageTone(observationJobMessage) ===
+                                  "success"
+                                    ? "profile-message--success"
+                                    : "profile-message--neutral"
+                                }`}
+                              >
                                 {observationJobMessage}
                               </p>
                             ) : null}

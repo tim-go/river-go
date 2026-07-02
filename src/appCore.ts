@@ -1159,6 +1159,7 @@ export function formatDistanceKm(distanceKm: number) {
     : `${distanceKm.toFixed(1)} km`;
 }
 
+
 export function formatDistanceMetres(distanceMetres: number) {
   if (!Number.isFinite(distanceMetres)) {
     return "unknown";
