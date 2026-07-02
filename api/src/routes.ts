@@ -75,6 +75,24 @@ export async function promoteRouteSuggestion(
   try {
     await client.query("BEGIN");
 
+    // Lock the suggestion row so concurrent/repeat "Promote to section" clicks
+    // serialise — otherwise both transactions read status='approved' before
+    // either commits and each inserts a route (duplicate sections). The unique
+    // index on routes(source_route_suggestion_id) is the DB-level backstop.
+    const locked = await client.query<{ status: string }>(
+      `SELECT status FROM route_suggestions WHERE id = $1 FOR UPDATE`,
+      [routeSuggestionId],
+    );
+    if (!locked.rowCount) {
+      throw new HttpError(404, "Route suggestion not found.");
+    }
+    if (locked.rows[0].status !== "approved") {
+      throw new HttpError(
+        409,
+        `Route suggestion must be approved before it can be promoted (current status: ${locked.rows[0].status}).`,
+      );
+    }
+
     const inserted = await client.query<{ id: string }>(
       `INSERT INTO routes (
         name,

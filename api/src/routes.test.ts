@@ -54,6 +54,9 @@ describe("promoteRouteSuggestion", () => {
 
   it("promotes an approved suggestion in one transaction and returns the route", async () => {
     query.mockImplementation(async (sql: string) => {
+      if (sql.includes("SELECT status FROM route_suggestions")) {
+        return { rowCount: 1, rows: [{ status: "approved" }] };
+      }
       if (sql.startsWith("INSERT INTO routes")) {
         return { rowCount: 1, rows: [{ id: "route-1" }] };
       }

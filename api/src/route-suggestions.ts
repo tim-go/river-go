@@ -126,7 +126,7 @@ export async function listRouteSuggestionsForMember(
   const result = await client.query<RouteSuggestionRow>(
     `${routeSuggestionSelectSql()}
     WHERE rs.member_id = $1
-      AND rs.status NOT IN ('hidden', 'rejected')
+      AND rs.status NOT IN ('hidden', 'rejected', 'promoted')
     ORDER BY rs.created_at DESC
     LIMIT 200`,
     [memberId],
