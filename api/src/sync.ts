@@ -252,21 +252,14 @@ async function insertContribution(
       CASE WHEN $13 IS NOT NULL THEN 'map_poi:' || $13 ELSE NULL END,
       -- Stamp the owning river at write time (was previously only ever backfilled
       -- from a POI by migration) so a new photo shows in the river's Photos tab
-      -- immediately. Derive from the linked POI's section, else the section.
+      -- immediately. Derive from the linked POI's asserted river_id on the pois
+      -- index (same lookup the River-focus filter uses), else the
+      -- canonical-river pseudo-section fallback.
       COALESCE(
-        (SELECT crsl.river_id
-         FROM paddling_features pf
-         JOIN canonical_river_section_links crsl
-           ON crsl.section_id = pf.section_id
-           AND crsl.route_source = 'section_fixture'
-           AND crsl.status = 'active'
-         WHERE pf.id = $13
-         LIMIT 1),
-        (SELECT crsl.river_id
-         FROM canonical_river_section_links crsl
-         WHERE crsl.section_id = $3
-           AND crsl.route_source = 'section_fixture'
-           AND crsl.status = 'active'
+        (SELECT lp.river_id
+         FROM pois lp
+         WHERE lp.source_entity_type = 'paddling_feature'
+           AND lp.source_entity_id = $13
          LIMIT 1),
         -- A contribution added straight from a river overview carries the
         -- canonical-river pseudo-section id, whose slug IS the river id.

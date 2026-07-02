@@ -42,8 +42,12 @@ export interface SeedObservationMeasure {
   samplingInterval: string;
   datum: string;
   sourceUrl: string;
-  sectionLinks: Array<{
-    sectionId: string;
+  // River-keyed (not the old fixture-section chain — see
+  // docs/development/plan-community-sections.md Phase 0). confidence is kept
+  // in the seed pack for editorial context even though river_measure_links
+  // has no column for it.
+  riverLinks: Array<{
+    riverId: string;
     relevance: SectionMeasureRelevance;
     confidence: SectionMeasureConfidence;
     notes: string;
@@ -479,22 +483,20 @@ export interface RiverLevelState {
 export async function listRiverLevelStates(): Promise<RiverLevelState[]> {
   const result = await pool.query(
     `WITH primary_measure AS (
-       SELECT DISTINCT ON (crsl.river_id)
-         crsl.river_id,
+       SELECT DISTINCT ON (rml.river_id)
+         rml.river_id,
          m.id AS measure_id,
          m.parameter,
          m.unit,
          latest.value AS latest_value,
          latest.observed_at
-       FROM canonical_river_section_links crsl
-       JOIN section_measure_links sml
-         ON sml.section_id = crsl.section_id AND sml.relevance = 'primary'
-       JOIN observation_measures m ON m.id = sml.measure_id
+       FROM river_measure_links rml
+       JOIN observation_measures m ON m.id = rml.measure_id AND rml.relevance = 'primary'
        JOIN observation_latest_readings latest ON latest.measure_id = m.id
        WHERE m.parameter IN ('river_level', 'river_flow')
          AND latest.state = 'live'
          AND latest.value IS NOT NULL
-       ORDER BY crsl.river_id,
+       ORDER BY rml.river_id,
          CASE m.parameter WHEN 'river_level' THEN 1 ELSE 2 END,
          m.id
      ),
@@ -708,36 +710,21 @@ export async function ensureInitialObservationMeasures(client: PoolClient) {
     );
     const measureId = measureResult.rows[0].id;
 
-    for (const link of seed.sectionLinks) {
+    for (const link of seed.riverLinks) {
       await client.query(
-        `DELETE FROM section_measure_links
-        WHERE section_id = $1
-          AND measure_id = $2
-          AND relevance <> $3`,
-        [link.sectionId, measureId, link.relevance],
-      );
-
-      await client.query(
-        `INSERT INTO section_measure_links (
-          section_id,
+        `INSERT INTO river_measure_links (
+          river_id,
           measure_id,
           relevance,
-          confidence,
           notes
         )
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (section_id, measure_id, relevance)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (river_id, measure_id)
         DO UPDATE SET
-          confidence = EXCLUDED.confidence,
+          relevance = EXCLUDED.relevance,
           notes = EXCLUDED.notes,
           updated_at = now()`,
-        [
-          link.sectionId,
-          measureId,
-          link.relevance,
-          link.confidence,
-          link.notes,
-        ],
+        [link.riverId, measureId, link.relevance, link.notes],
       );
     }
   }

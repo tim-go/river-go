@@ -363,7 +363,11 @@ async function writeBatches(batches: RiverCandidateBatch[]) {
 
     for (const { river, candidates } of batches) {
       await upsertCanonicalRiver(client, river);
-      await upsertSectionLinks(client, river);
+      // Fixture section links are retired (see
+      // docs/development/plan-community-sections.md): this seed never writes
+      // canonical_river_section_links rows any more. river.sectionIds stays on
+      // the pilot-river config only as descriptive metadata for the OSM-candidate
+      // report below.
 
       for (const candidate of candidates) {
         const sourceFeatureId = await upsertSourceFeature(client, candidate);
@@ -534,43 +538,6 @@ async function upsertCanonicalRiver(client: PoolClient, river: PilotRiver) {
       }),
     ],
   );
-}
-
-async function upsertSectionLinks(client: PoolClient, river: PilotRiver) {
-  for (const sectionId of river.sectionIds) {
-    await client.query(
-      `INSERT INTO canonical_river_section_links (
-        river_id,
-        route_source,
-        section_id,
-        relationship_type,
-        status,
-        confidence,
-        payload
-      ) VALUES (
-        $1,
-        'section_fixture',
-        $2,
-        'contains-section',
-        'active',
-        'pilot-curated',
-        $3::jsonb
-      )
-      ON CONFLICT (river_id, route_source, section_id, relationship_type) DO UPDATE SET
-        status = EXCLUDED.status,
-        confidence = EXCLUDED.confidence,
-        payload = EXCLUDED.payload,
-        updated_at = now()`,
-      [
-        river.id,
-        sectionId,
-        JSON.stringify({
-          source: "pilot-canonical-river-seed",
-          warning: "Section membership is curated for the pilot and needs review before national generation.",
-        }),
-      ],
-    );
-  }
 }
 
 async function upsertSourceFeature(client: PoolClient, candidate: CandidateRecord) {
