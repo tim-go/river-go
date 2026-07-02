@@ -102,6 +102,19 @@ These are the community data types that make RiverLaunch.app more than a map. Th
 - **Photos** — evidence attached to specific objects, not a loose gallery; help users judge conditions and recognise places.
 - **Recent condition reports** — time-sensitive observations that should visually stale over time.
 - **Canoe/craft suitability** — suitability by craft and ability (open canoe through whitewater kayak, SUP, packraft; beginner through advanced, family-friendly, multi-day, club-trip).
+- **Water-quality / sewage context** — near-real-time sewage-spill status and bathing-water classifications attached to the put-ins and reaches paddlers use. Unlike the categories above, this is primarily *official/open data* (National Storm Overflow Hub, Rivers Trust, Environment Agency), not community submission — see "Water Quality Is Official-Data Context" below. Community observations (visible pollution, foam, smell, illness) can supplement it but must not be presented as measured water quality.
+
+## Water Quality Is Official-Data Context
+
+Water quality is a high-salience concern for UK paddlers, not a niche interest, and it behaves differently from the rest of the community data model. It is worth calling out separately so it is not mistaken for a community-contribution type.
+
+- **Source:** near-real-time sewage-spill data is free and open via the National Storm Overflow Hub public API (live since November 2024), with the Rivers Trust sewage map and Environment Agency bathing-water classifications as supporting layers. No scraping and no proprietary partnership are required — this is exactly the kind of trusted-provider context the strategy already relies on for levels and warnings.
+- **Why it belongs early, not "later":** it is useful on day one *without* community seeding, refreshes constantly (recurring engagement), and is national in coverage. That makes it a stronger cold-start hook than community hazards, which depend on the contribution flywheel to become useful.
+- **The gap it fills:** existing services (Surfers Against Sewage's Safer Seas & Rivers Service, the Rivers Trust map) orient around surf/swim/bathing spots. None ties spill status to the specific put-ins, take-outs, and reaches paddlers use. Attaching it to the existing POI/section model is the differentiation.
+- **No-advice framing:** spill monitoring shows discharge presence/absence and duration, not measured pathogen levels, and sensors can fault. Present it as *risk indication with source and timestamp*, never as a clean/dirty verdict or a safety guarantee. This is governed by the same no-advice principle as levels and hazards (`/docs/specs/principles/no-advice-and-liability-language.md`).
+- **Relationship to community data:** water quality is official-data context; community members may still add *observed* pollution reports (visible sewage, foam, dead fish, smell, or illness after paddling) as a typed contribution, which supplements but never overrides the official signal.
+
+The detailed feature behaviour is specified in `/docs/specs/discovery/water-quality.md`.
 
 ## Data Acquisition Model
 

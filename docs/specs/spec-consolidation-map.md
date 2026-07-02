@@ -17,6 +17,7 @@ Specs are grouped by the product tier model (see `/docs/strategy/feature-registe
 | Canonical river database | `/docs/specs/discovery/canonical-river-database.md` | Multi-source canonical river identities, source-owned imports, source links, and candidate POI extraction. |
 | Public source seeding | `/docs/specs/discovery/public-source-seeding.md` | Source register, licence/permission classification, public reference handling, and candidate route seeding workflow. |
 | River level providers | `/docs/specs/discovery/river-level-providers.md` | EA-first provider model and future backend ingestion. |
+| Water quality | `/docs/specs/discovery/water-quality.md` | Sewage-spill status (National Storm Overflow Hub) and bathing-water classifications tied to put-ins/reaches, presented as risk context under the no-advice principle. |
 | River Wye seed data | `/docs/specs/discovery/river-wye-seed-data.md` | Wye pilot sections, seed geometry, and validation status. |
 | River Tryweryn seed data | `/docs/specs/discovery/river-tryweryn-seed-data.md` | Tryweryn dam-release demo sections, route geometry, release context, and validation status. |
 | UK kayaking sample catalogue | `/docs/specs/discovery/uk-kayaking-sample-catalogue.md` | Prototype catalogue of well-known UK paddling rivers for discovery, search, favourites, and map browsing. |
