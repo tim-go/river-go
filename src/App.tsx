@@ -6020,7 +6020,7 @@ function App() {
                         level={riverLevels[river.id]}
                         onToggleFavourite={toggleFavouriteRiver}
                         onOpen={(riverId) => {
-                          selectCanonicalRiver(riverId, { zoom: "point" });
+                          selectCanonicalRiver(riverId, { zoom: "bounds" });
                           setActiveAppSection("map");
                         }}
                       />
@@ -6167,7 +6167,7 @@ function App() {
                             onToggleFavourite={toggleFavouriteRiver}
                             onVisible={requestRiverLevel}
                             onOpen={(riverId) => {
-                              selectCanonicalRiver(riverId, { zoom: "point" });
+                              selectCanonicalRiver(riverId, { zoom: "bounds" });
                               setActiveAppSection("map");
                             }}
                           />
