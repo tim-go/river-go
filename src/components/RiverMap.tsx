@@ -124,6 +124,7 @@ type RiverDetailTab =
   | "rapids"
   | "hazards"
   | "access"
+  | "sections"
   | "photos"
   | "about";
 
@@ -132,6 +133,7 @@ const RIVER_DETAIL_TABS: { id: RiverDetailTab; label: string }[] = [
   { id: "rapids", label: "Rapids" },
   { id: "hazards", label: "Hazards" },
   { id: "access", label: "Access" },
+  { id: "sections", label: "Sections" },
   { id: "photos", label: "Photos" },
   { id: "about", label: "About" },
 ];
@@ -566,6 +568,18 @@ export function RiverMap({
     });
     return totals;
   }, [selectedRiverPoiCategoryCounts]);
+  // Community-promoted sections belonging to the selected river (Sections tab).
+  // Real sections only — excludes the "canonical-river:"/"candidate-route:"
+  // pseudo-sections rendered elsewhere.
+  const promotedSectionsForRiver = useMemo(() => {
+    if (!selectedCanonicalRiver) return [];
+    return sections.filter(
+      (section) =>
+        !isCanonicalOverviewSection(section) &&
+        !isCandidateSection(section) &&
+        section.riverName === selectedCanonicalRiver.displayName,
+    );
+  }, [sections, selectedCanonicalRiver]);
   // Points that carry at least one photo — advertised on the Photos tab label and
   // used to filter the map when that tab is active.
   // A focused river's published photos (rolled up by river_id). Drives both the
@@ -2415,7 +2429,9 @@ export function RiverMap({
                   ? riverTabPoiTotals[tab.id]
                   : tab.id === "photos"
                     ? riverPhotoCount
-                    : null;
+                    : tab.id === "sections"
+                      ? promotedSectionsForRiver.length
+                      : null;
               return (
                 <button
                   key={tab.id}
@@ -2433,6 +2449,54 @@ export function RiverMap({
               );
             })}
           </div>
+
+          {riverTab === "sections" ? (
+            <div className="watercourse-context">
+              {promotedSectionsForRiver.length ? (
+                <div className="placeholder-list">
+                  {promotedSectionsForRiver.map((section) => (
+                    <div className="placeholder-row" key={section.id}>
+                      <span>
+                        <strong>{section.sectionName}</strong>
+                        <small>
+                          {section.difficulty}
+                          {section.distanceKm
+                            ? ` · ${section.distanceKm.toFixed(1)} km`
+                            : ""}
+                        </small>
+                        <small>{section.summary}</small>
+                        <small className="source-note">
+                          {section.source?.label ?? "Community section"} — not
+                          verified advice
+                        </small>
+                      </span>
+                      <div className="favourite-row__actions">
+                        <button
+                          className="ghost-button ghost-button--compact"
+                          type="button"
+                          onClick={() => routeDetailsRef.current(section)}
+                        >
+                          Details
+                        </button>
+                        <button
+                          className="ghost-button ghost-button--compact"
+                          type="button"
+                          onClick={() => callbackRef.current(section)}
+                        >
+                          Select
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-state">
+                  No community-promoted sections for this river yet — members
+                  can suggest one from the map.
+                </p>
+              )}
+            </div>
+          ) : null}
 
           {riverTab === "about" ? (
             <RiverPaddleHistory riverId={selectedCanonicalRiver.id} />

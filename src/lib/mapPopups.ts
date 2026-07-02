@@ -238,6 +238,7 @@ export function routeSuggestionStatusLabel(status: RouteSuggestion["status"]) {
   if (status === "approved") return "Approved candidate";
   if (status === "rejected") return "Rejected";
   if (status === "hidden") return "Hidden";
+  if (status === "promoted") return "Promoted to section";
   return "Local draft";
 }
 

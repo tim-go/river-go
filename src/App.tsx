@@ -80,6 +80,11 @@ import {
   type SourceCandidatePoi,
 } from "./services/canonicalRiverApi";
 import {
+  fetchPublicSections,
+  promoteRouteSuggestionToSection,
+  type CommunitySection,
+} from "./services/routesApi";
+import {
   applyContributionModerationDecision,
   deleteContribution,
   fetchModerationContributions,
@@ -247,6 +252,7 @@ import {
   candidateRouteSuggestionId,
   canonicalRiverOverviewSectionId,
   canonicalRiverToOverviewSection,
+  communitySectionToRiverSection,
   categoryOptions,
   contributionOptions,
   defaultObservedDate,
@@ -510,6 +516,12 @@ function App() {
   const hasCenteredOnFirstRiverRef = useRef(false);
   const [pendingUnfavouriteSection, setPendingUnfavouriteSection] =
     useState<RiverSection | null>(null);
+  const [pendingPromoteSuggestionId, setPendingPromoteSuggestionId] = useState<
+    string | null
+  >(null);
+  const [promotingSuggestionId, setPromotingSuggestionId] = useState<
+    string | null
+  >(null);
   const [contributions, setContributions] = useState<Contribution[]>(() =>
     loadContributions(),
   );
@@ -532,6 +544,9 @@ function App() {
     RouteSuggestion[]
   >([]);
   const [routeAdjustments, setRouteAdjustments] = useState<RouteAdjustment[]>([]);
+  const [communitySections, setCommunitySections] = useState<CommunitySection[]>(
+    [],
+  );
   const [canonicalRivers, setCanonicalRivers] = useState<CanonicalRiverSummary[]>(
     [],
   );
@@ -1146,8 +1161,17 @@ function App() {
   const [isLocationSearchLoading, setIsLocationSearchLoading] = useState(false);
 
   const appRiverSections = useMemo(
-    () => canonicalRivers.map(canonicalRiverToOverviewSection),
-    [canonicalRivers],
+    () => [
+      ...canonicalRivers.map(canonicalRiverToOverviewSection),
+      ...communitySections.map((section) =>
+        communitySectionToRiverSection(
+          section,
+          canonicalRivers.find((river) => river.id === section.riverId)
+            ?.displayName,
+        ),
+      ),
+    ],
+    [canonicalRivers, communitySections],
   );
   const activeSection = useMemo(
     () =>
@@ -1408,7 +1432,13 @@ function App() {
 
   useEffect(() => {
     void loadCanonicalRivers();
+    void loadCommunitySections();
   }, []);
+
+  useEffect(() => {
+    if (!selectedCanonicalRiverId) return;
+    void loadCommunitySections();
+  }, [selectedCanonicalRiverId]);
 
   // On first load, centre the map on the first river once its record arrives;
   // the initial empty overview otherwise parks the map on empty space.
@@ -3122,6 +3152,18 @@ function App() {
     }
   }
 
+  // Canonical, community-promoted sections (routes.ts). Public + unauthenticated;
+  // loaded whole (the catalogue is community-origin only, so it stays small) on
+  // app load and again whenever a river is selected, so a freshly promoted
+  // section shows up without a full reload.
+  async function loadCommunitySections() {
+    try {
+      setCommunitySections(await fetchPublicSections());
+    } catch {
+      setCommunitySections([]);
+    }
+  }
+
   async function openAdminPanel() {
     setActiveAppSection("admin");
     setActiveAdminPage("members");
@@ -3435,6 +3477,38 @@ function App() {
           : "Could not update route suggestion.",
       );
     }
+  }
+
+  // Promote an approved route suggestion into a canonical, published section.
+  // A distinct, explicit second moderator action from approve — never
+  // automatic — with a confirm step (see docs/development/plan-community-sections.md).
+  async function confirmPromoteRouteSuggestion(suggestion: RouteSuggestion) {
+    setModerationMessage("");
+    setPromotingSuggestionId(suggestion.id);
+
+    try {
+      await promoteRouteSuggestionToSection(suggestion.id);
+      setPendingPromoteSuggestionId(null);
+      setModerationRouteSuggestions(await fetchModerationRouteSuggestions());
+      await loadCommunitySections();
+      setModerationMessage(`Promoted ${suggestion.sectionName} to a section.`);
+    } catch (error) {
+      setModerationMessage(
+        error instanceof Error ? error.message : "Could not promote this suggestion.",
+      );
+    } finally {
+      setPromotingSuggestionId(null);
+    }
+  }
+
+  function viewPromotedSection(routeId: string) {
+    const section = appRiverSections.find((item) => item.id === routeId);
+    if (!section) {
+      showAppNotification("That section hasn't loaded yet — try again shortly.", "error");
+      return;
+    }
+    selectSection(section);
+    setActiveAppSection("map");
   }
 
   async function applyRouteAdjustmentModerationDecision(
@@ -3970,6 +4044,7 @@ function App() {
         authState.user?.displayName ??
         "Route contributor",
       createdAt: new Date().toISOString(),
+      promotedRouteId: null,
     };
 
     try {
@@ -8556,6 +8631,77 @@ function App() {
                                             <Route size={15} />
                                             Edit
                                           </button>
+                                          {suggestion.status === "approved" ? (
+                                            pendingPromoteSuggestionId ===
+                                            suggestion.id ? (
+                                              <>
+                                                <span className="moderation-row__meta">
+                                                  Promote to a canonical section?
+                                                  Members will see it as
+                                                  community-reported, not
+                                                  verified advice.
+                                                </span>
+                                                <button
+                                                  className="ghost-button ghost-button--compact"
+                                                  type="button"
+                                                  disabled={
+                                                    promotingSuggestionId ===
+                                                    suggestion.id
+                                                  }
+                                                  onClick={() =>
+                                                    void confirmPromoteRouteSuggestion(
+                                                      suggestion,
+                                                    )
+                                                  }
+                                                >
+                                                  <CheckCircle2 size={15} />
+                                                  Confirm promote
+                                                </button>
+                                                <button
+                                                  className="ghost-button ghost-button--compact"
+                                                  type="button"
+                                                  onClick={() =>
+                                                    setPendingPromoteSuggestionId(null)
+                                                  }
+                                                >
+                                                  Cancel
+                                                </button>
+                                              </>
+                                            ) : (
+                                              <button
+                                                className="ghost-button ghost-button--compact"
+                                                type="button"
+                                                onClick={() =>
+                                                  setPendingPromoteSuggestionId(
+                                                    suggestion.id,
+                                                  )
+                                                }
+                                              >
+                                                <Star size={15} />
+                                                Promote to section
+                                              </button>
+                                            )
+                                          ) : null}
+                                          {suggestion.status === "promoted" &&
+                                          suggestion.promotedRouteId ? (
+                                            <>
+                                              <span className="candidate-pill">
+                                                Promoted
+                                              </span>
+                                              <button
+                                                className="ghost-button ghost-button--compact"
+                                                type="button"
+                                                onClick={() =>
+                                                  viewPromotedSection(
+                                                    suggestion.promotedRouteId!,
+                                                  )
+                                                }
+                                              >
+                                                <MapIcon size={15} />
+                                                View section
+                                              </button>
+                                            </>
+                                          ) : null}
                                           <label>
                                             <span>Decision</span>
                                             <select

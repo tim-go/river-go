@@ -134,6 +134,11 @@ import {
   isRouteAdjustmentDecision,
   listModerationRouteAdjustments,
 } from "./route-adjustments.js";
+import {
+  getPublicRouteById,
+  listPublicRoutes,
+  promoteRouteSuggestion,
+} from "./routes.js";
 import { listAmenities } from "./amenities.js";
 import { pushSyncOperations } from "./sync.js";
 import {
@@ -891,6 +896,20 @@ async function route(
     return { status: 200, body: { routeSuggestions } };
   }
 
+  // Canonical community-promoted sections (public reads). "routes" is
+  // internal vocabulary — see api/src/routes.ts.
+  if (method === "GET" && url.pathname === "/api/routes") {
+    const riverId = url.searchParams.get("river");
+    const routes = await listPublicRoutes(riverId);
+    return { status: 200, body: { routes } };
+  }
+
+  const routeDetailMatch = url.pathname.match(/^\/api\/routes\/([^/]+)$/);
+  if (method === "GET" && routeDetailMatch) {
+    const route = await getPublicRouteById(decodeURIComponent(routeDetailMatch[1]));
+    return { status: 200, body: { route } };
+  }
+
   if (method === "GET" && url.pathname === "/api/rivers") {
     const rivers = await listCanonicalRivers();
     return { status: 200, body: { rivers } };
@@ -1134,6 +1153,24 @@ async function route(
       body.decision,
     );
     return { status: 200, body: { routeSuggestion } };
+  }
+
+  // Promote an approved route suggestion into a canonical, published section.
+  // A distinct, explicit second moderator action from the approve decision
+  // above — never automatic (see docs/development/plan-community-sections.md).
+  const routeSuggestionPromoteMatch = url.pathname.match(
+    /^\/api\/moderation\/route-suggestions\/([^/]+)\/promote$/,
+  );
+  if (method === "POST" && routeSuggestionPromoteMatch) {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireModerator(member);
+
+    const route = await promoteRouteSuggestion(
+      decodeURIComponent(routeSuggestionPromoteMatch[1]),
+      member,
+    );
+    return { status: 201, body: { route } };
   }
 
   const routeAdjustmentDecisionMatch = url.pathname.match(
