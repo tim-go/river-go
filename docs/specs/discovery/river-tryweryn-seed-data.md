@@ -8,9 +8,16 @@ maturity: Draft
 
 # River Tryweryn Seed Data
 
-**Work state:** Active
-**Last updated:** 2026-05-23
+**Work state:** Retired (2026-07-02)
+**Last updated:** 2026-07-02
 **Scope:** Draft River Tryweryn demo section data, starting near the Llyn Celyn dam release and continuing through the lower Tryweryn.
+
+> **Retired:** sections are community-origin only — RiverLaunch does not seed or
+> declare paddleable sections (liability decision, see
+> `/docs/specs/contributions/route-submissions.md`). The Tryweryn section
+> fixtures and their `section_fixture` link rows are being removed per
+> `/docs/development/plan-community-sections.md`. This spec is kept for
+> historical reference; the release/venue context remains useful background.
 
 ## Purpose
 
