@@ -51,6 +51,23 @@ export function AboutScreen({ onBack }: { onBack: () => void }) {
           <a href="mailto:support@riverlaunch.app">support@riverlaunch.app</a>{" "}
           and we'll get back to you.
         </p>
+        <p className="source-note about-legal">
+          <a
+            href="https://riverlaunch.app/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Privacy Statement
+          </a>
+          {" · "}
+          <a
+            href="https://riverlaunch.app/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Terms of Use
+          </a>
+        </p>
       </section>
     </PlaceholderPage>
   );

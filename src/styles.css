@@ -1549,7 +1549,20 @@ button.group-detail__section {
   background: var(--surface);
 }
 
-/* FAQs — accordion list (native <details>) */
+/* FAQs — grouped accordion sections (native <details>) */
+.faq-section {
+  margin-top: 22px;
+}
+.faq-section__head h2 {
+  margin: 0 0 2px;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+.faq-section__head p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
 .faq-list {
   display: grid;
   gap: 10px;
@@ -1598,6 +1611,10 @@ button.group-detail__section {
 }
 .faq-contact {
   margin-top: 14px;
+}
+.about-legal a {
+  color: var(--river);
+  font-weight: 600;
 }
 
 .settings-panel__header,
