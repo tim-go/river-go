@@ -8,8 +8,8 @@ maturity: Draft
 
 # Route Submissions
 
-**Work state:** Active
-**Last updated:** 2026-07-02
+**Work state:** Active — suggestion pipeline + **promotion into canonical `routes` shipped 2026-07-02** (PRs #57/#59: `routes` table, moderator Promote-to-section, public read API, map display, Section Favs). Remaining: per-section gauge links + "On this stretch" river-POI derivation (deferred).
+**Last updated:** 2026-07-03
 **Scope:** Member workflow for suggesting missing river sections, moderator workflow for adjusting existing route records and rough route traces, and promotion of approved suggestions into canonical `routes` records.
 
 > **User-facing language:** members create and see **Sections**. `route` is

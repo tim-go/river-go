@@ -8,8 +8,8 @@ maturity: Draft
 
 # Group Membership & Invites
 
-**Work state:** Proposed — supersedes the invite-by-name flow (GROUP-F2)
-**Last updated:** 2026-06-28
+**Work state:** V1 delivered — supersedes the invite-by-name flow (GROUP-F2). Built (migration 032): `/api/members/search` retired, invite-by-exact-email, group link + request-to-join, access modes (request_to_join / invite_only), invite/request management, ownership transfer, role promote/demote, membership audit. Parked: non-member email invites (GINV-F7), public/discoverable groups (GINV-F8). *(Tracking table below not yet flipped cell-by-cell — the delivery plan is authoritative.)*
+**Last updated:** 2026-07-03
 **Scope:** How people join a group — invite an existing member by exact email, or
 share the group's link and request to join (subject to the group's access mode) —
 plus the membership lifecycle (roles, ownership, removal), without exposing a
