@@ -3897,7 +3897,8 @@ button.group-detail__section {
   background: rgba(255, 196, 60, 0.18);
   color: #ffdd80;
 }
-[data-theme="surge"] .detail-panel .source-note.river-safety-note {
+/* Not scoped to .detail-panel — the note also appears on the river page. */
+[data-theme="surge"] .source-note.river-safety-note {
   border-color: rgba(255, 196, 60, 0.42);
   background: rgba(255, 196, 60, 0.12);
   color: #f6e7c2;
