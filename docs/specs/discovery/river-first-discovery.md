@@ -90,7 +90,36 @@ Per-aspect depth — the earlier card's Levels (incl. historical charts, RIVERDI
 
 ### River Page
 
-Each river should eventually have a dedicated river page or river detail surface.
+**Panel vs page — two surfaces, one data model (decided 2026-07-03).** The map
+river *panel* and the river *page* are deliberately different surfaces for
+different intents, and must not drift:
+
+- **Map river panel (the glance)** — the ~460px overlay on the map. "I'm on the
+  map, give me quick context on this river without leaving." Stays lightweight
+  (summary + counts leading into the depth tabs); gains a prominent **"Open
+  river page"** action.
+- **River page (the destination)** — a standalone, **desktop-rich** landing
+  surface at `/river/<id>`. "Tell me everything about this river" — the
+  reference/planning surface you land on, link to, and (later) that search
+  indexes. The map becomes one *component on* the page, not the container. On
+  mobile it renders as a full-screen scroll of the same content.
+
+Both read **one river-detail content model** — the panel shows a subset, the
+page shows the full thing — so they can never diverge (the failure mode we hit
+when two panels stacked).
+
+**Why the page is worth its own surface** (things the panel structurally can't
+do): desktop multi-column richness; **shareable URLs** (`/river/<id>`, matching
+the existing `/club/<handle>` pattern); **organic discovery** — an indexable
+page per river is a real top-of-funnel lever (needs SSR/prerender to index —
+see RIVERDISC-B8, a separable later stage); and a home for river-level content
+that has nowhere to live on a map (history, sourced news, local clubs, the
+river-wide photo roll-up).
+
+**Staged build:** (1) the consolidated **Overview content model** (facts, grade/
+character, current level, sections, key access/hazards, recent photos, gauges,
+**data gaps + sources**) — usable in both surfaces; (2) the desktop-rich
+`/river/<id>` page reusing it; (3) SSR/prerender for shareability + SEO.
 
 The first useful river page should show:
 
@@ -169,7 +198,7 @@ Avoid:
 | --- | --- | --- | --- | --- | --- | --- |
 | RIVERDISC-F1 | River overview markers | Map | Active | MVP | — | First slice shows canonical pilot river markers from the public river API; grade/runnability/data-confidence badge treatment remains next. |
 | RIVERDISC-F2 | Selected-river context | Map | Active | MVP | — | First slice shows canonical river summary, linked-section/candidate counts, source caveat, and section shortcuts; richer feature layers remain queued. |
-| RIVERDISC-F3 | River detail page | River detail/search | Queued | MVP | — | Wikipedia-style river page focused first on paddling-critical facts, sources, and data gaps. |
+| RIVERDISC-F3 | River detail page | River detail/search | Active | MVP | — | Dedicated desktop-rich `/river/<id>` page (the "destination"); the map panel stays the in-map "glance". One shared content model. Building 2026-07-03. |
 | RIVERDISC-F4 | Nearby river list | Search/map | Queued | MVP | — | Opt-in location can rank nearby rivers by distance and filter by grade and current conditions. |
 | RIVERDISC-F5 | River-first copy migration | App shell/map/search | Queued | MVP | — | Public IA should favour `Rivers`; route/section language remains for detailed paddling interpretations. |
 | RIVERDISC-F6 | Feature layer density controls | Map | Queued | MVP | — | Let users hide/show feature categories on selected rivers to reduce marker clutter. |
@@ -186,6 +215,7 @@ Avoid:
 | RIVERDISC-B5 | enhancement | Public news/history references | Parked | Later | Useful for richness, but not part of paddling-critical MVP. |
 | RIVERDISC-B6 | decision | Card-vs-detail layering | Resolved | Later | Card = scannable overview with counts that lead into depth; per-aspect depth (old Levels/Access/Hazards/Updates/Photos tabs) lives in the river detail surface — expanded card first, then the river page (F3). |
 | RIVERDISC-B7 | enhancement | River-wide photo gallery | Parked | Later | Aggregate POI and contribution photos into a river-level gallery on the river detail surface (RIVERDISC-F3). Photos currently live on their POI (CON-F19); this rolls them up to the river. Confirmed wanted, deferred. |
+| RIVERDISC-B8 | task | SSR/prerender for river pages | Open | Later | The `/river/<id>` page must be server-rendered/prerendered to be indexable (organic-search top-of-funnel). Separable later stage; the page is useful to users without it. Shares the SPA-SSR need noted in posts-and-sharing / public-profile. |
 
 ## Change Log
 
@@ -195,3 +225,4 @@ Avoid:
 | 2026-06-14 | Captured historical level & rainfall charts on the river card as tracked future work (RIVERDISC-F7). |
 | 2026-06-14 | Recorded card-vs-detail layering: card stays a scannable overview; per-aspect depth lives in the river detail surface (expanded card / river page). |
 | 2026-06-15 | Captured river-wide photo gallery as deferred future work (RIVERDISC-B7). |
+| 2026-07-03 | Panel-vs-page design: map panel = in-map glance, `/river/<id>` page = desktop-rich destination, one shared content model; staged build; added SSR/SEO backlog (RIVERDISC-B8). F3 moved to Active. |
