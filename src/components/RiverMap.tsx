@@ -15,6 +15,7 @@ import {
 import type { Amenity } from "../services/amenityApi";
 import {
   AlertTriangle,
+  ExternalLink,
   MapPin,
   Route,
   Star,
@@ -210,6 +211,7 @@ export function RiverMap({
   onSuggestSection,
   onSelectCanonicalRiver,
   onCloseSelectedRiverPanel,
+  onOpenRiverPage,
   onToggleSelectedRiverPanelExpanded,
 }: {
   sections: RiverSection[];
@@ -292,6 +294,7 @@ export function RiverMap({
     },
   ) => void;
   onCloseSelectedRiverPanel: () => void;
+  onOpenRiverPage: (riverId: string) => void;
   onToggleSelectedRiverPanelExpanded: () => void;
 }) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -2381,6 +2384,16 @@ export function RiverMap({
           onClose={onCloseSelectedRiverPanel}
           actions={
             <>
+              <button
+                className="ghost-button ghost-button--compact"
+                type="button"
+                title="Open the full river page"
+                aria-label="Open river page"
+                onClick={() => onOpenRiverPage(selectedCanonicalRiver.id)}
+              >
+                <ExternalLink size={14} />
+                River page
+              </button>
               <button
                 className={`icon-button icon-button--compact${
                   favouriteRiverIds.includes(selectedCanonicalRiver.id)
