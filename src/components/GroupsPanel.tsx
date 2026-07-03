@@ -1457,6 +1457,29 @@ export function GroupsPanel({
               <option value="public">Public</option>
             </select>
           </label>
+          <label className="group-access-mode">
+            Listing
+            <select
+              value={gd.listing}
+              onChange={(event) =>
+                void runGroupAction(
+                  () =>
+                    updateGroupSettings(gd.id, {
+                      listing: event.target.value as GroupDetail["listing"],
+                    }).then(setGroupDetail),
+                  "Could not update listing.",
+                )
+              }
+            >
+              <option value="visible">Visible in Discover</option>
+              <option value="hidden">Hidden from Discover</option>
+            </select>
+            <small className="source-note">
+              Whether this club appears in Discover. Independent of Visibility —
+              a listed club can still keep its page private and require an
+              invite or request to join.
+            </small>
+          </label>
         </div>
       </>
     ) : null;

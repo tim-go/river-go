@@ -16,6 +16,10 @@ export type GroupMemberStatus =
   | "declined";
 export type GroupDiscipline = "whitewater" | "touring" | "both";
 export type GroupAccessMode = "request_to_join" | "invite_only";
+// Directory listing — whether the club appears in Discover. Separate from
+// `visibility` (which governs page access): a private club can still be listed
+// and gate its page behind request/invite. Defaults to 'visible'.
+export type GroupListing = "visible" | "hidden";
 
 const GROUP_KINDS: GroupKind[] = ["club", "subgroup", "friends", "trip"];
 const GROUP_VISIBILITIES: GroupVisibility[] = ["private", "members", "public"];
@@ -24,6 +28,7 @@ const GROUP_ACCESS_MODES: GroupAccessMode[] = [
   "request_to_join",
   "invite_only",
 ];
+const GROUP_LISTINGS: GroupListing[] = ["visible", "hidden"];
 // Membership managers (owner + organiser) remove members, edit settings, and
 // assign roles. Only the owner transfers ownership. Leaders manage sessions
 // (SESSION_MANAGER_ROLES in group-sessions.ts) + membership intake, but NOT
@@ -69,6 +74,7 @@ export interface ApiGroup {
   discipline: GroupDiscipline | null;
   visibility: GroupVisibility;
   accessMode: GroupAccessMode;
+  listing: GroupListing;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -141,6 +147,7 @@ export interface GroupInput {
   description: string | null;
   discipline: GroupDiscipline | null;
   visibility: GroupVisibility;
+  listing: GroupListing;
 }
 
 interface GroupRow {
@@ -153,6 +160,7 @@ interface GroupRow {
   discipline: GroupDiscipline | null;
   visibility: GroupVisibility;
   access_mode: GroupAccessMode;
+  listing?: GroupListing;
   created_by: string;
   created_at: Date;
   updated_at: Date;
@@ -198,6 +206,7 @@ function mapGroupRow(row: GroupRow): ApiGroup {
     discipline: row.discipline,
     visibility: row.visibility,
     accessMode: row.access_mode,
+    listing: row.listing ?? "visible",
     createdBy: row.created_by,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -286,6 +295,12 @@ export function parseGroupInput(body: unknown): GroupInput {
     throw new HttpError(400, "Choose a valid discipline.");
   }
 
+  const listingRaw = readString(record.listing);
+  const listing = (listingRaw || "visible") as GroupListing;
+  if (!GROUP_LISTINGS.includes(listing)) {
+    throw new HttpError(400, "Choose a valid listing setting.");
+  }
+
   return {
     name,
     kind,
@@ -293,6 +308,7 @@ export function parseGroupInput(body: unknown): GroupInput {
     description: readOptionalString(record.description),
     discipline,
     visibility,
+    listing,
   };
 }
 
@@ -363,11 +379,12 @@ export async function createGroup(
     const inserted = await client.query<GroupRow>(
       `INSERT INTO groups (
          name, handle, kind, parent_group_id, description, discipline,
-         visibility, created_by
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         visibility, listing, created_by
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id, name, handle, kind, parent_group_id, description,
-                 discipline, visibility, access_mode, created_by, created_at,
-                 updated_at, cover_image_url, cover_position, cover_x, cover_zoom`,
+                 discipline, visibility, access_mode, listing, created_by,
+                 created_at, updated_at, cover_image_url, cover_position,
+                 cover_x, cover_zoom`,
       [
         input.name,
         handle,
@@ -376,6 +393,7 @@ export async function createGroup(
         input.description,
         input.discipline,
         input.visibility,
+        input.listing,
         memberId,
       ],
     );
@@ -415,7 +433,7 @@ export async function listDiscoverableClubs(
   const q = query && query.trim() ? query.trim() : null;
   const result = await pool.query<GroupRow>(
     `SELECT g.id, g.name, g.handle, g.kind, g.parent_group_id, g.description,
-            g.discipline, g.visibility, g.access_mode, g.created_by,
+            g.discipline, g.visibility, g.access_mode, g.listing, g.created_by,
             g.created_at, g.updated_at, g.cover_image_url, g.cover_position,
             g.cover_x, g.cover_zoom,
             (SELECT count(*) FROM group_members gm2
@@ -424,7 +442,7 @@ export async function listDiscoverableClubs(
      FROM groups g
      LEFT JOIN group_members gm
        ON gm.group_id = g.id AND gm.member_id = $1
-     WHERE g.visibility <> 'private'
+     WHERE g.listing = 'visible'
        AND (
          $2::text IS NULL
          OR g.name ILIKE '%' || $2 || '%'
@@ -459,7 +477,7 @@ export async function listGroupsForMember(
 ): Promise<ApiGroup[]> {
   const result = await client.query<GroupRow>(
     `SELECT g.id, g.name, g.handle, g.kind, g.parent_group_id, g.description,
-            g.discipline, g.visibility, g.access_mode, g.created_by,
+            g.discipline, g.visibility, g.access_mode, g.listing, g.created_by,
             g.created_at, g.updated_at, g.cover_image_url, g.cover_position, g.cover_x, g.cover_zoom,
             (SELECT count(*) FROM group_members gm2
                WHERE gm2.group_id = g.id AND gm2.status = 'active')
@@ -482,7 +500,7 @@ export async function getGroupForMember(
 ): Promise<ApiGroupDetail> {
   const result = await client.query<GroupRow>(
     `SELECT g.id, g.name, g.handle, g.kind, g.parent_group_id, g.description,
-            g.discipline, g.visibility, g.access_mode, g.created_by,
+            g.discipline, g.visibility, g.access_mode, g.listing, g.created_by,
             g.created_at, g.updated_at, g.cover_image_url, g.cover_position, g.cover_x, g.cover_zoom,
             (SELECT count(*) FROM group_members gm2
                WHERE gm2.group_id = g.id AND gm2.status = 'active')
@@ -888,6 +906,13 @@ export async function updateGroupSettings(
     }
     add("visibility", visibility);
   }
+  if ("listing" in patch) {
+    const listing = readString(patch.listing) as GroupListing;
+    if (!GROUP_LISTINGS.includes(listing)) {
+      throw new HttpError(400, "Choose a valid listing setting.");
+    }
+    add("listing", listing);
+  }
   if ("description" in patch) {
     add("description", readOptionalString(patch.description));
   }
@@ -976,7 +1001,7 @@ export async function getGroupByIdOrHandle(
   }
   const publicRow = await pool.query<GroupRow>(
     `SELECT g.id, g.name, g.handle, g.kind, g.parent_group_id, g.description,
-            g.discipline, g.visibility, g.access_mode, g.created_by,
+            g.discipline, g.visibility, g.access_mode, g.listing, g.created_by,
             g.created_at, g.updated_at, g.cover_image_url, g.cover_position, g.cover_x, g.cover_zoom,
             (SELECT count(*) FROM group_members gm2
                WHERE gm2.group_id = g.id AND gm2.status = 'active')
