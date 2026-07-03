@@ -1474,11 +1474,6 @@ export function GroupsPanel({
               <option value="visible">Visible in Discover</option>
               <option value="hidden">Hidden from Discover</option>
             </select>
-            <small className="source-note">
-              Whether this club appears in Discover. Independent of Visibility —
-              a listed club can still keep its page private and require an
-              invite or request to join.
-            </small>
           </label>
         </div>
       </>

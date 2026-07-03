@@ -8326,3 +8326,11 @@ input[type="file"]::file-selector-button:hover {
     position: static;
   }
 }
+
+/* River card footer — the explicit "View on map" action (card body opens the
+   river page). */
+.river-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}

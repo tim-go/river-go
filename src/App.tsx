@@ -5256,6 +5256,12 @@ function App() {
                         isFavourite
                         level={riverLevels[river.id]}
                         onToggleFavourite={toggleFavouriteRiver}
+                        onOpenPage={(riverId) =>
+                          openRiverPage(riverId, {
+                            label: "Dashboard",
+                            section: "dashboard",
+                          })
+                        }
                         onOpen={(riverId) => {
                           selectCanonicalRiver(riverId, { zoom: "bounds" });
                           setActiveAppSection("map");
@@ -5403,6 +5409,12 @@ function App() {
                             level={riverLevels[river.id]}
                             onToggleFavourite={toggleFavouriteRiver}
                             onVisible={requestRiverLevel}
+                            onOpenPage={(riverId) =>
+                              openRiverPage(riverId, {
+                                label: "Discover",
+                                section: "discover",
+                              })
+                            }
                             onOpen={(riverId) => {
                               selectCanonicalRiver(riverId, { zoom: "bounds" });
                               setActiveAppSection("map");
