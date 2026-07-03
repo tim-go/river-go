@@ -60,11 +60,13 @@ export function RiverDetailPage({
   riverId,
   onBack,
   onViewOnMap,
+  onViewPoiOnMap,
   onOpenPhoto,
 }: {
   riverId: string;
   onBack: () => void;
   onViewOnMap: (riverId: string) => void;
+  onViewPoiOnMap: (poi: MapPoi) => void;
   onOpenPhoto: (photo: PhotoLightboxItem) => void;
 }) {
   const [river, setRiver] = useState<CanonicalRiverDetail | null>(null);
@@ -285,6 +287,15 @@ export function RiverDetailPage({
                           {poi.subtitle ? ` · ${poi.subtitle}` : ""}
                         </small>
                       </span>
+                      <button
+                        className="ghost-button ghost-button--compact"
+                        type="button"
+                        aria-label={`View ${poi.title} on the map`}
+                        onClick={() => onViewPoiOnMap(poi)}
+                      >
+                        <MapIcon size={14} />
+                        Map
+                      </button>
                     </li>
                   ))}
                 </ul>

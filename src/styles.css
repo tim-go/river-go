@@ -8374,3 +8374,33 @@ input[type="file"]::file-selector-button:hover {
 .app-page--river .app-page__content {
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* "Back to river page" — shown on the map after using a POI's View-on-map. */
+.river-return-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 650;
+  box-shadow: 0 8px 22px rgba(22, 34, 46, 0.18);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+/* POI rows on the river page keep the label left, the Map button right. */
+.river-page__list-row {
+  align-items: center;
+}
+.river-page__list-row > button {
+  flex: 0 0 auto;
+}
