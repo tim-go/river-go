@@ -8335,3 +8335,35 @@ input[type="file"]::file-selector-button:hover {
   justify-content: flex-end;
   margin-top: 2px;
 }
+
+.river-page__hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.river-page__hero-actions {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 620px) {
+  .river-page__hero {
+    flex-direction: column;
+  }
+}
+
+/* River page locator ("where is this river") — a small non-interactive map. */
+.river-locator-map {
+  height: 200px;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #e8eef0;
+}
+.river-locator-map .leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #e8eef0;
+}

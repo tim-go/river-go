@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, Droplets, MapPin, Waves } from "lucide-react";
+import {
+  ChevronLeft,
+  Droplets,
+  Map as MapIcon,
+  MapPin,
+  Waves,
+} from "lucide-react";
 import {
   fetchCanonicalRiver,
   type CanonicalRiverDetail,
@@ -33,6 +39,7 @@ import { getPrimaryObservationMeasure } from "../lib/format";
 import { ObservationCard } from "./ObservationCard";
 import { RiverPhotoGallery } from "./RiverPhotoGallery";
 import { RiverPaddleHistory } from "./RiverPaddleHistory";
+import { RiverLocatorMap } from "./RiverLocatorMap";
 
 const POI_TAB_LABELS: Record<RiverPoiTab, string> = {
   rapids: "Rapids & features",
@@ -52,10 +59,12 @@ const RANGE_OPTIONS: Array<{ hours: ObservationRangeHours; label: string }> = [
 export function RiverDetailPage({
   riverId,
   onBack,
+  onViewOnMap,
   onOpenPhoto,
 }: {
   riverId: string;
   onBack: () => void;
+  onViewOnMap: (riverId: string) => void;
   onOpenPhoto: (photo: PhotoLightboxItem) => void;
 }) {
   const [river, setRiver] = useState<CanonicalRiverDetail | null>(null);
@@ -208,6 +217,16 @@ export function RiverDetailPage({
             </span>
           </div>
         </div>
+        <div className="river-page__hero-actions">
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => onViewOnMap(riverId)}
+          >
+            <MapIcon size={15} />
+            View on map
+          </button>
+        </div>
       </header>
 
       <div className="river-page__body">
@@ -284,6 +303,18 @@ export function RiverDetailPage({
         </main>
 
         <aside className="river-page__side">
+          <section className="river-page__card">
+            <h3>
+              <MapPin size={15} /> Location
+            </h3>
+            <RiverLocatorMap
+              riverId={riverId}
+              bbox={river.bbox}
+              centre={river.centre}
+            />
+            {where ? <p className="source-note">{where}</p> : null}
+          </section>
+
           <section className="river-page__card">
             <h3>
               <Droplets size={15} /> Levels

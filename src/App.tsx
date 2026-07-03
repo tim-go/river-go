@@ -4543,6 +4543,13 @@ function App() {
                 <RiverDetailPage
                   riverId={riverRoute}
                   onBack={closeRiverPage}
+                  onViewOnMap={(riverId) => {
+                    setRiverRoute(null);
+                    setReturnTarget(null);
+                    window.history.pushState({}, "", "/");
+                    selectCanonicalRiver(riverId, { zoom: "bounds" });
+                    setActiveAppSection("map");
+                  }}
                   onOpenPhoto={setLightboxPhoto}
                 />
               </div>
