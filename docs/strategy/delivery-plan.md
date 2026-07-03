@@ -32,7 +32,7 @@ This document gives a clear view of the current delivery state. The full feature
 | Backend service API | `/docs/specs/foundations/service-api.md` | Active | Cloud Run API, Firebase Auth, PostGIS; endpoints for rivers, POIs, contributions, photos, observations, groups/sessions/membership, routes, moderation. Broad and in-flight. |
 | Backend data and sync model | `/docs/specs/foundations/data-and-sync-model.md` | Landed | Hybrid relational/JSONB model + idempotent offline sync push against PostGIS. |
 | Staging end-to-end deployment | `/docs/specs/foundations/platform-configuration.md` | Active | Cloud Run deploy, Cloud SQL migration, Firebase deploy, E2E smoke scripts. **Staging auto-deploys from `main`.** Scheduled ingestion via Cloud Scheduler + OIDC still to confirm in prod. |
-| Feedback capture workflow | `/docs/product/wye-pilot-feedback-template.md` | Active | Template exists; **real pilot sessions still not run** — the biggest unaddressed validation gap. |
+| Pilot feedback | `/docs/product/pilot-feedback-template.md` | In progress | Being trialled with real paddlers; feedback received and **mostly incorporated**. Keep running sessions as new surfaces ship. |
 | Future community, commerce, learning | `/docs/specs/commerce/community-commerce-and-learning.md` | Parked | Marketplace, recommendations, beginner learning, social discovery, lost-and-found, monetisation. |
 
 ## Recommended Next Sprint
@@ -40,7 +40,7 @@ This document gives a clear view of the current delivery state. The full feature
 The prior sprint's headline item (community sections) is **done**. Current priorities:
 
 1. **Discovery river detail page (RIVERDISC-F3) + nearby-river list (F4).** Highest user-facing value, cheap — the map, level-state, discipline filter, and observation history already exist; this is the last mile of the core "find a river" job and the thing to put in front of pilot paddlers.
-2. **Run the first Wye/Tryweryn pilot feedback sessions** (`/docs/product/wye-pilot-feedback-template.md`). A large, unvalidated surface area is built; real feedback may reorder everything below.
+2. **Keep running pilot feedback sessions** (`/docs/product/pilot-feedback-template.md`) — in progress with real paddlers and mostly incorporated; keep validating each new surface (river detail page, Trips) as it ships.
 3. **Level-linked photos (PHOTO-F12) + historical level chart on the river card (RIVERDISC-F7).** Both ride on data that already exists (observation history, level state).
 4. **Trips / unified float-plan engine** (new spec to write). One `trips` + `trip_legs` model serving both solo float-plans (fills the vacant RYA SafeTrx niche) and club Meetups; freeform-first legs with optional section links; one trip-level return deadline + server-side overdue escalation. Builds on Groups V1 + sections.
 5. **Confirm/close email verification** — verify Resend is wired, then re-enable `VITE_REQUIRE_EMAIL_VERIFICATION` + `REQUIRE_EMAIL_VERIFICATION`.

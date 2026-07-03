@@ -91,7 +91,7 @@ Specs are grouped by the product tier model (see `/docs/strategy/feature-registe
 | Wye seed dataset | `/docs/strategy/river-wye-seed-dataset.md` |
 | Roadmap | `/docs/strategy/roadmap.md` |
 | Delivery plan | `/docs/strategy/delivery-plan.md` |
-| Wye feedback template | `/docs/product/wye-pilot-feedback-template.md` |
+| Pilot feedback template | `/docs/product/pilot-feedback-template.md` |
 
 ## When To Add A New Spec
 
