@@ -119,7 +119,7 @@ Before public use, validate:
 | WYE-B1 | dependency | OSM licence review | Open | v0.2 | Required before production use of derived route geometry. |
 | WYE-B2 | decision | Field-level confidence model | Resolved | v0.2 | Use source metadata with low/medium/high plus seed confidence for prototype. |
 | WYE-B3 | dependency | Local contributor review | Open | v0.2 | Needed before treating seed data as credible. |
-| WYE-B4 | validation | Run first structured Wye feedback sessions | Open | v0.2 | Use `/docs/product/wye-pilot-feedback-template.md`. |
+| WYE-B4 | validation | Run first structured Wye feedback sessions | Open | v0.2 | Use `/docs/product/pilot-feedback-template.md`. |
 
 ## Change Log
 
