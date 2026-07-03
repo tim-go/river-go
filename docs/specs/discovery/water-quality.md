@@ -8,8 +8,8 @@ maturity: Draft
 
 # Water Quality
 
-**Work state:** Queued
-**Last updated:** 2026-07-02
+**Work state:** On hold (2026-07-03) — spec ready, build paused after a coverage check. Storm-overflow data is strong in England/Wales (~100% / ~99.5% EDM, open APIs) but patchy in Scotland (~40–50% of CSOs, worst in the remote uplands our Scottish rivers occupy), and our set is upland/whitewater where overflows cluster downstream near towns. Bathing classifications are too sparse to be a spine (~14 England + 2 Wales + ~0 Scotland *river* sites). Revisit as a **targeted layer on touring/lowland rivers** (Wye, Dart, Usk, Teme, Tywi), not the whole 62-river set.
+**Last updated:** 2026-07-03
 **Scope:** Provider integration and discovery surface for near-real-time sewage-spill status and bathing-water classifications, attached to the put-ins, take-outs, and river reaches paddlers use, presented as risk context and never as a clean/dirty verdict.
 
 ## Purpose

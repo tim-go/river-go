@@ -1,7 +1,9 @@
 # Feature Register
 
-**Last updated:** 2026-06-15
+**Last updated:** 2026-07-03 (statuses reconciled against shipped code).
 **Scope:** Product-level inventory of RiverLaunch.app features, grouped by the tiered product model. Complements `feature-taxonomy.md` (object/contribution *types*), `spec-consolidation-map.md` (owning *specs*), `roadmap.md` (phasing), and `delivery-plan.md` (current state). This register groups by *product tier and user value*, not by engineering layer.
+
+> **Authoritative current state is `/docs/strategy/delivery-plan.md`** (reconciled 2026-07-03). This register's per-cell statuses are kept roughly in sync but the delivery plan wins on any conflict.
 
 ## The Tiered Model
 
@@ -36,8 +38,8 @@ Status legend: ✅ Landed · 🔨 Active · ⬜ Queued · 🅿️ Parked
 ### 1A — River-first discovery
 | Feature | Status | Owning spec(s) |
 |---|---|---|
-| River overview markers (canonical pins + list) | 🔨 | river-first-discovery, river-section-map |
-| Selected-river context (summary, counts, source caveat) | 🔨 | river-first-discovery, river-section-map |
+| River overview markers (canonical pins + list) | ✅ | river-first-discovery, river-section-map |
+| Selected-river context (summary, counts, source caveat) | ✅ | river-first-discovery, river-section-map |
 | River detail page (paddling-critical facts, sources, gaps) | ⬜ | river-first-discovery |
 | Nearby river list (rank by distance; filter by grade/conditions) | ⬜ | river-first-discovery |
 | River-first copy migration (de-emphasise "routes") | ⬜ | river-first-discovery, river-section-map |
@@ -47,36 +49,41 @@ Status legend: ✅ Landed · 🔨 Active · ⬜ Queued · 🅿️ Parked
 | Feature | Status | Owning spec(s) |
 |---|---|---|
 | Map shell (Leaflet/OSM, fit-to-bounds) · markers · popups | ✅ | river-section-map, demo-prototype |
-| POI detail panel (facts, location actions, what3words) | 🔨 | river-section-map |
-| Known-rivers overlay + local stretch selection | 🔨 | geospatial-domain-model, river-section-map |
-| Layer filters (hazards/access/photos/stale) | ⬜ | river-section-map |
-| Grade & runnability filters ("grade III–IV running now") | ⬜ | river-section-map |
-| UK discovery overview (level-coloured at wide zoom) | ⬜ | river-section-map |
+| POI detail panel (facts, location actions, what3words) | ✅ | river-section-map |
+| Known-rivers overlay + local stretch selection | ✅ | geospatial-domain-model, river-section-map |
+| Layer filters (hazards/access/photos/stations/rain) | ✅ | river-section-map |
+| Level-band colouring at wide zoom (sections + river lines) | ✅ | river-section-map, river-first-discovery |
+| Discipline filter (whitewater / touring) | ✅ | river-section-map |
+| Grade (WW I–V) & "running now" filter | ⬜ | river-section-map |
+| Rain radar + 7-day forecast timebar | ✅ | river-section-map, observation-ingestion |
 | Distinct access/parking markers · feature-density controls | ⬜ | river-section-map, river-first-discovery |
-| Opt-in live location | 🔨 | river-section-map |
-| Nearby amenities & emergency points (toilets, defibs, hospitals; proximity-filtered) | ⬜ | nearby-amenities-and-emergency-points |
+| Opt-in live location | ✅ | river-section-map |
+| Nearby amenities (pubs/car parks/toilets/cafés/shops) | ✅ | nearby-amenities-and-emergency-points |
+| Emergency points (defibs, hospitals) | ⬜ | nearby-amenities-and-emergency-points |
 
 ### 1C — Live data (context, never advice)
 | Feature | Status | Owning spec(s) |
 |---|---|---|
-| Observation schema (stations/measures/readings/cache) | 🔨 | observation-ingestion |
-| EA + NRW provider adapters | 🔨 | observation-ingestion, river-level-providers |
-| Level read API + chart (latest/range/trend) | 🔨 | observation-ingestion |
-| Ingestion + backfill jobs | 🔨 | observation-ingestion, seed-data-operations |
+| Observation schema (stations/measures/readings/cache) | ✅ | observation-ingestion |
+| EA + NRW provider adapters | ✅ | observation-ingestion, river-level-providers |
+| SEPA provider adapter (Scotland) | ⬜ | observation-ingestion, river-level-providers |
+| Level read API + chart (latest/range/trend, 48h·7d·28d) | ✅ | observation-ingestion |
+| Ingestion (~30-min) + backfill + manual refresh jobs | ✅ | observation-ingestion, seed-data-operations |
 | Gauge display (live reading + fallback) | ✅ | river-level-providers |
 | Offline/stale level labelling | ⬜ | river-level-providers, offline-mode |
-| Rainfall / tide / dam-release context | 🔨 | observation-ingestion, river-level-providers |
+| Rainfall / tide / dam-release context | ⬜ | observation-ingestion, river-level-providers |
 | Historical level & rainfall charts on the river card | ⬜ | river-first-discovery |
 
 ### 1D — Discovery data foundation
 | Feature | Status | Owning spec(s) |
 |---|---|---|
-| Canonical rivers model + table + read API (`/api/rivers`) | 🔨 | canonical-river-database, service-api |
-| OSM feature → candidate POI extraction → promotion | 🔨 | canonical-river-database, public-source-seeding |
-| Public source register + licence classification | 🔨 | public-source-seeding |
-| OSM waterway import (snap/overlay layer) | 🔨 | public-source-seeding, geospatial-domain-model, service-api |
-| Location-owned POI model (`pois` + `poi_route_links`) | 🔨 | geospatial-domain-model, data-and-sync-model |
-| Pilot seed datasets (Wye, Tryweryn, UK catalogue) | ✅/🔨 | river-wye-seed-data, river-tryweryn-seed-data, uk-kayaking-sample-catalogue |
+| Canonical rivers model + table + read API (`/api/rivers`) — **62 rivers** | ✅ | canonical-river-database, service-api |
+| River geometry from **OS Open Rivers** (single clean traces) | ✅ | canonical-river-database, map-rework |
+| OSM feature → candidate POI extraction → promotion | ✅ | canonical-river-database, public-source-seeding |
+| Public source register + licence classification | ✅ | public-source-seeding |
+| OSM waterway import (snap/overlay layer) | ✅ | public-source-seeding, geospatial-domain-model, service-api |
+| Location-owned POI model (`pois` + `poi_route_links`) | ✅ | geospatial-domain-model, data-and-sync-model |
+| Wye/Tryweryn section fixtures | 🅿️ | *(retired 2026-07-02 — sections are community-origin only)* |
 
 ---
 
@@ -96,6 +103,8 @@ Sits between Discovery and Contributions. Establishing a **known, attributable m
 | Account/Sync surface (your synced state) | 🔨 | app-shell-navigation |
 
 ---
+
+> **Tier 1 status summary (2026-07-03):** Discovery is largely built — 62 canonical rivers on OS-Open-Rivers geometry, live level-band colouring, discipline filter, POI / amenities / stations / rain-radar layers, and the full observation backend (EA + NRW). The remaining Tier-1 gaps are the **river detail page**, **nearby-river list**, the **grade filter**, historical charts on the card, and the SEPA (Scotland) level adapter.
 
 ## Tier 2 · Community Contributions (free, known members)
 
@@ -129,15 +138,18 @@ Sits between Discovery and Contributions. Establishing a **known, attributable m
 | POI status override · source-candidate review/promotion | 🔨 | trust-and-moderation, canonical-river-database |
 | Staleness rules (7/30/90-day) | ⬜ | trust-and-moderation |
 
-### 2D — Community-sourced sections (demoted route submissions)
-*Reframed from "routes as the product" to "a contribution type." De-prioritised; kept for put-in/take-out/grade context.*
+### 2D — Community-sourced sections (community-origin only)
+*A "section" is a member-created interpretation of a river stretch — the only source of sections (RiverLaunch never seeds paddleable routes). Landed 2026-07-02 as canonical `routes` records.*
 | Feature | Status | Owning spec(s) |
 |---|---|---|
-| Section/route suggestion (trace + evidence form) | 🔨 | route-submissions |
-| Backend persistence + moderation + management | 🔨 | route-submissions |
-| Route adjustment records + impact review | 🔨 | route-submissions, geospatial-domain-model |
-| Snap-to-known-river + OSM routed snap | 🔨 | route-submissions, geospatial-domain-model |
-| Public candidate section display · route override publishing | 🔨 | route-submissions, river-section-map |
+| Section suggestion (trace + evidence form) | ✅ | route-submissions |
+| Backend persistence + moderation + management | ✅ | route-submissions |
+| Section adjustment records + impact review | ✅ | route-submissions, geospatial-domain-model |
+| Snap-to-known-river + OSM routed snap | ✅ | route-submissions, geospatial-domain-model |
+| Public candidate section display | ✅ | route-submissions, river-section-map |
+| **Promote to canonical section** (`routes` table + moderator action) | ✅ | route-submissions, plan-community-sections |
+| Section display (put-in/take-out markers, Sections layer, Section Favs) | ✅ | route-submissions, river-section-map |
+| Per-section gauge links · "On this stretch" river-POI derivation | ⬜ | route-submissions, geospatial-domain-model |
 
 ---
 
@@ -153,18 +165,21 @@ Sits between Discovery and Contributions. Establishing a **known, attributable m
 | Rich public profile page / avatar / links | 🅿️ | member-profiles-and-history |
 
 ## Tier 3b · Group Tools (private sharing — paid depth)
-*Defining property: private sharing among a known group. Consumes member + identity data where present.*
+*Defining property: private sharing among a known group. **Meetups V1 delivered 2026-06-16.** Consumes member + identity data where present.*
 | Feature | Status | Owning spec(s) |
 |---|---|---|
-| Clubs & subgroups · friend / temporary groups | ⬜ | group-paddle-sessions |
-| Planned paddle sessions (target/meet/invite/timing) | ⬜ | group-paddle-sessions |
-| Participant availability | ⬜ | group-paddle-sessions |
-| Check-in / check-out (session lifecycle) | ⬜ | group-paddle-sessions |
-| Session-scoped ICE *sharing* (consented, time-boxed) | ⬜ | group-paddle-sessions |
-| Kit & skills advisory checks (uses member data) | ⬜ | group-paddle-sessions |
-| Session completion / history (also feeds member history) | ⬜ | group-paddle-sessions |
-| Private group messaging | ⬜ | *(moved from future/community-commerce-and-learning)* |
-| Optional group location sharing | 🅿️ | group-paddle-sessions |
+| Clubs & subgroups · friend / temporary groups | ✅ | group-paddle-sessions |
+| Membership v2: retire member-search · invite-by-email · group link + request-to-join · access modes · ownership transfer · audit | ✅ | group-membership-and-invites |
+| Planned paddle sessions (target/meet/invite/timing) | ✅ | group-paddle-sessions |
+| Participant availability · RSVP | ✅ | group-paddle-sessions |
+| Check-in / check-out (session lifecycle) | ✅ | group-paddle-sessions |
+| Session-scoped ICE *sharing* (consented, time-boxed) | ✅ | group-paddle-sessions |
+| Kit & skills advisory checks (uses member data) | ✅ | group-paddle-sessions |
+| Session completion / history (also feeds member history) | ✅ | group-paddle-sessions |
+| **Trips / unified float-plan engine** (solo + meetup; ETA + overdue escalation) | ⬜ | *(spec to write — extends group-paddle-sessions)* |
+| Optional group location sharing / SOS | 🅿️ | group-paddle-sessions |
+| Non-member email invites · public/discoverable groups | 🅿️ | group-membership-and-invites |
+| Private group messaging | ⬜ | posts-and-sharing *(draft)* |
 
 ---
 
