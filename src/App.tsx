@@ -4394,7 +4394,9 @@ function App() {
   return (
     <main
       className={`app-shell ${
-        activeAppSection === "map" ? "" : "app-shell--content-only"
+        activeAppSection === "map" && !riverRoute && !profileRoute
+          ? ""
+          : "app-shell--content-only"
       }`}
     >
       <div className="beta-banner" role="note">
@@ -4539,7 +4541,7 @@ function App() {
       ) : null}
           {riverRoute ? (
             <section className="app-page app-page--river">
-              <div className="app-page__content">
+              <div className="app-page__content app-page__content--wide">
                 <RiverDetailPage
                   riverId={riverRoute}
                   onBack={closeRiverPage}

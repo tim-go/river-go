@@ -3887,6 +3887,7 @@ button.group-detail__section {
   border: 1px solid #f0dcb8;
   border-radius: 8px;
   background: #fbf4e7;
+  color: #7a5512;
 }
 
 [data-theme="surge"] .detail-panel .river-safety-toggle {
@@ -8146,7 +8147,7 @@ input[type="file"]::file-selector-button:hover {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 1080px;
+  width: 100%;
   margin: 0 auto;
   padding: 12px 4px 48px;
 }
@@ -8209,7 +8210,7 @@ input[type="file"]::file-selector-button:hover {
 /* Two columns on desktop; single column on narrow screens. */
 .river-page__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: 18px;
   align-items: start;
 }
@@ -8366,4 +8367,10 @@ input[type="file"]::file-selector-button:hover {
   height: 100%;
   width: 100%;
   background: #e8eef0;
+}
+
+/* The content grid's implicit column is auto-sized (≈content width); force it to
+   stretch so the wide river page actually fills the 1320px canvas. */
+.app-page--river .app-page__content {
+  grid-template-columns: minmax(0, 1fr);
 }

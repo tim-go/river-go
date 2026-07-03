@@ -25,15 +25,16 @@ export function RiverLocatorMap({
     if (!container) return;
 
     const map = L.map(container, {
-      // Locator, not a tool — no interaction, no chrome.
-      zoomControl: false,
+      // Lightly interactive: drag + zoom buttons + double-click/pinch. Scroll-
+      // wheel zoom is off so it doesn't hijack page scrolling in the sidebar.
+      zoomControl: true,
       attributionControl: false,
-      dragging: false,
+      dragging: true,
       scrollWheelZoom: false,
-      doubleClickZoom: false,
+      doubleClickZoom: true,
       boxZoom: false,
       keyboard: false,
-      touchZoom: false,
+      touchZoom: true,
     });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
@@ -43,15 +44,16 @@ export function RiverLocatorMap({
     const hasBounds =
       Number.isFinite(west) && west !== east && south !== north;
     if (hasBounds) {
+      // Cap at zoom 10 so it opens a little further out (region context).
       map.fitBounds(
         [
           [south, west],
           [north, east],
         ],
-        { padding: [18, 18], maxZoom: 12 },
+        { padding: [24, 24], maxZoom: 10 },
       );
     } else {
-      map.setView(centre, 10);
+      map.setView(centre, 9);
     }
 
     let cancelled = false;
@@ -62,10 +64,21 @@ export function RiverLocatorMap({
         if (mine && mine.lines.length) {
           const colour = levelBandColor(mine.band);
           for (const points of mine.lines) {
+            // Dark casing under a bold coloured line so it reads clearly over
+            // busy OSM terrain tiles.
+            L.polyline(points, {
+              color: "#0b2438",
+              weight: 9,
+              opacity: 0.5,
+              lineCap: "round",
+              lineJoin: "round",
+            }).addTo(map);
             L.polyline(points, {
               color: colour,
-              weight: 4,
-              opacity: 0.9,
+              weight: 5,
+              opacity: 1,
+              lineCap: "round",
+              lineJoin: "round",
             }).addTo(map);
           }
         } else {
