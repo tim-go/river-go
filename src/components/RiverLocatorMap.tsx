@@ -36,6 +36,7 @@ export function RiverLocatorMap({
       keyboard: false,
       touchZoom: true,
     });
+    map.zoomControl.setPosition("bottomleft");
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
     }).addTo(map);
