@@ -7442,15 +7442,17 @@ input[type="file"]::file-selector-button:hover {
   color: #ffffff;
 }
 
-/* leaflet zoom controls */
-[data-theme="surge"] .leaflet-bar a {
-  background: rgba(10, 16, 38, 0.92);
-  border-bottom-color: rgba(120, 150, 230, 0.2);
-  color: #c2cef0;
+/* Leaflet zoom controls — kept light in every theme to match the floating
+   map-action bar (which is always white), rather than following the dark
+   surge surface. */
+.leaflet-control-zoom a {
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom-color: rgba(20, 30, 50, 0.1);
+  color: #1a2238;
 }
-[data-theme="surge"] .leaflet-bar a:hover {
-  background: rgba(24, 34, 70, 0.95);
-  color: #ffffff;
+.leaflet-control-zoom a:hover {
+  background: #ffffff;
+  color: #1a2238;
 }
 
 /* ============================================================
