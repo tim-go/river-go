@@ -379,9 +379,6 @@ function App() {
   const [riverRoute, setRiverRoute] = useState<string | null>(() =>
     parseRiverRoute(),
   );
-  // When a POI's "View on map" is used from a river page, this holds that river
-  // id so the map can offer a "Back to river page" return.
-  const [riverPageReturn, setRiverPageReturn] = useState<string | null>(null);
   // Shared back-navigation utility. Any page that opens an entity page (a club
   // or a paddler profile) can pass a return target describing where "back" goes:
   // a label to show, and — because app sections/search live in React state, not
@@ -459,7 +456,6 @@ function App() {
     setReturnTarget(back ?? null);
     setProfileRoute(null);
     setGroupRoute(null);
-    setRiverPageReturn(null);
     setRiverRoute(riverId);
   };
   const closeRiverPage = () => {
@@ -493,7 +489,6 @@ function App() {
     setGroupRoute(null);
     setProfileRoute(null);
     setRiverRoute(null);
-    setRiverPageReturn(null);
     setReturnTarget(null);
   };
   useEffect(() => {
@@ -4553,14 +4548,12 @@ function App() {
                   onViewOnMap={(riverId) => {
                     setRiverRoute(null);
                     setReturnTarget(null);
-                    setRiverPageReturn(null);
                     window.history.pushState({}, "", "/");
                     selectCanonicalRiver(riverId, { zoom: "bounds" });
                     setActiveAppSection("map");
                   }}
                   onViewPoiOnMap={(poi) => {
                     if (!riverRoute) return;
-                    setRiverPageReturn(riverRoute);
                     setRiverRoute(null);
                     setReturnTarget(null);
                     window.history.pushState({}, "", "/");
@@ -4588,14 +4581,19 @@ function App() {
             </section>
           ) : activeAppSection === "map" ? (
       <section className="workspace">
-        {riverPageReturn ? (
+        {selectedCanonicalRiver && !isSelectedRiverPanelOpen ? (
           <button
-            className="river-return-banner"
+            className="map-river-details"
             type="button"
-            onClick={() => openRiverPage(riverPageReturn)}
+            onClick={() =>
+              openRiverPage(selectedCanonicalRiver.id, {
+                label: "Map",
+                section: "map",
+              })
+            }
           >
-            <ChevronLeft size={15} />
-            Back to river page
+            <MapPinned size={15} />
+            River details
           </button>
         ) : null}
         <SyncOutboxBanner

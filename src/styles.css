@@ -8377,8 +8377,9 @@ input[type="file"]::file-selector-button:hover {
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* "Back to river page" — shown on the map after using a POI's View-on-map. */
-.river-return-banner {
+/* Persistent "River details" — shown on the map whenever a river is selected
+   (and its panel is closed), so the river page is always reachable. */
+.map-river-details {
   position: absolute;
   top: 12px;
   left: 50%;
