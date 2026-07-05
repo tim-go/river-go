@@ -6911,7 +6911,7 @@ input[type="file"]::file-selector-button:hover {
 }
 
 /* the themed canvas: tokens + glow background + display fonts */
-[data-theme="surge"] .app-shell--content-only {
+[data-theme="surge"] .app-shell {
   --ink: #eaf0ff;
   --muted: #8d9bc4;
   --line: rgba(120, 150, 230, 0.18);
@@ -6924,6 +6924,9 @@ input[type="file"]::file-selector-button:hover {
   --discipline-whitewater: #4d8bff;
   --discipline-touring: #28c2a0;
   --surge-yellow: #ffd60a;
+}
+/* Decorative themed canvas (content pages only, not the full-bleed map. */
+[data-theme="surge"] .app-shell--content-only {
   position: relative;
   isolation: isolate;
   font-family: "Space Grotesk", system-ui, sans-serif;
@@ -7143,7 +7146,7 @@ input[type="file"]::file-selector-button:hover {
 }
 
 /* ---- DAYBREAK: a light version of Surge (blue/yellow on white) ---- */
-[data-theme="daybreak"] .app-shell--content-only {
+[data-theme="daybreak"] .app-shell {
   --ink: #0d1b3e;
   --muted: #5c6a92;
   --line: #dbe4ff;
@@ -7156,6 +7159,8 @@ input[type="file"]::file-selector-button:hover {
   --discipline-whitewater: #1e57ff;
   --discipline-touring: #1a9e74;
   --surge-yellow: #b07c00;
+}
+[data-theme="daybreak"] .app-shell--content-only {
   font-family: "Space Grotesk", system-ui, sans-serif;
   color: var(--ink);
   background:
