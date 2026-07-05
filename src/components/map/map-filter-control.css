@@ -68,7 +68,15 @@
   color: #1a1300;
   font-size: 0.74rem;
   font-weight: 650;
+  /* Tight line box so the label sits on the flex centre line, not high. */
+  line-height: 1;
   white-space: nowrap;
+}
+
+/* Icons are inline SVGs by default, whose baseline gap pushes them off the
+   centre (the mis-aligned "x"). Make them block-level so they centre cleanly. */
+.map-filter__pill svg {
+  display: block;
 }
 
 .map-filter__pill-close {
@@ -76,11 +84,16 @@
   place-items: center;
   width: 16px;
   height: 16px;
+  padding: 0;
   border: 0;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.14);
   color: #1a1300;
   cursor: pointer;
+}
+
+.map-filter__pill-close svg {
+  display: block;
 }
 
 .map-filter__expander {
