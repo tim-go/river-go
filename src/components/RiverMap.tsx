@@ -403,7 +403,9 @@ export function RiverMap({
   const [knownWatercourses, setKnownWatercourses] = useState<KnownWatercourse[]>(
     [],
   );
-  const POI_MIN_ZOOM = 10;
+  // POIs/amenities only appear once zoomed in this far when browsing (a selected
+  // river always shows its POIs regardless — see the mapFilterRiver bypass).
+  const POI_MIN_ZOOM = 11;
   const [poiZoomVisible, setPoiZoomVisible] = useState(false);
   const [hiddenPoiCategories, setHiddenPoiCategories] = useState<
     Set<MapPoiDisplayCategory>
