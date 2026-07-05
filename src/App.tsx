@@ -534,7 +534,7 @@ function App() {
         return saved;
       }
     }
-    return "surge";
+    return "tide";
   });
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
