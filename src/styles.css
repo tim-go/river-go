@@ -7198,9 +7198,9 @@ input[type="file"]::file-selector-button:hover {
   .app-shell--content-only
   .segmented-control
   button.active {
-  background: #ffd60a;
-  border-color: #ffd60a;
-  color: #1a1300;
+  background: #1e57ff;
+  border-color: #1e57ff;
+  color: #fff;
 }
 [data-theme="daybreak"] .app-shell--content-only .canonical-river-row:hover,
 [data-theme="daybreak"]
@@ -8416,4 +8416,18 @@ input[type="file"]::file-selector-button:hover {
   background: #1f8a70;
   border-color: #1f8a70;
   color: #fff;
+}
+
+/* Daybreak: light blue theme — unify the selected accent to the theme's blue
+   (its filter chips are already blue) rather than the brand yellow, and calm the
+   too-vivid river-tile level number to a deeper blue. */
+[data-theme="daybreak"] .segmented-control button.active,
+[data-theme="daybreak"] .observation-range-toggle button.active,
+[data-theme="daybreak"] .map-action--active {
+  background: #1e57ff;
+  border-color: #1e57ff;
+  color: #fff;
+}
+[data-theme="daybreak"] .river-card__level-num {
+  color: #1e3a8a;
 }
