@@ -4,6 +4,7 @@ import type {
   GroupDetail,
   GroupDiscipline,
   GroupKind,
+  GroupListing,
   GroupPending,
   GroupPublic,
   GroupRole,
@@ -200,6 +201,7 @@ export interface GroupSettingsPatch {
   handle?: string;
   accessMode?: GroupAccessMode;
   visibility?: GroupVisibility;
+  listing?: GroupListing;
   description?: string | null;
   coverImageUrl?: string | null;
   coverImagePath?: string | null;

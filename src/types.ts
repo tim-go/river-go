@@ -398,6 +398,9 @@ export type GroupMemberStatus =
   | "removed"
   | "declined";
 export type GroupAccessMode = "request_to_join" | "invite_only";
+// Directory listing — whether the club shows in Discover (separate from
+// `visibility`, which governs page access). Defaults to "visible".
+export type GroupListing = "visible" | "hidden";
 export type GroupDiscipline = "whitewater" | "touring" | "both";
 export type SessionStatus = "planned" | "active" | "completed" | "cancelled";
 export type Rsvp = "invited" | "yes" | "no" | "maybe";
@@ -412,6 +415,7 @@ export interface Group {
   discipline: GroupDiscipline | null;
   visibility: GroupVisibility;
   accessMode: GroupAccessMode;
+  listing: GroupListing;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

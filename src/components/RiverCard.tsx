@@ -1,5 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
-import { Star } from "lucide-react";
+import { Map as MapIcon, Star } from "lucide-react";
 import type { CanonicalRiverSummary } from "../services/canonicalRiverApi";
 import type { SectionObservationMeasure } from "../services/observationApi";
 import { disciplineLabel } from "../appCore";
@@ -11,7 +11,12 @@ import {
 
 interface RiverCardProps {
   river: CanonicalRiverSummary;
+  // The card's primary action — "View on map" (select the river + jump to the
+  // map). Also fired by the explicit "View on map" button.
   onOpen: (riverId: string) => void;
+  // When set, the card body opens the river's detail page instead, and a
+  // "View on map" button surfaces the onOpen action.
+  onOpenPage?: (riverId: string) => void;
   isFavourite?: boolean;
   onToggleFavourite?: (riverId: string) => void;
   level?: SectionObservationMeasure | null;
@@ -34,6 +39,7 @@ const TREND_ARROW: Record<string, string> = {
 export function RiverCard({
   river,
   onOpen,
+  onOpenPage,
   isFavourite,
   onToggleFavourite,
   level,
@@ -65,15 +71,16 @@ export function RiverCard({
     return () => observer.disconnect();
   }, [onVisible, river.id]);
 
-  const openRiver = () => onOpen(river.id);
+  // Primary card action: the river page when available, else the map.
+  const openPrimary = () => (onOpenPage ?? onOpen)(river.id);
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    // Only act on the card itself, not keystrokes bubbling from the star button.
+    // Only act on the card itself, not keystrokes bubbling from nested buttons.
     if (event.target !== event.currentTarget) {
       return;
     }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      openRiver();
+      openPrimary();
     }
   };
 
@@ -83,8 +90,12 @@ export function RiverCard({
       ref={cardRef}
       role="button"
       tabIndex={0}
-      aria-label={`Open ${river.displayName} on the map`}
-      onClick={openRiver}
+      aria-label={
+        onOpenPage
+          ? `Open the ${river.displayName} river page`
+          : `Open ${river.displayName} on the map`
+      }
+      onClick={openPrimary}
       onKeyDown={handleKeyDown}
     >
       <div className="river-card__head">
@@ -177,6 +188,22 @@ export function RiverCard({
       </div>
       {river.summary ? (
         <p className="river-card__summary">{river.summary}</p>
+      ) : null}
+      {onOpenPage ? (
+        <div className="river-card__actions">
+          <button
+            className="ghost-button ghost-button--compact"
+            type="button"
+            aria-label={`View ${river.displayName} on the map`}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpen(river.id);
+            }}
+          >
+            <MapIcon size={14} />
+            View on map
+          </button>
+        </div>
       ) : null}
     </article>
   );

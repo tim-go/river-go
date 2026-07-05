@@ -184,6 +184,7 @@ import { RiverCard } from "./components/RiverCard";
 import { DashboardHub } from "./components/DashboardHub";
 import { ProfileAvatarEditor } from "./components/ProfileAvatarEditor";
 import { PublicProfilePage } from "./components/PublicProfilePage";
+import { RiverDetailPage } from "./components/RiverDetailPage";
 import { PublicProfileControls } from "./components/PublicProfileControls";
 import { PwaInstallSettingRow } from "./pwa/PwaInstallSettingRow";
 import { GroupsPanel } from "./components/GroupsPanel";
@@ -336,6 +337,15 @@ function parseProfileRoute(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+// A river's dedicated detail page: /river/<id>. Same routed-entity shape.
+function parseRiverRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const match = window.location.pathname.match(/^\/river\/([^/]+)\/?$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 // Where an entity page's back button returns to. `section`/`searchMode` restore
 // a React-state view (e.g. Discover ▸ Clubs) that the URL doesn't encode.
 type ReturnTarget = {
@@ -365,6 +375,10 @@ function App() {
   const [profileRoute, setProfileRoute] = useState<string | null>(() =>
     parseProfileRoute(),
   );
+  // The open river detail page (/river/<id>), or null.
+  const [riverRoute, setRiverRoute] = useState<string | null>(() =>
+    parseRiverRoute(),
+  );
   // Shared back-navigation utility. Any page that opens an entity page (a club
   // or a paddler profile) can pass a return target describing where "back" goes:
   // a label to show, and — because app sections/search live in React state, not
@@ -383,6 +397,7 @@ function App() {
     }
     setGroupRoute(null);
     setProfileRoute(null);
+    setRiverRoute(null);
     setReturnTarget(null);
     window.history.pushState({}, "", "/");
   };
@@ -397,6 +412,7 @@ function App() {
       );
       setReturnTarget(back ?? null);
       setProfileRoute(null);
+      setRiverRoute(null);
       setGroupRoute(idOrHandle);
       setActiveAppSection("groups");
     } else {
@@ -430,6 +446,29 @@ function App() {
       setActiveAppSection("map");
     }
   };
+  // Open a river's detail page, remembering how to get back.
+  const openRiverPage = (riverId: string, back?: ReturnTarget) => {
+    window.history.pushState(
+      { back: back ?? null },
+      "",
+      `/river/${encodeURIComponent(riverId)}`,
+    );
+    setReturnTarget(back ?? null);
+    setProfileRoute(null);
+    setGroupRoute(null);
+    setRiverRoute(riverId);
+  };
+  const closeRiverPage = () => {
+    if (returnTarget?.section) {
+      restoreReturnSection(returnTarget);
+    } else if (returnTarget) {
+      window.history.back();
+    } else {
+      window.history.pushState({}, "", "/");
+      setRiverRoute(null);
+      setActiveAppSection("map");
+    }
+  };
   // Back from a club page: restore the caller's section if it lives in React
   // state (e.g. Discover), else browser-back to a URL-carried caller, else fall
   // back to the clubs list.
@@ -444,11 +483,12 @@ function App() {
   };
   const navigateSection = (section: AppSection) => {
     setActiveAppSection(section);
-    if (parseGroupRoute() || parseProfileRoute()) {
+    if (parseGroupRoute() || parseProfileRoute() || parseRiverRoute()) {
       window.history.pushState({}, "", "/");
     }
     setGroupRoute(null);
     setProfileRoute(null);
+    setRiverRoute(null);
     setReturnTarget(null);
   };
   useEffect(() => {
@@ -457,6 +497,7 @@ function App() {
       const profile = parseProfileRoute();
       setGroupRoute(route);
       setProfileRoute(profile);
+      setRiverRoute(parseRiverRoute());
       setReturnTarget(
         (window.history.state?.back as ReturnTarget | undefined) ?? null,
       );
@@ -493,7 +534,7 @@ function App() {
         return saved;
       }
     }
-    return "surge";
+    return "tide";
   });
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -4353,7 +4394,9 @@ function App() {
   return (
     <main
       className={`app-shell ${
-        activeAppSection === "map" ? "" : "app-shell--content-only"
+        activeAppSection === "map" && !riverRoute && !profileRoute
+          ? ""
+          : "app-shell--content-only"
       }`}
     >
       <div className="beta-banner" role="note">
@@ -4401,7 +4444,7 @@ function App() {
               : ""
           }`}
         >
-      {activeAppSection === "map" && !profileRoute ? (
+      {activeAppSection === "map" && !profileRoute && !riverRoute ? (
         <section className="topbar" aria-label="Map controls">
           <div className="topbar-actions">
             <MapFilterControl
@@ -4420,7 +4463,7 @@ function App() {
           </div>
         </section>
       ) : null}
-      {activeAppSection === "map" && !profileRoute ? (
+      {activeAppSection === "map" && !profileRoute && !riverRoute ? (
         <div className="map-floating-actions">
           <MapFilterControl
             variant="floating"
@@ -4496,7 +4539,36 @@ function App() {
           onSelect={setSelectedRainTs}
         />
       ) : null}
-          {profileRoute ? (
+          {riverRoute ? (
+            <section className="app-page app-page--river">
+              <div className="app-page__content app-page__content--wide">
+                <RiverDetailPage
+                  riverId={riverRoute}
+                  onBack={closeRiverPage}
+                  onViewOnMap={(riverId) => {
+                    setRiverRoute(null);
+                    setReturnTarget(null);
+                    window.history.pushState({}, "", "/");
+                    selectCanonicalRiver(riverId, { zoom: "bounds" });
+                    setActiveAppSection("map");
+                  }}
+                  onViewPoiOnMap={(poi) => {
+                    if (!riverRoute) return;
+                    setRiverRoute(null);
+                    setReturnTarget(null);
+                    window.history.pushState({}, "", "/");
+                    selectCanonicalRiver(riverRoute, {
+                      zoom: "none",
+                      panel: "none",
+                    });
+                    focusDetailLocation(poi.location, "center");
+                    setActiveAppSection("map");
+                  }}
+                  onOpenPhoto={setLightboxPhoto}
+                />
+              </div>
+            </section>
+          ) : profileRoute ? (
             <section className="app-page app-page--profile">
               <div className="app-page__content">
                 <PublicProfilePage
@@ -4509,6 +4581,21 @@ function App() {
             </section>
           ) : activeAppSection === "map" ? (
       <section className="workspace">
+        {selectedCanonicalRiver && !isSelectedRiverPanelOpen ? (
+          <button
+            className="map-river-details"
+            type="button"
+            onClick={() =>
+              openRiverPage(selectedCanonicalRiver.id, {
+                label: "Map",
+                section: "map",
+              })
+            }
+          >
+            <MapPinned size={15} />
+            River details
+          </button>
+        ) : null}
         <SyncOutboxBanner
           queuedOutboxCount={queuedOutboxCount}
           failedOutboxCount={failedOutboxCount}
@@ -4586,6 +4673,9 @@ function App() {
           onOpenPhoto={setLightboxPhoto}
           onSelectSection={selectSection}
           onSelectCanonicalRiver={selectCanonicalRiver}
+          onOpenRiverPage={(riverId) =>
+            openRiverPage(riverId, { label: "Map", section: "map" })
+          }
           onCloseSelectedRiverPanel={closeSelectedRiverPanel}
           onToggleSelectedRiverPanelExpanded={() =>
             setIsSelectedRiverPanelExpanded((current) => !current)
@@ -5202,6 +5292,12 @@ function App() {
                         isFavourite
                         level={riverLevels[river.id]}
                         onToggleFavourite={toggleFavouriteRiver}
+                        onOpenPage={(riverId) =>
+                          openRiverPage(riverId, {
+                            label: "Dashboard",
+                            section: "dashboard",
+                          })
+                        }
                         onOpen={(riverId) => {
                           selectCanonicalRiver(riverId, { zoom: "bounds" });
                           setActiveAppSection("map");
@@ -5349,6 +5445,12 @@ function App() {
                             level={riverLevels[river.id]}
                             onToggleFavourite={toggleFavouriteRiver}
                             onVisible={requestRiverLevel}
+                            onOpenPage={(riverId) =>
+                              openRiverPage(riverId, {
+                                label: "Discover",
+                                section: "discover",
+                              })
+                            }
                             onOpen={(riverId) => {
                               selectCanonicalRiver(riverId, { zoom: "bounds" });
                               setActiveAppSection("map");

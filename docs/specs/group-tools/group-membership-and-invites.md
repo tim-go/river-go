@@ -8,8 +8,8 @@ maturity: Draft
 
 # Group Membership & Invites
 
-**Work state:** V1 delivered — supersedes the invite-by-name flow (GROUP-F2). Built (migration 032): `/api/members/search` retired, invite-by-exact-email, group link + request-to-join, access modes (request_to_join / invite_only), invite/request management, ownership transfer, role promote/demote, membership audit. Parked: non-member email invites (GINV-F7), public/discoverable groups (GINV-F8). *(Tracking table below not yet flipped cell-by-cell — the delivery plan is authoritative.)*
-**Last updated:** 2026-07-03
+**Work state:** V1 delivered — supersedes the invite-by-name flow (GROUP-F2). Built (migration 032): `/api/members/search` retired, invite-by-exact-email, group link + request-to-join, access modes (request_to_join / invite_only), invite/request management, ownership transfer, role promote/demote, membership audit. **Directory listing decoupled from page visibility (2026-07-04):** a separate `groups.listing` setting (visible | hidden, default visible; migration 042) governs whether a club appears in Discover, independent of `visibility` (page access) and `access_mode` (join policy) — so a private club can be listed and still gate its page. Parked: non-member email invites (GINV-F7), public/discoverable groups (GINV-F8). *(Tracking table below not yet flipped cell-by-cell — the delivery plan is authoritative.)*
+**Last updated:** 2026-07-04
 **Scope:** How people join a group — invite an existing member by exact email, or
 share the group's link and request to join (subject to the group's access mode) —
 plus the membership lifecycle (roles, ownership, removal), without exposing a
