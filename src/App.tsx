@@ -998,6 +998,11 @@ function App() {
   const [addModeTargetPoiId, setAddModeTargetPoiId] = useState<string | null>(
     null,
   );
+  // Target in the shared pois index for non-feature entities (e.g. an amenity's
+  // `amenity:<id>`); carried through as the contribution's generic poiId.
+  const [addModeTargetGenericPoiId, setAddModeTargetGenericPoiId] = useState<
+    string | null
+  >(null);
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
   const [, setSyncMessage] = useState("");
   const [isOnline, setIsOnline] = useState(() =>
@@ -1360,14 +1365,15 @@ function App() {
   useEffect(() => subscribeToAuthState(setAuthState), []);
 
   useEffect(() => {
-    const mapPoiId = selectedPoi?.mapPoi?.id;
-    if (!mapPoiId) {
+    // Keyed on the shared pois id, so it works for features and amenities alike.
+    const poiId = selectedPoi?.poiId;
+    if (!poiId) {
       setPoiContributions([]);
       return;
     }
 
     let active = true;
-    fetchMapPoiContributions(mapPoiId)
+    fetchMapPoiContributions(poiId)
       .then((list) => {
         if (active) setPoiContributions(list);
       })
@@ -1377,7 +1383,7 @@ function App() {
     return () => {
       active = false;
     };
-  }, [selectedPoi?.mapPoi?.id]);
+  }, [selectedPoi?.poiId]);
 
   useEffect(() => {
     void loadCanonicalRivers();
@@ -2046,6 +2052,7 @@ function App() {
     let resolvedMapPoiId = addModeTargetPoiId ?? undefined;
     if (
       !resolvedMapPoiId &&
+      !addModeTargetGenericPoiId &&
       location &&
       isCanonicalOverviewSection(activeSection) &&
       selectedRiverMapPois.length > 0
@@ -2071,6 +2078,7 @@ function App() {
       id: contributionId,
       sectionId: resolvedSectionId,
       mapPoiId: resolvedMapPoiId,
+      poiId: addModeTargetGenericPoiId ?? undefined,
       type: contributionType,
       title: safeTitle,
       detail: safeDetail,
@@ -2131,6 +2139,7 @@ function App() {
     setFormError("");
     setSelectedLocation(null);
     setAddModeTargetPoiId(null);
+    setAddModeTargetGenericPoiId(null);
     setIsFormOpen(false);
     setIsSubmittingContribution(false);
     setSyncMessage("Saved locally. Sync now to publish this contribution.");
@@ -2367,6 +2376,7 @@ function App() {
   function requestAddContribution(nextType?: ContributionType) {
     ensureContributorIdentity(() => {
       setAddModeTargetPoiId(null);
+      setAddModeTargetGenericPoiId(null);
       if (nextType) {
         startAddMode(nextType);
       } else {
@@ -2379,11 +2389,15 @@ function App() {
   // a duplicate marker. Falls back to a standalone add for non-map POIs.
   function requestAddToPoi(poi: SelectedPoi, nextType: ContributionType) {
     const mapPoiId = poi.mapPoi?.id ?? null;
+    // Non-feature entities (amenities, stations) target the shared pois id.
+    const genericPoiId = !mapPoiId ? poi.poiId ?? null : null;
     ensureContributorIdentity(() => {
-      if (mapPoiId) {
-        startAddModeForPoi(poi, mapPoiId, nextType);
+      if (mapPoiId || genericPoiId) {
+        startAddModeForPoi(poi, mapPoiId, genericPoiId, nextType);
       } else {
         setAddModeTargetPoiId(null);
+        setAddModeTargetGenericPoiId(null);
+        setAddModeTargetGenericPoiId(null);
         startAddMode(nextType);
       }
     });
@@ -2391,7 +2405,8 @@ function App() {
 
   function startAddModeForPoi(
     poi: SelectedPoi,
-    mapPoiId: string,
+    mapPoiId: string | null,
+    genericPoiId: string | null,
     nextType: ContributionType,
   ) {
     setRouteCreateMode("idle");
@@ -2400,6 +2415,7 @@ function App() {
     setRouteDraftOriginalPoints(null);
     setRouteDraftSnapMessage("");
     setAddModeTargetPoiId(mapPoiId);
+    setAddModeTargetGenericPoiId(genericPoiId);
     chooseContributionType(nextType);
     setSelectedLocation(poi.location);
     setSearchFocusLocation(null);
@@ -3974,6 +3990,7 @@ function App() {
     setFormError("");
     clearSelectedPhoto();
     setAddModeTargetPoiId(null);
+    setAddModeTargetGenericPoiId(null);
   }
 
   function chooseContributionType(nextType: ContributionType) {

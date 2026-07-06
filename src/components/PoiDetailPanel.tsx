@@ -290,7 +290,7 @@ export function PoiDetailPanel({
                 </span>
               </section>
             ) : null}
-            {poi.mapPoi ? (
+            {poi.poiId ? (
               <section className="info-block">
                 <div className="block-title">
                   <h3>Updates</h3>

@@ -1507,6 +1507,7 @@ export function mapPoiToSelectedPoi(poi: MapPoi, section: RiverSection): Selecte
     sourceConfidence: poi.source?.confidence,
     navigationLocation: poi.location,
     what3words: readPayloadString(poi.payload, "what3wordsAddress"),
+    poiId: `map_poi:${poi.id}`,
     mapPoi: poi,
   };
 }
@@ -1530,6 +1531,7 @@ export function riverMapPoiToSelectedPoi(
     sourceConfidence: poi.source?.confidence,
     navigationLocation: poi.location,
     what3words: readPayloadString(poi.payload, "what3wordsAddress"),
+    poiId: `map_poi:${poi.id}`,
     mapPoi: poi,
   };
 }

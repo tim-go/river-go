@@ -235,6 +235,9 @@ export interface Contribution {
   id: string;
   sectionId: string;
   mapPoiId?: string | null;
+  // Explicit target in the shared `pois` index (e.g. `amenity:<id>`). Used for
+  // entities that aren't paddling features; wins over mapPoiId server-side.
+  poiId?: string | null;
   type: ContributionType;
   title: string;
   detail: string;
@@ -291,6 +294,7 @@ export interface ContributionSyncOperation {
     type: ContributionType;
     sectionId: string;
     mapPoiId?: string | null;
+    poiId?: string | null;
     geometry?: {
       type: "Point";
       coordinates: [number, number];

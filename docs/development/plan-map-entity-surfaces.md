@@ -105,6 +105,30 @@ the panel too (adapter + levels section).
 3. Retire the legacy `map_poi_id`-only path where it blocks generic targeting (keep the column until a later cleanup; behaviour must switch to `poi_id`).
 4. **Verify:** add a note + photo to a car park; it persists, appears on the amenity panel, and the photo badge shows. Gate. Commit.
 
+### Phase 3 status (2026-07-06) — notes/photos on amenities DONE (badge deferred)
+
+Unified the contribution path on the generic `poi_id`:
+- **Create** (`sync.ts`): the op carries an explicit `poiId`; `poi_id` = that (else
+  legacy `map_poi:<mapPoiId>`); `river_id` derived from the resolved poi's
+  `pois.river_id` (any entity type). Verified via rolled-back insert: an amenity
+  contribution gets `poi_id=amenity:…` + `river_id` = the amenity's river.
+- **Read** (`contributions.ts`): `listContributionsForPoi` keyed on `poi_id`
+  (with a `map_poi_id` fallback for un-backfilled legacy rows). Feature adapters
+  now set `poiId='map_poi:<id>'`, so the panel fetch (`poi.poiId`) works for
+  features and amenities alike.
+- **Add flow** (`App.tsx`): `requestAddToPoi` routes non-feature entities
+  (amenities) to a generic `poiId` target (`addModeTargetGenericPoiId`); the
+  nearest-POI fallback is skipped when a generic target is set; the contribution
+  carries `poiId`; threaded through the outbox → sync op.
+- **Panel**: the Updates block (Add note + list) is gated on `poi.poiId` (shows
+  for features + amenities, still hidden for contributions/photos); Add photo
+  already ungated. So car parks/campsites take notes + photos.
+
+**Deferred → Phase 3c:** the photo **badge on the amenity marker** (`listAmenities`
+has no `hasPhotos`; needs a `poi_id`-keyed `EXISTS`). Core add/display works
+without it. Live UI add-flow wants a manual eyeball (amenity-click isolation is
+the same cluster-overlap limitation noted in Phase 2a).
+
 ## Phase 4 — River-page tie-in + page unification · MES-F4
 
 1. On `/river/<id>` (`src/components/RiverDetailPage.tsx`), add a **"Parking & camping near this river"** block using amenities' asserted `river_id`.
