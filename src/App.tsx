@@ -145,6 +145,7 @@ import {
   type SectionObservationMeasure,
 } from "./services/observationApi";
 import { messageTone, profileMessageToneClass } from "./lib/messageTone";
+import { humanisePoiSubtitle } from "./lib/poiSubtitle";
 import { formatLocation, formatDateTime, getPrimaryObservationMeasure, parseCoordinateSearch, looksLikeWhat3Words, normaliseWhat3WordsSearch, routeDistanceKm } from "./lib/format";
 import {
   deletePhoto,
@@ -5622,7 +5623,8 @@ function App() {
                               <span>
                                 <strong>{poi.title}</strong>
                                 <small>
-                                  {poi.subtitle} · {formatDistanceKm(poi.distanceKm)}
+                                  {humanisePoiSubtitle(poi.subtitle)} ·{" "}
+                                  {formatDistanceKm(poi.distanceKm)}
                                 </small>
                               </span>
                               <span className="status-chip">{poi.kind}</span>
