@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { getSeedPoiWhat3Words } from "./data/seedLocationReferences";
 import { distanceKmBetween, routeDistanceKm } from "./lib/format";
+import { humanisePoiSummary, poiTypeSubtitle } from "./lib/poiSubtitle";
 import { contributionStatusLabel } from "./lib/contributionLabels";
 import { googleMapsDirectionsUrl } from "./services/locationReferences";
 import type {
@@ -1496,10 +1497,8 @@ export function mapPoiToSelectedPoi(poi: MapPoi, section: RiverSection): Selecte
     id: poi.id,
     kind: poi.kind,
     title: poi.title,
-    subtitle: displayMeta.grade
-      ? `${displayMeta.label} · ${poi.subtitle}`
-      : `${displayMeta.label} · ${poi.subtitle}`,
-    summary: poi.summary,
+    subtitle: poiTypeSubtitle(displayMeta.label, poi.subtitle),
+    summary: humanisePoiSummary(poi.summary),
     sectionLabel: section.sectionName,
     location: poi.location,
     status: poi.verificationStatus,
@@ -1521,10 +1520,8 @@ export function riverMapPoiToSelectedPoi(
     id: poi.id,
     kind: poi.kind,
     title: poi.title,
-    subtitle: displayMeta.grade
-      ? `${displayMeta.label} · ${poi.subtitle}`
-      : `${displayMeta.label} · ${poi.subtitle}`,
-    summary: poi.summary,
+    subtitle: poiTypeSubtitle(displayMeta.label, poi.subtitle),
+    summary: humanisePoiSummary(poi.summary),
     sectionLabel: river?.displayName ?? riverNameFallback ?? poi.subtitle,
     location: poi.location,
     status: poi.verificationStatus,

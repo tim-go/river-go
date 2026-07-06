@@ -190,7 +190,7 @@ function paddlingRiver(
     country: "GB",
     region,
     riverType: "river",
-    summary: `${run} — grade ${grade} (${disciplineLabel}). Source-derived paddling-river record; review sections, levels, and POIs before treating it as paddling guidance.`,
+    summary: `${run} — grade ${grade} (${disciplineLabel}).`,
     centre,
     bbox: {
       south: lat - 0.05,

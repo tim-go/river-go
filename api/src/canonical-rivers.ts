@@ -477,7 +477,7 @@ async function promoteSourceCandidateToMapPoi(
       Number(candidate.longitude),
       Number(candidate.latitude),
       candidate.title,
-      sourceCandidateSubtitle(candidate.candidate_type),
+      humaniseCandidateType(candidate.candidate_type),
       sourceCandidateSummary(candidate),
       candidate.source,
       sourceLabel || candidate.source,
@@ -662,21 +662,29 @@ function nearestSectionId(
   return best;
 }
 
-function sourceCandidateSubtitle(candidateType: string) {
-  return candidateType.replace(/_/g, " ");
+// "waterway=lock_gate" -> "Lock gate", "whitewater-section" -> "Whitewater
+// section", "rapids" -> "Rapids". Keep in sync with the front-end
+// humanisePoiSubtitle (src/lib/poiSubtitle.ts).
+export function humaniseCandidateType(candidateType: string): string {
+  const value = candidateType.includes("=")
+    ? candidateType.slice(candidateType.lastIndexOf("=") + 1)
+    : candidateType;
+  const cleaned = value.replace(/[_-]+/g, " ").trim();
+  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : "";
 }
 
-function sourceCandidateSummary(candidate: SourceCandidatePoiRow) {
+// A natural one-line description. Provenance shows via the POI's source label,
+// so the old "Source-derived … promoted by moderation" process wording is
+// dropped. Keep in sync with the front-end humanisePoiSummary.
+export function sourceCandidateSummary(candidate: SourceCandidatePoiRow) {
   const grade = readRawPropertyString(candidate.raw_properties, "rapids") ||
     readRawPropertyString(candidate.raw_properties, "whitewater:section_grade");
   const operator = readRawPropertyString(candidate.raw_properties, "operator");
-  const parts = [
-    `Source-derived ${sourceCandidateSubtitle(candidate.candidate_type)} candidate promoted by moderation.`,
-    grade ? `Grade/tag: ${grade}.` : "",
-    operator ? `Operator: ${operator}.` : "",
-  ].filter(Boolean);
-
-  return parts.join(" ");
+  const type = humaniseCandidateType(candidate.candidate_type);
+  const hasGrade = grade && !["yes", "no"].includes(grade.toLowerCase());
+  let out = hasGrade ? `Grade ${grade} ${type.toLowerCase()}` : type;
+  if (operator) out += ` operated by ${operator}`;
+  return out ? `${out}.` : "";
 }
 
 function readRawPropertyString(

@@ -36,6 +36,7 @@ import {
 } from "../appCore";
 import { RIVER_TAB_POI_CATEGORIES, type RiverPoiTab } from "../lib/riverPoiTabs";
 import { getPrimaryObservationMeasure } from "../lib/format";
+import { poiTypeSubtitle } from "../lib/poiSubtitle";
 import { ObservationCard } from "./ObservationCard";
 import { RiverPhotoGallery } from "./RiverPhotoGallery";
 import { RiverPaddleHistory } from "./RiverPaddleHistory";
@@ -283,8 +284,10 @@ export function RiverDetailPage({
                       <span>
                         <strong>{poi.title}</strong>
                         <small>
-                          {mapPoiCategoryLabels[mapPoiDisplayMeta(poi).category]}
-                          {poi.subtitle ? ` · ${poi.subtitle}` : ""}
+                          {poiTypeSubtitle(
+                            mapPoiCategoryLabels[mapPoiDisplayMeta(poi).category],
+                            poi.subtitle,
+                          )}
                         </small>
                       </span>
                       <button
