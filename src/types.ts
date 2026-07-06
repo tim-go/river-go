@@ -66,6 +66,13 @@ export interface SelectedPoi {
   createdAt?: string;
   contributionType?: ContributionType;
   mapPoi?: MapPoi;
+  // Discriminator for non-feature/-contribution entities that open the shared
+  // panel (mirrors `pois.source_entity_type`). Drives the capability/section set.
+  entityKind?: "amenity" | "station";
+  // The shared `pois` index id (`amenity:<source_id>`) for contribution targeting.
+  poiId?: string;
+  // Optional label for the panel eyebrow; falls back to `kind` when absent.
+  eyebrow?: string;
 }
 
 export type LevelBand = "too-low" | "good" | "high" | "unknown";
@@ -228,6 +235,9 @@ export interface Contribution {
   id: string;
   sectionId: string;
   mapPoiId?: string | null;
+  // Explicit target in the shared `pois` index (e.g. `amenity:<id>`). Used for
+  // entities that aren't paddling features; wins over mapPoiId server-side.
+  poiId?: string | null;
   type: ContributionType;
   title: string;
   detail: string;
@@ -284,6 +294,7 @@ export interface ContributionSyncOperation {
     type: ContributionType;
     sectionId: string;
     mapPoiId?: string | null;
+    poiId?: string | null;
     geometry?: {
       type: "Point";
       coordinates: [number, number];

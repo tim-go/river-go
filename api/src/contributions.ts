@@ -136,7 +136,7 @@ export async function listContributionsForSection(
 }
 
 export async function listContributionsForPoi(
-  mapPoiId: string,
+  poiId: string,
   viewerMemberId: string | null,
   client: PoolClient | typeof pool = pool,
 ): Promise<ApiContribution[]> {
@@ -164,7 +164,12 @@ export async function listContributionsForPoi(
       m.trust_level
     FROM contributions c
     LEFT JOIN members m ON m.id = c.member_id
-    WHERE c.map_poi_id = $1
+    -- Keyed on the shared pois id ($1, e.g. 'map_poi:<uuid>' or 'amenity:<id>'),
+    -- with a fallback for any legacy row whose poi_id was never backfilled.
+    WHERE (
+        c.poi_id = $1
+        OR (c.poi_id IS NULL AND 'map_poi:' || c.map_poi_id = $1)
+      )
       AND (
         c.visibility = 'published'
         OR (
@@ -174,7 +179,7 @@ export async function listContributionsForPoi(
         )
       )
     ORDER BY c.created_at DESC`,
-    [mapPoiId, viewerMemberId],
+    [poiId, viewerMemberId],
   );
 
   return result.rows.map(mapContributionRow);

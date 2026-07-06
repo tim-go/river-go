@@ -50,6 +50,9 @@ interface ContributionCreatePayload {
   type: string;
   sectionId?: string | null;
   mapPoiId?: string | null;
+  // Explicit target in the shared `pois` index (e.g. `amenity:<source_id>`).
+  // Wins over the legacy map_poi_id derivation when present.
+  poiId?: string | null;
   geometry?: unknown;
   observedAt?: string | null;
   payload?: Record<string, unknown>;
@@ -246,20 +249,24 @@ async function insertContribution(
       $12::jsonb,
       $13,
       $14,
-      -- POI-linked contributions carry a namespaced poi_id so they're treated as
-      -- point-scoped (surfaced via the POI's photo badge) rather than re-rendered
-      -- in the section feed.
-      CASE WHEN $13 IS NOT NULL THEN 'map_poi:' || $13 ELSE NULL END,
-      -- Stamp the owning river at write time (was previously only ever backfilled
-      -- from a POI by migration) so a new photo shows in the river's Photos tab
-      -- immediately. Derive from the linked POI's asserted river_id on the pois
-      -- index (same lookup the River-focus filter uses), else the
-      -- canonical-river pseudo-section fallback.
+      -- Point-scoped contributions carry a namespaced poi_id (surfaced via the
+      -- point's photo badge) rather than re-rendering in the section feed. An
+      -- explicit poiId (e.g. an amenity) wins; else derive from the legacy
+      -- map_poi_id (a paddling feature).
+      COALESCE(
+        $15,
+        CASE WHEN $13 IS NOT NULL THEN 'map_poi:' || $13 ELSE NULL END
+      ),
+      -- Stamp the owning river at write time from the resolved poi's asserted
+      -- river_id on the pois index (any entity type — feature or amenity), else
+      -- the canonical-river pseudo-section fallback.
       COALESCE(
         (SELECT lp.river_id
          FROM pois lp
-         WHERE lp.source_entity_type = 'paddling_feature'
-           AND lp.source_entity_id = $13
+         WHERE lp.id = COALESCE(
+           $15,
+           CASE WHEN $13 IS NOT NULL THEN 'map_poi:' || $13 ELSE NULL END
+         )
          LIMIT 1),
         -- A contribution added straight from a river overview carries the
         -- canonical-river pseudo-section id, whose slug IS the river id.
@@ -307,6 +314,7 @@ async function insertContribution(
       JSON.stringify(payload),
       contribution.mapPoiId ?? null,
       actor.canPublishDirectly ? "published" : "removed",
+      contribution.poiId ?? null,
     ],
   );
 
@@ -490,6 +498,7 @@ function parseContributionPayload(
       type,
       sectionId: readString(value.sectionId),
       mapPoiId: readString(value.mapPoiId),
+      poiId: readString(value.poiId),
       geometry: value.geometry,
       observedAt: readString(value.observedAt),
       payload: isRecord(value.payload) ? value.payload : {},

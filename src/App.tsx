@@ -255,6 +255,7 @@ import {
   canonicalRiverToOverviewSection,
   communitySectionToRiverSection,
   categoryOptions,
+  amenityContributionOptions,
   contributionOptions,
   defaultObservedDate,
   emptyCanonicalOverviewSection,
@@ -767,10 +768,12 @@ function App() {
         label: "Amenities",
         color: "#e8b079",
         options: [
-          { id: "amenity:pub", label: "Pubs" },
           { id: "amenity:car_park", label: "Car parks" },
-          { id: "amenity:toilets", label: "Toilets" },
+          { id: "amenity:camp_site", label: "Campsites" },
+          { id: "amenity:caravan_site", label: "Caravan sites" },
+          { id: "amenity:pub", label: "Pubs" },
           { id: "amenity:cafe", label: "Cafés" },
+          { id: "amenity:toilets", label: "Toilets" },
           { id: "amenity:shop", label: "Shops" },
         ],
       },
@@ -996,6 +999,21 @@ function App() {
   );
   const [isAddMode, setIsAddMode] = useState(false);
   const [addModeTargetPoiId, setAddModeTargetPoiId] = useState<string | null>(
+    null,
+  );
+  // Target in the shared pois index for non-feature entities (e.g. an amenity's
+  // `amenity:<id>`); carried through as the contribution's generic poiId.
+  const [addModeTargetGenericPoiId, setAddModeTargetGenericPoiId] = useState<
+    string | null
+  >(null);
+  // Entity kind of the current add target — drives which contribution options
+  // the form offers (amenities get just Comment + Photo).
+  const [addModeTargetEntityKind, setAddModeTargetEntityKind] = useState<
+    "amenity" | "station" | null
+  >(null);
+  // The detail-panel POI an add flow was launched from, so Cancel/Save can
+  // return to it rather than leaving the user on a bare map.
+  const [addModeReturnPoi, setAddModeReturnPoi] = useState<SelectedPoi | null>(
     null,
   );
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
@@ -1252,7 +1270,11 @@ function App() {
     observationIngestionCooldownMs > 0
       ? `${Math.ceil(observationIngestionCooldownMs / 60000)} min`
       : "";
-  const currentContributionOption = optionForType(contributionType);
+  const currentContributionOption =
+    addModeTargetEntityKind === "amenity"
+      ? (amenityContributionOptions.find((o) => o.type === contributionType) ??
+        optionForType(contributionType))
+      : optionForType(contributionType);
   const queuedOutboxCount = outboxRecords.filter((record) =>
     ["draft", "queued", "syncing", "failed"].includes(record.syncStatus),
   ).length;
@@ -1360,14 +1382,15 @@ function App() {
   useEffect(() => subscribeToAuthState(setAuthState), []);
 
   useEffect(() => {
-    const mapPoiId = selectedPoi?.mapPoi?.id;
-    if (!mapPoiId) {
+    // Keyed on the shared pois id, so it works for features and amenities alike.
+    const poiId = selectedPoi?.poiId;
+    if (!poiId) {
       setPoiContributions([]);
       return;
     }
 
     let active = true;
-    fetchMapPoiContributions(mapPoiId)
+    fetchMapPoiContributions(poiId)
       .then((list) => {
         if (active) setPoiContributions(list);
       })
@@ -1377,7 +1400,7 @@ function App() {
     return () => {
       active = false;
     };
-  }, [selectedPoi?.mapPoi?.id]);
+  }, [selectedPoi?.poiId]);
 
   useEffect(() => {
     void loadCanonicalRivers();
@@ -2046,6 +2069,7 @@ function App() {
     let resolvedMapPoiId = addModeTargetPoiId ?? undefined;
     if (
       !resolvedMapPoiId &&
+      !addModeTargetGenericPoiId &&
       location &&
       isCanonicalOverviewSection(activeSection) &&
       selectedRiverMapPois.length > 0
@@ -2071,6 +2095,7 @@ function App() {
       id: contributionId,
       sectionId: resolvedSectionId,
       mapPoiId: resolvedMapPoiId,
+      poiId: addModeTargetGenericPoiId ?? undefined,
       type: contributionType,
       title: safeTitle,
       detail: safeDetail,
@@ -2131,6 +2156,8 @@ function App() {
     setFormError("");
     setSelectedLocation(null);
     setAddModeTargetPoiId(null);
+    setAddModeTargetGenericPoiId(null);
+    setAddModeTargetEntityKind(null);
     setIsFormOpen(false);
     setIsSubmittingContribution(false);
     setSyncMessage("Saved locally. Sync now to publish this contribution.");
@@ -2367,6 +2394,8 @@ function App() {
   function requestAddContribution(nextType?: ContributionType) {
     ensureContributorIdentity(() => {
       setAddModeTargetPoiId(null);
+      setAddModeTargetGenericPoiId(null);
+    setAddModeTargetEntityKind(null);
       if (nextType) {
         startAddMode(nextType);
       } else {
@@ -2379,11 +2408,17 @@ function App() {
   // a duplicate marker. Falls back to a standalone add for non-map POIs.
   function requestAddToPoi(poi: SelectedPoi, nextType: ContributionType) {
     const mapPoiId = poi.mapPoi?.id ?? null;
+    // Non-feature entities (amenities, stations) target the shared pois id.
+    const genericPoiId = !mapPoiId ? poi.poiId ?? null : null;
     ensureContributorIdentity(() => {
-      if (mapPoiId) {
-        startAddModeForPoi(poi, mapPoiId, nextType);
+      if (mapPoiId || genericPoiId) {
+        startAddModeForPoi(poi, mapPoiId, genericPoiId, nextType);
       } else {
         setAddModeTargetPoiId(null);
+        setAddModeTargetGenericPoiId(null);
+    setAddModeTargetEntityKind(null);
+        setAddModeTargetGenericPoiId(null);
+    setAddModeTargetEntityKind(null);
         startAddMode(nextType);
       }
     });
@@ -2391,7 +2426,8 @@ function App() {
 
   function startAddModeForPoi(
     poi: SelectedPoi,
-    mapPoiId: string,
+    mapPoiId: string | null,
+    genericPoiId: string | null,
     nextType: ContributionType,
   ) {
     setRouteCreateMode("idle");
@@ -2400,6 +2436,9 @@ function App() {
     setRouteDraftOriginalPoints(null);
     setRouteDraftSnapMessage("");
     setAddModeTargetPoiId(mapPoiId);
+    setAddModeTargetGenericPoiId(genericPoiId);
+    setAddModeTargetEntityKind(genericPoiId ? poi.entityKind ?? null : null);
+    setAddModeReturnPoi(poi);
     chooseContributionType(nextType);
     setSelectedLocation(poi.location);
     setSearchFocusLocation(null);
@@ -3969,11 +4008,15 @@ function App() {
   function closeContributionForm() {
     setIsFormOpen(false);
     setIsAddMode(false);
+    if (addModeReturnPoi) setSelectedPoi(addModeReturnPoi);
+    setAddModeReturnPoi(null);
     setSelectedLocation(null);
     setSelectedTargetLabel("Selected map location");
     setFormError("");
     clearSelectedPhoto();
     setAddModeTargetPoiId(null);
+    setAddModeTargetGenericPoiId(null);
+    setAddModeTargetEntityKind(null);
   }
 
   function chooseContributionType(nextType: ContributionType) {
@@ -3986,6 +4029,7 @@ function App() {
   }
 
   function startAddMode(nextType: ContributionType = contributionType) {
+    setAddModeReturnPoi(null);
     if (!isSignedIn) {
       setIsAddMode(false);
       setIsFormOpen(false);
@@ -4565,6 +4609,38 @@ function App() {
                     focusDetailLocation(poi.location, "center");
                     setActiveAppSection("map");
                   }}
+                  onViewAmenityOnMap={(amenity) => {
+                    if (!riverRoute) return;
+                    setRiverRoute(null);
+                    setReturnTarget(null);
+                    window.history.pushState({}, "", "/");
+                    selectCanonicalRiver(riverRoute, {
+                      zoom: "none",
+                      panel: "none",
+                    });
+                    // Enable the amenity's layer so its marker is visible.
+                    setActiveAmenityKinds((prev) => {
+                      const next = new Set(prev);
+                      next.add(amenity.category);
+                      return next;
+                    });
+                    focusDetailLocation([amenity.lat, amenity.lng], "center");
+                    setActiveAppSection("map");
+                  }}
+                  onViewSectionOnMap={(section) => {
+                    if (!riverRoute) return;
+                    const mid =
+                      section.route[Math.floor(section.route.length / 2)];
+                    setRiverRoute(null);
+                    setReturnTarget(null);
+                    window.history.pushState({}, "", "/");
+                    selectCanonicalRiver(riverRoute, {
+                      zoom: "none",
+                      panel: "none",
+                    });
+                    if (mid) focusDetailLocation(mid, "center");
+                    setActiveAppSection("map");
+                  }}
                   onOpenPhoto={setLightboxPhoto}
                 />
               </div>
@@ -4703,7 +4779,10 @@ function App() {
 
             <form className="quick-add-form" onSubmit={submitContribution}>
               <div className="segmented-control" role="tablist">
-                {contributionOptions.map((option) => {
+                {(addModeTargetEntityKind === "amenity"
+                  ? amenityContributionOptions
+                  : contributionOptions
+                ).map((option) => {
                   const Icon = option.icon;
                   return (
                     <button
@@ -4733,19 +4812,21 @@ function App() {
               </label>
 
               <div className="form-grid">
-                <label>
-                  Category
-                  <select
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value)}
-                  >
-                    {categoryOptions[contributionType].map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+{addModeTargetEntityKind === "amenity" ? null : (
+                  <label>
+                    Category
+                    <select
+                      value={category}
+                      onChange={(event) => setCategory(event.target.value)}
+                    >
+                      {categoryOptions[contributionType].map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
 
                 <label>
                   Date observed
@@ -4790,7 +4871,8 @@ function App() {
                 </div>
               ) : null}
 
-              {contributionType === "report" ? (
+              {contributionType === "report" &&
+              addModeTargetEntityKind !== "amenity" ? (
                 <label>
                   Craft
                   <select

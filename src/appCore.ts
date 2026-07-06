@@ -24,6 +24,7 @@ import type {
   SelectedPoi,
 } from "./types";
 import type { RiverPhoto } from "./services/riverPhotoApi";
+import type { Amenity } from "./services/amenityApi";
 import type {
   CanonicalRiverSummary,
   SourceCandidatePoiStatus,
@@ -148,6 +149,35 @@ export const contributionOptions: Array<{
     titlePlaceholder: "Useful lunch beach",
     detailPlaceholder: "Describe the feature and when it is useful.",
     locationRequired: true,
+  },
+];
+
+// Amenities (car parks, campsites) aren't paddling features, so their add form
+// offers only a free-text comment and a photo — not the river taxonomy
+// (condition/hazard/access/feature). The "report" type backs the comment.
+export const amenityContributionOptions: Array<{
+  type: ContributionType;
+  label: string;
+  icon: typeof AlertTriangle;
+  titlePlaceholder: string;
+  detailPlaceholder: string;
+  locationRequired: boolean;
+}> = [
+  {
+    type: "report",
+    label: "Note",
+    icon: MessageSquare,
+    titlePlaceholder: "Free parking after 6pm",
+    detailPlaceholder: "Parking, access, facilities, fees, or restrictions.",
+    locationRequired: false,
+  },
+  {
+    type: "photo",
+    label: "Photo",
+    icon: Camera,
+    titlePlaceholder: "Photo of the car park",
+    detailPlaceholder: "What the photo shows.",
+    locationRequired: false,
   },
 ];
 
@@ -1506,6 +1536,7 @@ export function mapPoiToSelectedPoi(poi: MapPoi, section: RiverSection): Selecte
     sourceConfidence: poi.source?.confidence,
     navigationLocation: poi.location,
     what3words: readPayloadString(poi.payload, "what3wordsAddress"),
+    poiId: `map_poi:${poi.id}`,
     mapPoi: poi,
   };
 }
@@ -1529,6 +1560,7 @@ export function riverMapPoiToSelectedPoi(
     sourceConfidence: poi.source?.confidence,
     navigationLocation: poi.location,
     what3words: readPayloadString(poi.payload, "what3wordsAddress"),
+    poiId: `map_poi:${poi.id}`,
     mapPoi: poi,
   };
 }
@@ -1607,6 +1639,30 @@ export function riverPhotoToSelectedPoi(photo: RiverPhoto): SelectedPoi {
     author: photo.author.displayName ?? undefined,
     createdAt: formatDateAdded(photo.createdAt),
     contributionType: "photo",
+  };
+}
+
+/**
+ * An amenity (car park, campsite, …) as a SelectedPoi, so its marker opens the
+ * shared POI detail panel. `entityKind: "amenity"` drives the capability/section
+ * set; `poiId` is the shared `pois` id contributions target. `label` is the
+ * humanised category name (e.g. "Car park").
+ */
+export function amenityToSelectedPoi(amenity: Amenity, label: string): SelectedPoi {
+  return {
+    id: amenity.poiId,
+    poiId: amenity.poiId,
+    kind: "feature",
+    entityKind: "amenity",
+    eyebrow: label,
+    title: amenity.name ?? label,
+    subtitle: label,
+    summary: "From OpenStreetMap.",
+    sectionLabel: "",
+    location: [amenity.lat, amenity.lng],
+    navigationLocation: [amenity.lat, amenity.lng],
+    sourceLabel: "OpenStreetMap",
+    sourceConfidence: "reference",
   };
 }
 

@@ -964,7 +964,9 @@ async function route(
   }
 
   if (method === "GET" && url.pathname === "/api/amenities") {
-    const amenities = await listAmenities();
+    const amenities = await listAmenities(
+      url.searchParams.get("riverId") ?? undefined,
+    );
     return { status: 200, body: { amenities } };
   }
 

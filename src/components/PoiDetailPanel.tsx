@@ -29,6 +29,7 @@ import {
   googleMapsSearchUrl,
 } from "../services/locationReferences";
 import { formatLocation } from "../lib/format";
+import { poiDetailSections } from "../lib/entityCapabilities";
 import {
   confirmationSummary,
   contributionStatusLabel,
@@ -168,15 +169,16 @@ export function PoiDetailPanel({
     (contribution) => contribution.photos ?? [],
   );
   const poiPhotos = [...(poi.photos ?? []), ...linkedPhotos];
-  const visiblePoiDetailsTabs = poiDetailsTabs.filter(
-    (tab) => tab.id !== "verification" || poi.mapPoi || poi.kind === "contribution",
+  const detailSections = poiDetailSections(poi);
+  const visiblePoiDetailsTabs = poiDetailsTabs.filter((tab) =>
+    detailSections.includes(tab.id),
   );
 
   return (
     <DetailPanel
       ariaLabel="Point of interest details"
       className="detail-panel--poi"
-      eyebrow={poi.kind}
+      eyebrow={poi.eyebrow ?? poi.kind}
       title={poi.title}
       subtitle={poi.subtitle}
       badges={
@@ -288,10 +290,10 @@ export function PoiDetailPanel({
                 </span>
               </section>
             ) : null}
-            {poi.mapPoi ? (
+            {poi.poiId ? (
               <section className="info-block">
                 <div className="block-title">
-                  <h3>Updates</h3>
+                  <h3>{poi.entityKind === "amenity" ? "Info" : "Updates"}</h3>
                   <span>{linkedContributions.length} on this point</span>
                 </div>
                 <button
@@ -300,7 +302,7 @@ export function PoiDetailPanel({
                   onClick={onAddUpdate}
                 >
                   <Plus size={16} />
-                  Add update
+                  {poi.entityKind === "amenity" ? "Add info" : "Add update"}
                 </button>
                 {linkedContributions.length ? (
                   <ul className="poi-updates">
@@ -412,7 +414,7 @@ export function PoiDetailPanel({
         ) : null}
 
         {activePoiDetailsTab === "verification" &&
-        (poi.mapPoi || poi.kind === "contribution") ? (
+        detailSections.includes("verification") ? (
           <div className="route-tab-panel" role="tabpanel">
             <section className="info-block info-block--first">
               <div className="block-title">

@@ -77,6 +77,7 @@ import {
   mapPoiDisplayMeta,
   mapPoiToSelectedPoi,
   riverMapPoiToSelectedPoi,
+  amenityToSelectedPoi,
   riverPhotoToSelectedPoi,
   routeImpactPoiLabel,
   disciplineLabel,
@@ -118,6 +119,37 @@ const PHOTO_BADGE_HTML = `<span class="map-marker__badge map-marker__badge--phot
 function attachmentBadgesHtml(opts: { photo?: boolean }): string {
   const badges = opts.photo ? PHOTO_BADGE_HTML : "";
   return badges ? `<span class="map-marker__badges">${badges}</span>` : "";
+}
+
+// The divIcon for a river/section POI marker — bigger for rapids & structures,
+// with a photo badge. Shared by the selected-river and section-context marker
+// layers (the global layer uses a smaller uniform icon).
+function poiMarkerIcon(
+  poi: MapPoi,
+  showPhotoLayer: boolean,
+  poiIdsWithPhotos: Set<string>,
+) {
+  const displayMeta = mapPoiDisplayMeta(poi);
+  const markerSize =
+    displayMeta.category === "rapid" ||
+    displayMeta.category === "whitewater" ||
+    displayMeta.category === "structure" ||
+    displayMeta.category === "hazard"
+      ? 30
+      : 28;
+  return L.divIcon({
+    className: "",
+    html: markerHtml(
+      displayMeta.markerKind,
+      displayMeta.markerLabel,
+      "",
+      attachmentBadgesHtml({
+        photo: showPhotoLayer && (poi.hasPhotos || poiIdsWithPhotos.has(poi.id)),
+      }),
+    ),
+    iconSize: [markerSize, markerSize],
+    iconAnchor: [markerSize / 2, markerSize / 2],
+  });
 }
 
 type RiverDetailTab =
@@ -1002,6 +1034,8 @@ export function RiverMap({
     const amenityLetter: Record<string, string> = {
       pub: "P",
       car_park: "C",
+      camp_site: "▲",
+      caravan_site: "V",
       toilets: "T",
       cafe: "F",
       drinking_water: "W",
@@ -1010,6 +1044,8 @@ export function RiverMap({
     const amenityName: Record<string, string> = {
       pub: "Pub",
       car_park: "Car park",
+      camp_site: "Campsite",
+      caravan_site: "Caravan site",
       toilets: "Toilets",
       cafe: "Café",
       drinking_water: "Drinking water",
@@ -1128,6 +1164,9 @@ export function RiverMap({
                 "amenity",
                 amenityLetter[amenity.category] ?? "•",
                 "background:#e8b079;border-color:#e8b079;color:#3a2613;",
+                attachmentBadgesHtml({
+                  photo: showPhotoLayer && amenity.hasPhotos,
+                }),
               ),
               iconSize: [22, 22],
               iconAnchor: [11, 11],
@@ -1135,16 +1174,37 @@ export function RiverMap({
           });
           amenityMarker.addTo(poiMarkers);
           const label = amenityName[amenity.category] ?? amenity.category;
-          amenityMarker.bindPopup(
-            createMapPopupContent({
-              title: amenity.name ?? label,
-              subtitle: label,
-              summary: "From OpenStreetMap.",
-              navigationLocation: [amenity.lat, amenity.lng],
-              navigationLabel: "Directions",
-              navigationMode: "directions",
-            }),
-          );
+          const openAmenityDetails = (options?: OpenPoiDetailsOptions) => {
+            map.closePopup();
+            poiDetailsRef.current(
+              amenityToSelectedPoi(amenity, label),
+              options ?? { focusMap: true, focusPlacement: "mobile-top-half" },
+            );
+          };
+          if (markerClickMode === "info") {
+            amenityMarker.bindPopup(
+              createMapPopupContent({
+                title: amenity.name ?? label,
+                subtitle: label,
+                summary: "From OpenStreetMap.",
+                navigationLocation: [amenity.lat, amenity.lng],
+                navigationLabel: "Directions",
+                navigationMode: "directions",
+                onOpenDetails: () =>
+                  openAmenityDetails({ focusMap: false, expand: true }),
+                detailsLabel: "Snap view",
+                onDetails: () => openAmenityDetails(),
+              }),
+            );
+          }
+          amenityMarker.on("click", (event) => {
+            L.DomEvent.stop(event.originalEvent);
+            if (markerClickMode === "info") {
+              amenityMarker.openPopup();
+              return;
+            }
+            openAmenityDetails();
+          });
           rendered.set(key, amenityMarker);
         });
       }
@@ -1328,29 +1388,9 @@ export function RiverMap({
     if (mapFilterRiver) {
       visibleSelectedRiverMapPois.forEach((poi) => {
         const displayMeta = mapPoiDisplayMeta(poi);
-        const markerSize =
-          displayMeta.category === "rapid" || displayMeta.category === "whitewater"
-            ? 30
-            : displayMeta.category === "structure" || displayMeta.category === "hazard"
-              ? 30
-              : 28;
         const marker = L.marker(poi.location, {
           bubblingMouseEvents: false,
-          icon: L.divIcon({
-            className: "",
-            html: markerHtml(
-              displayMeta.markerKind,
-              displayMeta.markerLabel,
-              "",
-              attachmentBadgesHtml({
-                photo:
-                  showPhotoLayer &&
-                  (poi.hasPhotos || poiIdsWithPhotos.has(poi.id)),
-              }),
-            ),
-            iconSize: [markerSize, markerSize],
-            iconAnchor: [markerSize / 2, markerSize / 2],
-          }),
+          icon: poiMarkerIcon(poi, showPhotoLayer, poiIdsWithPhotos),
         });
         const openPoiDetails = (options?: OpenPoiDetailsOptions) => {
           map.closePopup();
@@ -1574,29 +1614,9 @@ export function RiverMap({
         .filter((poi) => poi.sectionId === section.id)
         .forEach((poi) => {
         const displayMeta = mapPoiDisplayMeta(poi);
-        const markerSize =
-          displayMeta.category === "rapid" || displayMeta.category === "whitewater"
-            ? 30
-            : displayMeta.category === "structure" || displayMeta.category === "hazard"
-              ? 30
-              : 28;
         const marker = L.marker(poi.location, {
           bubblingMouseEvents: false,
-          icon: L.divIcon({
-            className: "",
-            html: markerHtml(
-              displayMeta.markerKind,
-              displayMeta.markerLabel,
-              "",
-              attachmentBadgesHtml({
-                photo:
-                  showPhotoLayer &&
-                  (poi.hasPhotos || poiIdsWithPhotos.has(poi.id)),
-              }),
-            ),
-            iconSize: [markerSize, markerSize],
-            iconAnchor: [markerSize / 2, markerSize / 2],
-          }),
+          icon: poiMarkerIcon(poi, showPhotoLayer, poiIdsWithPhotos),
         });
         const openPoiDetails = (options?: OpenPoiDetailsOptions) => {
           map.closePopup();
