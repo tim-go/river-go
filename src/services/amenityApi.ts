@@ -16,8 +16,9 @@ export interface Amenity {
   hasPhotos: boolean;
 }
 
-export async function fetchAmenities(): Promise<Amenity[]> {
-  const response = await fetch(`${getApiBaseUrl()}/api/amenities`, {
+export async function fetchAmenities(riverId?: string): Promise<Amenity[]> {
+  const query = riverId ? `?riverId=${encodeURIComponent(riverId)}` : "";
+  const response = await fetch(`${getApiBaseUrl()}/api/amenities${query}`, {
     headers: { Accept: "application/json" },
   });
 

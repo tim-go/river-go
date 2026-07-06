@@ -17,7 +17,7 @@ export interface Amenity {
   hasPhotos: boolean;
 }
 
-export async function listAmenities(): Promise<Amenity[]> {
+export async function listAmenities(riverId?: string): Promise<Amenity[]> {
   const result = await pool.query(
     `SELECT a.id, 'amenity:' || a.source_id AS poi_id, a.category, a.name,
             a.river_id, ST_Y(a.geometry) AS lat, ST_X(a.geometry) AS lng,
@@ -30,7 +30,9 @@ export async function listAmenities(): Promise<Amenity[]> {
             ) AS has_photos
      FROM amenities a
      WHERE a.source = 'osm_amenity'
+       AND ($1::text IS NULL OR a.river_id = $1)
      ORDER BY a.category, a.name NULLS LAST`,
+    [riverId ?? null],
   );
 
   return result.rows.map((row) => ({

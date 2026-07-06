@@ -154,6 +154,20 @@ taxonomy), paddling category selector hidden — via `amenityContributionOptions
 Live UI add-flow still wants a manual eyeball (amenity-click isolation is the
 same cluster-overlap limitation noted in Phase 2a).
 
+### Phase 4 status (2026-07-06)
+
+- **Amenities on the river page — DONE.** `listAmenities(riverId?)` +
+  `/api/amenities?riverId=` + `fetchAmenities(riverId)`; `RiverDetailPage` fetches
+  the river's amenities and renders a **"Parking & camping"** block (car parks +
+  campsites + caravan sites) with Directions links, capped at 12 with a
+  "see the map's Layers for all" note. Verified on `/river/river-wye`
+  (291 total, 12 shown).
+- **RiverDetailPage → EntityPage — DEFERRED (needs assessment).** `EntityPage`
+  is a generic header+content shell (Groups/Profile); the river page has a
+  bespoke hero + two-column grid + sidebar that doesn't obviously map onto it.
+  Forcing the migration risks reworking a working 437-line page for modest gain.
+  Left as a focused follow-up to assess fit first, rather than a rushed refactor.
+
 ## Phase 4 — River-page tie-in + page unification · MES-F4
 
 1. On `/river/<id>` (`src/components/RiverDetailPage.tsx`), add a **"Parking & camping near this river"** block using amenities' asserted `river_id`.

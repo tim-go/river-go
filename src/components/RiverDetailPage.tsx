@@ -15,6 +15,8 @@ import {
   type CommunitySection,
 } from "../services/routesApi";
 import { fetchRiverMapPois } from "../services/mapPoiApi";
+import { fetchAmenities, type Amenity } from "../services/amenityApi";
+import { googleMapsDirectionsUrl } from "../services/locationReferences";
 import {
   fetchRiverObservations,
   type SectionObservationMeasure,
@@ -41,6 +43,15 @@ import { ObservationCard } from "./ObservationCard";
 import { RiverPhotoGallery } from "./RiverPhotoGallery";
 import { RiverPaddleHistory } from "./RiverPaddleHistory";
 import { RiverLocatorMap } from "./RiverLocatorMap";
+
+const AMENITY_LABELS: Record<string, string> = {
+  car_park: "Car park",
+  camp_site: "Campsite",
+  caravan_site: "Caravan site",
+};
+// Categories surfaced in the river page's "Parking & camping" block.
+const PARKING_CAMPING = ["car_park", "camp_site", "caravan_site"];
+const PARKING_CAMPING_LIMIT = 12;
 
 const POI_TAB_LABELS: Record<RiverPoiTab, string> = {
   rapids: "Rapids & features",
@@ -77,6 +88,7 @@ export function RiverDetailPage({
   const [observations, setObservations] = useState<SectionObservationMeasure[]>(
     [],
   );
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [range, setRange] = useState<ObservationRangeHours>(48);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,13 +102,15 @@ export function RiverDetailPage({
       fetchPublicSections(riverId).catch(() => [] as CommunitySection[]),
       fetchRiverMapPois(riverId).catch(() => [] as MapPoi[]),
       fetchRiverLevelStates().catch(() => [] as RiverLevelState[]),
+      fetchAmenities(riverId).catch(() => [] as Amenity[]),
     ])
-      .then(([riverDetail, sectionList, poiList, states]) => {
+      .then(([riverDetail, sectionList, poiList, states, amenityList]) => {
         if (!active) return;
         setRiver(riverDetail);
         setSections(sectionList);
         setPois(poiList);
         setLevelState(states.find((s) => s.riverId === riverId) ?? null);
+        setAmenities(amenityList);
       })
       .catch(() => {
         if (active) setError("Could not load this river.");
@@ -138,6 +152,11 @@ export function RiverDetailPage({
     }
     return grouped;
   }, [pois]);
+
+  const parkingAndCamping = useMemo(
+    () => amenities.filter((a) => PARKING_CAMPING.includes(a.category)),
+    [amenities],
+  );
 
   const primaryMeasure = getPrimaryObservationMeasure(observations);
 
@@ -305,6 +324,44 @@ export function RiverDetailPage({
               </section>
             ) : null,
           )}
+
+          {parkingAndCamping.length ? (
+            <section className="river-page__block">
+              <h2>Parking &amp; camping ({parkingAndCamping.length})</h2>
+              <ul className="river-page__list">
+                {parkingAndCamping.slice(0, PARKING_CAMPING_LIMIT).map((amenity) => (
+                  <li key={amenity.id} className="river-page__list-row">
+                    <span>
+                      <strong>
+                        {amenity.name ??
+                          AMENITY_LABELS[amenity.category] ??
+                          amenity.category}
+                      </strong>
+                      <small>
+                        {AMENITY_LABELS[amenity.category] ?? amenity.category}
+                      </small>
+                    </span>
+                    <a
+                      className="ghost-button ghost-button--compact"
+                      href={googleMapsDirectionsUrl([amenity.lat, amenity.lng])}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <MapIcon size={14} />
+                      Directions
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              {parkingAndCamping.length > PARKING_CAMPING_LIMIT ? (
+                <p className="source-note">
+                  Showing {PARKING_CAMPING_LIMIT} of {parkingAndCamping.length}.
+                  Turn on Car parks / Campsites in the map’s Layers to see them
+                  all.
+                </p>
+              ) : null}
+            </section>
+          ) : null}
 
           <section className="river-page__block">
             <h2>Photos</h2>
