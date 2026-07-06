@@ -37,6 +37,30 @@ Steps:
 3. Check what breaks in read/surfacing: `hasPhotos` in `api/src/map-pois.ts` keys on `contributions.map_poi_id` (paddling-feature only) — confirm this is the gap and that switching it to `poi_id` is sufficient.
 4. **Output:** a short note in this file (or the spec changelog) — "no schema change needed" OR a scoped migration. Do not proceed to Phase 3 until resolved.
 
+### Phase 0 outcome (2026-07-06) — ✅ NO SCHEMA CHANGE NEEDED
+
+Proven by a rolled-back insert against a real amenity: a contribution with
+`poi_id='amenity:<source_id>'`, `map_poi_id=NULL`, `section_id=NULL` inserts fine
+(`poi_id` FKs generically to `pois(id)`; all three target columns are nullable;
+no CHECK forces a target) and the `sync_contribution_to_location_poi` trigger
+correctly treats it as **targeted** (0 standalone `contribution:` marker rows).
+
+Two **code** gaps to close (no migration):
+1. **Create path** — `api/src/sync.ts` derives `poi_id` only from `mapPoiId`
+   (`CASE WHEN $13 IS NOT NULL THEN 'map_poi:'||$13 …`), and the frontend
+   `Contribution` type (`src/types.ts:227`) has only `mapPoiId`/`sectionId`. Add a
+   generic `poiId` target on the type + sync insert (fall back to the map_poi
+   derivation for back-compat). This is what lets an amenity be a target.
+2. **Surfacing** — `poiHasPhotosSql` (`api/src/map-pois.ts:~496`) keys on
+   `contributions.map_poi_id = p.id`, and amenities are served by a separate
+   thin `listAmenities()` (`api/src/amenities.ts`) with **no** contribution/photo
+   surfacing at all. Amenity photo badges need a `poi_id`-keyed `EXISTS` on the
+   amenity read path; the existing paddling-feature check can move to `poi_id`
+   too for uniformity.
+
+Green light to proceed. No migration in this workstream unless a later phase
+surfaces one.
+
 ## Phase 1 — Capability + section plumbing · MES-F1
 
 1. Define a capability map keyed by entity type → `{capabilities, sections}` (new module, e.g. `src/lib/entityCapabilities.ts`). Capabilities: `verify`, `contribute`, `photo`, `levels`, `locate`.
