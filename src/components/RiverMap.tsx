@@ -1129,6 +1129,9 @@ export function RiverMap({
                 "amenity",
                 amenityLetter[amenity.category] ?? "•",
                 "background:#e8b079;border-color:#e8b079;color:#3a2613;",
+                attachmentBadgesHtml({
+                  photo: showPhotoLayer && amenity.hasPhotos,
+                }),
               ),
               iconSize: [22, 22],
               iconAnchor: [11, 11],

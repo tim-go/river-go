@@ -12,6 +12,8 @@ export interface Amenity {
   // Nearest featured river (canonical_rivers.id); used to scope amenities to a
   // focused river. Null if none in range.
   riverId: string | null;
+  // Whether a published photo is attached — drives the marker's photo badge.
+  hasPhotos: boolean;
 }
 
 export async function fetchAmenities(): Promise<Amenity[]> {

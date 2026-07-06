@@ -12,15 +12,25 @@ export interface Amenity {
   // Nearest featured river (canonical_rivers.id), pre-derived (§5). Lets the map
   // scope amenities to a focused river. Null if none in range.
   riverId: string | null;
+  // Whether a published photo is attached (via a contribution keyed on poiId) —
+  // drives the map marker's photo badge.
+  hasPhotos: boolean;
 }
 
 export async function listAmenities(): Promise<Amenity[]> {
   const result = await pool.query(
-    `SELECT id, 'amenity:' || source_id AS poi_id, category, name, river_id,
-            ST_Y(geometry) AS lat, ST_X(geometry) AS lng
-     FROM amenities
-     WHERE source = 'osm_amenity'
-     ORDER BY category, name NULLS LAST`,
+    `SELECT a.id, 'amenity:' || a.source_id AS poi_id, a.category, a.name,
+            a.river_id, ST_Y(a.geometry) AS lat, ST_X(a.geometry) AS lng,
+            EXISTS (
+              SELECT 1 FROM contributions c
+              JOIN contribution_photos pp ON pp.contribution_id = c.id
+                AND pp.moderation_status NOT IN ('hidden', 'rejected')
+              WHERE c.poi_id = 'amenity:' || a.source_id
+                AND c.visibility = 'published'
+            ) AS has_photos
+     FROM amenities a
+     WHERE a.source = 'osm_amenity'
+     ORDER BY a.category, a.name NULLS LAST`,
   );
 
   return result.rows.map((row) => ({
@@ -31,5 +41,6 @@ export async function listAmenities(): Promise<Amenity[]> {
     lat: Number(row.lat),
     lng: Number(row.lng),
     riverId: (row.river_id as string | null) ?? null,
+    hasPhotos: (row.has_photos as boolean) ?? false,
   }));
 }

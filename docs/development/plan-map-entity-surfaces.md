@@ -124,10 +124,19 @@ Unified the contribution path on the generic `poi_id`:
   for features + amenities, still hidden for contributions/photos); Add photo
   already ungated. So car parks/campsites take notes + photos.
 
-**Deferred → Phase 3c:** the photo **badge on the amenity marker** (`listAmenities`
-has no `hasPhotos`; needs a `poi_id`-keyed `EXISTS`). Core add/display works
-without it. Live UI add-flow wants a manual eyeball (amenity-click isolation is
-the same cluster-overlap limitation noted in Phase 2a).
+**Phase 3c (2026-07-06) — amenity photo badge DONE.** `listAmenities` now returns
+`hasPhotos` via a `poi_id`-keyed `EXISTS` (published photos); the amenity marker
+renders the photo badge (`attachmentBadgesHtml`, gated by `showPhotoLayer`).
+Verified: EXISTS flips false→true when a photo is attached. (Existing amenity
+markers redraw with the badge on the next amenities refetch — same diff pattern
+as POI markers.)
+
+**Amenity add form (2026-07-06):** offers just **Comment + Photo** (not the river
+taxonomy), paddling category selector hidden — via `amenityContributionOptions`
++ the tracked add-target `entityKind`.
+
+Live UI add-flow still wants a manual eyeball (amenity-click isolation is the
+same cluster-overlap limitation noted in Phase 2a).
 
 ## Phase 4 — River-page tie-in + page unification · MES-F4
 
