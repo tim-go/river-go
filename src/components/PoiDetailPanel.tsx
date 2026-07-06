@@ -293,7 +293,7 @@ export function PoiDetailPanel({
             {poi.poiId ? (
               <section className="info-block">
                 <div className="block-title">
-                  <h3>Updates</h3>
+                  <h3>{poi.entityKind === "amenity" ? "Info" : "Updates"}</h3>
                   <span>{linkedContributions.length} on this point</span>
                 </div>
                 <button
@@ -302,7 +302,7 @@ export function PoiDetailPanel({
                   onClick={onAddUpdate}
                 >
                   <Plus size={16} />
-                  Add update
+                  {poi.entityKind === "amenity" ? "Add info" : "Add update"}
                 </button>
                 {linkedContributions.length ? (
                   <ul className="poi-updates">

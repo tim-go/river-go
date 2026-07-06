@@ -4824,7 +4824,8 @@ function App() {
                 </div>
               ) : null}
 
-              {contributionType === "report" ? (
+              {contributionType === "report" &&
+              addModeTargetEntityKind !== "amenity" ? (
                 <label>
                   Craft
                   <select
