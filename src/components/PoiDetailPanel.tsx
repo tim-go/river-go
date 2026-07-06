@@ -178,7 +178,7 @@ export function PoiDetailPanel({
     <DetailPanel
       ariaLabel="Point of interest details"
       className="detail-panel--poi"
-      eyebrow={poi.kind}
+      eyebrow={poi.eyebrow ?? poi.kind}
       title={poi.title}
       subtitle={poi.subtitle}
       badges={

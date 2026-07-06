@@ -71,8 +71,32 @@ surfaces one.
 ## Phase 2 — Amenities & stations get the panel · MES-F2
 
 1. In `src/components/RiverMap.tsx`, route **amenity** (~1123) and **station** (~1205) marker clicks to the shared panel via `mapPoiToSelectedPoi`/an amenity adapter, instead of popup-only `bindPopup`. Capability map yields their sections (amenity: Details·Location·Add note/photo; gauge: Details·Location·Levels).
-2. Fold the ~3× duplicated POI marker+click blocks (global / selected-river / section) into **one helper**.
+2. Fold the ~3× duplicated POI marker+click blocks (global / selected-river / section) into **one helper**. *(Phase 2b — deferred; do after 2a settles.)*
 3. **Verify:** clicking a car-park/campsite/gauge opens the panel with the right sections; no regressions to feature POIs. Gate. Commit.
+
+### Phase 2a status (2026-07-06) — amenity click → shared panel DONE
+
+Delivered: `amenities.ts` exposes the shared `poiId` (`amenity:<source_id>`);
+`amenityToSelectedPoi(amenity, label)` adapter (`appCore.ts`) with
+`entityKind:"amenity"` + `poiId`; `SelectedPoi` gained `entityKind`/`poiId`/
+`eyebrow`; `entityFamily` handles amenity/station; amenity markers now open the
+shared `PoiDetailPanel` (Details·Location·Photos — no Verify) mirroring the
+feature click path, keeping the info popup + Directions.
+
+**Verification note:** the amenity capability + adapter are covered by
+deterministic unit tests (`entityCapabilities.test.ts`) and the click wiring is a
+line-for-line mirror of the proven feature path. A live automated map-click check
+was **blocked by dense-cluster marker overlap** (every amenity in a focused-river
+view overlaps a feature/section marker, so synthetic clicks can't isolate one) —
+recommend a quick manual eyeball on a sparse area.
+
+**Spotted (out of scope, follow-up):** map **popups** render `poi.summary` raw
+(e.g. "Source-derived … waterway=weir candidate"); the earlier humanising only
+covered the `SelectedPoi`/panel path. Belongs to the humanising work, not this
+branch — worth a small follow-up so popups use `humanisePoiSummary` too.
+
+Still TODO in Phase 2b: fold the ~3× marker/click block; route **stations** to
+the panel too (adapter + levels section).
 
 ## Phase 3 — Amenity contributions · MES-F3 (+ MES-B1)
 

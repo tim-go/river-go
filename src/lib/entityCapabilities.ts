@@ -16,6 +16,8 @@ export type EntityFamily =
 // contributions/photos open the shared panel; amenity/station discriminators
 // are added when their click paths are routed here (Phase 2).
 export function entityFamily(poi: SelectedPoi): EntityFamily {
+  if (poi.entityKind === "amenity") return "amenity";
+  if (poi.entityKind === "station") return "station";
   if (poi.kind === "contribution") {
     return poi.contributionType === "photo" ? "photo" : "contribution";
   }

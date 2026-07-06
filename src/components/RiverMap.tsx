@@ -77,6 +77,7 @@ import {
   mapPoiDisplayMeta,
   mapPoiToSelectedPoi,
   riverMapPoiToSelectedPoi,
+  amenityToSelectedPoi,
   riverPhotoToSelectedPoi,
   routeImpactPoiLabel,
   disciplineLabel,
@@ -1135,16 +1136,37 @@ export function RiverMap({
           });
           amenityMarker.addTo(poiMarkers);
           const label = amenityName[amenity.category] ?? amenity.category;
-          amenityMarker.bindPopup(
-            createMapPopupContent({
-              title: amenity.name ?? label,
-              subtitle: label,
-              summary: "From OpenStreetMap.",
-              navigationLocation: [amenity.lat, amenity.lng],
-              navigationLabel: "Directions",
-              navigationMode: "directions",
-            }),
-          );
+          const openAmenityDetails = (options?: OpenPoiDetailsOptions) => {
+            map.closePopup();
+            poiDetailsRef.current(
+              amenityToSelectedPoi(amenity, label),
+              options ?? { focusMap: true, focusPlacement: "mobile-top-half" },
+            );
+          };
+          if (markerClickMode === "info") {
+            amenityMarker.bindPopup(
+              createMapPopupContent({
+                title: amenity.name ?? label,
+                subtitle: label,
+                summary: "From OpenStreetMap.",
+                navigationLocation: [amenity.lat, amenity.lng],
+                navigationLabel: "Directions",
+                navigationMode: "directions",
+                onOpenDetails: () =>
+                  openAmenityDetails({ focusMap: false, expand: true }),
+                detailsLabel: "Snap view",
+                onDetails: () => openAmenityDetails(),
+              }),
+            );
+          }
+          amenityMarker.on("click", (event) => {
+            L.DomEvent.stop(event.originalEvent);
+            if (markerClickMode === "info") {
+              amenityMarker.openPopup();
+              return;
+            }
+            openAmenityDetails();
+          });
           rendered.set(key, amenityMarker);
         });
       }

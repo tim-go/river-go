@@ -24,6 +24,7 @@ import type {
   SelectedPoi,
 } from "./types";
 import type { RiverPhoto } from "./services/riverPhotoApi";
+import type { Amenity } from "./services/amenityApi";
 import type {
   CanonicalRiverSummary,
   SourceCandidatePoiStatus,
@@ -1607,6 +1608,30 @@ export function riverPhotoToSelectedPoi(photo: RiverPhoto): SelectedPoi {
     author: photo.author.displayName ?? undefined,
     createdAt: formatDateAdded(photo.createdAt),
     contributionType: "photo",
+  };
+}
+
+/**
+ * An amenity (car park, campsite, …) as a SelectedPoi, so its marker opens the
+ * shared POI detail panel. `entityKind: "amenity"` drives the capability/section
+ * set; `poiId` is the shared `pois` id contributions target. `label` is the
+ * humanised category name (e.g. "Car park").
+ */
+export function amenityToSelectedPoi(amenity: Amenity, label: string): SelectedPoi {
+  return {
+    id: amenity.poiId,
+    poiId: amenity.poiId,
+    kind: "feature",
+    entityKind: "amenity",
+    eyebrow: label,
+    title: amenity.name ?? label,
+    subtitle: label,
+    summary: "From OpenStreetMap.",
+    sectionLabel: "",
+    location: [amenity.lat, amenity.lng],
+    navigationLocation: [amenity.lat, amenity.lng],
+    sourceLabel: "OpenStreetMap",
+    sourceConfidence: "reference",
   };
 }
 

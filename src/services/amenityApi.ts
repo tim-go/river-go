@@ -2,6 +2,9 @@ import { getApiBaseUrl } from "./apiConfig";
 
 export interface Amenity {
   id: string;
+  // Id in the shared `pois` index (`amenity:<source_id>`) — the shared detail
+  // surface and contribution targeting use this, not the uuid `id`.
+  poiId: string;
   category: string;
   name: string | null;
   lat: number;
