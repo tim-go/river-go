@@ -165,7 +165,7 @@ export const amenityContributionOptions: Array<{
 }> = [
   {
     type: "report",
-    label: "Comment",
+    label: "Note",
     icon: MessageSquare,
     titlePlaceholder: "Free parking after 6pm",
     detailPlaceholder: "Parking, access, facilities, fees, or restrictions.",

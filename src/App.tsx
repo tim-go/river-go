@@ -1009,6 +1009,11 @@ function App() {
   const [addModeTargetEntityKind, setAddModeTargetEntityKind] = useState<
     "amenity" | "station" | null
   >(null);
+  // The detail-panel POI an add flow was launched from, so Cancel/Save can
+  // return to it rather than leaving the user on a bare map.
+  const [addModeReturnPoi, setAddModeReturnPoi] = useState<SelectedPoi | null>(
+    null,
+  );
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
   const [, setSyncMessage] = useState("");
   const [isOnline, setIsOnline] = useState(() =>
@@ -2431,6 +2436,7 @@ function App() {
     setAddModeTargetPoiId(mapPoiId);
     setAddModeTargetGenericPoiId(genericPoiId);
     setAddModeTargetEntityKind(genericPoiId ? poi.entityKind ?? null : null);
+    setAddModeReturnPoi(poi);
     chooseContributionType(nextType);
     setSelectedLocation(poi.location);
     setSearchFocusLocation(null);
@@ -4000,6 +4006,8 @@ function App() {
   function closeContributionForm() {
     setIsFormOpen(false);
     setIsAddMode(false);
+    if (addModeReturnPoi) setSelectedPoi(addModeReturnPoi);
+    setAddModeReturnPoi(null);
     setSelectedLocation(null);
     setSelectedTargetLabel("Selected map location");
     setFormError("");
@@ -4019,6 +4027,7 @@ function App() {
   }
 
   function startAddMode(nextType: ContributionType = contributionType) {
+    setAddModeReturnPoi(null);
     if (!isSignedIn) {
       setIsAddMode(false);
       setIsFormOpen(false);
