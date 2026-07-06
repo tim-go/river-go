@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { humanisePoiSubtitle, poiTypeSubtitle } from "./poiSubtitle";
+import {
+  humanisePoiSubtitle,
+  humanisePoiSummary,
+  poiTypeSubtitle,
+} from "./poiSubtitle";
 
 describe("humanisePoiSubtitle", () => {
   it("humanises OSM waterway tags", () => {
@@ -34,5 +38,45 @@ describe("poiTypeSubtitle", () => {
 
   it("falls back to the label when there is no subtitle", () => {
     expect(poiTypeSubtitle("Rapids", "")).toBe("Rapids");
+  });
+});
+
+describe("humanisePoiSummary", () => {
+  it("rewords source-derived summaries", () => {
+    expect(
+      humanisePoiSummary(
+        "Source-derived whitewater-section candidate promoted by moderation. Grade/tag: 3.",
+      ),
+    ).toBe("Grade 3 whitewater section.");
+    expect(
+      humanisePoiSummary(
+        "Source-derived waterway=dam candidate promoted by moderation. Operator: Scottish Hydro.",
+      ),
+    ).toBe("Dam operated by Scottish Hydro.");
+    expect(
+      humanisePoiSummary(
+        "Source-derived waterway=weir candidate promoted by moderation. Grade/tag: 4.",
+      ),
+    ).toBe("Grade 4 weir.");
+    expect(
+      humanisePoiSummary(
+        "Source-derived waterway=waterfall candidate promoted by moderation.",
+      ),
+    ).toBe("Waterfall.");
+  });
+
+  it("drops non-informative grade tags", () => {
+    expect(
+      humanisePoiSummary(
+        "Source-derived rapids candidate promoted by moderation. Grade/tag: yes.",
+      ),
+    ).toBe("Rapids.");
+  });
+
+  it("passes non-matching summaries through", () => {
+    expect(humanisePoiSummary("Community hazard reported by a paddler.")).toBe(
+      "Community hazard reported by a paddler.",
+    );
+    expect(humanisePoiSummary("")).toBe("");
   });
 });
