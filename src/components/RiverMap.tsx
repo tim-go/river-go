@@ -1003,6 +1003,8 @@ export function RiverMap({
     const amenityLetter: Record<string, string> = {
       pub: "P",
       car_park: "C",
+      camp_site: "▲",
+      caravan_site: "V",
       toilets: "T",
       cafe: "F",
       drinking_water: "W",
@@ -1011,6 +1013,8 @@ export function RiverMap({
     const amenityName: Record<string, string> = {
       pub: "Pub",
       car_park: "Car park",
+      camp_site: "Campsite",
+      caravan_site: "Caravan site",
       toilets: "Toilets",
       cafe: "Café",
       drinking_water: "Drinking water",
