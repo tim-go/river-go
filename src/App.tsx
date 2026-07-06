@@ -1263,7 +1263,11 @@ function App() {
     observationIngestionCooldownMs > 0
       ? `${Math.ceil(observationIngestionCooldownMs / 60000)} min`
       : "";
-  const currentContributionOption = optionForType(contributionType);
+  const currentContributionOption =
+    addModeTargetEntityKind === "amenity"
+      ? (amenityContributionOptions.find((o) => o.type === contributionType) ??
+        optionForType(contributionType))
+      : optionForType(contributionType);
   const queuedOutboxCount = outboxRecords.filter((record) =>
     ["draft", "queued", "syncing", "failed"].includes(record.syncStatus),
   ).length;

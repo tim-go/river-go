@@ -3093,6 +3093,10 @@ button.group-detail__section {
   z-index: 1100;
   display: grid;
   gap: 12px;
+  /* Pack rows to content height. Without this, the mobile full-screen variant
+     (inset: 0) stretches the grid rows to fill, ballooning the header row into a
+     big empty band. */
+  align-content: start;
   width: min(440px, calc(100vw - 760px));
   min-width: 360px;
   max-height: calc(100% - 112px);
