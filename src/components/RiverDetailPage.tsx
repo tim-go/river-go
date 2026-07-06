@@ -37,7 +37,7 @@ import {
 } from "../appCore";
 import { RIVER_TAB_POI_CATEGORIES, type RiverPoiTab } from "../lib/riverPoiTabs";
 import { getPrimaryObservationMeasure } from "../lib/format";
-import { poiTypeSubtitle } from "../lib/poiSubtitle";
+import { humanisePoiTitle, poiTypeSubtitle } from "../lib/poiSubtitle";
 import { ObservationCard } from "./ObservationCard";
 import { RiverPhotoGallery } from "./RiverPhotoGallery";
 import { RiverPaddleHistory } from "./RiverPaddleHistory";
@@ -146,6 +146,10 @@ export function RiverDetailPage({
     };
     for (const poi of pois) {
       const category = mapPoiDisplayMeta(poi).category;
+      // Whitewater-*section* segments are all titled with the river name and
+      // duplicate the river/sections — noise on the river page (they remain on
+      // the map). Skip them here.
+      if (category === "whitewater") continue;
       for (const tab of Object.keys(grouped) as RiverPoiTab[]) {
         if (RIVER_TAB_POI_CATEGORIES[tab].includes(category)) {
           grouped[tab].push(poi);
@@ -315,7 +319,7 @@ export function RiverDetailPage({
                   {poisByTab[tab].map((poi) => (
                     <li key={poi.id} className="river-page__list-row">
                       <span>
-                        <strong>{poi.title}</strong>
+                        <strong>{humanisePoiTitle(poi.title)}</strong>
                         <small>
                           {poiTypeSubtitle(
                             mapPoiCategoryLabels[mapPoiDisplayMeta(poi).category],
@@ -326,7 +330,7 @@ export function RiverDetailPage({
                       <button
                         className="ghost-button ghost-button--compact"
                         type="button"
-                        aria-label={`View ${poi.title} on the map`}
+                        aria-label={`View ${humanisePoiTitle(poi.title)} on the map`}
                         onClick={() => onViewPoiOnMap(poi)}
                       >
                         <MapIcon size={14} />

@@ -21,6 +21,17 @@ export function poiTypeSubtitle(label: string, subtitle: string): string {
   return norm(human) === norm(label) ? label : `${label} · ${human}`;
 }
 
+// Unnamed source-derived features carry a placeholder title like
+// "weir candidate way/154113044" (the OSM element ref). Humanise to the type
+// ("Weir"). Real names ("Cafe Wave", "Afon Tryweryn") pass through unchanged.
+export function humanisePoiTitle(title: string): string {
+  if (!title) return "";
+  const match = title.match(/^(.+?) candidate (?:node|way|relation)\/\d+$/i);
+  if (!match) return title;
+  const type = match[1].trim();
+  return type ? type.charAt(0).toUpperCase() + type.slice(1) : title;
+}
+
 // Source-derived POI summaries are machine-generated as
 // "Source-derived <type> candidate promoted by moderation.[ Grade/tag: X.][ Operator: Y.]"
 // — internal/process wording. Reword to a natural description ("Grade 3
