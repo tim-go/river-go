@@ -29,6 +29,7 @@ import {
   googleMapsSearchUrl,
 } from "../services/locationReferences";
 import { formatLocation } from "../lib/format";
+import { poiDetailSections } from "../lib/entityCapabilities";
 import {
   confirmationSummary,
   contributionStatusLabel,
@@ -168,8 +169,9 @@ export function PoiDetailPanel({
     (contribution) => contribution.photos ?? [],
   );
   const poiPhotos = [...(poi.photos ?? []), ...linkedPhotos];
-  const visiblePoiDetailsTabs = poiDetailsTabs.filter(
-    (tab) => tab.id !== "verification" || poi.mapPoi || poi.kind === "contribution",
+  const detailSections = poiDetailSections(poi);
+  const visiblePoiDetailsTabs = poiDetailsTabs.filter((tab) =>
+    detailSections.includes(tab.id),
   );
 
   return (
@@ -412,7 +414,7 @@ export function PoiDetailPanel({
         ) : null}
 
         {activePoiDetailsTab === "verification" &&
-        (poi.mapPoi || poi.kind === "contribution") ? (
+        detailSections.includes("verification") ? (
           <div className="route-tab-panel" role="tabpanel">
             <section className="info-block info-block--first">
               <div className="block-title">

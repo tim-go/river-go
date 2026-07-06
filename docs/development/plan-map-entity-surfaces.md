@@ -65,7 +65,7 @@ surfaces one.
 
 1. Define a capability map keyed by entity type → `{capabilities, sections}` (new module, e.g. `src/lib/entityCapabilities.ts`). Capabilities: `verify`, `contribute`, `photo`, `levels`, `locate`.
 2. Refactor `src/components/PoiDetailPanel.tsx` to render its tabs/sections **from the capability map** for the selected entity, preserving current behaviour for existing types (feature/contribution/photo).
-3. Collapse the two `SelectedPoi` photo adapters (`contributionToSelectedPoi`, `riverPhotoToSelectedPoi` in `src/appCore.ts`) into one.
+3. ~~Collapse the two `SelectedPoi` photo adapters into one.~~ **Re-scoped (2026-07-06):** on inspection they adapt *different* input types (`contributionToSelectedPoi(Contribution, section)` vs `riverPhotoToSelectedPoi(RiverPhoto)`); the general one is already clean, and merging would require union-branching that *adds* complexity. Not a real dedup — left as two adapters. The genuine dedup targets remain the ~3× marker/click block (Phase 2) and RiverDetailPage→EntityPage (Phase 4).
 4. **Verify:** existing POI/photo/contribution panels look and behave identically (Playwright/manual). Gate. Commit.
 
 ## Phase 2 — Amenities & stations get the panel · MES-F2
