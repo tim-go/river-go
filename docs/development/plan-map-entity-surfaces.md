@@ -72,6 +72,22 @@ surfaces one.
 
 1. In `src/components/RiverMap.tsx`, route **amenity** (~1123) and **station** (~1205) marker clicks to the shared panel via `mapPoiToSelectedPoi`/an amenity adapter, instead of popup-only `bindPopup`. Capability map yields their sections (amenity: Details·Location·Add note/photo; gauge: Details·Location·Levels).
 2. Fold the ~3× duplicated POI marker+click blocks (global / selected-river / section) into **one helper**. *(Phase 2b — deferred; do after 2a settles.)*
+
+### Phase 2b status (2026-07-06)
+
+- **Marker/click dedup — DONE (icon builder).** Extracted `poiMarkerIcon(poi,
+  showPhotoLayer, poiIdsWithPhotos)` in `RiverMap.tsx` and folded the two
+  identical sized-icon blocks (selected-river + section) into it. The *click /
+  popup / openPoiDetails* logic genuinely differs per context (different
+  SelectedPoi builder + popup params), so it stays per-block — folding it would
+  add branching, not remove it. The global layer keeps its own uniform size-28
+  icon by design. Verified: 88 markers render, clicks open popups, no errors
+  (map-click automation stays flaky per the session-long overlap limitation).
+- **Stations → panel — DEFERRED (by judgment).** Gauges are popup-only, but the
+  popup already shows the live reading (their whole point); a panel "levels"
+  section would duplicate the river-page chart, and gauges aren't meaningfully
+  contributable. Routing them to the panel would be net-*positive* code for
+  little gain — against the framework's aim. Left as popups.
 3. **Verify:** clicking a car-park/campsite/gauge opens the panel with the right sections; no regressions to feature POIs. Gate. Commit.
 
 ### Phase 2a status (2026-07-06) — amenity click → shared panel DONE
