@@ -8259,6 +8259,37 @@ input[type="file"]::file-selector-button:hover {
   color: var(--ink);
 }
 
+/* Collapsible river-page blocks (<details>): heading row + rotating chevron. */
+.river-page__block--collapsible > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.river-page__block--collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+.river-page__block--collapsible > summary h2 {
+  margin: 0;
+}
+.river-page__block--collapsible > summary::after {
+  content: "";
+  margin-left: auto;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.river-page__block--collapsible[open] > summary::after {
+  transform: rotate(45deg);
+}
+.river-page__block-body {
+  margin-top: 10px;
+}
+
 .river-page__card h3 {
   display: flex;
   align-items: center;
