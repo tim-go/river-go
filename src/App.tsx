@@ -4609,6 +4609,38 @@ function App() {
                     focusDetailLocation(poi.location, "center");
                     setActiveAppSection("map");
                   }}
+                  onViewAmenityOnMap={(amenity) => {
+                    if (!riverRoute) return;
+                    setRiverRoute(null);
+                    setReturnTarget(null);
+                    window.history.pushState({}, "", "/");
+                    selectCanonicalRiver(riverRoute, {
+                      zoom: "none",
+                      panel: "none",
+                    });
+                    // Enable the amenity's layer so its marker is visible.
+                    setActiveAmenityKinds((prev) => {
+                      const next = new Set(prev);
+                      next.add(amenity.category);
+                      return next;
+                    });
+                    focusDetailLocation([amenity.lat, amenity.lng], "center");
+                    setActiveAppSection("map");
+                  }}
+                  onViewSectionOnMap={(section) => {
+                    if (!riverRoute) return;
+                    const mid =
+                      section.route[Math.floor(section.route.length / 2)];
+                    setRiverRoute(null);
+                    setReturnTarget(null);
+                    window.history.pushState({}, "", "/");
+                    selectCanonicalRiver(riverRoute, {
+                      zoom: "none",
+                      panel: "none",
+                    });
+                    if (mid) focusDetailLocation(mid, "center");
+                    setActiveAppSection("map");
+                  }}
                   onOpenPhoto={setLightboxPhoto}
                 />
               </div>

@@ -16,7 +16,6 @@ import {
 } from "../services/routesApi";
 import { fetchRiverMapPois } from "../services/mapPoiApi";
 import { fetchAmenities, type Amenity } from "../services/amenityApi";
-import { googleMapsDirectionsUrl } from "../services/locationReferences";
 import {
   fetchRiverObservations,
   type SectionObservationMeasure,
@@ -73,12 +72,16 @@ export function RiverDetailPage({
   onBack,
   onViewOnMap,
   onViewPoiOnMap,
+  onViewAmenityOnMap,
+  onViewSectionOnMap,
   onOpenPhoto,
 }: {
   riverId: string;
   onBack: () => void;
   onViewOnMap: (riverId: string) => void;
   onViewPoiOnMap: (poi: MapPoi) => void;
+  onViewAmenityOnMap: (amenity: Amenity) => void;
+  onViewSectionOnMap: (section: CommunitySection) => void;
   onOpenPhoto: (photo: PhotoLightboxItem) => void;
 }) {
   const [river, setRiver] = useState<CanonicalRiverDetail | null>(null);
@@ -280,6 +283,17 @@ export function RiverDetailPage({
                       </small>
                       {section.summary ? <small>{section.summary}</small> : null}
                     </span>
+                    {section.route.length ? (
+                      <button
+                        className="ghost-button ghost-button--compact"
+                        type="button"
+                        aria-label={`View ${section.name} on the map`}
+                        onClick={() => onViewSectionOnMap(section)}
+                      >
+                        <MapIcon size={14} />
+                        Map
+                      </button>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -341,15 +355,17 @@ export function RiverDetailPage({
                         {AMENITY_LABELS[amenity.category] ?? amenity.category}
                       </small>
                     </span>
-                    <a
+                    <button
                       className="ghost-button ghost-button--compact"
-                      href={googleMapsDirectionsUrl([amenity.lat, amenity.lng])}
-                      target="_blank"
-                      rel="noreferrer"
+                      type="button"
+                      aria-label={`View ${
+                        amenity.name ?? AMENITY_LABELS[amenity.category]
+                      } on the map`}
+                      onClick={() => onViewAmenityOnMap(amenity)}
                     >
                       <MapIcon size={14} />
-                      Directions
-                    </a>
+                      Map
+                    </button>
                   </li>
                 ))}
               </ul>
