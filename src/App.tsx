@@ -255,6 +255,7 @@ import {
   canonicalRiverToOverviewSection,
   communitySectionToRiverSection,
   categoryOptions,
+  amenityContributionOptions,
   contributionOptions,
   defaultObservedDate,
   emptyCanonicalOverviewSection,
@@ -1002,6 +1003,11 @@ function App() {
   // `amenity:<id>`); carried through as the contribution's generic poiId.
   const [addModeTargetGenericPoiId, setAddModeTargetGenericPoiId] = useState<
     string | null
+  >(null);
+  // Entity kind of the current add target — drives which contribution options
+  // the form offers (amenities get just Comment + Photo).
+  const [addModeTargetEntityKind, setAddModeTargetEntityKind] = useState<
+    "amenity" | "station" | null
   >(null);
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
   const [, setSyncMessage] = useState("");
@@ -2140,6 +2146,7 @@ function App() {
     setSelectedLocation(null);
     setAddModeTargetPoiId(null);
     setAddModeTargetGenericPoiId(null);
+    setAddModeTargetEntityKind(null);
     setIsFormOpen(false);
     setIsSubmittingContribution(false);
     setSyncMessage("Saved locally. Sync now to publish this contribution.");
@@ -2377,6 +2384,7 @@ function App() {
     ensureContributorIdentity(() => {
       setAddModeTargetPoiId(null);
       setAddModeTargetGenericPoiId(null);
+    setAddModeTargetEntityKind(null);
       if (nextType) {
         startAddMode(nextType);
       } else {
@@ -2397,7 +2405,9 @@ function App() {
       } else {
         setAddModeTargetPoiId(null);
         setAddModeTargetGenericPoiId(null);
+    setAddModeTargetEntityKind(null);
         setAddModeTargetGenericPoiId(null);
+    setAddModeTargetEntityKind(null);
         startAddMode(nextType);
       }
     });
@@ -2416,6 +2426,7 @@ function App() {
     setRouteDraftSnapMessage("");
     setAddModeTargetPoiId(mapPoiId);
     setAddModeTargetGenericPoiId(genericPoiId);
+    setAddModeTargetEntityKind(genericPoiId ? poi.entityKind ?? null : null);
     chooseContributionType(nextType);
     setSelectedLocation(poi.location);
     setSearchFocusLocation(null);
@@ -3991,6 +4002,7 @@ function App() {
     clearSelectedPhoto();
     setAddModeTargetPoiId(null);
     setAddModeTargetGenericPoiId(null);
+    setAddModeTargetEntityKind(null);
   }
 
   function chooseContributionType(nextType: ContributionType) {
@@ -4720,7 +4732,10 @@ function App() {
 
             <form className="quick-add-form" onSubmit={submitContribution}>
               <div className="segmented-control" role="tablist">
-                {contributionOptions.map((option) => {
+                {(addModeTargetEntityKind === "amenity"
+                  ? amenityContributionOptions
+                  : contributionOptions
+                ).map((option) => {
                   const Icon = option.icon;
                   return (
                     <button
@@ -4750,19 +4765,21 @@ function App() {
               </label>
 
               <div className="form-grid">
-                <label>
-                  Category
-                  <select
-                    value={category}
-                    onChange={(event) => setCategory(event.target.value)}
-                  >
-                    {categoryOptions[contributionType].map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+{addModeTargetEntityKind === "amenity" ? null : (
+                  <label>
+                    Category
+                    <select
+                      value={category}
+                      onChange={(event) => setCategory(event.target.value)}
+                    >
+                      {categoryOptions[contributionType].map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
 
                 <label>
                   Date observed

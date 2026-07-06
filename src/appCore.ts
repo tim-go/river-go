@@ -152,6 +152,35 @@ export const contributionOptions: Array<{
   },
 ];
 
+// Amenities (car parks, campsites) aren't paddling features, so their add form
+// offers only a free-text comment and a photo — not the river taxonomy
+// (condition/hazard/access/feature). The "report" type backs the comment.
+export const amenityContributionOptions: Array<{
+  type: ContributionType;
+  label: string;
+  icon: typeof AlertTriangle;
+  titlePlaceholder: string;
+  detailPlaceholder: string;
+  locationRequired: boolean;
+}> = [
+  {
+    type: "report",
+    label: "Comment",
+    icon: MessageSquare,
+    titlePlaceholder: "Free parking after 6pm",
+    detailPlaceholder: "Parking, access, facilities, fees, or restrictions.",
+    locationRequired: false,
+  },
+  {
+    type: "photo",
+    label: "Photo",
+    icon: Camera,
+    titlePlaceholder: "Photo of the car park",
+    detailPlaceholder: "What the photo shows.",
+    locationRequired: false,
+  },
+];
+
 export const categoryOptions: Record<ContributionType, string[]> = {
   report: ["level", "recent paddle", "crowding", "weather", "other"],
   hazard: [
