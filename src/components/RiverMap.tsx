@@ -1,4 +1,5 @@
 import L from "leaflet";
+import { humanisePoiSummary, humanisePoiTitle } from "../lib/poiSubtitle";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RiverPaddleHistory } from "./RiverPaddleHistory";
 import { ObservationCard } from "./ObservationCard";
@@ -1122,9 +1123,9 @@ export function RiverMap({
           if (markerClickMode === "info") {
             poiMarker.bindPopup(
               createMapPopupContent({
-                title: poi.title,
+                title: humanisePoiTitle(poi.title),
                 subtitle: displayMeta.label,
-                summary: poi.summary,
+                summary: humanisePoiSummary(poi.summary),
                 onOpenDetails: () =>
                   openGlobalPoiDetails({ focusMap: false, expand: true }),
                 detailsLabel: "Snap view",
@@ -1404,9 +1405,9 @@ export function RiverMap({
         if (markerClickMode === "info") {
           marker.bindPopup(
             createMapPopupContent({
-              title: poi.title,
+              title: humanisePoiTitle(poi.title),
               subtitle: `${mapFilterRiver.displayName} · ${displayMeta.label}`,
-              summary: poi.summary,
+              summary: humanisePoiSummary(poi.summary),
               onOpenDetails: () =>
                 openPoiDetails({ focusMap: false, expand: true }),
               detailsLabel: "Snap view",
@@ -1630,9 +1631,9 @@ export function RiverMap({
         if (markerClickMode === "info") {
           marker.bindPopup(
             createMapPopupContent({
-              title: poi.title,
+              title: humanisePoiTitle(poi.title),
               subtitle: displayMeta.label,
-              summary: poi.summary,
+              summary: humanisePoiSummary(poi.summary),
               onOpenDetails: () =>
                 openPoiDetails({ focusMap: false, expand: true }),
               detailsLabel: "Snap view",
