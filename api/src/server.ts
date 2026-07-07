@@ -15,6 +15,7 @@ import {
   getCanonicalRiver,
   isSourceCandidatePoiStatus,
   listCanonicalRivers,
+  findNearestRivers,
   listSourceCandidatePois,
   updateSourceCandidatePoiStatus,
 } from "./canonical-rivers.js";
@@ -956,6 +957,20 @@ async function route(
   if (method === "GET" && url.pathname === "/api/rivers/level-lines") {
     const riverLevelLines = await listRiverLevelLines();
     return { status: 200, body: { riverLevelLines } };
+  }
+
+  if (method === "GET" && url.pathname === "/api/rivers/nearest") {
+    const lat = Number.parseFloat(url.searchParams.get("lat") ?? "");
+    const lng = Number.parseFloat(url.searchParams.get("lng") ?? "");
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return { status: 400, body: { error: "lat and lng are required" } };
+    }
+    const limit = Number.parseInt(url.searchParams.get("limit") ?? "5", 10);
+    const result = await findNearestRivers(lat, lng, {
+      limit: Number.isFinite(limit) ? limit : 5,
+      riverId: url.searchParams.get("riverId") ?? undefined,
+    });
+    return { status: 200, body: result };
   }
 
   if (method === "GET" && url.pathname === "/api/map-pois") {
