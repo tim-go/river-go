@@ -3105,6 +3105,9 @@ button.group-detail__section {
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.97);
+  /* Match the app's other floating panels (detail/poi panels) — frosted rather
+     than plainly see-through over the map. */
+  backdrop-filter: blur(12px);
   box-shadow: var(--shadow);
 }
 

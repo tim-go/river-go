@@ -1521,13 +1521,13 @@ function App() {
     selectedCanonicalRiverId,
   ]);
 
-  // Fetch the selected river's corridor while adding, so the map can show the
-  // bounds within which a point attributes to that river (ATTR-F1). Only for
-  // free placement of a new point — annotating an existing POI/amenity inherits
-  // that entity's river, so no corridor applies.
+  // Fetch the selected river's corridor while adding a point OR tracing a
+  // section, so the map shows the river's bounds (ATTR-F1). Free placement /
+  // section drawing only — annotating an existing POI/amenity inherits that
+  // entity's river, so no corridor applies there.
   useEffect(() => {
     if (
-      !(isAddMode || isFormOpen) ||
+      !(isAddMode || isFormOpen || routeCreateMode !== "idle") ||
       !selectedCanonicalRiverId ||
       addModeTargetPoiId ||
       addModeTargetGenericPoiId
@@ -1549,6 +1549,7 @@ function App() {
   }, [
     isAddMode,
     isFormOpen,
+    routeCreateMode,
     selectedCanonicalRiverId,
     addModeTargetPoiId,
     addModeTargetGenericPoiId,
