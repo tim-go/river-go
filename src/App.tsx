@@ -1494,9 +1494,16 @@ function App() {
   ]);
 
   // Fetch the selected river's corridor while adding, so the map can show the
-  // bounds within which a point attributes to that river (ATTR-F1).
+  // bounds within which a point attributes to that river (ATTR-F1). Only for
+  // free placement of a new point — annotating an existing POI/amenity inherits
+  // that entity's river, so no corridor applies.
   useEffect(() => {
-    if (!(isAddMode || isFormOpen) || !selectedCanonicalRiverId) {
+    if (
+      !(isAddMode || isFormOpen) ||
+      !selectedCanonicalRiverId ||
+      addModeTargetPoiId ||
+      addModeTargetGenericPoiId
+    ) {
       setAddModeCorridor(null);
       return;
     }
@@ -1511,7 +1518,13 @@ function App() {
     return () => {
       live = false;
     };
-  }, [isAddMode, isFormOpen, selectedCanonicalRiverId]);
+  }, [
+    isAddMode,
+    isFormOpen,
+    selectedCanonicalRiverId,
+    addModeTargetPoiId,
+    addModeTargetGenericPoiId,
+  ]);
 
   useEffect(() => {
     void loadCanonicalRivers();
