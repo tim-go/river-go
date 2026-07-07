@@ -4908,6 +4908,9 @@ function App() {
           searchFocusNonce={searchFocusNonce}
           isAddMode={isAddMode}
           addModeCorridor={addModeCorridor}
+          canSelectRiverOnClick={
+            !isAddMode && !isFormOpen && routeCreateMode === "idle"
+          }
           routeCreateMode={routeCreateMode}
           markerClickMode={markerClickMode}
           showRoutesLayer={showRoutesLayer}
