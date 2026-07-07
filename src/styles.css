@@ -2738,7 +2738,9 @@ button.group-detail__section {
 }
 
 .map-stage .leaflet-control-attribution a {
-  color: var(--ink);
+  /* Fixed dark link — the attribution background is white-ish in every theme, so
+     var(--ink) would go white-on-white in Surge. */
+  color: #23536b;
 }
 
 
