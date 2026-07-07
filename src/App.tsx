@@ -1428,17 +1428,24 @@ function App() {
     }
 
     let active = true;
+    // Local (pending, not-yet-synced) contributions targeting this poi, so a
+    // just-saved note/photo shows on the panel immediately (before it syncs).
+    const localPending = contributions.filter((c) => c.poiId === poiId);
     fetchMapPoiContributions(poiId)
       .then((list) => {
-        if (active) setPoiContributions(list);
+        if (!active) return;
+        const extras = localPending.filter(
+          (c) => !list.some((s) => s.id === c.id),
+        );
+        setPoiContributions([...extras, ...list]);
       })
       .catch(() => {
-        if (active) setPoiContributions([]);
+        if (active) setPoiContributions(localPending);
       });
     return () => {
       active = false;
     };
-  }, [selectedPoi?.poiId]);
+  }, [selectedPoi?.poiId, contributions]);
 
   useEffect(() => {
     void loadCanonicalRivers();
@@ -2196,6 +2203,10 @@ function App() {
     setAddModeTargetPoiId(null);
     setAddModeTargetGenericPoiId(null);
     setAddModeTargetEntityKind(null);
+    // Return to the detail panel the add was launched from (like Cancel), so the
+    // just-saved note/photo is visible there rather than dropping to the map.
+    if (addModeReturnPoi) setSelectedPoi(addModeReturnPoi);
+    setAddModeReturnPoi(null);
     setIsFormOpen(false);
     setIsSubmittingContribution(false);
     setSyncMessage("Saved locally. Sync now to publish this contribution.");
