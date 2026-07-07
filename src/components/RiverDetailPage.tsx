@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   Droplets,
@@ -37,11 +37,32 @@ import {
 } from "../appCore";
 import { RIVER_TAB_POI_CATEGORIES, type RiverPoiTab } from "../lib/riverPoiTabs";
 import { getPrimaryObservationMeasure } from "../lib/format";
-import { poiTypeSubtitle } from "../lib/poiSubtitle";
+import { humanisePoiTitle, poiTypeSubtitle } from "../lib/poiSubtitle";
 import { ObservationCard } from "./ObservationCard";
 import { RiverPhotoGallery } from "./RiverPhotoGallery";
 import { RiverPaddleHistory } from "./RiverPaddleHistory";
 import { RiverLocatorMap } from "./RiverLocatorMap";
+
+// A collapsible river-page block. Uses native <details> so it's keyboard- and
+// screen-reader-friendly; the heading stays visible (with count) when collapsed.
+function RiverPageBlock({
+  title,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details className="river-page__block river-page__block--collapsible" open={defaultOpen}>
+      <summary>
+        <h2>{title}</h2>
+      </summary>
+      <div className="river-page__block-body">{children}</div>
+    </details>
+  );
+}
 
 const AMENITY_LABELS: Record<string, string> = {
   car_park: "Car park",
@@ -146,6 +167,10 @@ export function RiverDetailPage({
     };
     for (const poi of pois) {
       const category = mapPoiDisplayMeta(poi).category;
+      // Whitewater-*section* segments are all titled with the river name and
+      // duplicate the river/sections — noise on the river page (they remain on
+      // the map). Skip them here.
+      if (category === "whitewater") continue;
       for (const tab of Object.keys(grouped) as RiverPoiTab[]) {
         if (RIVER_TAB_POI_CATEGORIES[tab].includes(category)) {
           grouped[tab].push(poi);
@@ -267,8 +292,7 @@ export function RiverDetailPage({
             </section>
           ) : null}
 
-          <section className="river-page__block">
-            <h2>Sections ({sections.length})</h2>
+          <RiverPageBlock title={`Sections (${sections.length})`}>
             {sections.length ? (
               <ul className="river-page__list">
                 {sections.map((section) => (
@@ -303,19 +327,20 @@ export function RiverDetailPage({
                 before they appear.
               </p>
             )}
-          </section>
+          </RiverPageBlock>
 
           {(Object.keys(poisByTab) as RiverPoiTab[]).map((tab) =>
             poisByTab[tab].length ? (
-              <section className="river-page__block" key={tab}>
-                <h2>
-                  {POI_TAB_LABELS[tab]} ({poisByTab[tab].length})
-                </h2>
+              <RiverPageBlock
+                key={tab}
+                title={`${POI_TAB_LABELS[tab]} (${poisByTab[tab].length})`}
+                defaultOpen={tab === "rapids"}
+              >
                 <ul className="river-page__list">
                   {poisByTab[tab].map((poi) => (
                     <li key={poi.id} className="river-page__list-row">
                       <span>
-                        <strong>{poi.title}</strong>
+                        <strong>{humanisePoiTitle(poi.title)}</strong>
                         <small>
                           {poiTypeSubtitle(
                             mapPoiCategoryLabels[mapPoiDisplayMeta(poi).category],
@@ -326,7 +351,7 @@ export function RiverDetailPage({
                       <button
                         className="ghost-button ghost-button--compact"
                         type="button"
-                        aria-label={`View ${poi.title} on the map`}
+                        aria-label={`View ${humanisePoiTitle(poi.title)} on the map`}
                         onClick={() => onViewPoiOnMap(poi)}
                       >
                         <MapIcon size={14} />
@@ -335,13 +360,15 @@ export function RiverDetailPage({
                     </li>
                   ))}
                 </ul>
-              </section>
+              </RiverPageBlock>
             ) : null,
           )}
 
           {parkingAndCamping.length ? (
-            <section className="river-page__block">
-              <h2>Parking &amp; camping ({parkingAndCamping.length})</h2>
+            <RiverPageBlock
+              title={`Parking & camping (${parkingAndCamping.length})`}
+              defaultOpen={false}
+            >
               <ul className="river-page__list">
                 {parkingAndCamping.slice(0, PARKING_CAMPING_LIMIT).map((amenity) => (
                   <li key={amenity.id} className="river-page__list-row">
@@ -376,13 +403,12 @@ export function RiverDetailPage({
                   all.
                 </p>
               ) : null}
-            </section>
+            </RiverPageBlock>
           ) : null}
 
-          <section className="river-page__block">
-            <h2>Photos</h2>
+          <RiverPageBlock title="Photos">
             <RiverPhotoGallery riverId={riverId} onOpenPhoto={onOpenPhoto} />
-          </section>
+          </RiverPageBlock>
 
           <section className="river-page__block">
             <RiverPaddleHistory riverId={riverId} />

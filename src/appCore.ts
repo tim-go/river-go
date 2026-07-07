@@ -8,7 +8,11 @@ import {
 } from "lucide-react";
 import { getSeedPoiWhat3Words } from "./data/seedLocationReferences";
 import { distanceKmBetween, routeDistanceKm } from "./lib/format";
-import { humanisePoiSummary, poiTypeSubtitle } from "./lib/poiSubtitle";
+import {
+  humanisePoiSummary,
+  humanisePoiTitle,
+  poiTypeSubtitle,
+} from "./lib/poiSubtitle";
 import { contributionStatusLabel } from "./lib/contributionLabels";
 import { googleMapsDirectionsUrl } from "./services/locationReferences";
 import type {
@@ -1098,7 +1102,7 @@ export function collectWatercourseContextPois(
       {
         id: poi.id,
         kind: poi.kind,
-        title: poi.title,
+        title: humanisePoiTitle(poi.title),
         subtitle: poi.subtitle,
         section,
         location: poi.location,
@@ -1526,7 +1530,7 @@ export function mapPoiToSelectedPoi(poi: MapPoi, section: RiverSection): Selecte
   return {
     id: poi.id,
     kind: poi.kind,
-    title: poi.title,
+    title: humanisePoiTitle(poi.title),
     subtitle: poiTypeSubtitle(displayMeta.label, poi.subtitle),
     summary: humanisePoiSummary(poi.summary),
     sectionLabel: section.sectionName,
@@ -1550,7 +1554,7 @@ export function riverMapPoiToSelectedPoi(
   return {
     id: poi.id,
     kind: poi.kind,
-    title: poi.title,
+    title: humanisePoiTitle(poi.title),
     subtitle: poiTypeSubtitle(displayMeta.label, poi.subtitle),
     summary: humanisePoiSummary(poi.summary),
     sectionLabel: river?.displayName ?? riverNameFallback ?? poi.subtitle,

@@ -2,8 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   humanisePoiSubtitle,
   humanisePoiSummary,
+  humanisePoiTitle,
   poiTypeSubtitle,
 } from "./poiSubtitle";
+
+describe("humanisePoiTitle", () => {
+  it("humanises unnamed source-candidate titles to their type", () => {
+    expect(humanisePoiTitle("weir candidate way/154113044")).toBe("Weir");
+    expect(humanisePoiTitle("weir candidate node/7676616264")).toBe("Weir");
+  });
+  it("passes real names through", () => {
+    expect(humanisePoiTitle("Cafe Wave")).toBe("Cafe Wave");
+    expect(humanisePoiTitle("Afon Tryweryn")).toBe("Afon Tryweryn");
+    expect(humanisePoiTitle("")).toBe("");
+  });
+});
 
 describe("humanisePoiSubtitle", () => {
   it("humanises OSM waterway tags", () => {
