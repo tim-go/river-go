@@ -2352,12 +2352,19 @@ function App() {
   }
 
   async function syncOutboxNow() {
-    if (queuedOutboxCount === 0 || isSyncingOutbox) {
+    if (isSyncingOutbox) {
+      return;
+    }
+    if (queuedOutboxCount === 0) {
+      showAppNotification("Everything is synced.", "success");
       return;
     }
 
     if (!isSignedIn) {
-      setSyncMessage("Create an account or sign in before syncing local contributions.");
+      showAppNotification(
+        "Sign in before syncing local contributions.",
+        "info",
+      );
       setAuthSheetMode("save-required");
       return;
     }
@@ -2389,17 +2396,24 @@ function App() {
       );
 
       if (summary.attempted === 0) {
-        setSyncMessage("No local changes to sync.");
+        showAppNotification("No local changes to sync.", "info");
       } else if (summary.failed > 0) {
-        setSyncMessage(
-          `${summary.synced} synced, ${summary.failed} need retry.`,
+        showAppNotification(
+          `${summary.synced} synced · ${summary.failed} need retry.`,
+          "error",
         );
       } else {
-        setSyncMessage(`${summary.synced} synced.`);
+        showAppNotification(
+          `${summary.synced} local ${
+            summary.synced === 1 ? "change" : "changes"
+          } synced.`,
+          "success",
+        );
       }
     } catch (error) {
-      setSyncMessage(
+      showAppNotification(
         error instanceof Error ? error.message : "Could not sync changes.",
+        "error",
       );
       setOutboxRecords(await outboxStore.list());
     } finally {
@@ -4749,8 +4763,15 @@ function App() {
             <MapActionButton
               label={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
               badge={queuedOutboxCount > 0}
+              badgeTone={failedOutboxCount > 0 ? "error" : "default"}
               onClick={() => {
-                if (canSyncOutbox) syncOutboxNow();
+                if (queuedOutboxCount === 0) {
+                  showAppNotification("Everything is synced.", "success");
+                  return;
+                }
+                // Reveal the sync panel (status + Retry) rather than syncing
+                // silently — the panel explains what's pending and lets you act.
+                clearSyncBannerDismissal();
               }}
             >
               <RefreshCw size={18} />

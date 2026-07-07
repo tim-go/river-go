@@ -35,6 +35,10 @@
   border: 2px solid #fff;
   background: #2bb673;
 }
+/* Sync has failures — flag it red rather than the calm green pending dot. */
+.map-action__badge--error {
+  background: #e5484d;
+}
 
 /* Composite glyph: primary icon with a small "+" pinned to the corner
    (e.g. suggest-a-section = route line + plus). */
