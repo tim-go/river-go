@@ -8289,6 +8289,40 @@ input[type="file"]::file-selector-button:hover {
 .river-page__block-body {
   margin-top: 10px;
 }
+.river-page__levels-more {
+  margin-top: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+/* Standalone levels & history page (/river/<id>/levels). */
+.river-levels-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+.river-levels-page__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.river-levels-page__heading h1 {
+  margin: 4px 0 8px;
+}
+.river-levels-page__range {
+  align-self: flex-start;
+}
+.river-levels-page__charts {
+  display: grid;
+  gap: 14px;
+}
+/* Enlarge the reused ObservationCard chart on the full-history page. */
+.river-levels-page__chart .observation-chart {
+  grid-template-rows: 240px auto;
+}
 
 .river-page__card h3 {
   display: flex;
