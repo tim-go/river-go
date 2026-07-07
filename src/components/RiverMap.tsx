@@ -806,7 +806,7 @@ export function RiverMap({
     };
     map.on("moveend zoomend", persistMapView);
     // Ambient river focus: report the settled viewport so the app can surface the
-    // river you're looking at (prototype — see App handleViewportSettled).
+    // river you are looking at (see App handleViewportSettled).
     const emitViewport = () => {
       const c = map.getCenter();
       viewportSettledRef.current?.([c.lat, c.lng], map.getZoom());

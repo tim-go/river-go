@@ -3102,9 +3102,14 @@ button.group-detail__section {
   max-width: calc(100vw - 32px);
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--surface);
+  /* A solid stronger-surface fill (Daybreak/Surge define --surface-strong; Tide
+     leaves it unset, so give it an explicit tint below) — not the pale --surface. */
+  background: var(--surface-strong);
   backdrop-filter: blur(10px);
-  box-shadow: var(--shadow);
+  box-shadow: 0 8px 22px rgba(22, 34, 46, 0.18);
+}
+[data-theme="tide"] .river-focus-strip {
+  background: #e6f0ea;
 }
 .river-focus-strip__name {
   display: inline-flex;
@@ -8585,27 +8590,6 @@ input[type="file"]::file-selector-button:hover {
 
 /* Persistent "River details" — shown on the map whenever a river is selected
    (and its panel is closed), so the river page is always reachable. */
-.map-river-details {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface-strong);
-  color: var(--ink);
-  font-size: 0.82rem;
-  font-weight: 650;
-  box-shadow: 0 8px 22px rgba(22, 34, 46, 0.18);
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-}
-
 /* POI rows on the river page keep the label left, the Map button right. */
 .river-page__list-row {
   align-items: center;
