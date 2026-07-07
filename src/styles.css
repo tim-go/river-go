@@ -121,7 +121,11 @@ button:disabled {
   left: 50%;
   z-index: 1100;
   display: flex;
-  width: min(440px, calc(100vw - 24px));
+  /* Size to content (capped) so a short toast stays centred and clear of the
+     map's bottom-corner controls (Leaflet zoom / attribution) rather than
+     spanning across them. */
+  width: auto;
+  max-width: min(440px, calc(100vw - 24px));
   min-height: 38px;
   align-items: center;
   gap: 9px;
@@ -151,7 +155,7 @@ button:disabled {
 
 .app-notification span {
   min-width: 0;
-  flex: 1;
+  flex: 0 1 auto;
 }
 
 .app-notification button {
@@ -2726,10 +2730,10 @@ button.group-detail__section {
 }
 
 .map-stage .leaflet-control-attribution {
-  padding: 1px 4px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #5d6b78;
-  font-size: 0.62rem;
+  padding: 2px 5px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #3c4854;
+  font-size: 0.66rem;
   line-height: 1.2;
 }
 

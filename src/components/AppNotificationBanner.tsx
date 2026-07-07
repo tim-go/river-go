@@ -1,4 +1,4 @@
-import { CheckCircle2, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import type { AppNotification } from "../types";
 
 export function AppNotificationBanner({
@@ -8,12 +8,18 @@ export function AppNotificationBanner({
   notification: AppNotification;
   onDismiss: () => void;
 }) {
+  const Icon =
+    notification.tone === "error"
+      ? AlertTriangle
+      : notification.tone === "info"
+        ? Info
+        : CheckCircle2;
   return (
     <div
       className={`app-notification app-notification--${notification.tone}`}
       role="status"
     >
-      <CheckCircle2 size={16} />
+      <Icon size={16} />
       <span>{notification.message}</span>
       <button type="button" onClick={onDismiss} aria-label="Dismiss notification">
         <X size={15} />
