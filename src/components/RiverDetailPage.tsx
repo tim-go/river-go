@@ -412,9 +412,7 @@ export function RiverDetailPage({
             <RiverPhotoGallery riverId={riverId} onOpenPhoto={onOpenPhoto} />
           </RiverPageBlock>
 
-          <section className="river-page__block">
-            <RiverPaddleHistory riverId={riverId} />
-          </section>
+          <RiverPaddleHistory riverId={riverId} />
         </main>
 
         <aside className="river-page__side">

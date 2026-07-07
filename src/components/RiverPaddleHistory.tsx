@@ -54,18 +54,20 @@ export function RiverPaddleHistory({ riverId }: RiverPaddleHistoryProps) {
   const last = logs[0];
 
   return (
-    <div className="river-paddle-history">
-      <Waves size={15} />
-      <div>
-        <strong>
-          You have paddled this{" "}
-          {logs.length === 1 ? "once" : `${logs.length} times`}
-        </strong>
-        <span>
-          Last on {formatDate(last.paddledOn)}
-          {last.levelNote ? ` · ${last.levelNote}` : ""}
-        </span>
+    <section className="river-page__block">
+      <div className="river-paddle-history">
+        <Waves size={15} />
+        <div>
+          <strong>
+            You have paddled this{" "}
+            {logs.length === 1 ? "once" : `${logs.length} times`}
+          </strong>
+          <span>
+            Last on {formatDate(last.paddledOn)}
+            {last.levelNote ? ` · ${last.levelNote}` : ""}
+          </span>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
