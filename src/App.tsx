@@ -1510,9 +1510,13 @@ function App() {
   // section drawing only — annotating an existing POI/amenity inherits that
   // entity's river, so no corridor applies there.
   useEffect(() => {
+    // The river in focus — ambient (viewport) or explicitly selected. Since the
+    // river-focus rework, just browsing to a river only sets ambientRiverId, so
+    // key the corridor off both (mirrors the focus strip) or it won't show.
+    const focusRiverId = ambientRiverId ?? selectedCanonicalRiverId;
     if (
       !(isAddMode || isFormOpen || routeCreateMode !== "idle") ||
-      !selectedCanonicalRiverId ||
+      !focusRiverId ||
       addModeTargetPoiId ||
       addModeTargetGenericPoiId
     ) {
@@ -1520,7 +1524,7 @@ function App() {
       return;
     }
     let live = true;
-    fetchRiverCorridor(selectedCanonicalRiverId, CORRIDOR_METERS.feature)
+    fetchRiverCorridor(focusRiverId, CORRIDOR_METERS.feature)
       .then((corridor) => {
         if (live) setAddModeCorridor(corridor);
       })
@@ -1534,6 +1538,7 @@ function App() {
     isAddMode,
     isFormOpen,
     routeCreateMode,
+    ambientRiverId,
     selectedCanonicalRiverId,
     addModeTargetPoiId,
     addModeTargetGenericPoiId,
