@@ -238,6 +238,9 @@ export interface Contribution {
   // Explicit target in the shared `pois` index (e.g. `amenity:<id>`). Used for
   // entities that aren't paddling features; wins over mapPoiId server-side.
   poiId?: string | null;
+  // Add-time river attribution (docs/specs/discovery/river-attribution.md): the
+  // geometrically-resolved river, or null for an off-river point. Authoritative.
+  riverId?: string | null;
   type: ContributionType;
   title: string;
   detail: string;
@@ -295,6 +298,7 @@ export interface ContributionSyncOperation {
     sectionId: string;
     mapPoiId?: string | null;
     poiId?: string | null;
+    riverId?: string | null;
     geometry?: {
       type: "Point";
       coordinates: [number, number];
