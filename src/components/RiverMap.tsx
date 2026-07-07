@@ -215,7 +215,6 @@ export function RiverMap({
   searchFocusNonce,
   isAddMode,
   addModeCorridor,
-  canSelectRiverOnClick,
   routeCreateMode,
   markerClickMode,
   showRoutesLayer,
@@ -286,7 +285,6 @@ export function RiverMap({
   searchFocusNonce: number;
   isAddMode: boolean;
   addModeCorridor?: unknown | null;
-  canSelectRiverOnClick: boolean;
   routeCreateMode: RouteCreateMode;
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
@@ -417,7 +415,6 @@ export function RiverMap({
   }, [rainTs]);
   const callbackRef = useRef(onSelectSection);
   const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
-  const canSelectRiverRef = useRef(canSelectRiverOnClick);
   const mapClickRef = useRef(onMapClick);
   const moveRouteDraftPointRef = useRef(onMoveRouteDraftPoint);
   const poiDetailsRef = useRef(onOpenPoiDetails);
@@ -684,10 +681,6 @@ export function RiverMap({
   }, [onSelectCanonicalRiver]);
 
   useEffect(() => {
-    canSelectRiverRef.current = canSelectRiverOnClick;
-  }, [canSelectRiverOnClick]);
-
-  useEffect(() => {
     mapClickRef.current = onMapClick;
   }, [onMapClick]);
 
@@ -754,7 +747,7 @@ export function RiverMap({
     // Dedicated renderer + group for the river-level-lines. A wider padding than
     // the default (0.1) means a short pan reuses already-drawn canvas instead of
     // re-culling immediately; the moveend handler re-culls once the pan settles.
-    const riverRenderer = L.canvas({ padding: 0.5, tolerance: 10 });
+    const riverRenderer = L.canvas({ padding: 0.5 });
     const riverLines = L.layerGroup().addTo(map);
     const poiMarkers = L.layerGroup().addTo(map);
     const liveLocationLayer = L.layerGroup().addTo(map);
@@ -995,24 +988,6 @@ export function RiverMap({
           }).addTo(riverLines);
           line.bindTooltip(`${riverName} — ${bandLabel}${valueText}`, {
             sticky: true,
-          });
-          // Click the river line to select it (plain mode only — during add /
-          // section tracing the map click is placing a point). The map click
-          // handler is a no-op in plain mode, so no need to stop propagation.
-          line.on("click", () => {
-            if (!canSelectRiverRef.current) return;
-            canonicalRiverSelectRef.current(river.riverId, {
-              zoom: "none",
-              panel: "small",
-            });
-          });
-          line.on("mouseover", () => {
-            if (canSelectRiverRef.current) {
-              map.getContainer().style.cursor = "pointer";
-            }
-          });
-          line.on("mouseout", () => {
-            map.getContainer().style.cursor = "";
           });
         });
       });
