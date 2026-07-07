@@ -214,6 +214,7 @@ export function RiverMap({
   showSearchFocusMarker,
   searchFocusNonce,
   isAddMode,
+  addModeCorridor,
   routeCreateMode,
   markerClickMode,
   showRoutesLayer,
@@ -235,6 +236,7 @@ export function RiverMap({
   watercourseFocusId,
   watercourseFocusNonce,
   onMapClick,
+  onViewportSettled,
   onMoveRouteDraftPoint,
   focusNonce,
   onOpenPoiDetails,
@@ -283,6 +285,7 @@ export function RiverMap({
   showSearchFocusMarker: boolean;
   searchFocusNonce: number;
   isAddMode: boolean;
+  addModeCorridor?: unknown | null;
   routeCreateMode: RouteCreateMode;
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
@@ -303,6 +306,7 @@ export function RiverMap({
   isLevelLegendOpen: boolean;
   watercourseFocusId: string | null;
   watercourseFocusNonce: number;
+  onViewportSettled?: (center: [number, number], zoom: number) => void;
   onMapClick: (
     location: LatLngTuple,
     nextType?: ContributionType,
@@ -414,6 +418,7 @@ export function RiverMap({
   const callbackRef = useRef(onSelectSection);
   const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
   const mapClickRef = useRef(onMapClick);
+  const viewportSettledRef = useRef(onViewportSettled);
   const moveRouteDraftPointRef = useRef(onMoveRouteDraftPoint);
   const poiDetailsRef = useRef(onOpenPoiDetails);
   const routeDetailsRef = useRef(onOpenRouteDetails);
@@ -683,6 +688,10 @@ export function RiverMap({
   }, [onMapClick]);
 
   useEffect(() => {
+    viewportSettledRef.current = onViewportSettled;
+  }, [onViewportSettled]);
+
+  useEffect(() => {
     moveRouteDraftPointRef.current = onMoveRouteDraftPoint;
   }, [onMoveRouteDraftPoint]);
 
@@ -796,6 +805,14 @@ export function RiverMap({
       }
     };
     map.on("moveend zoomend", persistMapView);
+    // Ambient river focus: report the settled viewport so the app can surface the
+    // river you are looking at (see App handleViewportSettled).
+    const emitViewport = () => {
+      const c = map.getCenter();
+      viewportSettledRef.current?.([c.lat, c.lng], map.getZoom());
+    };
+    map.on("moveend zoomend", emitViewport);
+    emitViewport();
     const updatePoiZoom = () => {
       const visible = map.getZoom() >= POI_MIN_ZOOM;
       setPoiZoomVisible((previous) => (previous === visible ? previous : visible));
@@ -999,6 +1016,27 @@ export function RiverMap({
       riverLines.clearLayers();
     };
   }, [showRiverLayer, riverLevelLines, canonicalRivers]);
+
+  // Add-mode bounds highlight: the selected river's corridor polygon, so the
+  // contributor sees where a point attributes to that river (ATTR-F1).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !addModeCorridor) return;
+    const layer = L.geoJSON(addModeCorridor as GeoJSON.GeoJsonObject, {
+      interactive: false,
+      style: {
+        color: "#1f8a70",
+        weight: 1.5,
+        opacity: 0.75,
+        dashArray: "6 5",
+        fillColor: "#1f8a70",
+        fillOpacity: 0.08,
+      },
+    }).addTo(map);
+    return () => {
+      map.removeLayer(layer);
+    };
+  }, [addModeCorridor]);
 
   // High-volume marker layer — global POIs (~800) plus riverside amenities
   // (~6,000+ nationally). Like the river lines, these get their own group and
@@ -1341,11 +1379,12 @@ export function RiverMap({
           panel: "small",
         });
       };
-      // Select: add the river to the filter and zoom to fit it — map only.
+      // Select: precisely focus this river and zoom to fit it — shows the river
+      // control strip. No filter (filtering is a separate, explicit toggle).
       const selectRiver = () => {
         map.closePopup();
         canonicalRiverSelectRef.current(river.id, {
-          filter: true,
+          filter: false,
           zoom: "bounds",
           panel: "none",
         });

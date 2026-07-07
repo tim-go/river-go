@@ -15,6 +15,8 @@ import {
   getCanonicalRiver,
   isSourceCandidatePoiStatus,
   listCanonicalRivers,
+  findNearestRivers,
+  getRiverCorridor,
   listSourceCandidatePois,
   updateSourceCandidatePoiStatus,
 } from "./canonical-rivers.js";
@@ -958,6 +960,20 @@ async function route(
     return { status: 200, body: { riverLevelLines } };
   }
 
+  if (method === "GET" && url.pathname === "/api/rivers/nearest") {
+    const lat = Number.parseFloat(url.searchParams.get("lat") ?? "");
+    const lng = Number.parseFloat(url.searchParams.get("lng") ?? "");
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return { status: 400, body: { error: "lat and lng are required" } };
+    }
+    const limit = Number.parseInt(url.searchParams.get("limit") ?? "5", 10);
+    const result = await findNearestRivers(lat, lng, {
+      limit: Number.isFinite(limit) ? limit : 5,
+      riverId: url.searchParams.get("riverId") ?? undefined,
+    });
+    return { status: 200, body: result };
+  }
+
   if (method === "GET" && url.pathname === "/api/map-pois") {
     const pois = await listAllMapPois();
     return { status: 200, body: { pois } };
@@ -1282,6 +1298,18 @@ async function route(
       Number.isFinite(hours) ? hours : 48,
     );
     return { status: 200, body: { measures } };
+  }
+
+  const riverCorridorMatch = url.pathname.match(
+    /^\/api\/rivers\/([^/]+)\/corridor$/,
+  );
+  if (method === "GET" && riverCorridorMatch) {
+    const meters = Number.parseInt(url.searchParams.get("meters") ?? "250", 10);
+    const corridor = await getRiverCorridor(
+      decodeURIComponent(riverCorridorMatch[1]),
+      Number.isFinite(meters) ? meters : 250,
+    );
+    return { status: 200, body: { corridor } };
   }
 
   const riverObservationsMatch = url.pathname.match(

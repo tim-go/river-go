@@ -116,7 +116,10 @@ path" below — going M:N later is a cheap, non-destructive migration if a real 
   answer we already compute.
 - **Paddling features / contributions (asserted):** set from the river the contributor/curator
   **chose** (adding is always within a river context — §4). Spatial nearest is only a UI
-  default suggestion, never the stored source of truth.
+  default suggestion, never the stored source of truth. **How that choice is made *correctly*
+  at add time** — the selected-river corridor, out-of-corridor reconcile/warn, and the honest
+  off-river (`river_id = NULL`) state — is specced in
+  [/docs/specs/discovery/river-attribution.md](/docs/specs/discovery/river-attribution.md).
 
 **This is what powers the "River: <name>" focus filter** (the first top-bar pill): scoping the
 map to a river is `pois WHERE river_id = X` — uniform across every POI type, no per-source

@@ -59,6 +59,53 @@ export interface SourceCandidatePoi {
   updatedAt: string;
 }
 
+// Add-time river attribution (docs/specs/discovery/river-attribution.md).
+export interface NearestRiver {
+  id: string;
+  displayName: string;
+  meters: number;
+}
+export interface NearestRiversResult {
+  nearest: NearestRiver[];
+  selected: NearestRiver | null;
+}
+
+// Nearest featured rivers to a dropped point, plus the currently-selected
+// river's distance (so we can tell if the point is within its corridor).
+export async function fetchNearestRivers(
+  location: LatLngTuple,
+  opts: { riverId?: string | null; limit?: number } = {},
+): Promise<NearestRiversResult> {
+  const [lat, lng] = location;
+  const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
+  if (opts.limit) params.set("limit", String(opts.limit));
+  if (opts.riverId) params.set("riverId", opts.riverId);
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/rivers/nearest?${params.toString()}`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!response.ok) {
+    throw new Error(`Nearest-rivers API failed with HTTP ${response.status}`);
+  }
+  return (await response.json()) as NearestRiversResult;
+}
+
+// The add-time corridor polygon (GeoJSON) around a river's line.
+export async function fetchRiverCorridor(
+  riverId: string,
+  meters = 250,
+): Promise<unknown | null> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/rivers/${encodeURIComponent(
+      riverId,
+    )}/corridor?meters=${meters}`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!response.ok) return null;
+  const body = (await response.json()) as { corridor: unknown | null };
+  return body.corridor;
+}
+
 export async function fetchCanonicalRivers(): Promise<CanonicalRiverSummary[]> {
   const response = await fetch(`${getApiBaseUrl()}/api/rivers`);
 

@@ -93,7 +93,7 @@ Tier richness: keep toilets/shops as plain markers — do **not** make all ~6280
 
 ## 4. Non-goals / out of scope
 
-- **River attribution** (which river a POI belongs to, add-time correctness, corridors, off-river points) — a separate, already-specced concern: [/docs/specs/map-features-data-model.md](/docs/specs/map-features-data-model.md) §5 (asserted `river_id`) and [/docs/specs/discovery/river-first-discovery.md](/docs/specs/discovery/river-first-discovery.md).
+- **River attribution** (which river a POI belongs to, add-time correctness, corridors, off-river points) — a separate concern, now specced in [/docs/specs/discovery/river-attribution.md](/docs/specs/discovery/river-attribution.md) (on top of the `river_id` data model in [/docs/specs/map-features-data-model.md](/docs/specs/map-features-data-model.md) §5).
 - **Fully merging amenities into the paddling-feature table.** They stay separate source tables by domain/trust/lifecycle; unification is at the `pois` index + surface layer only (per the data-model spec's "separate tables + unified capability").
 - **Routes/sections as points.** They remain container/line entities referenced by `poi_route_links`; add-segment stays river-scoped.
 

@@ -67,6 +67,7 @@ function createContributionOperation(
       sectionId: contribution.sectionId,
       mapPoiId: contribution.mapPoiId ?? null,
       poiId: contribution.poiId ?? null,
+      riverId: contribution.riverId ?? null,
       geometry: contribution.location
         ? {
             type: "Point",

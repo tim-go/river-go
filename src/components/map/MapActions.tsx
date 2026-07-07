@@ -14,6 +14,8 @@ interface MapActionButtonProps {
   active?: boolean;
   /** Show an attention dot (e.g. sync has pending changes). */
   badge?: boolean;
+  /** Dot tone — "error" turns it red (e.g. sync has failures). */
+  badgeTone?: "default" | "error";
   children: ReactNode;
 }
 
@@ -22,6 +24,7 @@ export function MapActionButton({
   onClick,
   active = false,
   badge = false,
+  badgeTone = "default",
   children,
 }: MapActionButtonProps) {
   return (
@@ -34,7 +37,14 @@ export function MapActionButton({
       title={label}
     >
       {children}
-      {badge ? <span className="map-action__badge" aria-hidden="true" /> : null}
+      {badge ? (
+        <span
+          className={`map-action__badge${
+            badgeTone === "error" ? " map-action__badge--error" : ""
+          }`}
+          aria-hidden="true"
+        />
+      ) : null}
     </button>
   );
 }

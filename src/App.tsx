@@ -73,11 +73,18 @@ import {
 } from "./services/weatherApi";
 import {
   fetchCanonicalRivers,
+  fetchNearestRivers,
+  fetchRiverCorridor,
   fetchSourceCandidatePois,
   updateSourceCandidatePoiStatus,
   type CanonicalRiverSummary,
   type SourceCandidatePoi,
 } from "./services/canonicalRiverApi";
+import {
+  CORRIDOR_METERS,
+  resolveRiverForPoint,
+  type RiverResolution,
+} from "./lib/riverResolution";
 import {
   fetchPublicSections,
   promoteRouteSuggestionToSection,
@@ -314,6 +321,11 @@ import {
 // far-off point. ~1km comfortably covers typical access/rapid spacing on a reach
 // while rejecting a photo dropped on a different river than the one focused.
 const NEAREST_POI_ATTACH_METERS = 1000;
+// Ambient river focus: when zoomed in at least this far and within this distance
+// of a river, surface that river's context pill automatically. Deliberately
+// forgiving — the river only has to be roughly in view, not dead-centre.
+const AMBIENT_FOCUS_ZOOM = 11;
+const AMBIENT_FOCUS_METERS = 5000;
 
 // A club is a first-class, addressable entity: /club/<handle-or-id>. This is the
 // only routed entity for now (paddler profiles, /p/<handle>, will follow the
@@ -684,6 +696,14 @@ function App() {
   // river; this gates only the map-side filter so "Details" can open the panel
   // without touching the map. See the river popup (Details / Snap view / Select).
   const [riverFilterActive, setRiverFilterActive] = useState(false);
+  // Ambient river focus: which river the map is currently zoomed into (viewport
+  // nearest), shown as a compact control strip — NOT the full panel. Independent
+  // of explicit selection. The request token drops stale lookups on fast pans.
+  const [ambientRiverId, setAmbientRiverId] = useState<string | null>(null);
+  const ambientReqRef = useRef(0);
+  // When a river is picked explicitly (popup "Select", Discover…), pin it so the
+  // moveend from its own camera move doesn't immediately re-derive from centre.
+  const ambientPinnedRef = useRef(false);
   // Explicit "fit the whole river" camera move (Select / Discover search),
   // replacing the old auto-flyToBounds-on-select.
   const [riverBoundsFocus, setRiverBoundsFocus] = useState<{
@@ -820,9 +840,6 @@ function App() {
   );
   const selectedMapLayers = useMemo(() => {
     const set = new Set<string>();
-    if (selectedCanonicalRiverId && riverFilterActive) {
-      set.add(`river:${selectedCanonicalRiverId}`);
-    }
     if (riverDisciplineFilter !== "all") {
       set.add(`discipline:${riverDisciplineFilter}`);
     }
@@ -837,8 +854,6 @@ function App() {
     if (showAllStations) set.add("stations:all");
     return set;
   }, [
-    selectedCanonicalRiverId,
-    riverFilterActive,
     riverDisciplineFilter,
     showRiverLayer,
     showKnownRivers,
@@ -851,10 +866,7 @@ function App() {
     showAllStations,
   ]);
   const toggleMapLayer = (id: string) => {
-    if (id.startsWith("river:")) {
-      // The "River: <name>" focus pill — removing/toggling it exits focus.
-      setSelectedCanonicalRiverId(null);
-    } else if (id === "discipline:whitewater") {
+    if (id === "discipline:whitewater") {
       setRiverDisciplineFilter((current) =>
         current === "whitewater" ? "all" : "whitewater",
       );
@@ -1054,6 +1066,11 @@ function App() {
   const [addModeReturnPoi, setAddModeReturnPoi] = useState<SelectedPoi | null>(
     null,
   );
+  // Geometric river attribution for a freely-placed point (null until resolved).
+  const [resolvedAttribution, setResolvedAttribution] =
+    useState<RiverResolution | null>(null);
+  // The selected river's corridor polygon, shown as an add-mode bounds highlight.
+  const [addModeCorridor, setAddModeCorridor] = useState<unknown | null>(null);
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
   const [, setSyncMessage] = useState("");
   const [isOnline, setIsOnline] = useState(() =>
@@ -1258,27 +1275,6 @@ function App() {
   );
   // Selecting a river puts it on the layers bar as the first, removable "River"
   // filter pill (the focus chip). Removing it exits focus — see toggleMapLayer.
-  const mapLayerCategoriesWithRiver = useMemo<FilterCategory[]>(
-    () =>
-      selectedCanonicalRiver
-        ? [
-            {
-              id: "river",
-              label: "River",
-              color: "#3f7cac",
-              kind: "filter",
-              options: [
-                {
-                  id: `river:${selectedCanonicalRiver.id}`,
-                  label: selectedCanonicalRiver.displayName,
-                },
-              ],
-            },
-            ...mapLayerCategories,
-          ]
-        : mapLayerCategories,
-    [mapLayerCategories, selectedCanonicalRiver],
-  );
   const fallbackSectionMapPois = useMemo(
     () => fallbackMapPoisForSection(activeSection),
     [activeSection],
@@ -1313,6 +1309,34 @@ function App() {
       ? (amenityContributionOptions.find((o) => o.type === contributionType) ??
         optionForType(contributionType))
       : optionForType(contributionType);
+  // Prominent add-time attribution feedback: which river a new point lands on
+  // (or off-river). Distinguishes "no river selected" from "a different river
+  // than you had selected".
+  const attributionDisplay = !resolvedAttribution
+    ? {
+        status: "resolving" as const,
+        headline: "Checking which river this point is on…",
+        subtext: null as string | null,
+      }
+    : !resolvedAttribution.river
+      ? {
+          status: "off-river" as const,
+          headline: "Won’t be added to a river",
+          subtext:
+            "It won’t appear when browsing rivers — it stays on the open map.",
+        }
+      : selectedCanonicalRiverId &&
+          selectedCanonicalRiverId !== resolvedAttribution.river.id
+        ? {
+            status: "proposed" as const,
+            headline: `Will be added to ${resolvedAttribution.river.displayName}`,
+            subtext: `This point is on ${resolvedAttribution.river.displayName}, not the river you had selected.`,
+          }
+        : {
+            status: "confirmed" as const,
+            headline: `Will be added to ${resolvedAttribution.river.displayName}`,
+            subtext: null,
+          };
   const queuedOutboxCount = outboxRecords.filter((record) =>
     ["draft", "queued", "syncing", "failed"].includes(record.syncStatus),
   ).length;
@@ -1446,6 +1470,74 @@ function App() {
       active = false;
     };
   }, [selectedPoi?.poiId, contributions]);
+
+  // Resolve which river a freely-placed point belongs to (geometry, not the
+  // stale selection). Skips POI-targeted adds — those inherit the poi's river.
+  useEffect(() => {
+    if (
+      !isFormOpen ||
+      !selectedLocation ||
+      addModeTargetPoiId ||
+      addModeTargetGenericPoiId
+    ) {
+      setResolvedAttribution(null);
+      return;
+    }
+    let active = true;
+    fetchNearestRivers(selectedLocation, { riverId: selectedCanonicalRiverId })
+      .then((result) => {
+        if (active)
+          setResolvedAttribution(
+            resolveRiverForPoint(result, CORRIDOR_METERS.feature),
+          );
+      })
+      .catch(() => {
+        if (active) setResolvedAttribution(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    isFormOpen,
+    selectedLocation,
+    addModeTargetPoiId,
+    addModeTargetGenericPoiId,
+    selectedCanonicalRiverId,
+  ]);
+
+  // Fetch the selected river's corridor while adding a point OR tracing a
+  // section, so the map shows the river's bounds (ATTR-F1). Free placement /
+  // section drawing only — annotating an existing POI/amenity inherits that
+  // entity's river, so no corridor applies there.
+  useEffect(() => {
+    if (
+      !(isAddMode || isFormOpen || routeCreateMode !== "idle") ||
+      !selectedCanonicalRiverId ||
+      addModeTargetPoiId ||
+      addModeTargetGenericPoiId
+    ) {
+      setAddModeCorridor(null);
+      return;
+    }
+    let live = true;
+    fetchRiverCorridor(selectedCanonicalRiverId, CORRIDOR_METERS.feature)
+      .then((corridor) => {
+        if (live) setAddModeCorridor(corridor);
+      })
+      .catch(() => {
+        if (live) setAddModeCorridor(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [
+    isAddMode,
+    isFormOpen,
+    routeCreateMode,
+    selectedCanonicalRiverId,
+    addModeTargetPoiId,
+    addModeTargetGenericPoiId,
+  ]);
 
   useEffect(() => {
     void loadCanonicalRivers();
@@ -2117,7 +2209,8 @@ function App() {
       !addModeTargetGenericPoiId &&
       location &&
       isCanonicalOverviewSection(activeSection) &&
-      selectedRiverMapPois.length > 0
+      selectedRiverMapPois.length > 0 &&
+      resolvedAttribution?.confidence === "confirmed"
     ) {
       let nearestPoi: MapPoi | null = null;
       let nearestMeters = Infinity;
@@ -2138,6 +2231,7 @@ function App() {
 
     const nextContribution: Contribution = {
       id: contributionId,
+      riverId: resolvedAttribution?.river?.id ?? null,
       sectionId: resolvedSectionId,
       mapPoiId: resolvedMapPoiId,
       poiId: addModeTargetGenericPoiId ?? undefined,
@@ -2258,12 +2352,19 @@ function App() {
   }
 
   async function syncOutboxNow() {
-    if (queuedOutboxCount === 0 || isSyncingOutbox) {
+    if (isSyncingOutbox) {
+      return;
+    }
+    if (queuedOutboxCount === 0) {
+      showAppNotification("Everything is synced.", "success");
       return;
     }
 
     if (!isSignedIn) {
-      setSyncMessage("Create an account or sign in before syncing local contributions.");
+      showAppNotification(
+        "Sign in before syncing local contributions.",
+        "info",
+      );
       setAuthSheetMode("save-required");
       return;
     }
@@ -2295,18 +2396,21 @@ function App() {
       );
 
       if (summary.attempted === 0) {
-        setSyncMessage("No local changes to sync.");
-      } else if (summary.failed > 0) {
-        setSyncMessage(
-          `${summary.synced} synced, ${summary.failed} need retry.`,
+        showAppNotification("No local changes to sync.", "info");
+      } else if (summary.failed === 0) {
+        showAppNotification(
+          `${summary.synced} local ${
+            summary.synced === 1 ? "change" : "changes"
+          } synced.`,
+          "success",
         );
-      } else {
-        setSyncMessage(`${summary.synced} synced.`);
       }
-    } catch (error) {
-      setSyncMessage(
-        error instanceof Error ? error.message : "Could not sync changes.",
-      );
+      // Partial/failed syncs get no toast — the sync banner (map + Profile) and
+      // the Profile "Failed syncs" count already surface them, and stay put so
+      // you can retry. Avoids a redundant, hard-to-style red box.
+    } catch {
+      // Thrown sync error (e.g. offline): the banner/counts reflect the still-
+      // pending items, so no toast is needed here either.
       setOutboxRecords(await outboxStore.list());
     } finally {
       setIsSyncingOutbox(false);
@@ -4137,6 +4241,32 @@ function App() {
   // moves the camera ("point" = centre on it, "bounds" = fit the whole river,
   // "none" = leave the map), and `panel` opens the detail panel ("small",
   // "full", or "none"). Drives the three river-popup buttons + Discover search.
+  // Ambient river focus: when the map settles, note the river you're looking at
+  // (nearest to centre, once zoomed in). Drives the compact control strip only —
+  // it does NOT open the panel or filter. No explicit "select" needed.
+  async function handleViewportSettled(center: LatLngTuple, zoom: number) {
+    // An explicit pick just moved the camera — keep it through this one settle.
+    if (ambientPinnedRef.current) {
+      ambientPinnedRef.current = false;
+      return;
+    }
+    const reqId = ++ambientReqRef.current;
+    let target: string | null = null;
+    if (zoom >= AMBIENT_FOCUS_ZOOM) {
+      try {
+        const result = await fetchNearestRivers(center);
+        const nearest = result.nearest[0];
+        if (nearest && nearest.meters <= AMBIENT_FOCUS_METERS) {
+          target = nearest.id;
+        }
+      } catch {
+        target = null;
+      }
+    }
+    if (reqId !== ambientReqRef.current) return; // superseded by a newer settle
+    setAmbientRiverId(target);
+  }
+
   function selectCanonicalRiver(
     riverId: string | null,
     options: {
@@ -4145,10 +4275,19 @@ function App() {
       panel?: "small" | "full" | "none";
     } = {},
   ) {
-    const { filter = true, zoom = "bounds", panel = "small" } = options;
+    const { zoom = "bounds", panel = "small" } = options;
     const has = Boolean(riverId);
+    // The ambient strip follows the current river too, so an explicit pick shows
+    // it. Pin through the camera move so the settle handler doesn't override.
+    setAmbientRiverId(riverId);
+    if (has && zoom !== "none") {
+      ambientPinnedRef.current = true;
+    }
     setSelectedCanonicalRiverId(riverId);
-    setRiverFilterActive(has && filter);
+    // River filtering is retired — the ambient strip gives river context without
+    // hiding other POIs. Plumbing kept dormant (always off) so it can return as an
+    // explicit strip toggle later; the `filter` option is now ignored.
+    setRiverFilterActive(false);
     setIsSelectedRiverPanelOpen(has && panel !== "none");
     setIsSelectedRiverPanelExpanded(has && panel === "full");
     const river = riverId
@@ -4546,7 +4685,7 @@ function App() {
           <div className="topbar-actions">
             <MapFilterControl
               variant="summary"
-              categories={mapLayerCategoriesWithRiver}
+              categories={mapLayerCategories}
               selected={selectedMapLayers}
               onToggle={toggleMapLayer}
               onClear={clearMapLayers}
@@ -4564,7 +4703,7 @@ function App() {
         <div className="map-floating-actions">
           <MapFilterControl
             variant="floating"
-            categories={mapLayerCategoriesWithRiver}
+            categories={mapLayerCategories}
             selected={selectedMapLayers}
             onToggle={toggleMapLayer}
             onClear={clearMapLayers}
@@ -4620,8 +4759,15 @@ function App() {
             <MapActionButton
               label={syncActionLabel({ queuedOutboxCount, isSyncingOutbox })}
               badge={queuedOutboxCount > 0}
+              badgeTone={failedOutboxCount > 0 ? "error" : "default"}
               onClick={() => {
-                if (canSyncOutbox) syncOutboxNow();
+                if (queuedOutboxCount === 0) {
+                  showAppNotification("Everything is synced.", "success");
+                  return;
+                }
+                // Reveal the sync panel (status + Retry) rather than syncing
+                // silently — the panel explains what's pending and lets you act.
+                clearSyncBannerDismissal();
               }}
             >
               <RefreshCw size={18} />
@@ -4733,31 +4879,63 @@ function App() {
             </section>
           ) : activeAppSection === "map" ? (
       <section className="workspace">
-        {selectedCanonicalRiver && !isSelectedRiverPanelOpen ? (
-          <button
-            className="map-river-details"
-            type="button"
-            onClick={() =>
-              openRiverPage(selectedCanonicalRiver.id, {
-                label: "Map",
-                section: "map",
-              })
-            }
-          >
-            <MapPinned size={15} />
-            River details
-          </button>
-        ) : null}
-        <SyncOutboxBanner
-          queuedOutboxCount={queuedOutboxCount}
-          failedOutboxCount={failedOutboxCount}
-          isDismissed={isSyncBannerDismissed}
-          isOnline={isOnline}
-          isSyncingOutbox={isSyncingOutbox}
-          canSyncOutbox={canSyncOutbox}
-          onDismiss={dismissSyncBanner}
-          onSync={syncOutboxNow}
-        />
+        <div className="map-top-stack">
+          <SyncOutboxBanner
+            queuedOutboxCount={queuedOutboxCount}
+            failedOutboxCount={failedOutboxCount}
+            isDismissed={isSyncBannerDismissed}
+            isOnline={isOnline}
+            isSyncingOutbox={isSyncingOutbox}
+            canSyncOutbox={canSyncOutbox}
+            onDismiss={dismissSyncBanner}
+            onSync={syncOutboxNow}
+          />
+          {(() => {
+            // The river you're looking at — ambient (viewport) or explicitly picked
+            // (Select / Discover). Shown as a compact control strip while the full
+            // panel is closed; replaces the old "River details" button.
+            const focusRiverId = ambientRiverId ?? selectedCanonicalRiverId;
+            if (!focusRiverId || isSelectedRiverPanelOpen) return null;
+            const focusRiver = canonicalRivers.find(
+              (river) => river.id === focusRiverId,
+            );
+            if (!focusRiver) return null;
+            return (
+              <div
+                className="river-focus-strip"
+                role="group"
+                aria-label="Current river"
+              >
+                <span className="river-focus-strip__name">
+                  <Droplets size={15} />
+                  {focusRiver.displayName}
+                </span>
+                <button
+                  type="button"
+                  className="river-focus-strip__action"
+                  onClick={() =>
+                    openRiverPage(focusRiverId, { label: "Map", section: "map" })
+                  }
+                >
+                  Full details
+                </button>
+                <button
+                  type="button"
+                  className="river-focus-strip__action"
+                  onClick={() =>
+                    selectCanonicalRiver(focusRiverId, {
+                      filter: false,
+                      zoom: "none",
+                      panel: "small",
+                    })
+                  }
+                >
+                  Panel
+                </button>
+              </div>
+            );
+          })()}
+        </div>
 
         <RiverMap
           sections={appRiverSections}
@@ -4797,6 +4975,7 @@ function App() {
           showSearchFocusMarker={showSearchFocusMarker}
           searchFocusNonce={searchFocusNonce}
           isAddMode={isAddMode}
+          addModeCorridor={addModeCorridor}
           routeCreateMode={routeCreateMode}
           markerClickMode={markerClickMode}
           showRoutesLayer={showRoutesLayer}
@@ -4818,6 +4997,7 @@ function App() {
           watercourseFocusId={watercourseFocusId}
           watercourseFocusNonce={watercourseFocusNonce}
           onMapClick={handleMapClick}
+          onViewportSettled={handleViewportSettled}
           onMoveRouteDraftPoint={updateRouteDraftPoint}
           focusNonce={sectionFocusNonce}
           onOpenPoiDetails={openPoiDetails}
@@ -5023,6 +5203,26 @@ function App() {
                       : "No map point selected. This condition report will attach to the current section."}
                 </span>
               </div>
+
+              {selectedLocation &&
+              !addModeTargetPoiId &&
+              !addModeTargetGenericPoiId ? (
+                <div
+                  className={`attribution-card attribution-card--${attributionDisplay.status}`}
+                >
+                  {attributionDisplay.status === "off-river" ? (
+                    <AlertTriangle size={20} />
+                  ) : (
+                    <Droplets size={20} />
+                  )}
+                  <div className="attribution-card__body">
+                    <strong>{attributionDisplay.headline}</strong>
+                    {attributionDisplay.subtext ? (
+                      <span>{attributionDisplay.subtext}</span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="form-actions">
                 <button

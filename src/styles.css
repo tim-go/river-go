@@ -121,7 +121,11 @@ button:disabled {
   left: 50%;
   z-index: 1100;
   display: flex;
-  width: min(440px, calc(100vw - 24px));
+  /* Size to content (capped) so a short toast stays centred and clear of the
+     map's bottom-corner controls (Leaflet zoom / attribution) rather than
+     spanning across them. */
+  width: auto;
+  max-width: min(440px, calc(100vw - 24px));
   min-height: 38px;
   align-items: center;
   gap: 9px;
@@ -151,7 +155,7 @@ button:disabled {
 
 .app-notification span {
   min-width: 0;
-  flex: 1;
+  flex: 0 1 auto;
 }
 
 .app-notification button {
@@ -767,13 +771,26 @@ h1 {
   flex: 0 0 auto;
 }
 
-.workspace > .sync-banner {
+/* Top-centre overlay stack: the sync banner and the river focus strip share this
+   column so they lay out vertically instead of overlapping. */
+.map-top-stack {
   position: absolute;
-  top: 12px;
+  top: 10px;
   left: 50%;
-  z-index: 455;
-  width: min(560px, calc(100% - 32px));
   transform: translateX(-50%);
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(560px, calc(100% - 32px));
+  pointer-events: none;
+}
+.map-top-stack > * {
+  pointer-events: auto;
+}
+.map-top-stack > .sync-banner {
+  width: 100%;
 }
 
 /* Surge: the light-green banner washes out over the map — use dark glass. */
@@ -2713,15 +2730,17 @@ button.group-detail__section {
 }
 
 .map-stage .leaflet-control-attribution {
-  padding: 1px 4px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #5d6b78;
-  font-size: 0.62rem;
+  padding: 2px 5px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #3c4854;
+  font-size: 0.66rem;
   line-height: 1.2;
 }
 
 .map-stage .leaflet-control-attribution a {
-  color: var(--ink);
+  /* Fixed dark link — the attribution background is white-ish in every theme, so
+     var(--ink) would go white-on-white in Surge. */
+  color: #23536b;
 }
 
 
@@ -3086,6 +3105,59 @@ button.group-detail__section {
   text-decoration: none;
 }
 
+/* Ambient river focus strip: the compact "you're on this river" control shown
+   when zoomed to a river. Collapsed state — Panel / Full details expand to the
+   real surfaces. Tokenised so it themes on the map. */
+.river-focus-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 14px;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  /* A solid stronger-surface fill (Daybreak/Surge define --surface-strong; Tide
+     leaves it unset, so give it an explicit tint below) — not the pale --surface. */
+  background: var(--surface-strong);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 22px rgba(22, 34, 46, 0.18);
+}
+[data-theme="tide"] .river-focus-strip {
+  background: #e6f0ea;
+}
+.river-focus-strip__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 650;
+  font-size: 0.9rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.river-focus-strip__name svg {
+  color: var(--river-dark);
+}
+/* Outline buttons in the accent colour — no grey fill, so the strip reads as one
+   cohesive control rather than a grey/blue mix. */
+.river-focus-strip__action {
+  padding: 5px 11px;
+  border: 1px solid var(--river-dark);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--river-dark);
+  font-size: 0.8rem;
+  font-weight: 620;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.river-focus-strip__action:hover {
+  background: var(--river-dark);
+  color: #fff;
+}
+
 .quick-add-panel {
   position: absolute;
   top: 88px;
@@ -3105,6 +3177,9 @@ button.group-detail__section {
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.97);
+  /* Match the app's other floating panels (detail/poi panels) — frosted rather
+     than plainly see-through over the map. */
+  backdrop-filter: blur(12px);
   box-shadow: var(--shadow);
 }
 
@@ -4892,6 +4967,49 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] input[type="time"]::-webkit-calendar-picker-indicator,
 [data-theme="surge"] input[type="month"]::-webkit-calendar-picker-indicator {
   filter: invert(1) brightness(1.6);
+}
+
+/* Add-time river attribution feedback (river-attribution.md): a prominent card
+   making it obvious which river a new point lands on (or off-river). Confirmed =
+   calm, proposed/off-river = a warning tone so misattribution is never silent. */
+.attribution-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+.attribution-card > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.attribution-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.attribution-card__body strong {
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+.attribution-card__body span {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  opacity: 0.85;
+}
+.attribution-card--confirmed {
+  border-color: rgba(31, 138, 112, 0.5);
+  background: #eaf6f0;
+  color: #1c5a4e;
+}
+.attribution-card--proposed,
+.attribution-card--off-river {
+  border-color: #e0a100;
+  background: #fbf4e7;
+  color: #7a5512;
 }
 
 .location-card {
@@ -7539,6 +7657,26 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .quick-add-panel textarea {
   color-scheme: dark;
 }
+/* color-scheme:dark already renders a light native date icon here — the global
+   Surge invert rule would double-invert it back to black. */
+[data-theme="surge"]
+  .quick-add-panel
+  input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+/* Attribution-card variants use hardcoded light colours; re-tone for dark Surge
+   (confirmed = teal; proposed/off-river = the Surge yellow). */
+[data-theme="surge"] .attribution-card--confirmed {
+  border-color: rgba(40, 194, 160, 0.45);
+  background: rgba(40, 194, 160, 0.14);
+  color: #8ff0d4;
+}
+[data-theme="surge"] .attribution-card--proposed,
+[data-theme="surge"] .attribution-card--off-river {
+  border-color: rgba(255, 214, 10, 0.5);
+  background: rgba(255, 214, 10, 0.1);
+  color: #ffd60a;
+}
 [data-theme="surge"] .poi-detail-panel__header,
 [data-theme="surge"] .panel-close,
 [data-theme="surge"] .panel-expand {
@@ -7657,6 +7795,13 @@ input[type="file"]::file-selector-button:hover {
   border-color: rgba(255, 90, 70, 0.42);
   background: rgba(255, 90, 70, 0.13);
   color: #ff9b91;
+}
+/* The floating toast needs a solid fill — the translucent red above washes out
+   over the map. (Inline panel errors keep the translucent style.) */
+[data-theme="surge"] .app-notification--error {
+  border-color: rgba(255, 90, 70, 0.5);
+  background: rgba(46, 14, 20, 0.97);
+  color: #ffb4ac;
 }
 [data-theme="surge"] .sync-error,
 [data-theme="surge"] .trend-label--falling,
@@ -8466,27 +8611,6 @@ input[type="file"]::file-selector-button:hover {
 
 /* Persistent "River details" — shown on the map whenever a river is selected
    (and its panel is closed), so the river page is always reachable. */
-.map-river-details {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface-strong);
-  color: var(--ink);
-  font-size: 0.82rem;
-  font-weight: 650;
-  box-shadow: 0 8px 22px rgba(22, 34, 46, 0.18);
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-}
-
 /* POI rows on the river page keep the label left, the Map button right. */
 .river-page__list-row {
   align-items: center;

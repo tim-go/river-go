@@ -53,6 +53,8 @@ interface ContributionCreatePayload {
   // Explicit target in the shared `pois` index (e.g. `amenity:<source_id>`).
   // Wins over the legacy map_poi_id derivation when present.
   poiId?: string | null;
+  // Add-time resolved river (null = off-river); authoritative after the poi.
+  riverId?: string | null;
   geometry?: unknown;
   observedAt?: string | null;
   payload?: Record<string, unknown>;
@@ -268,13 +270,10 @@ async function insertContribution(
            CASE WHEN $13 IS NOT NULL THEN 'map_poi:' || $13 ELSE NULL END
          )
          LIMIT 1),
-        -- A contribution added straight from a river overview carries the
-        -- canonical-river pseudo-section id, whose slug IS the river id.
-        CASE
-          WHEN $3 LIKE 'canonical-river:%'
-            THEN substring($3 FROM length('canonical-river:') + 1)
-          ELSE NULL
-        END
+        -- Add-time resolved river (null = off-river). Authoritative after the
+        -- target poi's own river. Replaces the old canonical-river pseudo-section
+        -- fallback. See docs/specs/discovery/river-attribution.md.
+        $16
       )
     )
     ON CONFLICT (id) DO UPDATE SET
@@ -315,6 +314,7 @@ async function insertContribution(
       contribution.mapPoiId ?? null,
       actor.canPublishDirectly ? "published" : "removed",
       contribution.poiId ?? null,
+      contribution.riverId ?? null,
     ],
   );
 
@@ -499,6 +499,7 @@ function parseContributionPayload(
       sectionId: readString(value.sectionId),
       mapPoiId: readString(value.mapPoiId),
       poiId: readString(value.poiId),
+      riverId: readString(value.riverId),
       geometry: value.geometry,
       observedAt: readString(value.observedAt),
       payload: isRecord(value.payload) ? value.payload : {},

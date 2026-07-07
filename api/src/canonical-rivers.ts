@@ -803,3 +803,80 @@ function mapSourceCandidatePoiRow(
     updatedAt: row.updated_at.toISOString(),
   };
 }
+
+export interface NearestRiver {
+  id: string;
+  displayName: string;
+  meters: number;
+}
+
+// Nearest featured rivers to a point (metres, via PostGIS geography). Powers
+// add-time river attribution (docs/specs/discovery/river-attribution.md) — the
+// caller applies the per-entity corridor threshold. When `riverId` (the
+// currently-selected river) is given, its distance is always returned as
+// `selected`, even if it isn't among the closest `limit`.
+export async function findNearestRivers(
+  lat: number,
+  lng: number,
+  opts: { limit?: number; riverId?: string | null } = {},
+): Promise<{ nearest: NearestRiver[]; selected: NearestRiver | null }> {
+  const limit = Math.max(1, Math.min(opts.limit ?? 5, 10));
+  const distanceSql = `ST_Distance(
+      matched_geometry::geography,
+      ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography
+    )`;
+  const nearestResult = await pool.query(
+    `SELECT id, display_name, ${distanceSql} AS meters
+     FROM canonical_rivers
+     WHERE matched_geometry IS NOT NULL
+     ORDER BY matched_geometry::geography <->
+              ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography
+     LIMIT $3`,
+    [lat, lng, limit],
+  );
+  const mapRow = (row: {
+    id: string;
+    display_name: string;
+    meters: string | number;
+  }): NearestRiver => ({
+    id: row.id,
+    displayName: row.display_name,
+    meters: Math.round(Number(row.meters)),
+  });
+  const nearest = nearestResult.rows.map(mapRow);
+
+  let selected: NearestRiver | null = null;
+  if (opts.riverId) {
+    selected = nearest.find((n) => n.id === opts.riverId) ?? null;
+    if (!selected) {
+      const selResult = await pool.query(
+        `SELECT id, display_name, ${distanceSql} AS meters
+         FROM canonical_rivers
+         WHERE id = $3 AND matched_geometry IS NOT NULL`,
+        [lat, lng, opts.riverId],
+      );
+      if (selResult.rows[0]) selected = mapRow(selResult.rows[0]);
+    }
+  }
+  return { nearest, selected };
+}
+
+// The corridor polygon (buffered river line, metres) for the add-time bounds
+// highlight. See docs/specs/discovery/river-attribution.md (ATTR-F1). GeoJSON in
+// SRID 4326; null when the river has no geometry.
+export async function getRiverCorridor(
+  riverId: string,
+  meters: number,
+): Promise<unknown | null> {
+  const bounded = Math.max(50, Math.min(meters, 2000));
+  const result = await pool.query<{ geojson: string | null }>(
+    `SELECT ST_AsGeoJSON(
+              ST_Buffer(matched_geometry::geography, $2)::geometry
+            ) AS geojson
+     FROM canonical_rivers
+     WHERE id = $1 AND matched_geometry IS NOT NULL`,
+    [riverId, bounded],
+  );
+  const geojson = result.rows[0]?.geojson;
+  return geojson ? JSON.parse(geojson) : null;
+}
