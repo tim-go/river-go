@@ -840,9 +840,6 @@ function App() {
   );
   const selectedMapLayers = useMemo(() => {
     const set = new Set<string>();
-    if (selectedCanonicalRiverId && riverFilterActive) {
-      set.add(`river:${selectedCanonicalRiverId}`);
-    }
     if (riverDisciplineFilter !== "all") {
       set.add(`discipline:${riverDisciplineFilter}`);
     }
@@ -857,8 +854,6 @@ function App() {
     if (showAllStations) set.add("stations:all");
     return set;
   }, [
-    selectedCanonicalRiverId,
-    riverFilterActive,
     riverDisciplineFilter,
     showRiverLayer,
     showKnownRivers,
@@ -871,10 +866,7 @@ function App() {
     showAllStations,
   ]);
   const toggleMapLayer = (id: string) => {
-    if (id.startsWith("river:")) {
-      // The "River: <name>" focus pill — removing/toggling it exits focus.
-      setSelectedCanonicalRiverId(null);
-    } else if (id === "discipline:whitewater") {
+    if (id === "discipline:whitewater") {
       setRiverDisciplineFilter((current) =>
         current === "whitewater" ? "all" : "whitewater",
       );
@@ -1283,27 +1275,6 @@ function App() {
   );
   // Selecting a river puts it on the layers bar as the first, removable "River"
   // filter pill (the focus chip). Removing it exits focus — see toggleMapLayer.
-  const mapLayerCategoriesWithRiver = useMemo<FilterCategory[]>(
-    () =>
-      selectedCanonicalRiver
-        ? [
-            {
-              id: "river",
-              label: "River",
-              color: "#3f7cac",
-              kind: "filter",
-              options: [
-                {
-                  id: `river:${selectedCanonicalRiver.id}`,
-                  label: selectedCanonicalRiver.displayName,
-                },
-              ],
-            },
-            ...mapLayerCategories,
-          ]
-        : mapLayerCategories,
-    [mapLayerCategories, selectedCanonicalRiver],
-  );
   const fallbackSectionMapPois = useMemo(
     () => fallbackMapPoisForSection(activeSection),
     [activeSection],
@@ -4294,7 +4265,7 @@ function App() {
       panel?: "small" | "full" | "none";
     } = {},
   ) {
-    const { filter = true, zoom = "bounds", panel = "small" } = options;
+    const { zoom = "bounds", panel = "small" } = options;
     const has = Boolean(riverId);
     // The ambient strip follows the current river too, so an explicit pick shows
     // it. Pin through the camera move so the settle handler doesn't override.
@@ -4303,7 +4274,10 @@ function App() {
       ambientPinnedRef.current = true;
     }
     setSelectedCanonicalRiverId(riverId);
-    setRiverFilterActive(has && filter);
+    // River filtering is retired — the ambient strip gives river context without
+    // hiding other POIs. Plumbing kept dormant (always off) so it can return as an
+    // explicit strip toggle later; the `filter` option is now ignored.
+    setRiverFilterActive(false);
     setIsSelectedRiverPanelOpen(has && panel !== "none");
     setIsSelectedRiverPanelExpanded(has && panel === "full");
     const river = riverId
@@ -4701,7 +4675,7 @@ function App() {
           <div className="topbar-actions">
             <MapFilterControl
               variant="summary"
-              categories={mapLayerCategoriesWithRiver}
+              categories={mapLayerCategories}
               selected={selectedMapLayers}
               onToggle={toggleMapLayer}
               onClear={clearMapLayers}
@@ -4719,7 +4693,7 @@ function App() {
         <div className="map-floating-actions">
           <MapFilterControl
             variant="floating"
-            categories={mapLayerCategoriesWithRiver}
+            categories={mapLayerCategories}
             selected={selectedMapLayers}
             onToggle={toggleMapLayer}
             onClear={clearMapLayers}
