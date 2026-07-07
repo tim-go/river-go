@@ -7794,6 +7794,13 @@ input[type="file"]::file-selector-button:hover {
   background: rgba(255, 90, 70, 0.13);
   color: #ff9b91;
 }
+/* The floating toast needs a solid fill — the translucent red above washes out
+   over the map. (Inline panel errors keep the translucent style.) */
+[data-theme="surge"] .app-notification--error {
+  border-color: rgba(255, 90, 70, 0.5);
+  background: rgba(46, 14, 20, 0.97);
+  color: #ffb4ac;
+}
 [data-theme="surge"] .sync-error,
 [data-theme="surge"] .trend-label--falling,
 [data-theme="surge"] .paddle-history__error,

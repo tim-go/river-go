@@ -2397,12 +2397,7 @@ function App() {
 
       if (summary.attempted === 0) {
         showAppNotification("No local changes to sync.", "info");
-      } else if (summary.failed > 0) {
-        showAppNotification(
-          `${summary.synced} synced · ${summary.failed} need retry.`,
-          "error",
-        );
-      } else {
+      } else if (summary.failed === 0) {
         showAppNotification(
           `${summary.synced} local ${
             summary.synced === 1 ? "change" : "changes"
@@ -2410,11 +2405,12 @@ function App() {
           "success",
         );
       }
-    } catch (error) {
-      showAppNotification(
-        error instanceof Error ? error.message : "Could not sync changes.",
-        "error",
-      );
+      // Partial/failed syncs get no toast — the sync banner (map + Profile) and
+      // the Profile "Failed syncs" count already surface them, and stay put so
+      // you can retry. Avoids a redundant, hard-to-style red box.
+    } catch {
+      // Thrown sync error (e.g. offline): the banner/counts reflect the still-
+      // pending items, so no toast is needed here either.
       setOutboxRecords(await outboxStore.list());
     } finally {
       setIsSyncingOutbox(false);
