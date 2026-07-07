@@ -236,6 +236,7 @@ export function RiverMap({
   watercourseFocusId,
   watercourseFocusNonce,
   onMapClick,
+  onViewportSettled,
   onMoveRouteDraftPoint,
   focusNonce,
   onOpenPoiDetails,
@@ -305,6 +306,7 @@ export function RiverMap({
   isLevelLegendOpen: boolean;
   watercourseFocusId: string | null;
   watercourseFocusNonce: number;
+  onViewportSettled?: (center: [number, number], zoom: number) => void;
   onMapClick: (
     location: LatLngTuple,
     nextType?: ContributionType,
@@ -416,6 +418,7 @@ export function RiverMap({
   const callbackRef = useRef(onSelectSection);
   const canonicalRiverSelectRef = useRef(onSelectCanonicalRiver);
   const mapClickRef = useRef(onMapClick);
+  const viewportSettledRef = useRef(onViewportSettled);
   const moveRouteDraftPointRef = useRef(onMoveRouteDraftPoint);
   const poiDetailsRef = useRef(onOpenPoiDetails);
   const routeDetailsRef = useRef(onOpenRouteDetails);
@@ -685,6 +688,10 @@ export function RiverMap({
   }, [onMapClick]);
 
   useEffect(() => {
+    viewportSettledRef.current = onViewportSettled;
+  }, [onViewportSettled]);
+
+  useEffect(() => {
     moveRouteDraftPointRef.current = onMoveRouteDraftPoint;
   }, [onMoveRouteDraftPoint]);
 
@@ -798,6 +805,14 @@ export function RiverMap({
       }
     };
     map.on("moveend zoomend", persistMapView);
+    // Ambient river focus: report the settled viewport so the app can surface the
+    // river you're looking at (prototype — see App handleViewportSettled).
+    const emitViewport = () => {
+      const c = map.getCenter();
+      viewportSettledRef.current?.([c.lat, c.lng], map.getZoom());
+    };
+    map.on("moveend zoomend", emitViewport);
+    emitViewport();
     const updatePoiZoom = () => {
       const visible = map.getZoom() >= POI_MIN_ZOOM;
       setPoiZoomVisible((previous) => (previous === visible ? previous : visible));
