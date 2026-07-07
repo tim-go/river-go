@@ -7562,6 +7562,26 @@ input[type="file"]::file-selector-button:hover {
 [data-theme="surge"] .quick-add-panel textarea {
   color-scheme: dark;
 }
+/* color-scheme:dark already renders a light native date icon here — the global
+   Surge invert rule would double-invert it back to black. */
+[data-theme="surge"]
+  .quick-add-panel
+  input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+/* Attribution-note variants use hardcoded light colours; re-tone for dark Surge
+   (confirmed = teal like .location-card; proposed/off-river = the Surge yellow). */
+[data-theme="surge"] .attribution-note--confirmed {
+  border-color: rgba(40, 194, 160, 0.4);
+  background: rgba(40, 194, 160, 0.14);
+  color: #8ff0d4;
+}
+[data-theme="surge"] .attribution-note--proposed,
+[data-theme="surge"] .attribution-note--off-river {
+  border-color: rgba(255, 214, 10, 0.45);
+  background: rgba(255, 214, 10, 0.1);
+  color: #ffd60a;
+}
 [data-theme="surge"] .poi-detail-panel__header,
 [data-theme="surge"] .panel-close,
 [data-theme="surge"] .panel-expand {
