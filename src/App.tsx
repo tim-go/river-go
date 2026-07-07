@@ -321,10 +321,11 @@ import {
 // far-off point. ~1km comfortably covers typical access/rapid spacing on a reach
 // while rejecting a photo dropped on a different river than the one focused.
 const NEAREST_POI_ATTACH_METERS = 1000;
-// Ambient river focus: when zoomed in at least this far and within
-// this distance of a river, surface that river's context pill automatically.
-const AMBIENT_FOCUS_ZOOM = 12;
-const AMBIENT_FOCUS_METERS = 1500;
+// Ambient river focus: when zoomed in at least this far and within this distance
+// of a river, surface that river's context pill automatically. Deliberately
+// forgiving — the river only has to be roughly in view, not dead-centre.
+const AMBIENT_FOCUS_ZOOM = 11;
+const AMBIENT_FOCUS_METERS = 5000;
 
 // A club is a first-class, addressable entity: /club/<handle-or-id>. This is the
 // only routed entity for now (paddler profiles, /p/<handle>, will follow the
