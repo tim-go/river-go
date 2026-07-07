@@ -767,13 +767,26 @@ h1 {
   flex: 0 0 auto;
 }
 
-.workspace > .sync-banner {
+/* Top-centre overlay stack: the sync banner and the river focus strip share this
+   column so they lay out vertically instead of overlapping. */
+.map-top-stack {
   position: absolute;
-  top: 12px;
+  top: 10px;
   left: 50%;
-  z-index: 455;
-  width: min(560px, calc(100% - 32px));
   transform: translateX(-50%);
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(560px, calc(100% - 32px));
+  pointer-events: none;
+}
+.map-top-stack > * {
+  pointer-events: auto;
+}
+.map-top-stack > .sync-banner {
+  width: 100%;
 }
 
 /* Surge: the light-green banner washes out over the map — use dark glass. */
@@ -3090,16 +3103,11 @@ button.group-detail__section {
    when zoomed to a river. Collapsed state — Panel / Full details expand to the
    real surfaces. Tokenised so it themes on the map. */
 .river-focus-strip {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1100;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 6px 8px 6px 14px;
-  max-width: calc(100vw - 32px);
+  max-width: 100%;
   border: 1px solid var(--line);
   border-radius: 999px;
   /* A solid stronger-surface fill (Daybreak/Surge define --surface-strong; Tide

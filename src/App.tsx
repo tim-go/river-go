@@ -4862,16 +4862,63 @@ function App() {
             </section>
           ) : activeAppSection === "map" ? (
       <section className="workspace">
-        <SyncOutboxBanner
-          queuedOutboxCount={queuedOutboxCount}
-          failedOutboxCount={failedOutboxCount}
-          isDismissed={isSyncBannerDismissed}
-          isOnline={isOnline}
-          isSyncingOutbox={isSyncingOutbox}
-          canSyncOutbox={canSyncOutbox}
-          onDismiss={dismissSyncBanner}
-          onSync={syncOutboxNow}
-        />
+        <div className="map-top-stack">
+          <SyncOutboxBanner
+            queuedOutboxCount={queuedOutboxCount}
+            failedOutboxCount={failedOutboxCount}
+            isDismissed={isSyncBannerDismissed}
+            isOnline={isOnline}
+            isSyncingOutbox={isSyncingOutbox}
+            canSyncOutbox={canSyncOutbox}
+            onDismiss={dismissSyncBanner}
+            onSync={syncOutboxNow}
+          />
+          {(() => {
+            // The river you're looking at — ambient (viewport) or explicitly picked
+            // (Select / Discover). Shown as a compact control strip while the full
+            // panel is closed; replaces the old "River details" button.
+            const focusRiverId = ambientRiverId ?? selectedCanonicalRiverId;
+            if (!focusRiverId || isSelectedRiverPanelOpen) return null;
+            const focusRiver = canonicalRivers.find(
+              (river) => river.id === focusRiverId,
+            );
+            if (!focusRiver) return null;
+            return (
+              <div
+                className="river-focus-strip"
+                role="group"
+                aria-label="Current river"
+              >
+                <span className="river-focus-strip__name">
+                  <Droplets size={15} />
+                  {focusRiver.displayName}
+                </span>
+                <button
+                  type="button"
+                  className="river-focus-strip__action"
+                  onClick={() =>
+                    openRiverPage(focusRiverId, { label: "Map", section: "map" })
+                  }
+                >
+                  Full details
+                </button>
+                <button
+                  type="button"
+                  className="river-focus-strip__action"
+                  onClick={() =>
+                    selectCanonicalRiver(focusRiverId, {
+                      filter: false,
+                      zoom: "none",
+                      panel: "small",
+                    })
+                  }
+                >
+                  Panel
+                </button>
+              </div>
+            );
+          })()}
+        </div>
 
         <RiverMap
           sections={appRiverSections}
@@ -4949,52 +4996,6 @@ function App() {
             setIsSelectedRiverPanelExpanded((current) => !current)
           }
         />
-
-        {(() => {
-          // The river you're looking at — ambient (viewport) or explicitly picked
-          // (Select / Discover). Shown as a compact control strip while the full
-          // panel is closed; replaces the old "River details" button.
-          const focusRiverId = ambientRiverId ?? selectedCanonicalRiverId;
-          if (!focusRiverId || isSelectedRiverPanelOpen) return null;
-          const focusRiver = canonicalRivers.find(
-            (river) => river.id === focusRiverId,
-          );
-          if (!focusRiver) return null;
-          return (
-            <div
-              className="river-focus-strip"
-              role="group"
-              aria-label="Current river"
-            >
-              <span className="river-focus-strip__name">
-                <Droplets size={15} />
-                {focusRiver.displayName}
-              </span>
-              <button
-                type="button"
-                className="river-focus-strip__action"
-                onClick={() =>
-                  openRiverPage(focusRiverId, { label: "Map", section: "map" })
-                }
-              >
-                Full details
-              </button>
-              <button
-                type="button"
-                className="river-focus-strip__action"
-                onClick={() =>
-                  selectCanonicalRiver(focusRiverId, {
-                    filter: false,
-                    zoom: "none",
-                    panel: "small",
-                  })
-                }
-              >
-                Panel
-              </button>
-            </div>
-          );
-        })()}
 
         {isFormOpen ? (
           <section className="quick-add-panel" aria-label="Add contribution">
