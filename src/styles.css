@@ -3086,6 +3086,54 @@ button.group-detail__section {
   text-decoration: none;
 }
 
+/* Ambient river focus strip: the compact "you're on this river" control shown
+   when zoomed to a river. Collapsed state — Panel / Full details expand to the
+   real surfaces. Tokenised so it themes on the map. */
+.river-focus-strip {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 14px;
+  max-width: calc(100vw - 32px);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+.river-focus-strip__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 650;
+  font-size: 0.9rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.river-focus-strip__action {
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--river-dark);
+  font-size: 0.8rem;
+  font-weight: 620;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.river-focus-strip__action:hover {
+  background: var(--river-dark);
+  color: #fff;
+}
+
 .quick-add-panel {
   position: absolute;
   top: 88px;

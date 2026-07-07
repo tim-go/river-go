@@ -695,18 +695,11 @@ function App() {
   // river; this gates only the map-side filter so "Details" can open the panel
   // without touching the map. See the river popup (Details / Snap view / Select).
   const [riverFilterActive, setRiverFilterActive] = useState(false);
-  // Ambient-focus prototype: refs so the viewport handler reads fresh values
-  // without re-subscribing, plus a request token to drop stale nearest-river
-  // lookups when the map is panned rapidly.
-  const selectedRiverRef = useRef(selectedCanonicalRiverId);
-  const riverFilterActiveRef = useRef(riverFilterActive);
+  // Ambient river focus: which river the map is currently zoomed into (viewport
+  // nearest), shown as a compact control strip — NOT the full panel. Independent
+  // of explicit selection. The request token drops stale lookups on fast pans.
+  const [ambientRiverId, setAmbientRiverId] = useState<string | null>(null);
   const ambientReqRef = useRef(0);
-  useEffect(() => {
-    selectedRiverRef.current = selectedCanonicalRiverId;
-  }, [selectedCanonicalRiverId]);
-  useEffect(() => {
-    riverFilterActiveRef.current = riverFilterActive;
-  }, [riverFilterActive]);
   // Explicit "fit the whole river" camera move (Select / Discover search),
   // replacing the old auto-flyToBounds-on-select.
   const [riverBoundsFocus, setRiverBoundsFocus] = useState<{
@@ -4263,11 +4256,10 @@ function App() {
   // moves the camera ("point" = centre on it, "bounds" = fit the whole river,
   // "none" = leave the map), and `panel` opens the detail panel ("small",
   // "full", or "none"). Drives the three river-popup buttons + Discover search.
-  // Ambient river focus (prototype): when the map settles, surface the river you
-  // are looking at (nearest to centre, once zoomed in) as an unfiltered context
-  // pill — no explicit "select" needed. Leaves an explicit filter alone.
+  // Ambient river focus: when the map settles, note the river you're looking at
+  // (nearest to centre, once zoomed in). Drives the compact control strip only —
+  // it does NOT open the panel or filter. No explicit "select" needed.
   async function handleViewportSettled(center: LatLngTuple, zoom: number) {
-    if (riverFilterActiveRef.current) return;
     const reqId = ++ambientReqRef.current;
     let target: string | null = null;
     if (zoom >= AMBIENT_FOCUS_ZOOM) {
@@ -4282,12 +4274,7 @@ function App() {
       }
     }
     if (reqId !== ambientReqRef.current) return; // superseded by a newer settle
-    if (target === selectedRiverRef.current) return;
-    selectCanonicalRiver(target, {
-      filter: false,
-      zoom: "none",
-      panel: target ? "small" : "none",
-    });
+    setAmbientRiverId(target);
   }
 
   function selectCanonicalRiver(
@@ -4988,6 +4975,52 @@ function App() {
             setIsSelectedRiverPanelExpanded((current) => !current)
           }
         />
+
+        {ambientRiverId && !isSelectedRiverPanelOpen
+          ? (() => {
+              const ambientRiver = canonicalRivers.find(
+                (river) => river.id === ambientRiverId,
+              );
+              if (!ambientRiver) return null;
+              return (
+                <div
+                  className="river-focus-strip"
+                  role="group"
+                  aria-label="Current river"
+                >
+                  <span className="river-focus-strip__name">
+                    <Droplets size={15} />
+                    {ambientRiver.displayName}
+                  </span>
+                  <button
+                    type="button"
+                    className="river-focus-strip__action"
+                    onClick={() =>
+                      openRiverPage(ambientRiverId, {
+                        label: "Map",
+                        section: "map",
+                      })
+                    }
+                  >
+                    Full details
+                  </button>
+                  <button
+                    type="button"
+                    className="river-focus-strip__action"
+                    onClick={() =>
+                      selectCanonicalRiver(ambientRiverId, {
+                        filter: false,
+                        zoom: "none",
+                        panel: "small",
+                      })
+                    }
+                  >
+                    Panel
+                  </button>
+                </div>
+              );
+            })()
+          : null}
 
         {isFormOpen ? (
           <section className="quick-add-panel" aria-label="Add contribution">
