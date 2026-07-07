@@ -4894,24 +4894,44 @@ input[type="file"]::file-selector-button:hover {
   filter: invert(1) brightness(1.6);
 }
 
-/* Add-time river attribution feedback (river-attribution.md): confirmed = calm,
-   proposed/off-river = a warning tone so misattribution is never silent. */
-.attribution-note {
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font-size: 0.82rem;
-  line-height: 1.35;
+/* Add-time river attribution feedback (river-attribution.md): a prominent card
+   making it obvious which river a new point lands on (or off-river). Confirmed =
+   calm, proposed/off-river = a warning tone so misattribution is never silent. */
+.attribution-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
   background: var(--surface-strong);
-  color: var(--muted);
+  color: var(--ink);
 }
-.attribution-note--confirmed {
-  border-color: rgba(31, 138, 112, 0.4);
-  background: #edf7f2;
-  color: #2d554e;
+.attribution-card > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
 }
-.attribution-note--proposed,
-.attribution-note--off-river {
+.attribution-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.attribution-card__body strong {
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+.attribution-card__body span {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  opacity: 0.85;
+}
+.attribution-card--confirmed {
+  border-color: rgba(31, 138, 112, 0.5);
+  background: #eaf6f0;
+  color: #1c5a4e;
+}
+.attribution-card--proposed,
+.attribution-card--off-river {
   border-color: #e0a100;
   background: #fbf4e7;
   color: #7a5512;
@@ -7569,16 +7589,16 @@ input[type="file"]::file-selector-button:hover {
   input[type="date"]::-webkit-calendar-picker-indicator {
   filter: none;
 }
-/* Attribution-note variants use hardcoded light colours; re-tone for dark Surge
-   (confirmed = teal like .location-card; proposed/off-river = the Surge yellow). */
-[data-theme="surge"] .attribution-note--confirmed {
-  border-color: rgba(40, 194, 160, 0.4);
+/* Attribution-card variants use hardcoded light colours; re-tone for dark Surge
+   (confirmed = teal; proposed/off-river = the Surge yellow). */
+[data-theme="surge"] .attribution-card--confirmed {
+  border-color: rgba(40, 194, 160, 0.45);
   background: rgba(40, 194, 160, 0.14);
   color: #8ff0d4;
 }
-[data-theme="surge"] .attribution-note--proposed,
-[data-theme="surge"] .attribution-note--off-river {
-  border-color: rgba(255, 214, 10, 0.45);
+[data-theme="surge"] .attribution-card--proposed,
+[data-theme="surge"] .attribution-card--off-river {
+  border-color: rgba(255, 214, 10, 0.5);
   background: rgba(255, 214, 10, 0.1);
   color: #ffd60a;
 }

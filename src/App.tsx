@@ -1325,6 +1325,34 @@ function App() {
       ? (amenityContributionOptions.find((o) => o.type === contributionType) ??
         optionForType(contributionType))
       : optionForType(contributionType);
+  // Prominent add-time attribution feedback: which river a new point lands on
+  // (or off-river). Distinguishes "no river selected" from "a different river
+  // than you had selected".
+  const attributionDisplay = !resolvedAttribution
+    ? {
+        status: "resolving" as const,
+        headline: "Checking which river this point is on…",
+        subtext: null as string | null,
+      }
+    : !resolvedAttribution.river
+      ? {
+          status: "off-river" as const,
+          headline: "Won’t be added to a river",
+          subtext:
+            "It won’t appear when browsing rivers — it stays on the open map.",
+        }
+      : selectedCanonicalRiverId &&
+          selectedCanonicalRiverId !== resolvedAttribution.river.id
+        ? {
+            status: "proposed" as const,
+            headline: `Will be added to ${resolvedAttribution.river.displayName}`,
+            subtext: `This point is on ${resolvedAttribution.river.displayName}, not the river you had selected.`,
+          }
+        : {
+            status: "confirmed" as const,
+            headline: `Will be added to ${resolvedAttribution.river.displayName}`,
+            subtext: null,
+          };
   const queuedOutboxCount = outboxRecords.filter((record) =>
     ["draft", "queued", "syncing", "failed"].includes(record.syncStatus),
   ).length;
@@ -5110,19 +5138,19 @@ function App() {
               !addModeTargetPoiId &&
               !addModeTargetGenericPoiId ? (
                 <div
-                  className={`attribution-note attribution-note--${
-                    resolvedAttribution
-                      ? resolvedAttribution.confidence
-                      : "resolving"
-                  }`}
+                  className={`attribution-card attribution-card--${attributionDisplay.status}`}
                 >
-                  {!resolvedAttribution
-                    ? "Checking which river this point is on…"
-                    : resolvedAttribution.river
-                      ? resolvedAttribution.confidence === "confirmed"
-                        ? `On ${resolvedAttribution.river.displayName}.`
-                        : `This point is on ${resolvedAttribution.river.displayName} — it'll be attributed there, not the selected river.`
-                      : "Not on a listed river — it won't appear when browsing rivers (it stays on the open map)."}
+                  {attributionDisplay.status === "off-river" ? (
+                    <AlertTriangle size={20} />
+                  ) : (
+                    <Droplets size={20} />
+                  )}
+                  <div className="attribution-card__body">
+                    <strong>{attributionDisplay.headline}</strong>
+                    {attributionDisplay.subtext ? (
+                      <span>{attributionDisplay.subtext}</span>
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
 
