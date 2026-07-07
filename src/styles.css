@@ -4894,6 +4894,29 @@ input[type="file"]::file-selector-button:hover {
   filter: invert(1) brightness(1.6);
 }
 
+/* Add-time river attribution feedback (river-attribution.md): confirmed = calm,
+   proposed/off-river = a warning tone so misattribution is never silent. */
+.attribution-note {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  background: var(--surface-strong);
+  color: var(--muted);
+}
+.attribution-note--confirmed {
+  border-color: rgba(31, 138, 112, 0.4);
+  background: #edf7f2;
+  color: #2d554e;
+}
+.attribution-note--proposed,
+.attribution-note--off-river {
+  border-color: #e0a100;
+  background: #fbf4e7;
+  color: #7a5512;
+}
+
 .location-card {
   display: flex;
   align-items: flex-start;

@@ -73,11 +73,17 @@ import {
 } from "./services/weatherApi";
 import {
   fetchCanonicalRivers,
+  fetchNearestRivers,
   fetchSourceCandidatePois,
   updateSourceCandidatePoiStatus,
   type CanonicalRiverSummary,
   type SourceCandidatePoi,
 } from "./services/canonicalRiverApi";
+import {
+  CORRIDOR_METERS,
+  resolveRiverForPoint,
+  type RiverResolution,
+} from "./lib/riverResolution";
 import {
   fetchPublicSections,
   promoteRouteSuggestionToSection,
@@ -1054,6 +1060,9 @@ function App() {
   const [addModeReturnPoi, setAddModeReturnPoi] = useState<SelectedPoi | null>(
     null,
   );
+  // Geometric river attribution for a freely-placed point (null until resolved).
+  const [resolvedAttribution, setResolvedAttribution] =
+    useState<RiverResolution | null>(null);
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
   const [, setSyncMessage] = useState("");
   const [isOnline, setIsOnline] = useState(() =>
@@ -1446,6 +1455,40 @@ function App() {
       active = false;
     };
   }, [selectedPoi?.poiId, contributions]);
+
+  // Resolve which river a freely-placed point belongs to (geometry, not the
+  // stale selection). Skips POI-targeted adds — those inherit the poi's river.
+  useEffect(() => {
+    if (
+      !isFormOpen ||
+      !selectedLocation ||
+      addModeTargetPoiId ||
+      addModeTargetGenericPoiId
+    ) {
+      setResolvedAttribution(null);
+      return;
+    }
+    let active = true;
+    fetchNearestRivers(selectedLocation, { riverId: selectedCanonicalRiverId })
+      .then((result) => {
+        if (active)
+          setResolvedAttribution(
+            resolveRiverForPoint(result, CORRIDOR_METERS.feature),
+          );
+      })
+      .catch(() => {
+        if (active) setResolvedAttribution(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    isFormOpen,
+    selectedLocation,
+    addModeTargetPoiId,
+    addModeTargetGenericPoiId,
+    selectedCanonicalRiverId,
+  ]);
 
   useEffect(() => {
     void loadCanonicalRivers();
@@ -2117,7 +2160,8 @@ function App() {
       !addModeTargetGenericPoiId &&
       location &&
       isCanonicalOverviewSection(activeSection) &&
-      selectedRiverMapPois.length > 0
+      selectedRiverMapPois.length > 0 &&
+      resolvedAttribution?.confidence === "confirmed"
     ) {
       let nearestPoi: MapPoi | null = null;
       let nearestMeters = Infinity;
@@ -2138,6 +2182,7 @@ function App() {
 
     const nextContribution: Contribution = {
       id: contributionId,
+      riverId: resolvedAttribution?.river?.id ?? null,
       sectionId: resolvedSectionId,
       mapPoiId: resolvedMapPoiId,
       poiId: addModeTargetGenericPoiId ?? undefined,
@@ -5023,6 +5068,26 @@ function App() {
                       : "No map point selected. This condition report will attach to the current section."}
                 </span>
               </div>
+
+              {selectedLocation &&
+              !addModeTargetPoiId &&
+              !addModeTargetGenericPoiId ? (
+                <div
+                  className={`attribution-note attribution-note--${
+                    resolvedAttribution
+                      ? resolvedAttribution.confidence
+                      : "resolving"
+                  }`}
+                >
+                  {!resolvedAttribution
+                    ? "Checking which river this point is on…"
+                    : resolvedAttribution.river
+                      ? resolvedAttribution.confidence === "confirmed"
+                        ? `On ${resolvedAttribution.river.displayName}.`
+                        : `This point is on ${resolvedAttribution.river.displayName} — it'll be attributed there, not the selected river.`
+                      : "Not on a listed river — it won't appear when browsing rivers (it stays on the open map)."}
+                </div>
+              ) : null}
 
               <div className="form-actions">
                 <button
