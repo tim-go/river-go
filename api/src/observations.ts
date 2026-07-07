@@ -3,6 +3,10 @@ import { pool } from "./db.js";
 import { HttpError } from "./http.js";
 import { loadObservationStationsSeed } from "./seed-observation-stations.js";
 
+// Max history window a read query will honour (90 days) — the standalone levels
+// page requests up to this; raise as retention grows.
+const MAX_OBSERVATION_READ_HOURS = 2160;
+
 type ObservationParameter =
   | "river_level"
   | "river_flow"
@@ -293,7 +297,7 @@ export async function listObservationsForSection(
   sectionId: string,
   hours = 48,
 ): Promise<SectionObservationMeasure[]> {
-  const boundedHours = Math.max(1, Math.min(hours, 672));
+  const boundedHours = Math.max(1, Math.min(hours, MAX_OBSERVATION_READ_HOURS));
   const result = await pool.query(
     `SELECT m.id,
       m.provider,
@@ -366,7 +370,7 @@ export async function listObservationsForRiver(
   riverId: string,
   hours = 48,
 ): Promise<SectionObservationMeasure[]> {
-  const boundedHours = Math.max(1, Math.min(hours, 672));
+  const boundedHours = Math.max(1, Math.min(hours, MAX_OBSERVATION_READ_HOURS));
   const result = await pool.query(
     `SELECT m.id,
       m.provider,

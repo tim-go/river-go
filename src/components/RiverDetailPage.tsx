@@ -95,6 +95,7 @@ export function RiverDetailPage({
   onViewPoiOnMap,
   onViewAmenityOnMap,
   onViewSectionOnMap,
+  onViewLevels,
   onOpenPhoto,
 }: {
   riverId: string;
@@ -103,6 +104,7 @@ export function RiverDetailPage({
   onViewPoiOnMap: (poi: MapPoi) => void;
   onViewAmenityOnMap: (amenity: Amenity) => void;
   onViewSectionOnMap: (section: CommunitySection) => void;
+  onViewLevels: (riverId: string) => void;
   onOpenPhoto: (photo: PhotoLightboxItem) => void;
 }) {
   const [river, setRiver] = useState<CanonicalRiverDetail | null>(null);
@@ -462,6 +464,15 @@ export function RiverDetailPage({
                 release schedule.
               </p>
             )}
+            {primaryMeasure ? (
+              <button
+                className="ghost-button ghost-button--compact river-page__levels-more"
+                type="button"
+                onClick={() => onViewLevels(riverId)}
+              >
+                View full history &amp; 90-day chart →
+              </button>
+            ) : null}
           </section>
 
           <section className="river-page__card">
