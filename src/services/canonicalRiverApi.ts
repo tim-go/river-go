@@ -90,6 +90,22 @@ export async function fetchNearestRivers(
   return (await response.json()) as NearestRiversResult;
 }
 
+// The add-time corridor polygon (GeoJSON) around a river's line.
+export async function fetchRiverCorridor(
+  riverId: string,
+  meters = 250,
+): Promise<unknown | null> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/api/rivers/${encodeURIComponent(
+      riverId,
+    )}/corridor?meters=${meters}`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!response.ok) return null;
+  const body = (await response.json()) as { corridor: unknown | null };
+  return body.corridor;
+}
+
 export async function fetchCanonicalRivers(): Promise<CanonicalRiverSummary[]> {
   const response = await fetch(`${getApiBaseUrl()}/api/rivers`);
 

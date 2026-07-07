@@ -74,6 +74,7 @@ import {
 import {
   fetchCanonicalRivers,
   fetchNearestRivers,
+  fetchRiverCorridor,
   fetchSourceCandidatePois,
   updateSourceCandidatePoiStatus,
   type CanonicalRiverSummary,
@@ -1063,6 +1064,8 @@ function App() {
   // Geometric river attribution for a freely-placed point (null until resolved).
   const [resolvedAttribution, setResolvedAttribution] =
     useState<RiverResolution | null>(null);
+  // The selected river's corridor polygon, shown as an add-mode bounds highlight.
+  const [addModeCorridor, setAddModeCorridor] = useState<unknown | null>(null);
   const [isSyncingOutbox, setIsSyncingOutbox] = useState(false);
   const [, setSyncMessage] = useState("");
   const [isOnline, setIsOnline] = useState(() =>
@@ -1489,6 +1492,26 @@ function App() {
     addModeTargetGenericPoiId,
     selectedCanonicalRiverId,
   ]);
+
+  // Fetch the selected river's corridor while adding, so the map can show the
+  // bounds within which a point attributes to that river (ATTR-F1).
+  useEffect(() => {
+    if (!(isAddMode || isFormOpen) || !selectedCanonicalRiverId) {
+      setAddModeCorridor(null);
+      return;
+    }
+    let live = true;
+    fetchRiverCorridor(selectedCanonicalRiverId, CORRIDOR_METERS.feature)
+      .then((corridor) => {
+        if (live) setAddModeCorridor(corridor);
+      })
+      .catch(() => {
+        if (live) setAddModeCorridor(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [isAddMode, isFormOpen, selectedCanonicalRiverId]);
 
   useEffect(() => {
     void loadCanonicalRivers();
@@ -4842,6 +4865,7 @@ function App() {
           showSearchFocusMarker={showSearchFocusMarker}
           searchFocusNonce={searchFocusNonce}
           isAddMode={isAddMode}
+          addModeCorridor={addModeCorridor}
           routeCreateMode={routeCreateMode}
           markerClickMode={markerClickMode}
           showRoutesLayer={showRoutesLayer}

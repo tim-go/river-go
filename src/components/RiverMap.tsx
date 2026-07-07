@@ -214,6 +214,7 @@ export function RiverMap({
   showSearchFocusMarker,
   searchFocusNonce,
   isAddMode,
+  addModeCorridor,
   routeCreateMode,
   markerClickMode,
   showRoutesLayer,
@@ -283,6 +284,7 @@ export function RiverMap({
   showSearchFocusMarker: boolean;
   searchFocusNonce: number;
   isAddMode: boolean;
+  addModeCorridor?: unknown | null;
   routeCreateMode: RouteCreateMode;
   markerClickMode: MarkerClickMode;
   showRoutesLayer: boolean;
@@ -999,6 +1001,27 @@ export function RiverMap({
       riverLines.clearLayers();
     };
   }, [showRiverLayer, riverLevelLines, canonicalRivers]);
+
+  // Add-mode bounds highlight: the selected river's corridor polygon, so the
+  // contributor sees where a point attributes to that river (ATTR-F1).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !addModeCorridor) return;
+    const layer = L.geoJSON(addModeCorridor as GeoJSON.GeoJsonObject, {
+      interactive: false,
+      style: {
+        color: "#1f8a70",
+        weight: 1.5,
+        opacity: 0.75,
+        dashArray: "6 5",
+        fillColor: "#1f8a70",
+        fillOpacity: 0.08,
+      },
+    }).addTo(map);
+    return () => {
+      map.removeLayer(layer);
+    };
+  }, [addModeCorridor]);
 
   // High-volume marker layer — global POIs (~800) plus riverside amenities
   // (~6,000+ nationally). Like the river lines, these get their own group and

@@ -16,6 +16,7 @@ import {
   isSourceCandidatePoiStatus,
   listCanonicalRivers,
   findNearestRivers,
+  getRiverCorridor,
   listSourceCandidatePois,
   updateSourceCandidatePoiStatus,
 } from "./canonical-rivers.js";
@@ -1297,6 +1298,18 @@ async function route(
       Number.isFinite(hours) ? hours : 48,
     );
     return { status: 200, body: { measures } };
+  }
+
+  const riverCorridorMatch = url.pathname.match(
+    /^\/api\/rivers\/([^/]+)\/corridor$/,
+  );
+  if (method === "GET" && riverCorridorMatch) {
+    const meters = Number.parseInt(url.searchParams.get("meters") ?? "250", 10);
+    const corridor = await getRiverCorridor(
+      decodeURIComponent(riverCorridorMatch[1]),
+      Number.isFinite(meters) ? meters : 250,
+    );
+    return { status: 200, body: { corridor } };
   }
 
   const riverObservationsMatch = url.pathname.match(
