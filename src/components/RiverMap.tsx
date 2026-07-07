@@ -1379,11 +1379,12 @@ export function RiverMap({
           panel: "small",
         });
       };
-      // Select: add the river to the filter and zoom to fit it — map only.
+      // Select: precisely focus this river and zoom to fit it — shows the river
+      // control strip. No filter (filtering is a separate, explicit toggle).
       const selectRiver = () => {
         map.closePopup();
         canonicalRiverSelectRef.current(river.id, {
-          filter: true,
+          filter: false,
           zoom: "bounds",
           panel: "none",
         });

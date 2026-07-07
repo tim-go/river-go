@@ -700,6 +700,9 @@ function App() {
   // of explicit selection. The request token drops stale lookups on fast pans.
   const [ambientRiverId, setAmbientRiverId] = useState<string | null>(null);
   const ambientReqRef = useRef(0);
+  // When a river is picked explicitly (popup "Select", Discover…), pin it so the
+  // moveend from its own camera move doesn't immediately re-derive from centre.
+  const ambientPinnedRef = useRef(false);
   // Explicit "fit the whole river" camera move (Select / Discover search),
   // replacing the old auto-flyToBounds-on-select.
   const [riverBoundsFocus, setRiverBoundsFocus] = useState<{
@@ -4260,6 +4263,11 @@ function App() {
   // (nearest to centre, once zoomed in). Drives the compact control strip only —
   // it does NOT open the panel or filter. No explicit "select" needed.
   async function handleViewportSettled(center: LatLngTuple, zoom: number) {
+    // An explicit pick just moved the camera — keep it through this one settle.
+    if (ambientPinnedRef.current) {
+      ambientPinnedRef.current = false;
+      return;
+    }
     const reqId = ++ambientReqRef.current;
     let target: string | null = null;
     if (zoom >= AMBIENT_FOCUS_ZOOM) {
@@ -4287,6 +4295,12 @@ function App() {
   ) {
     const { filter = true, zoom = "bounds", panel = "small" } = options;
     const has = Boolean(riverId);
+    // The ambient strip follows the current river too, so an explicit pick shows
+    // it. Pin through the camera move so the settle handler doesn't override.
+    setAmbientRiverId(riverId);
+    if (has && zoom !== "none") {
+      ambientPinnedRef.current = true;
+    }
     setSelectedCanonicalRiverId(riverId);
     setRiverFilterActive(has && filter);
     setIsSelectedRiverPanelOpen(has && panel !== "none");

@@ -3091,7 +3091,7 @@ button.group-detail__section {
    real surfaces. Tokenised so it themes on the map. */
 .river-focus-strip {
   position: absolute;
-  bottom: 28px;
+  top: 72px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1100;
@@ -3115,11 +3115,16 @@ button.group-detail__section {
   color: var(--ink);
   white-space: nowrap;
 }
+.river-focus-strip__name svg {
+  color: var(--river-dark);
+}
+/* Outline buttons in the accent colour — no grey fill, so the strip reads as one
+   cohesive control rather than a grey/blue mix. */
 .river-focus-strip__action {
   padding: 5px 11px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--river-dark);
   border-radius: 999px;
-  background: var(--surface-strong);
+  background: transparent;
   color: var(--river-dark);
   font-size: 0.8rem;
   font-weight: 620;
