@@ -47,6 +47,7 @@ import {
   getMemberForAdmin,
   getMemberEmergencyProfile,
   listMembersForAdmin,
+  listAdminStats,
   isMemberRole,
   acceptContributorTerms,
   canPublishDirectly,
@@ -797,6 +798,14 @@ async function route(
       status: 200,
       body: await lookupWhat3WordsForCoordinates(lat, lng),
     };
+  }
+
+  if (method === "GET" && url.pathname === "/api/admin/stats") {
+    const authContext = await requireAuthContext(headers);
+    const member = await upsertMemberFromAuth(authContext);
+    requireAdmin(member);
+    const stats = await listAdminStats();
+    return { status: 200, body: { stats } };
   }
 
   if (method === "GET" && url.pathname === "/api/admin/members") {

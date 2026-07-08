@@ -267,3 +267,16 @@
 [data-theme="daybreak"] .map-filter__panel {
   border-color: #dbe4ff;
 }
+
+/* Narrow mobile: stack each category's chips UNDER its title so they get the
+   full panel width instead of wrapping in a cramped ~200px column (which made
+   the whole panel very tall). */
+@media (max-width: 640px) {
+  .map-filter__category {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .map-filter__category-label {
+    padding-top: 0;
+  }
+}

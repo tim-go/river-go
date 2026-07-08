@@ -120,6 +120,8 @@ import {
 import {
   acceptContributorTerms,
   fetchAdminMembers,
+  fetchAdminStats,
+  type AdminStats,
   fetchAdminMemberDetail,
   fetchCurrentMember,
   fetchMyEmergencyProfile,
@@ -528,6 +530,11 @@ function App() {
   };
   const navigateSection = (section: AppSection) => {
     setActiveAppSection(section);
+    // Clicking "Admin" in the left nav always returns to the admin home, even
+    // when already deep in an admin sub-page (member detail, moderation, …).
+    if (section === "admin") {
+      setActiveAdminPage("index");
+    }
     if (
       parseGroupRoute() ||
       parseProfileRoute() ||
@@ -754,7 +761,9 @@ function App() {
   const [rainFrames, setRainFrames] = useState<RainFrameInfo[]>([]);
   const [selectedRainTs, setSelectedRainTs] = useState(0);
   const [showPaddlerGauges, setShowPaddlerGauges] = useState(false);
-  const [showAllStations, setShowAllStations] = useState(false);
+  // Show measuring stations by default — the curated "paddler gauge" subset is
+  // empty (no section_measure_links yet), so surface all live stations (~51).
+  const [showAllStations, setShowAllStations] = useState(true);
   const [stations, setStations] = useState<Station[]>([]);
   useEffect(() => {
     if (!showRain || rainFrames.length > 0) return;
@@ -1131,6 +1140,7 @@ function App() {
   const [pendingPointDelete, setPendingPointDelete] =
     useState<PendingPointDelete | null>(null);
   const [adminMembers, setAdminMembers] = useState<MemberProfile[]>([]);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [isAdminLoading, setIsAdminLoading] = useState(false);
   const [selectedAdminMemberDetail, setSelectedAdminMemberDetail] =
     useState<AdminMemberDetail | null>(null);
@@ -1760,6 +1770,7 @@ function App() {
       setEmergencyContactPhone("");
       setEmergencyContactRelationship("");
       setAdminMembers([]);
+      setAdminStats(null);
       setMemberPhotos([]);
       setPhotoMessage("");
       setPendingPhotoDelete(null);
@@ -1870,6 +1881,26 @@ function App() {
     ) {
       void openAdminPanel();
     }
+  }, [activeAppSection, activeAdminPage, canManageMembers]);
+
+  // Load platform summary stats for the admin home.
+  useEffect(() => {
+    if (
+      activeAppSection !== "admin" ||
+      activeAdminPage !== "index" ||
+      !canManageMembers
+    ) {
+      return;
+    }
+    let cancelled = false;
+    fetchAdminStats()
+      .then((stats) => {
+        if (!cancelled) setAdminStats(stats);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [activeAppSection, activeAdminPage, canManageMembers]);
 
   useEffect(() => {
@@ -7269,7 +7300,63 @@ function App() {
               {canAccessAdminTools ? (
                 <div className="admin-workspace">
                   {activeAdminPage === "index" ? (
-                    <div className="placeholder-list">
+                    <>
+                      {canManageMembers && adminStats ? (
+                        <section className="admin-stats">
+                          <h3>Overview</h3>
+                          <div className="admin-stats__grid">
+                            <div className="admin-stat">
+                              <span className="admin-stat__value">
+                                {adminStats.memberCount}
+                              </span>
+                              <span className="admin-stat__label">Members</span>
+                            </div>
+                            <div className="admin-stat">
+                              <span className="admin-stat__value">
+                                {adminStats.contributorCount}
+                              </span>
+                              <span className="admin-stat__label">
+                                Contributors
+                              </span>
+                            </div>
+                            <div className="admin-stat">
+                              <span className="admin-stat__value">
+                                {adminStats.totalContributions}
+                              </span>
+                              <span className="admin-stat__label">
+                                Contributions
+                              </span>
+                            </div>
+                            <div className="admin-stat">
+                              <span className="admin-stat__value">
+                                {adminStats.pendingContributions}
+                              </span>
+                              <span className="admin-stat__label">
+                                Pending review
+                              </span>
+                            </div>
+                          </div>
+                          <table className="admin-stats__table">
+                            <thead>
+                              <tr>
+                                <th>Contribution status</th>
+                                <th>Count</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {Object.entries(adminStats.contributionsByStatus)
+                                .sort((a, b) => b[1] - a[1])
+                                .map(([status, count]) => (
+                                  <tr key={status}>
+                                    <td>{status}</td>
+                                    <td>{count}</td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </section>
+                      ) : null}
+                      <div className="placeholder-list">
                       {canManageMembers ? (
                         <button
                           className="placeholder-row"
@@ -7307,7 +7394,8 @@ function App() {
                           <ShieldCheck size={18} />
                         </button>
                       ) : null}
-                    </div>
+                      </div>
+                    </>
                   ) : (
                     <section className="admin-page">
                       <nav className="admin-breadcrumb" aria-label="Admin breadcrumb">
@@ -7434,6 +7522,30 @@ function App() {
                                           {member.trustLevel}
                                         </span>
                                       </div>
+                                    </div>
+                                    <div className="member-activity">
+                                      <span className="member-activity__seen">
+                                        {member.lastSeenAt
+                                          ? `Last seen ${new Date(
+                                              member.lastSeenAt,
+                                            ).toLocaleDateString("en-GB", {
+                                              day: "numeric",
+                                              month: "short",
+                                              year: "numeric",
+                                            })}`
+                                          : "Never signed in"}
+                                      </span>
+                                      <span className="member-activity__counts">
+                                        {member.contributionCount ?? 0} contribution
+                                        {(member.contributionCount ?? 0) === 1
+                                          ? ""
+                                          : "s"}
+                                        {(member.pendingContributionCount ?? 0) > 0 ? (
+                                          <span className="member-activity__pending">
+                                            {member.pendingContributionCount} pending
+                                          </span>
+                                        ) : null}
+                                      </span>
                                     </div>
                                     <button
                                       className="ghost-button ghost-button--compact"
