@@ -3058,18 +3058,24 @@ function App() {
   function openContributionOnMap(contribution: Contribution) {
     const section = openSectionOnMap(contribution.sectionId);
 
-    if (!section) {
-      setPointMessage("This item is not attached to a known map section.");
-      setAdminMemberDetailMessage("This item is not attached to a known map section.");
-      return;
-    }
-
     if (contribution.location) {
+      // Fly straight to the point — works even when the section isn't a drawable
+      // map section (e.g. a canonical-river pseudo-section), which
+      // openSectionOnMap can't resolve or draw.
       setSearchFocusLocation(contribution.location);
       setSearchFocusLabel(contribution.title);
       setShowSearchFocusMarker(false);
       setSearchFocusNonce((current) => current + 1);
-      setSelectedPoi(selectedPoiForContribution(contribution, section));
+      setSelectedPoi(
+        section ? selectedPoiForContribution(contribution, section) : null,
+      );
+      setActiveAppSection("map");
+      return;
+    }
+
+    if (!section) {
+      setPointMessage("This item is not attached to a known map section.");
+      setAdminMemberDetailMessage("This item is not attached to a known map section.");
     }
   }
 
@@ -6877,7 +6883,7 @@ function App() {
                                   onClick={() => openContributionOnMap(contribution)}
                                 >
                                   <MapIcon size={15} />
-                                  Map
+                                  View on map
                                 </button>
                                 <button
                                   className="ghost-button ghost-button--compact"
@@ -6946,7 +6952,7 @@ function App() {
                                 onClick={() => openRouteSuggestionOnMap(suggestion)}
                               >
                                 <MapIcon size={15} />
-                                Map
+                                View on map
                               </button>
                               {suggestion.status === "local-draft" ? (
                                 <button
@@ -7048,7 +7054,7 @@ function App() {
                                 onClick={() => openPhotoOnMap(photo)}
                               >
                                 <MapIcon size={15} />
-                                Map
+                                View on map
                               </button>
                               <button
                                 className="ghost-button ghost-button--compact"
@@ -7667,7 +7673,7 @@ function App() {
                                                 }
                                               >
                                                 <MapIcon size={15} />
-                                                Map
+                                                View on map
                                               </button>
                                             </div>
                                           </article>
@@ -7737,7 +7743,7 @@ function App() {
                                             onClick={() => openPhotoOnMap(photo)}
                                           >
                                             <MapIcon size={15} />
-                                            Map
+                                            View on map
                                           </button>
                                         </div>
                                       </article>
@@ -7921,20 +7927,6 @@ function App() {
                                                   photo.originalName ||
                                                   "Photo"}
                                               </span>
-                                              <button
-                                                className="ghost-button ghost-button--compact"
-                                                type="button"
-                                                onClick={() =>
-                                                  requestDeletePhoto(
-                                                    photo.id,
-                                                    photo.caption ||
-                                                      contribution.title,
-                                                  )
-                                                }
-                                              >
-                                                <Trash2 size={15} />
-                                                Delete
-                                              </button>
                                             </div>
                                           ))}
                                         </div>
@@ -7954,6 +7946,18 @@ function App() {
                                       </span>
                                     </div>
                                     <div className="moderation-actions">
+                                      {contribution.location ? (
+                                        <button
+                                          className="ghost-button ghost-button--compact"
+                                          type="button"
+                                          onClick={() =>
+                                            openContributionOnMap(contribution)
+                                          }
+                                        >
+                                          <MapIcon size={15} />
+                                          View on map
+                                        </button>
+                                      ) : null}
                                       <label>
                                         <span>Decision</span>
                                         <select
@@ -8135,7 +8139,7 @@ function App() {
                                                 }
                                               >
                                                 <MapIcon size={15} />
-                                                Map
+                                                View on map
                                               </button>
                                               <label>
                                                 <span>Decision</span>
@@ -8241,16 +8245,6 @@ function App() {
                                             className="ghost-button ghost-button--compact"
                                             type="button"
                                             onClick={() =>
-                                              openRouteSuggestionOnMap(suggestion)
-                                            }
-                                          >
-                                            <MapIcon size={15} />
-                                            Map
-                                          </button>
-                                          <button
-                                            className="ghost-button ghost-button--compact"
-                                            type="button"
-                                            onClick={() =>
                                               startRouteSuggestionAdjustmentMode(
                                                 suggestion,
                                               )
@@ -8312,23 +8306,18 @@ function App() {
                                           ) : null}
                                           {suggestion.status === "promoted" &&
                                           suggestion.promotedRouteId ? (
-                                            <>
-                                              <span className="candidate-pill">
-                                                Promoted
-                                              </span>
-                                              <button
-                                                className="ghost-button ghost-button--compact"
-                                                type="button"
-                                                onClick={() =>
-                                                  viewPromotedSection(
-                                                    suggestion.promotedRouteId!,
-                                                  )
-                                                }
-                                              >
-                                                <MapIcon size={15} />
-                                                View section
-                                              </button>
-                                            </>
+                                            <button
+                                              className="ghost-button ghost-button--compact"
+                                              type="button"
+                                              onClick={() =>
+                                                viewPromotedSection(
+                                                  suggestion.promotedRouteId!,
+                                                )
+                                              }
+                                            >
+                                              <MapIcon size={15} />
+                                              View section
+                                            </button>
                                           ) : null}
                                           <label>
                                             <span>Decision</span>
@@ -8503,7 +8492,7 @@ function App() {
                                                 }
                                               >
                                                 <MapIcon size={15} />
-                                                Map
+                                                View on map
                                               </button>
                                             ) : null}
                                             <button

@@ -765,7 +765,19 @@ export function RiverMap({
     poiLayerRef.current = poiMarkers;
     liveLocationLayerRef.current = liveLocationLayer;
 
-    if (savedView) {
+    // A pending focus target (a "Map" button from admin/Discover, a search, a
+    // route/section focus) means the map was opened to GO somewhere — honor that
+    // over the restored view. Without this, mounting the map (e.g. switching from
+    // the admin panel, which unmounts it) restores the saved view and suppresses
+    // the fly, so the map "stays put".
+    const hasPendingMapFocus = Boolean(
+      searchFocusLocation ||
+        detailFocusLocation ||
+        riverBoundsFocus ||
+        routeSuggestionFocusId ||
+        routeAdjustmentFocusId,
+    );
+    if (savedView && !hasPendingMapFocus) {
       // Honor the restored view over the load-time auto-fit-to-active-section,
       // until the user's first interaction. The page always loads before any
       // input, so this reliably blocks only the on-load fit.
