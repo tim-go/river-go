@@ -8357,6 +8357,23 @@ function App() {
                                             className="ghost-button ghost-button--compact"
                                             type="button"
                                             onClick={() =>
+                                              suggestion.status === "promoted" &&
+                                              suggestion.promotedRouteId
+                                                ? viewPromotedSection(
+                                                    suggestion.promotedRouteId,
+                                                  )
+                                                : openRouteSuggestionOnMap(
+                                                    suggestion,
+                                                  )
+                                            }
+                                          >
+                                            <MapIcon size={15} />
+                                            View section
+                                          </button>
+                                          <button
+                                            className="ghost-button ghost-button--compact"
+                                            type="button"
+                                            onClick={() =>
                                               startRouteSuggestionAdjustmentMode(
                                                 suggestion,
                                               )
@@ -8415,21 +8432,6 @@ function App() {
                                                 Promote to section
                                               </button>
                                             )
-                                          ) : null}
-                                          {suggestion.status === "promoted" &&
-                                          suggestion.promotedRouteId ? (
-                                            <button
-                                              className="ghost-button ghost-button--compact"
-                                              type="button"
-                                              onClick={() =>
-                                                viewPromotedSection(
-                                                  suggestion.promotedRouteId!,
-                                                )
-                                              }
-                                            >
-                                              <MapIcon size={15} />
-                                              View section
-                                            </button>
                                           ) : null}
                                           <label>
                                             <span>Decision</span>
