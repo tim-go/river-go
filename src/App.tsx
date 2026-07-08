@@ -3083,7 +3083,13 @@ function App() {
     });
     setRouteSuggestionFocusId(suggestion.id);
     setRouteSuggestionFocusNonce((current) => current + 1);
-    setSearchFocusLocation(null);
+    // Also drive the reliable search-focus fly (setView) so the map always
+    // moves; the fitBounds-to-route path still takes priority when it fires.
+    const suggestionFocus = suggestion.route.length
+      ? suggestion.route[Math.floor(suggestion.route.length / 2)]
+      : null;
+    setSearchFocusLocation(suggestionFocus);
+    if (suggestionFocus) setSearchFocusNonce((current) => current + 1);
     setSearchFocusLabel("Searched location");
     setShowSearchFocusMarker(false);
     setSelectedPoi(null);
@@ -3103,9 +3109,26 @@ function App() {
     });
     setRouteAdjustmentFocusId(adjustment.id);
     setRouteAdjustmentFocusNonce((current) => current + 1);
-    setSearchFocusLocation(null);
+    const adjustmentFocus = adjustment.route.length
+      ? adjustment.route[Math.floor(adjustment.route.length / 2)]
+      : null;
+    setSearchFocusLocation(adjustmentFocus);
+    if (adjustmentFocus) setSearchFocusNonce((current) => current + 1);
     setSearchFocusLabel("Searched location");
     setShowSearchFocusMarker(false);
+    setSelectedPoi(null);
+    setIsPanelOpen(false);
+    setIsFormOpen(false);
+    setIsAddMode(false);
+    setActiveAppSection("map");
+  }
+
+  function openSourceCandidateOnMap(candidate: SourceCandidatePoi) {
+    if (!candidate.location) return;
+    setSearchFocusLocation(candidate.location);
+    setSearchFocusLabel(candidate.title);
+    setShowSearchFocusMarker(true);
+    setSearchFocusNonce((current) => current + 1);
     setSelectedPoi(null);
     setIsPanelOpen(false);
     setIsFormOpen(false);
@@ -8469,6 +8492,20 @@ function App() {
                                                 )}
                                               </select>
                                             </label>
+                                            {candidate.location ? (
+                                              <button
+                                                className="ghost-button ghost-button--compact"
+                                                type="button"
+                                                onClick={() =>
+                                                  openSourceCandidateOnMap(
+                                                    candidate,
+                                                  )
+                                                }
+                                              >
+                                                <MapIcon size={15} />
+                                                Map
+                                              </button>
+                                            ) : null}
                                             <button
                                               className="ghost-button ghost-button--compact moderation-apply-button"
                                               type="button"
