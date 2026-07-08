@@ -317,7 +317,7 @@ export function RiverDetailPage({
                         onClick={() => onViewSectionOnMap(section)}
                       >
                         <MapIcon size={14} />
-                        Map
+                        View on map
                       </button>
                     ) : null}
                   </li>
@@ -357,7 +357,7 @@ export function RiverDetailPage({
                         onClick={() => onViewPoiOnMap(poi)}
                       >
                         <MapIcon size={14} />
-                        Map
+                        View on map
                       </button>
                     </li>
                   ))}
@@ -393,7 +393,7 @@ export function RiverDetailPage({
                       onClick={() => onViewAmenityOnMap(amenity)}
                     >
                       <MapIcon size={14} />
-                      Map
+                      View on map
                     </button>
                   </li>
                 ))}
