@@ -33,6 +33,9 @@ export interface Member {
   lastSeenAt: string | null;
   contributorTermsAcceptedAt: string | null;
   contributorTermsVersion: string | null;
+  // Populated only by listMembersForAdmin (0 elsewhere).
+  contributionCount: number;
+  pendingContributionCount: number;
 }
 
 interface MemberRow {
@@ -60,6 +63,8 @@ interface MemberRow {
   last_seen_at: Date | null;
   contributor_terms_accepted_at: Date | null;
   contributor_terms_version: string | null;
+  contribution_count?: string | number;
+  pending_contribution_count?: string | number;
 }
 
 export interface MemberEmergencyProfile {
@@ -124,11 +129,51 @@ export async function upsertMemberFromAuth(
   return mapMember(result.rows[0]);
 }
 
+export interface AdminStats {
+  memberCount: number;
+  contributorCount: number;
+  totalContributions: number;
+  pendingContributions: number;
+  contributionsByStatus: Record<string, number>;
+}
+
+// Platform summary counts for the admin overview.
+export async function listAdminStats(): Promise<AdminStats> {
+  const [members, contributors, byStatus] = await Promise.all([
+    pool.query<{ count: string }>("SELECT count(*) FROM members"),
+    pool.query<{ count: string }>(
+      "SELECT count(DISTINCT member_id) FROM contributions WHERE member_id IS NOT NULL",
+    ),
+    pool.query<{ moderation_status: string; count: string }>(
+      "SELECT moderation_status, count(*) FROM contributions GROUP BY moderation_status",
+    ),
+  ]);
+  const contributionsByStatus: Record<string, number> = {};
+  let total = 0;
+  for (const row of byStatus.rows) {
+    const n = Number(row.count);
+    contributionsByStatus[row.moderation_status] = n;
+    total += n;
+  }
+  return {
+    memberCount: Number(members.rows[0].count),
+    contributorCount: Number(contributors.rows[0].count),
+    totalContributions: total,
+    pendingContributions: contributionsByStatus.pending ?? 0,
+    contributionsByStatus,
+  };
+}
+
 export async function listMembersForAdmin(): Promise<Member[]> {
   const result = await pool.query<MemberRow>(
-    `SELECT *
-    FROM members
-    ORDER BY last_seen_at DESC NULLS LAST, created_at DESC
+    `SELECT m.*,
+       (SELECT count(*) FROM contributions c WHERE c.member_id = m.id)
+         AS contribution_count,
+       (SELECT count(*) FROM contributions c
+         WHERE c.member_id = m.id AND c.moderation_status = 'pending')
+         AS pending_contribution_count
+    FROM members m
+    ORDER BY m.last_seen_at DESC NULLS LAST, m.created_at DESC
     LIMIT 200`,
   );
 
@@ -539,6 +584,8 @@ function mapMember(row: MemberRow): Member {
     contributorTermsAcceptedAt:
       row.contributor_terms_accepted_at?.toISOString() ?? null,
     contributorTermsVersion: row.contributor_terms_version,
+    contributionCount: Number(row.contribution_count ?? 0),
+    pendingContributionCount: Number(row.pending_contribution_count ?? 0),
   };
 }
 

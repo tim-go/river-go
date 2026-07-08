@@ -33,6 +33,8 @@ export interface MemberProfile {
   createdAt: string;
   updatedAt: string;
   lastSeenAt: string | null;
+  contributionCount?: number;
+  pendingContributionCount?: number;
   contributorTermsAcceptedAt: string | null;
   contributorTermsVersion: string | null;
 }
@@ -139,6 +141,20 @@ export async function saveMyEmergencyProfile(
 export async function fetchAdminMembers(): Promise<MemberProfile[]> {
   return fetchMemberEndpoint<{ members: MemberProfile[] }>("/api/admin/members").then(
     (result) => result.members,
+  );
+}
+
+export interface AdminStats {
+  memberCount: number;
+  contributorCount: number;
+  totalContributions: number;
+  pendingContributions: number;
+  contributionsByStatus: Record<string, number>;
+}
+
+export async function fetchAdminStats(): Promise<AdminStats> {
+  return fetchMemberEndpoint<{ stats: AdminStats }>("/api/admin/stats").then(
+    (result) => result.stats,
   );
 }
 
