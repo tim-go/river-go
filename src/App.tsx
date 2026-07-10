@@ -586,19 +586,28 @@ function App() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-  const [theme, setTheme] = useState<"tide" | "daybreak" | "surge">(() => {
+  const [theme, setTheme] = useState<
+    "riverlaunch" | "tide" | "daybreak" | "surge"
+  >(() => {
     if (typeof localStorage !== "undefined") {
-      const saved = localStorage.getItem("rl-theme");
-      if (saved === "surge" || saved === "daybreak" || saved === "tide") {
+      // v2 key: everyone lands on the new RiverLaunch default once; explicit
+      // re-picks (any theme) save under the new key and are honoured.
+      const saved = localStorage.getItem("rl-theme-v2");
+      if (
+        saved === "riverlaunch" ||
+        saved === "surge" ||
+        saved === "daybreak" ||
+        saved === "tide"
+      ) {
         return saved;
       }
     }
-    return "tide";
+    return "riverlaunch";
   });
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     try {
-      localStorage.setItem("rl-theme", theme);
+      localStorage.setItem("rl-theme-v2", theme);
     } catch {
       // ignore persistence errors
     }
@@ -7254,6 +7263,11 @@ function App() {
                     >
                       {(
                         [
+                          {
+                            id: "riverlaunch",
+                            label: "RiverLaunch",
+                            hint: "Crisp white + navy",
+                          },
                           { id: "tide", label: "Tide", hint: "Calm green" },
                           {
                             id: "daybreak",
