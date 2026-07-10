@@ -264,9 +264,6 @@
 }
 
 /* Daybreak — light panel, blue-tinted border */
-[data-theme="daybreak"] .map-filter__panel {
-  border-color: #dbe4ff;
-}
 
 /* Narrow mobile: stack each category's chips UNDER its title so they get the
    full panel width instead of wrapping in a cramped ~200px column (which made

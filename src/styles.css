@@ -1,29 +1,32 @@
 :root {
-  color: #17212b;
-  background: #f3f5f1;
+  /* Base tokens = the RiverLaunch palette (Tide's greens retired 2026-07-10).
+     These are the fallback for anything outside the .app-shell token scope
+     (portaled dialogs etc.); Surge overrides per-scope as before. */
+  color: #0d1b3e;
+  background: #ffffff;
   font-family:
     "Space Grotesk", Inter, ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --ink: #17212b;
-  --muted: #687482;
-  --line: #d9dfd7;
+  --ink: #0d1b3e;
+  --muted: #55638c;
+  --line: #dbe4f8;
   --surface: #ffffff;
-  --surface-strong: var(--surface-strong);
-  --river: #1f8a70;
-  --river-dark: #0f5f55;
+  --surface-strong: #eef3ff;
+  --river: #2f5fd7;
+  --river-dark: #2f5fd7;
   --warning: #b54708;
   --danger: #b42318;
   --known-river: #b42318;
-  --selected-watercourse: #0f766e;
-  --sky: #277da1;
+  --selected-watercourse: #2f5fd7;
+  --sky: #2f5fd7;
   /* Discipline colours — shared reference for the river chips and the map
      markers, so search and map read with one colour language. */
   --discipline-whitewater: var(--sky);
   --discipline-touring: var(--river);
-  --shadow: 0 18px 46px rgba(22, 34, 46, 0.18);
+  --shadow: 0 18px 46px rgba(13, 27, 62, 0.14);
   --text-xs: 0.72rem;
   --text-sm: 0.84rem;
   --text-md: 0.94rem;
@@ -318,21 +321,16 @@ button:disabled {
    --surge-yellow token (which lives inside the .app-shell--content-only scope
    and is therefore undefined for the nav on the map view, where the accent
    would otherwise fall back to white) — so "Launch" stays yellow on every page. */
-/* Base (Tide): "Launch" is the theme's green accent. Surge/Daybreak override. */
+/* Base (RiverLaunch): "Launch" in the electric blue accent. Surge overrides. */
 .brand-launch {
-  color: #1f8a70;
+  color: #2f5fd7;
 }
 [data-theme="surge"] .brand-launch {
   color: #ffd60a;
 }
-[data-theme="daybreak"] .brand-launch {
-  color: #b07c00;
-}
-/* RiverLaunch: electric blue on white surfaces (matches the website wordmark);
-   yellow inside the navy nav rail, echoing the site's dark bands. */
-[data-theme="riverlaunch"] .brand-launch {
-  color: #1e57ff;
-}
+
+/* RiverLaunch: yellow wordmark accent inside the navy nav rail, echoing the
+   site's dark bands (base blue elsewhere). */
 [data-theme="riverlaunch"] .app-nav .brand-launch {
   color: #ffd60a;
 }
@@ -1067,8 +1065,12 @@ h1 {
   height: 100%;
   min-height: 0;
   overflow-y: auto;
+  /* Reserve the scrollbar gutter: otherwise tabs with short content (no
+     scrollbar) and long content (scrollbar) differ in width, so the centred
+     page shifts sideways a few px on tab switches (Discover Rivers ↔ Point). */
+  scrollbar-gutter: stable;
   padding: 22px;
-  background: #edf1eb;
+  background: #f4f7ff;
 }
 
 .app-page__header {
@@ -2755,7 +2757,6 @@ button.group-detail__section {
   color: #23536b;
 }
 
-
 .watercourse-panel__summary {
   display: flex;
   flex-wrap: wrap;
@@ -3134,9 +3135,7 @@ button.group-detail__section {
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 22px rgba(22, 34, 46, 0.18);
 }
-[data-theme="tide"] .river-focus-strip {
-  background: #e6f0ea;
-}
+
 .river-focus-strip__name {
   display: inline-flex;
   align-items: center;
@@ -3963,12 +3962,6 @@ button.group-detail__section {
   flex: 0 0 auto;
   gap: 6px;
 }
-
-
-
-
-
-
 
 .panel-content {
   min-height: 0;
@@ -5756,10 +5749,6 @@ input[type="file"]::file-selector-button:hover {
     transform: translateY(0);
   }
 
-
-
-
-
   .detail-panel .panel-content {
     padding: 10px 12px calc(var(--safe-area-bottom) + 12px);
   }
@@ -7115,14 +7104,8 @@ input[type="file"]::file-selector-button:hover {
   color: var(--river-dark);
 }
 .theme-option--riverlaunch .theme-option__swatch {
-  background: linear-gradient(135deg, #ffffff 30%, #1e57ff 55%, #0d1b3e);
+  background: linear-gradient(135deg, #ffffff 30%, #2f5fd7 55%, #0d1b3e);
   border: 1px solid #dbe4f8;
-}
-.theme-option--tide .theme-option__swatch {
-  background: linear-gradient(135deg, #1f7a5a, #34d399);
-}
-.theme-option--daybreak .theme-option__swatch {
-  background: linear-gradient(135deg, #1e57ff, #ffd60a);
 }
 .theme-option--surge .theme-option__swatch {
   background: linear-gradient(135deg, #060a1a, #2f6bff 55%, #ffd60a);
@@ -7294,14 +7277,12 @@ input[type="file"]::file-selector-button:hover {
 }
 
 /* Continue-as-guest stays a teal-green CTA, not a Surge/Daybreak segmented tab. */
-[data-theme="surge"] .app-shell--content-only .segmented-control .auth-guest-button,
-[data-theme="daybreak"] .app-shell--content-only .segmented-control .auth-guest-button {
+[data-theme="surge"] .app-shell--content-only .segmented-control .auth-guest-button{
   border-color: #0f5f55;
   background: #0f5f55;
   color: #fff;
 }
-[data-theme="surge"] .app-shell--content-only .segmented-control .auth-guest-button:hover,
-[data-theme="daybreak"] .app-shell--content-only .segmented-control .auth-guest-button:hover {
+[data-theme="surge"] .app-shell--content-only .segmented-control .auth-guest-button:hover{
   border-color: #0b4a42;
   background: #0b4a42;
 }
@@ -7365,88 +7346,6 @@ input[type="file"]::file-selector-button:hover {
 }
 
 /* ---- DAYBREAK: a light version of Surge (blue/yellow on white) ---- */
-[data-theme="daybreak"] .app-shell {
-  --ink: #0d1b3e;
-  --muted: #5c6a92;
-  --line: #dbe4ff;
-  --surface: #ffffff;
-  --surface-strong: #eef3ff;
-  --river: #1e57ff;
-  --river-dark: #1e57ff;
-  --sky: #1e57ff;
-  --selected-watercourse: #1e57ff;
-  --discipline-whitewater: #1e57ff;
-  --discipline-touring: #1a9e74;
-  --surge-yellow: #b07c00;
-}
-[data-theme="daybreak"] .app-shell--content-only {
-  font-family: "Space Grotesk", system-ui, sans-serif;
-  color: var(--ink);
-  background:
-    radial-gradient(55% 45% at 90% -8%, rgba(30, 87, 255, 0.1), transparent 60%),
-    radial-gradient(48% 48% at -6% 108%, rgba(255, 198, 43, 0.16), transparent 60%),
-    #f5f8ff;
-}
-[data-theme="daybreak"] .app-shell--content-only h1,
-[data-theme="daybreak"] .app-shell--content-only h2,
-[data-theme="daybreak"] .app-shell--content-only h3 {
-  font-family: "Sora", sans-serif;
-  letter-spacing: -0.02em;
-}
-[data-theme="daybreak"] .app-shell--content-only .app-nav {
-  background: rgba(255, 255, 255, 0.92);
-}
-[data-theme="daybreak"] .app-shell--content-only .app-nav__item--active {
-  background: rgba(30, 87, 255, 0.1);
-}
-[data-theme="daybreak"] .app-shell--content-only .app-nav__item--active svg {
-  color: var(--river);
-}
-[data-theme="daybreak"] .app-shell--content-only .app-page,
-[data-theme="daybreak"] .app-shell--content-only .app-page__content {
-  background: transparent;
-}
-[data-theme="daybreak"] .app-shell--content-only input,
-[data-theme="daybreak"] .app-shell--content-only select,
-[data-theme="daybreak"] .app-shell--content-only textarea {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  color: var(--ink);
-}
-[data-theme="daybreak"] .app-shell--content-only .segmented-control button {
-  background: var(--surface);
-  border-color: var(--line);
-  color: var(--muted);
-}
-[data-theme="daybreak"]
-  .app-shell--content-only
-  .segmented-control
-  button.active {
-  background: #1e57ff;
-  border-color: #1e57ff;
-  color: #fff;
-}
-[data-theme="daybreak"] .app-shell--content-only .canonical-river-row:hover,
-[data-theme="daybreak"]
-  .app-shell--content-only
-  .canonical-river-row--active {
-  background: #f3f7ff;
-  border-color: rgba(30, 87, 255, 0.4);
-  box-shadow: 0 18px 40px rgba(30, 87, 255, 0.16);
-  transform: translateY(-3px);
-}
-[data-theme="daybreak"] .app-shell--content-only .grade-pill {
-  background: rgba(255, 198, 43, 0.22);
-  color: #8a6200;
-}
-[data-theme="daybreak"] .app-shell--content-only .candidate-pill {
-  background: rgba(30, 87, 255, 0.12);
-  color: #1e57ff;
-}
-[data-theme="daybreak"] .app-shell--content-only .sign-in-card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-}
 
 /* ============================================================
    RIVER DETAIL PANEL — demo polish. The panel floats over the map, so it
@@ -7481,8 +7380,7 @@ input[type="file"]::file-selector-button:hover {
   font-size: 0.76rem;
 }
 
-[data-theme="surge"] .detail-panel h2,
-[data-theme="daybreak"] .detail-panel h2 {
+[data-theme="surge"] .detail-panel h2{
   font-family: "Sora", sans-serif;
   letter-spacing: -0.02em;
 }
@@ -7544,19 +7442,6 @@ input[type="file"]::file-selector-button:hover {
 }
 
 /* DAYBREAK — light panel, blue accents */
-[data-theme="daybreak"] .detail-panel {
-  --river: #1e57ff;
-  --river-dark: #1e57ff;
-  --sky: #1e57ff;
-  --level-color: #1e57ff;
-  --level-glow: none;
-  border-color: #dbe4ff;
-}
-[data-theme="daybreak"] .detail-panel .watercourse-panel__summary span {
-  background: rgba(30, 87, 255, 0.1);
-  border-color: rgba(30, 87, 255, 0.25);
-  color: #0b3bd6;
-}
 
 /* panel tabs (Levels/Rapids/…) need a themed active state */
 [data-theme="surge"] .detail-panel .segmented-control button {
@@ -7578,11 +7463,6 @@ input[type="file"]::file-selector-button:hover {
   background: rgba(47, 107, 255, 0.24);
   border-color: rgba(77, 139, 255, 0.5);
   color: #ffffff;
-}
-[data-theme="daybreak"] .detail-panel .segmented-control button.active {
-  background: #ffd60a;
-  border-color: #ffd60a;
-  color: #1a1300;
 }
 
 /* ============================================================
@@ -8714,32 +8594,15 @@ input[type="file"]::file-selector-button:hover {
 
 /* Tide (calm green) — selected accent is the theme's green —
    the brand yellow belongs to the blue/yellow Surge & Daybreak identities. */
-[data-theme="tide"] .segmented-control button.active,
-[data-theme="tide"] .observation-range-toggle button.active,
-[data-theme="tide"] .map-action--active {
-  background: #1f8a70;
-  border-color: #1f8a70;
-  color: #fff;
-}
 
 /* Daybreak: light blue theme — unify the selected accent to the theme's blue
    (its filter chips are already blue) rather than the brand yellow, and calm the
    too-vivid river-tile level number to a deeper blue. */
-[data-theme="daybreak"] .segmented-control button.active,
-[data-theme="daybreak"] .observation-range-toggle button.active,
-[data-theme="daybreak"] .map-action--active {
-  background: #1e57ff;
-  border-color: #1e57ff;
-  color: #fff;
-}
-[data-theme="daybreak"] .river-card__level-num {
-  color: #1e3a8a;
-}
 
 /* ===========================================================================
    RiverLaunch theme — aligned with the marketing site (public/assets/site.css
    in river-go-website): crisp white base, deep-navy ink (#0d1b3e), electric
-   blue accent (#1e57ff), light-blue panels (#eef3ff), and the site's dark
+   blue accent (#2f5fd7), light-blue panels (#eef3ff), and the site's dark
    navy bands echoed in the app chrome (nav rail / bottom nav / beta banner)
    with signal-yellow accents. Space Grotesk body, Sora headings.
    =========================================================================== */
@@ -8749,11 +8612,11 @@ input[type="file"]::file-selector-button:hover {
   --line: #dbe4f8;
   --surface: #ffffff;
   --surface-strong: #eef3ff;
-  --river: #1e57ff;
-  --river-dark: #1e57ff;
-  --sky: #1e57ff;
-  --selected-watercourse: #1e57ff;
-  --discipline-whitewater: #1e57ff;
+  --river: #2f5fd7;
+  --river-dark: #2f5fd7;
+  --sky: #2f5fd7;
+  --selected-watercourse: #2f5fd7;
+  --discipline-whitewater: #2f5fd7;
   --discipline-touring: #1a9e74;
   --surge-yellow: #b07c00;
   --shadow: 0 18px 46px rgba(13, 27, 62, 0.14);
@@ -8796,8 +8659,8 @@ input[type="file"]::file-selector-button:hover {
 }
 [data-theme="riverlaunch"] .app-nav__item:hover,
 [data-theme="riverlaunch"] .app-nav__item--active {
-  border-color: rgba(30, 87, 255, 0.55);
-  background: rgba(30, 87, 255, 0.28);
+  border-color: rgba(47, 95, 215, 0.55);
+  background: rgba(47, 95, 215, 0.28);
   color: #ffffff;
 }
 [data-theme="riverlaunch"] .app-nav__item--active svg {
@@ -8808,10 +8671,10 @@ input[type="file"]::file-selector-button:hover {
 }
 [data-theme="riverlaunch"] .app-nav__account-main:hover {
   border-color: rgba(255, 214, 10, 0.45);
-  background: rgba(30, 87, 255, 0.2);
+  background: rgba(47, 95, 215, 0.2);
 }
 [data-theme="riverlaunch"] .app-nav__avatar {
-  background: rgba(30, 87, 255, 0.32);
+  background: rgba(47, 95, 215, 0.32);
   color: #cfe0ff;
 }
 
@@ -8826,4 +8689,28 @@ input[type="file"]::file-selector-button:hover {
 }
 [data-theme="riverlaunch"] .bottom-nav__item--active {
   color: #ffd60a;
+}
+
+/* Selected / emphasis controls: the base theme fills these with brand yellow,
+   but the website reserves yellow for the navy bands — on RiverLaunch's white
+   surfaces the selected state is navy instead (yellow stays in the chrome). */
+[data-theme="riverlaunch"] .segmented-control button.active {
+  border-color: #0d1b3e;
+  background: #0d1b3e;
+  color: #ffffff;
+}
+[data-theme="riverlaunch"] .observation-range-toggle button.active {
+  border-color: #0d1b3e;
+  background: #0d1b3e;
+  color: #ffffff;
+}
+[data-theme="riverlaunch"] .chip--grade {
+  border-color: #0d1b3e;
+  background: #0d1b3e;
+  color: #ffffff;
+}
+[data-theme="riverlaunch"] .auth-sheet--welcome .auth-guest-button {
+  border-color: #0d1b3e;
+  background: #0d1b3e;
+  color: #ffffff;
 }
