@@ -328,12 +328,24 @@ button:disabled {
 [data-theme="daybreak"] .brand-launch {
   color: #b07c00;
 }
+/* RiverLaunch: electric blue on white surfaces (matches the website wordmark);
+   yellow inside the navy nav rail, echoing the site's dark bands. */
+[data-theme="riverlaunch"] .brand-launch {
+  color: #1e57ff;
+}
+[data-theme="riverlaunch"] .app-nav .brand-launch {
+  color: #ffd60a;
+}
 
 /* Under Surge's dark chrome the whole wordmark is white; only "Launch" keeps its
    accent. Other themes keep their inherited ink (white would vanish on light). */
 [data-theme="surge"] .app-nav__brand strong,
 [data-theme="surge"] .app-brand-panel strong,
 [data-theme="surge"] .auth-sheet__brand {
+  color: #fff;
+}
+/* RiverLaunch's navy rail likewise needs a white wordmark (rail only). */
+[data-theme="riverlaunch"] .app-nav__brand strong {
   color: #fff;
 }
 
@@ -7102,6 +7114,10 @@ input[type="file"]::file-selector-button:hover {
   font-weight: 800;
   color: var(--river-dark);
 }
+.theme-option--riverlaunch .theme-option__swatch {
+  background: linear-gradient(135deg, #ffffff 30%, #1e57ff 55%, #0d1b3e);
+  border: 1px solid #dbe4f8;
+}
 .theme-option--tide .theme-option__swatch {
   background: linear-gradient(135deg, #1f7a5a, #34d399);
 }
@@ -8718,4 +8734,96 @@ input[type="file"]::file-selector-button:hover {
 }
 [data-theme="daybreak"] .river-card__level-num {
   color: #1e3a8a;
+}
+
+/* ===========================================================================
+   RiverLaunch theme — aligned with the marketing site (public/assets/site.css
+   in river-go-website): crisp white base, deep-navy ink (#0d1b3e), electric
+   blue accent (#1e57ff), light-blue panels (#eef3ff), and the site's dark
+   navy bands echoed in the app chrome (nav rail / bottom nav / beta banner)
+   with signal-yellow accents. Space Grotesk body, Sora headings.
+   =========================================================================== */
+[data-theme="riverlaunch"] .app-shell {
+  --ink: #0d1b3e;
+  --muted: #55638c;
+  --line: #dbe4f8;
+  --surface: #ffffff;
+  --surface-strong: #eef3ff;
+  --river: #1e57ff;
+  --river-dark: #1e57ff;
+  --sky: #1e57ff;
+  --selected-watercourse: #1e57ff;
+  --discipline-whitewater: #1e57ff;
+  --discipline-touring: #1a9e74;
+  --surge-yellow: #b07c00;
+  --shadow: 0 18px 46px rgba(13, 27, 62, 0.14);
+}
+
+/* Content pages: crisp white, no tint — the website's plain base. */
+[data-theme="riverlaunch"] .app-shell--content-only {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  color: var(--ink);
+  background: #ffffff;
+}
+[data-theme="riverlaunch"] .app-shell--content-only h1,
+[data-theme="riverlaunch"] .app-shell--content-only h2,
+[data-theme="riverlaunch"] .app-shell--content-only h3 {
+  font-family: "Sora", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* --- Navy chrome: the website's dark bands. ------------------------------ */
+/* Beta banner reads like the site's dark band: navy with yellow signal. */
+[data-theme="riverlaunch"] .beta-banner {
+  border-bottom-color: rgba(255, 214, 10, 0.35);
+  background: #0d1b3e;
+  color: #ffd60a;
+}
+
+/* Desktop nav rail: solid deep navy, light text, blue active fill, yellow
+   active icon — the footer/verdict band treatment from the site. */
+[data-theme="riverlaunch"] .app-nav {
+  --ink: #eaf0ff;
+  --muted: #aebadd;
+  --line: rgba(174, 186, 221, 0.24);
+  --surface: rgba(255, 255, 255, 0.05);
+  --river-dark: #9db9ff;
+  background: #0d1b3e;
+  border-right-color: #0d1b3e;
+}
+[data-theme="riverlaunch"] .app-nav__item {
+  color: #aebadd;
+}
+[data-theme="riverlaunch"] .app-nav__item:hover,
+[data-theme="riverlaunch"] .app-nav__item--active {
+  border-color: rgba(30, 87, 255, 0.55);
+  background: rgba(30, 87, 255, 0.28);
+  color: #ffffff;
+}
+[data-theme="riverlaunch"] .app-nav__item--active svg {
+  color: #ffd60a;
+}
+[data-theme="riverlaunch"] .app-nav__account-main {
+  background: rgba(255, 255, 255, 0.05);
+}
+[data-theme="riverlaunch"] .app-nav__account-main:hover {
+  border-color: rgba(255, 214, 10, 0.45);
+  background: rgba(30, 87, 255, 0.2);
+}
+[data-theme="riverlaunch"] .app-nav__avatar {
+  background: rgba(30, 87, 255, 0.32);
+  color: #cfe0ff;
+}
+
+/* Mobile bottom nav: same navy band. */
+[data-theme="riverlaunch"] .bottom-nav {
+  border-top-color: rgba(174, 186, 221, 0.24);
+  background: #0d1b3e;
+  box-shadow: 0 -10px 26px rgba(13, 27, 62, 0.35);
+}
+[data-theme="riverlaunch"] .bottom-nav__item {
+  color: #aebadd;
+}
+[data-theme="riverlaunch"] .bottom-nav__item--active {
+  color: #ffd60a;
 }
