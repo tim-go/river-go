@@ -66,7 +66,7 @@ export type RouteDetailsTab =
   | "updates"
   | "photos";
 
-export type ObservationRangeHours = 48 | 168 | 672 | 2160;
+export type ObservationRangeHours = 48 | 168 | 672 | 2160 | 8760 | 17520;
 
 export const bandLabels = {
   "too-low": "Too low",
@@ -95,6 +95,8 @@ export const observationRangeOptions: Array<{
   { hours: 168, label: "7d", rangeLabel: "7 day range", chartLabel: "Last 7 days" },
   { hours: 672, label: "28d", rangeLabel: "28 day range", chartLabel: "Last 28 days" },
   { hours: 2160, label: "90d", rangeLabel: "90 day range", chartLabel: "Last 90 days" },
+  { hours: 8760, label: "1y", rangeLabel: "12 month range", chartLabel: "Last 12 months" },
+  { hours: 17520, label: "2y", rangeLabel: "2 year range", chartLabel: "Last 2 years" },
 ];
 
 export const routeDetailsTabs: Array<{ id: RouteDetailsTab; label: string }> = [

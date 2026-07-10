@@ -199,6 +199,36 @@ whitewater/canoe rivers), `all` (paddling + the 5 pilots), or `pilots` (just the
 [Observation Data](#observation-data)). Don't run a `platform:*:staging` script
 while this manual proxy is holding 5441.
 
+### Historic level archive (SEPA + EA)
+
+The live endpoints only serve short windows (EA flood-monitoring ~28 days, NRW
+~1 month), so long-range charts need the providers' archives:
+
+```bash
+# local (2 years, both archive providers)
+DATABASE_URL=postgresql://river_go_app:river_go@localhost:5440/river_go \
+  npm --prefix api run backfill:observations:historic -- --years=2
+
+# staging (opens its own Cloud SQL proxy on 5441)
+CLOUDSDK_ACTIVE_CONFIG_NAME=river-go \
+  npm run platform:backfill:observations:historic:staging -- --years=2
+```
+
+SEPA serves its full archive through the same KiWIS endpoint the live ingest
+uses; EA readings come from the open **Hydrology API**
+(`environment.data.gov.uk/hydrology`), resolved per station from the
+flood-monitoring `stationReference`. Inserts are idempotent
+(`ON CONFLICT DO NOTHING`), so re-runs and live-ingest overlap are safe. **NRW**
+uses the API-portal `StationData/historical` endpoint (~1 year per
+station+parameter, single response); it needs `NRW_API_KEY` — the platform
+script reads `providers.nrw.subscriptionKey` from the runtime config
+(gitignored) when the env var is absent. Reads beyond 90
+days are served as daily min/mean/max buckets, so backfilled history costs
+storage, not payload. After any historic backfill run
+`npm --prefix api run refresh:level-stats` so the level bands pick up the new
+distribution immediately (otherwise the ingest job refreshes within ~a day) —
+see `/docs/specs/discovery/river-level-bands.md`.
+
 Production is the same flow against `river-go-prod:europe-west2:river-go-db-prod` on
 **5442**, after staging validation. A dedicated
 `platform:seed:canonical-river-pilots:staging` wrapper would let this drop the

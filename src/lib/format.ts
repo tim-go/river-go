@@ -148,9 +148,14 @@ export function buildObservationChartPoints(measure: SectionObservationMeasure) 
     return "";
   }
 
-  const values = readings.map((reading) => reading.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  // Extent includes the daily min/max envelope (long-range reads) so the mean
+  // line shares the vertical scale used by the full chart.
+  const min = Math.min(
+    ...readings.map((reading) => reading.valueMin ?? reading.value),
+  );
+  const max = Math.max(
+    ...readings.map((reading) => reading.valueMax ?? reading.value),
+  );
   const range = max - min || 1;
   const width = 240;
   const height = 72;
@@ -180,7 +185,7 @@ export function buildObservationChartPoints(measure: SectionObservationMeasure) 
     .join(" ");
 }
 
-function sampleObservationHistory(
+export function sampleObservationHistory(
   history: SectionObservationMeasure["history"],
   maxPoints: number,
 ) {
