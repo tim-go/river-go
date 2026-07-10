@@ -61,6 +61,4 @@
 }
 
 /* Daybreak — light panel, blue-tinted border */
-[data-theme="daybreak"] .map-level-legend {
-  border-color: #dbe4ff;
-}
+
