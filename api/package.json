@@ -12,6 +12,8 @@
     "seed:map-pois": "tsx src/seed-map-pois.ts",
     "ingest:observations": "tsx src/ingest-observations.ts",
     "backfill:observations": "tsx src/backfill-observations.ts",
+    "backfill:observations:historic": "tsx src/backfill-historic-observations.ts",
+    "refresh:level-stats": "tsx src/refresh-level-stats.ts",
     "seed:observations": "tsx src/seed-observations.ts",
     "seed:river-geometry": "tsx src/seed-river-geometry-run.ts",
     "seed:amenities": "tsx src/seed-amenities-run.ts",

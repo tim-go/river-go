@@ -29,6 +29,7 @@
     "migrate:staging": "scripts/infra/migrate-api-db.sh staging",
     "migrate:prod": "scripts/infra/migrate-api-db.sh prod",
     "backfill:observations:staging": "scripts/infra/backfill-observations.sh staging",
+    "backfill:observations:historic:staging": "scripts/infra/backfill-historic-observations.sh staging",
     "backfill:observations:prod": "scripts/infra/backfill-observations.sh prod",
     "seed:observations:staging": "scripts/infra/seed-observations.sh staging",
     "seed:observations:prod": "scripts/infra/seed-observations.sh prod",

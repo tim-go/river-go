@@ -4391,64 +4391,101 @@ button.group-detail__section {
   color: var(--ink);
 }
 
-.observation-chart {
-  display: grid;
-  grid-template-columns: minmax(52px, max-content) minmax(0, 1fr);
-  grid-template-rows: 78px auto;
-  gap: 4px 8px;
-  padding: 7px;
-  border-radius: 7px;
-  background: var(--surface);
+/* Gauge history chart (ObservationChart) — the flagship level visual. */
+.observation-chart2 {
+  position: relative;
+  padding: 10px 6px 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  /* Inset plot surface: a soft step down from the card so the chart reads as
+     its own panel (works per-theme via the surface tokens). */
+  background: color-mix(in srgb, var(--surface-strong) 60%, var(--surface));
+  box-shadow: inset 0 1px 4px rgba(13, 27, 62, 0.05);
 }
-
-.observation-chart__axis {
-  display: grid;
-  grid-template-rows: repeat(3, 1fr);
-  align-items: center;
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-  text-align: right;
-}
-
-.observation-chart svg {
+.observation-chart2 svg {
   display: block;
-  width: 100%;
-  height: 100%;
+  touch-action: pan-y;
 }
-
-.observation-chart__xaxis {
-  grid-column: 2;
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 0.64rem;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.observation-chart2__zone {
+  opacity: 0.13;
 }
-
-.observation-chart__grid {
+.observation-chart2__zone-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.observation-chart2__grid {
   stroke: var(--line);
   stroke-width: 1;
 }
-
-.observation-chart__grid--major {
-  stroke: var(--line);
+.observation-chart2__tick,
+.observation-chart2__date {
+  fill: var(--muted);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
 }
-
-.observation-chart__line {
+.observation-chart2__envelope {
+  fill: var(--river);
+  opacity: 0.18;
+  stroke: none;
+}
+.observation-chart2__line {
   fill: none;
   stroke: var(--river);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 3;
-  vector-effect: non-scaling-stroke;
+  stroke-width: 2.5;
 }
-
-.observation-chart__point {
+.observation-chart2__latest {
   fill: var(--river-dark);
+}
+.observation-chart2__latest-halo {
+  fill: var(--river);
+  opacity: 0.18;
+  animation: observation-latest-pulse 2.4s ease-in-out infinite;
+}
+@keyframes observation-latest-pulse {
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.28;
+  }
+}
+.observation-chart2__crosshair {
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.45;
+}
+.observation-chart2__hover-dot {
+  fill: var(--river-dark);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+.observation-chart2__tooltip {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  gap: 1px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 10px 26px rgba(13, 27, 62, 0.18);
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  font-variant-numeric: tabular-nums;
+}
+.observation-chart2__tooltip strong {
+  color: var(--ink);
+  font-size: 0.85rem;
 }
 
 .source-link {
@@ -7413,7 +7450,8 @@ input[type="file"]::file-selector-button:hover {
   background: rgba(16, 24, 52, 0.6);
   border-color: var(--line);
 }
-[data-theme="surge"] .detail-panel .observation-chart {
+[data-theme="surge"] .detail-panel .observation-chart2,
+[data-theme="surge"] .observation-chart2__tooltip {
   background: rgba(8, 14, 34, 0.5);
 }
 [data-theme="surge"] .detail-panel .watercourse-list-row {
@@ -8446,10 +8484,7 @@ input[type="file"]::file-selector-button:hover {
   display: grid;
   gap: 14px;
 }
-/* Enlarge the reused ObservationCard chart on the full-history page. */
-.river-levels-page__chart .observation-chart {
-  grid-template-rows: 240px auto;
-}
+
 
 .river-page__card h3 {
   display: flex;
