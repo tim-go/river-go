@@ -31,8 +31,13 @@ export interface SectionObservationMeasure {
   history: Array<{
     observedAt: string;
     value: number;
+    /** Daily-bucket envelope; present only on downsampled (long-range) reads. */
+    valueMin?: number | null;
+    valueMax?: number | null;
     quality: string | null;
   }>;
+  /** Gauge's 2-year distribution breakpoints (chart guide lines). */
+  levelBands: { p25: number; p75: number; p90: number } | null;
 }
 
 export interface ObservationJobRun {
@@ -178,6 +183,17 @@ function mapSectionObservationMeasure(
     confidence: readString(value.confidence),
     sourceUrl: typeof value.sourceUrl === "string" ? value.sourceUrl : null,
     latest: mapLatest(value.latest),
+    levelBands:
+      isRecord(value.levelBands) &&
+      typeof value.levelBands.p25 === "number" &&
+      typeof value.levelBands.p75 === "number" &&
+      typeof value.levelBands.p90 === "number"
+        ? {
+            p25: value.levelBands.p25,
+            p75: value.levelBands.p75,
+            p90: value.levelBands.p90,
+          }
+        : null,
     history: Array.isArray(value.history)
       ? value.history.reduce<SectionObservationMeasure["history"]>(
           (history, item) => {
@@ -188,6 +204,10 @@ function mapSectionObservationMeasure(
             history.push({
               observedAt: readString(item.observedAt),
               value: item.value,
+              valueMin:
+                typeof item.valueMin === "number" ? item.valueMin : null,
+              valueMax:
+                typeof item.valueMax === "number" ? item.valueMax : null,
               quality: typeof item.quality === "string" ? item.quality : null,
             });
 

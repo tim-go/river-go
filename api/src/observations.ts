@@ -5,7 +5,55 @@ import { loadObservationStationsSeed } from "./seed-observation-stations.js";
 
 // Max history window a read query will honour (90 days) — the standalone levels
 // page requests up to this; raise as retention grows.
-const MAX_OBSERVATION_READ_HOURS = 2160;
+const MAX_OBSERVATION_READ_HOURS = 17568;
+// Beyond this window raw 15-min readings are too heavy to ship (~35k points a
+// year per gauge); serve daily min/mean/max buckets instead. The chart draws
+// the mean line plus a min-max band.
+const DAILY_DOWNSAMPLE_THRESHOLD_HOURS = 2160;
+
+function observationHistorySql(daily: boolean) {
+  const readingsJoin = daily
+    ? `LEFT JOIN LATERAL (
+        SELECT date_trunc('day', r0.observed_at) AS observed_at,
+          avg(r0.value) AS value,
+          min(r0.value) AS value_min,
+          max(r0.value) AS value_max,
+          NULL::text AS quality
+        FROM observation_readings r0
+        WHERE r0.measure_id = m.id
+          AND r0.observed_at >= now() - ($2::int * interval '1 hour')
+        GROUP BY date_trunc('day', r0.observed_at)
+      ) r ON TRUE`
+    : `LEFT JOIN observation_readings r
+      ON r.measure_id = m.id
+      AND r.observed_at >= now() - ($2::int * interval '1 hour')`;
+  const historyAgg = daily
+    ? `COALESCE(
+        jsonb_agg(
+          jsonb_build_object(
+            'observedAt', r.observed_at,
+            'value', r.value,
+            'valueMin', r.value_min,
+            'valueMax', r.value_max,
+            'quality', r.quality
+          )
+          ORDER BY r.observed_at
+        ) FILTER (WHERE r.observed_at IS NOT NULL),
+        '[]'::jsonb
+      ) AS history`
+    : `COALESCE(
+        jsonb_agg(
+          jsonb_build_object(
+            'observedAt', r.observed_at,
+            'value', r.value,
+            'quality', r.quality
+          )
+          ORDER BY r.observed_at
+        ) FILTER (WHERE r.observed_at IS NOT NULL),
+        '[]'::jsonb
+      ) AS history`;
+  return { readingsJoin, historyAgg };
+}
 
 type ObservationParameter =
   | "river_level"
@@ -89,8 +137,28 @@ export interface SectionObservationMeasure {
   history: Array<{
     observedAt: string;
     value: number;
+    /** Daily-bucket envelope; present only on downsampled (long-range) reads. */
+    valueMin?: number | null;
+    valueMax?: number | null;
     quality: string | null;
   }>;
+  /** Gauge's 2-year distribution breakpoints (chart guide lines). */
+  levelBands: { p25: number; p75: number; p90: number } | null;
+}
+
+function extractLevelBands(
+  quantiles: unknown,
+): SectionObservationMeasure["levelBands"] {
+  if (!Array.isArray(quantiles) || quantiles.length < 90) {
+    return null;
+  }
+  const p25 = Number(quantiles[24]);
+  const p75 = Number(quantiles[74]);
+  const p90 = Number(quantiles[89]);
+  if (![p25, p75, p90].every(Number.isFinite)) {
+    return null;
+  }
+  return { p25, p75, p90 };
 }
 
 interface EaReadingResponse {
@@ -137,11 +205,18 @@ interface ObservationProviderJobOptions {
 }
 
 export async function runObservationIngestionJob(): Promise<ObservationJobRun> {
-  return runObservationProviderJob({
+  const jobRun = await runObservationProviderJob({
     jobType: "observations.ingest",
     provider: "all",
     windowHours: 48,
   });
+  try {
+    // Daily distribution refresh rides along with ingest (staleness-guarded).
+    await refreshObservationLevelStats();
+  } catch (error) {
+    console.error("observation level stats refresh failed", error);
+  }
+  return jobRun;
 }
 
 export async function runObservationBackfillJob(
@@ -298,6 +373,9 @@ export async function listObservationsForSection(
   hours = 48,
 ): Promise<SectionObservationMeasure[]> {
   const boundedHours = Math.max(1, Math.min(hours, MAX_OBSERVATION_READ_HOURS));
+  const { readingsJoin, historyAgg } = observationHistorySql(
+    boundedHours > DAILY_DOWNSAMPLE_THRESHOLD_HOURS,
+  );
   const result = await pool.query(
     `SELECT m.id,
       m.provider,
@@ -309,29 +387,19 @@ export async function listObservationsForSection(
       s.name AS station_name,
       l.relevance,
       l.confidence,
+      ls.quantiles,
       latest.observed_at AS latest_observed_at,
       latest.value AS latest_value,
       latest.quality AS latest_quality,
       latest.fetched_at AS latest_fetched_at,
       latest.state AS latest_state,
-      COALESCE(
-        jsonb_agg(
-          jsonb_build_object(
-            'observedAt', r.observed_at,
-            'value', r.value,
-            'quality', r.quality
-          )
-          ORDER BY r.observed_at
-        ) FILTER (WHERE r.observed_at IS NOT NULL),
-        '[]'::jsonb
-      ) AS history
+      ${historyAgg}
     FROM section_measure_links l
     JOIN observation_measures m ON m.id = l.measure_id
     JOIN observation_stations s ON s.id = m.station_id
+    LEFT JOIN observation_measure_level_stats ls ON ls.measure_id = m.id
     LEFT JOIN observation_latest_readings latest ON latest.measure_id = m.id
-    LEFT JOIN observation_readings r
-      ON r.measure_id = m.id
-      AND r.observed_at >= now() - ($2::int * interval '1 hour')
+    ${readingsJoin}
     WHERE l.section_id = $1
     GROUP BY m.id,
       m.provider,
@@ -343,6 +411,7 @@ export async function listObservationsForSection(
       s.name,
       l.relevance,
       l.confidence,
+      ls.quantiles,
       latest.observed_at,
       latest.value,
       latest.quality,
@@ -371,6 +440,9 @@ export async function listObservationsForRiver(
   hours = 48,
 ): Promise<SectionObservationMeasure[]> {
   const boundedHours = Math.max(1, Math.min(hours, MAX_OBSERVATION_READ_HOURS));
+  const { readingsJoin, historyAgg } = observationHistorySql(
+    boundedHours > DAILY_DOWNSAMPLE_THRESHOLD_HOURS,
+  );
   const result = await pool.query(
     `SELECT m.id,
       m.provider,
@@ -382,29 +454,19 @@ export async function listObservationsForRiver(
       s.name AS station_name,
       l.relevance,
       NULL::text AS confidence,
+      ls.quantiles,
       latest.observed_at AS latest_observed_at,
       latest.value AS latest_value,
       latest.quality AS latest_quality,
       latest.fetched_at AS latest_fetched_at,
       latest.state AS latest_state,
-      COALESCE(
-        jsonb_agg(
-          jsonb_build_object(
-            'observedAt', r.observed_at,
-            'value', r.value,
-            'quality', r.quality
-          )
-          ORDER BY r.observed_at
-        ) FILTER (WHERE r.observed_at IS NOT NULL),
-        '[]'::jsonb
-      ) AS history
+      ${historyAgg}
     FROM river_measure_links l
     JOIN observation_measures m ON m.id = l.measure_id
     JOIN observation_stations s ON s.id = m.station_id
+    LEFT JOIN observation_measure_level_stats ls ON ls.measure_id = m.id
     LEFT JOIN observation_latest_readings latest ON latest.measure_id = m.id
-    LEFT JOIN observation_readings r
-      ON r.measure_id = m.id
-      AND r.observed_at >= now() - ($2::int * interval '1 hour')
+    ${readingsJoin}
     WHERE l.river_id = $1
     GROUP BY m.id,
       m.provider,
@@ -415,6 +477,7 @@ export async function listObservationsForRiver(
       s.provider_station_id,
       s.name,
       l.relevance,
+      ls.quantiles,
       latest.observed_at,
       latest.value,
       latest.quality,
@@ -435,8 +498,78 @@ export async function listObservationsForRiver(
   return result.rows.map(sectionObservationMeasureRow);
 }
 
-const LEVEL_STATE_HISTORY_DAYS = 90;
+// Level bands compare the current reading against the gauge's own long-run
+// distribution — 2 years since the historic backfill (was 90 days, which made
+// bands drought/deluge-relative). Distributions are precomputed into
+// observation_measure_level_stats as a 99-point quantile grid (refreshed by the
+// ingest job when >20h stale), so classification never scans raw readings.
+const LEVEL_STATE_HISTORY_DAYS = 730;
 const LEVEL_STATE_MIN_SAMPLES = 20;
+const LEVEL_STATS_MAX_AGE_HOURS = 20;
+
+/** Percentile (0..0.99, ±1%) of value within a 99-point quantile grid. */
+export function percentileFromQuantiles(
+  quantiles: unknown,
+  value: number | null,
+): number | null {
+  if (!Array.isArray(quantiles) || quantiles.length === 0 || value === null) {
+    return null;
+  }
+  let below = 0;
+  for (const q of quantiles) {
+    if (typeof q === "number" && q < value) below += 1;
+  }
+  return below / (quantiles.length + 1);
+}
+
+// Recompute each enabled gauge's quantile grid over the trailing window. Cheap
+// enough to run daily (one aggregate pass); the staleness guard makes it safe
+// to call from every half-hourly ingest without doing daily work 48 times.
+export async function refreshObservationLevelStats(
+  force = false,
+): Promise<{ refreshed: boolean; measures: number }> {
+  if (!force) {
+    const staleness = await pool.query(
+      `SELECT count(*) AS stale
+       FROM observation_measures m
+       LEFT JOIN observation_measure_level_stats ls ON ls.measure_id = m.id
+       WHERE m.enabled = true
+         AND (ls.computed_at IS NULL
+           OR ls.computed_at < now() - ($1::int * interval '1 hour'))`,
+      [LEVEL_STATS_MAX_AGE_HOURS],
+    );
+    if (Number(staleness.rows[0].stale) === 0) {
+      return { refreshed: false, measures: 0 };
+    }
+  }
+  const result = await pool.query(
+    `INSERT INTO observation_measure_level_stats (
+      measure_id, window_days, sample_size, quantiles, computed_at
+    )
+    SELECT m.id,
+      $1::int,
+      count(r.value)::int,
+      percentile_cont(
+        (SELECT array_agg(g / 100.0) FROM generate_series(1, 99) g)
+      ) WITHIN GROUP (ORDER BY r.value),
+      now()
+    FROM observation_measures m
+    JOIN observation_readings r
+      ON r.measure_id = m.id
+      AND r.observed_at >= now() - ($1::int * interval '1 day')
+      AND r.value IS NOT NULL
+    WHERE m.enabled = true
+    GROUP BY m.id
+    HAVING count(r.value) >= $2
+    ON CONFLICT (measure_id) DO UPDATE SET
+      window_days = EXCLUDED.window_days,
+      sample_size = EXCLUDED.sample_size,
+      quantiles = EXCLUDED.quantiles,
+      computed_at = EXCLUDED.computed_at`,
+    [LEVEL_STATE_HISTORY_DAYS, LEVEL_STATE_MIN_SAMPLES],
+  );
+  return { refreshed: true, measures: result.rowCount ?? 0 };
+}
 
 export type SectionLevelBand =
   | "low"
@@ -493,40 +626,24 @@ export async function listSectionLevelStates(): Promise<SectionLevelState[]> {
        ORDER BY l.section_id,
          CASE m.parameter WHEN 'river_level' THEN 1 ELSE 2 END,
          m.id
-     ),
-     stats AS (
-       SELECT pm.section_id,
-         pm.parameter,
-         pm.unit,
-         pm.latest_value,
-         pm.observed_at,
-         count(r.*) AS sample_size,
-         count(r.*) FILTER (WHERE r.value < pm.latest_value) AS below
-       FROM primary_measure pm
-       JOIN observation_readings r
-         ON r.measure_id = pm.measure_id
-         AND r.observed_at >= now() - ($1::int * interval '1 day')
-         AND r.value IS NOT NULL
-       GROUP BY pm.section_id, pm.parameter, pm.unit, pm.latest_value, pm.observed_at
      )
-     SELECT section_id,
-       parameter,
-       unit,
-       latest_value,
-       observed_at,
-       sample_size,
-       CASE WHEN sample_size > 0 THEN below::float8 / sample_size ELSE NULL END
-         AS percentile
-     FROM stats`,
-    [LEVEL_STATE_HISTORY_DAYS],
+     SELECT pm.section_id,
+       pm.parameter,
+       pm.unit,
+       pm.latest_value,
+       pm.observed_at,
+       ls.sample_size,
+       ls.quantiles
+     FROM primary_measure pm
+     JOIN observation_measure_level_stats ls ON ls.measure_id = pm.measure_id`,
   );
 
   return result.rows.map((row) => {
     const sampleSize = Number(row.sample_size ?? 0);
-    const percentile =
-      row.percentile === null || row.percentile === undefined
-        ? null
-        : Number(row.percentile);
+    const percentile = percentileFromQuantiles(
+      row.quantiles,
+      row.latest_value === null ? null : Number(row.latest_value),
+    );
     return {
       sectionId: row.section_id as string,
       parameter: row.parameter as string,
@@ -575,40 +692,24 @@ export async function listRiverLevelStates(): Promise<RiverLevelState[]> {
        ORDER BY rml.river_id,
          CASE m.parameter WHEN 'river_level' THEN 1 ELSE 2 END,
          m.id
-     ),
-     stats AS (
-       SELECT pm.river_id,
-         pm.parameter,
-         pm.unit,
-         pm.latest_value,
-         pm.observed_at,
-         count(r.*) AS sample_size,
-         count(r.*) FILTER (WHERE r.value < pm.latest_value) AS below
-       FROM primary_measure pm
-       JOIN observation_readings r
-         ON r.measure_id = pm.measure_id
-         AND r.observed_at >= now() - ($1::int * interval '1 day')
-         AND r.value IS NOT NULL
-       GROUP BY pm.river_id, pm.parameter, pm.unit, pm.latest_value, pm.observed_at
      )
-     SELECT river_id,
-       parameter,
-       unit,
-       latest_value,
-       observed_at,
-       sample_size,
-       CASE WHEN sample_size > 0 THEN below::float8 / sample_size ELSE NULL END
-         AS percentile
-     FROM stats`,
-    [LEVEL_STATE_HISTORY_DAYS],
+     SELECT pm.river_id,
+       pm.parameter,
+       pm.unit,
+       pm.latest_value,
+       pm.observed_at,
+       ls.sample_size,
+       ls.quantiles
+     FROM primary_measure pm
+     JOIN observation_measure_level_stats ls ON ls.measure_id = pm.measure_id`,
   );
 
   return result.rows.map((row) => {
     const sampleSize = Number(row.sample_size ?? 0);
-    const percentile =
-      row.percentile === null || row.percentile === undefined
-        ? null
-        : Number(row.percentile);
+    const percentile = percentileFromQuantiles(
+      row.quantiles,
+      row.latest_value === null ? null : Number(row.latest_value),
+    );
     return {
       riverId: row.river_id as string,
       parameter: row.parameter as string,
@@ -667,34 +768,21 @@ export async function listStations(): Promise<Station[]> {
        ORDER BY s.id,
          CASE m.parameter WHEN 'river_level' THEN 1 WHEN 'river_flow' THEN 2 ELSE 3 END,
          m.id
-     ),
-     stats AS (
-       SELECT sm.station_id, sm.name, sm.provider, sm.lat, sm.lng,
-         sm.parameter, sm.unit, sm.latest_value, sm.observed_at, sm.paddler_gauge,
-         count(r.*) AS sample_size,
-         count(r.*) FILTER (WHERE r.value < sm.latest_value) AS below
-       FROM station_measure sm
-       LEFT JOIN observation_readings r
-         ON r.measure_id = sm.measure_id
-         AND r.observed_at >= now() - ($1::int * interval '1 day')
-         AND r.value IS NOT NULL
-       GROUP BY sm.station_id, sm.name, sm.provider, sm.lat, sm.lng,
-         sm.parameter, sm.unit, sm.latest_value, sm.observed_at, sm.paddler_gauge
      )
-     SELECT station_id, name, provider, lat, lng, parameter, unit,
-       latest_value, observed_at, paddler_gauge, sample_size,
-       CASE WHEN sample_size > 0 THEN below::float8 / sample_size ELSE NULL END
-         AS percentile
-     FROM stats`,
-    [LEVEL_STATE_HISTORY_DAYS],
+     SELECT sm.station_id, sm.name, sm.provider, sm.lat, sm.lng,
+       sm.parameter, sm.unit, sm.latest_value, sm.observed_at, sm.paddler_gauge,
+       COALESCE(ls.sample_size, 0) AS sample_size,
+       ls.quantiles
+     FROM station_measure sm
+     LEFT JOIN observation_measure_level_stats ls ON ls.measure_id = sm.measure_id`,
   );
 
   return result.rows.map((row) => {
     const sampleSize = Number(row.sample_size ?? 0);
-    const percentile =
-      row.percentile === null || row.percentile === undefined
-        ? null
-        : Number(row.percentile);
+    const percentile = percentileFromQuantiles(
+      row.quantiles,
+      row.latest_value === null ? null : Number(row.latest_value),
+    );
     return {
       stationId: row.station_id as string,
       name: row.name as string,
@@ -1169,6 +1257,7 @@ function sectionObservationMeasureRow(
           }
         : null,
     history: parseHistory(row.history),
+    levelBands: extractLevelBands(row.quantiles),
   };
 }
 
@@ -1187,6 +1276,9 @@ function parseHistory(
     history.push({
       observedAt: readDate(item.observedAt),
       value: item.value,
+      // Omit (not null) on raw reads so short-range payloads stay lean.
+      valueMin: typeof item.valueMin === "number" ? item.valueMin : undefined,
+      valueMax: typeof item.valueMax === "number" ? item.valueMax : undefined,
       quality: typeof item.quality === "string" ? item.quality : null,
     });
 

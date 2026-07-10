@@ -65,6 +65,7 @@
     "platform:migrate:staging": "npm --prefix platform run migrate:staging --",
     "platform:migrate:prod": "npm --prefix platform run migrate:prod --",
     "platform:backfill:observations:staging": "npm --prefix platform run backfill:observations:staging --",
+    "platform:backfill:observations:historic:staging": "npm --prefix platform run backfill:observations:historic:staging --",
     "platform:backfill:observations:prod": "npm --prefix platform run backfill:observations:prod --",
     "platform:seed:observations:staging": "npm --prefix platform run seed:observations:staging --",
     "platform:seed:observations:prod": "npm --prefix platform run seed:observations:prod --",
