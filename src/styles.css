@@ -4318,10 +4318,13 @@ button.group-detail__section {
 .observation-card {
   display: grid;
   gap: 9px;
-  padding: 10px;
+  padding: 14px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-strong);
+  border-radius: 12px;
+  /* White card on the tinted page canvas, chart panel tinted inside it — a
+     clear three-step surface hierarchy (page -> card -> plot). */
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgba(13, 27, 62, 0.08);
 }
 
 .observation-card__header,
@@ -4397,10 +4400,10 @@ button.group-detail__section {
   padding: 10px 6px 4px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  /* Inset plot surface: a soft step down from the card so the chart reads as
-     its own panel (works per-theme via the surface tokens). */
-  background: color-mix(in srgb, var(--surface-strong) 60%, var(--surface));
-  box-shadow: inset 0 1px 4px rgba(13, 27, 62, 0.05);
+  /* Inset plot surface: a full step down from the white card so the chart
+     reads as its own panel (works per-theme via the surface tokens). */
+  background: var(--surface-strong);
+  box-shadow: inset 0 1px 4px rgba(13, 27, 62, 0.06);
 }
 .observation-chart2 svg {
   display: block;
