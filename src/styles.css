@@ -4397,6 +4397,13 @@ button.group-detail__section {
 /* Gauge history chart (ObservationChart) — the flagship level visual. */
 .observation-chart2 {
   position: relative;
+  /* Shrinkable in flex/grid parents (e.g. the river-page sidebar): without
+     min-width:0 + overflow:hidden the wrapper can't go below the rendered
+     SVG's width, so the ResizeObserver keeps measuring the overflowed size
+     and the card blows out of its column. */
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   padding: 10px 6px 4px;
   border: 1px solid var(--line);
   border-radius: 12px;
