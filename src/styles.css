@@ -4405,54 +4405,52 @@ button.group-detail__section {
   max-width: 100%;
   overflow: hidden;
   padding: 10px 6px 4px;
-  border: 1px solid var(--line);
   border-radius: 12px;
-  /* Inset plot surface: a full step down from the white card so the chart
-     reads as its own panel (works per-theme via the surface tokens). */
-  background: var(--surface-strong);
-  box-shadow: inset 0 1px 4px rgba(13, 27, 62, 0.06);
+  /* The "water window": a deep-navy pane in EVERY theme (the website's dark
+     band), holding translucent level-band fields and the level-coloured line.
+     Strong figure/ground against the white card by construction. */
+  border: 1px solid rgba(174, 186, 221, 0.18);
+  background: #0d1b3e;
 }
 .observation-chart2 svg {
   display: block;
   touch-action: pan-y;
 }
-.observation-chart2__zone {
-  opacity: 0.13;
-}
+/* Zone fields carry their own per-band fill-opacity (SVG attribute). */
 .observation-chart2__zone-label {
   font-size: 0.66rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  opacity: 0.85;
+  opacity: 0.95;
 }
 .observation-chart2__grid {
-  stroke: var(--line);
+  stroke: rgba(174, 186, 221, 0.16);
   stroke-width: 1;
 }
 .observation-chart2__tick,
 .observation-chart2__date {
-  fill: var(--muted);
+  fill: #8d9bc4;
   font-size: 0.68rem;
   font-variant-numeric: tabular-nums;
 }
 .observation-chart2__envelope {
-  fill: var(--river);
-  opacity: 0.18;
+  fill: #6fd3ff;
+  opacity: 0.2;
   stroke: none;
 }
 .observation-chart2__line {
   fill: none;
-  stroke: var(--river);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.5;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 4px rgba(111, 211, 255, 0.35));
 }
 .observation-chart2__latest {
-  fill: var(--river-dark);
+  fill: #ffffff;
 }
 .observation-chart2__latest-halo {
-  fill: var(--river);
+  fill: #6fd3ff;
   opacity: 0.18;
   animation: observation-latest-pulse 2.4s ease-in-out infinite;
 }
@@ -4466,14 +4464,14 @@ button.group-detail__section {
   }
 }
 .observation-chart2__crosshair {
-  stroke: var(--ink);
+  stroke: #aebadd;
   stroke-width: 1;
   stroke-dasharray: 3 3;
-  opacity: 0.45;
+  opacity: 0.55;
 }
 .observation-chart2__hover-dot {
-  fill: var(--river-dark);
-  stroke: var(--surface);
+  fill: #ffffff;
+  stroke: #0d1b3e;
   stroke-width: 2;
 }
 .observation-chart2__tooltip {
@@ -4482,19 +4480,19 @@ button.group-detail__section {
   display: grid;
   gap: 1px;
   padding: 6px 10px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(174, 186, 221, 0.3);
   border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 10px 26px rgba(13, 27, 62, 0.18);
+  background: #13234c;
+  box-shadow: 0 10px 26px rgba(3, 8, 24, 0.5);
   font-size: 0.72rem;
-  color: var(--muted);
+  color: #aebadd;
   white-space: nowrap;
   pointer-events: none;
   transform: translateX(-50%);
   font-variant-numeric: tabular-nums;
 }
 .observation-chart2__tooltip strong {
-  color: var(--ink);
+  color: #ffffff;
   font-size: 0.85rem;
 }
 
@@ -7460,10 +7458,7 @@ input[type="file"]::file-selector-button:hover {
   background: rgba(16, 24, 52, 0.6);
   border-color: var(--line);
 }
-[data-theme="surge"] .detail-panel .observation-chart2,
-[data-theme="surge"] .observation-chart2__tooltip {
-  background: rgba(8, 14, 34, 0.5);
-}
+
 [data-theme="surge"] .detail-panel .watercourse-list-row {
   background: rgba(16, 24, 52, 0.55);
   border-color: var(--line);
