@@ -16,27 +16,46 @@ interface ObservationChartProps {
   measure: SectionObservationMeasure;
   rangeHours: number;
   ariaLabel: string;
+  /** Chart height in px — taller on the dedicated levels page. */
+  height?: number;
 }
 
-const HEIGHT = 232;
+const DEFAULT_HEIGHT = 232;
 const TOP = 12;
 const BOTTOM = 26;
 const GUTTER = 46;
 const RIGHT = 10;
 const MAX_POINTS = 220;
 
+// The chart is a dark navy "water window" in every theme; the level-legend
+// colours appear twice, quietly on the zone FIELDS and loudly on the LINE:
+// translucent band fills, bright label/line variants that pop on navy.
 const ZONE_FILL: Record<string, string> = {
   low: "#3b82f6",
   normal: "#14b8a6",
   high: "#ffd60a",
   "very-high": "#f97316",
 };
-const ZONE_TEXT: Record<string, string> = {
-  low: "#1d4ed8",
-  normal: "#0f766e",
-  high: "#8a6200",
-  "very-high": "#b45309",
+const ZONE_FILL_OPACITY: Record<string, number> = {
+  low: 0.17,
+  normal: 0.13,
+  high: 0.11,
+  "very-high": 0.15,
 };
+const ZONE_TEXT: Record<string, string> = {
+  low: "#93c5fd",
+  normal: "#5eead4",
+  high: "#fde047",
+  "very-high": "#fdba74",
+};
+// Bright per-band stroke colours for the level-mapped line gradient.
+const ZONE_LINE: Record<string, string> = {
+  low: "#60a5fa",
+  normal: "#2dd4bf",
+  high: "#ffd60a",
+  "very-high": "#fb923c",
+};
+const LINE_FALLBACK = "#6fd3ff";
 const ZONE_LABELS: Record<string, string> = {
   low: "Low",
   normal: "Normal",
@@ -100,6 +119,7 @@ export function ObservationChart({
   measure,
   rangeHours,
   ariaLabel,
+  height: HEIGHT = DEFAULT_HEIGHT,
 }: ObservationChartProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(600);
@@ -192,10 +212,6 @@ export function ObservationChart({
           "Z",
         ].join(" ")
       : null;
-    const areaPath = !hasEnvelope
-      ? `${linePath} L${points[points.length - 1].x.toFixed(1)},${(HEIGHT - BOTTOM).toFixed(1)} L${points[0].x.toFixed(1)},${(HEIGHT - BOTTOM).toFixed(1)} Z`
-      : null;
-
     // 4 date ticks across the domain.
     const dateTicks = [0, 1 / 3, 2 / 3, 1].map((fraction) => {
       const index = Math.round(fraction * (readings.length - 1));
@@ -217,18 +233,27 @@ export function ObservationChart({
       zones,
       linePath,
       envelopePath,
-      areaPath,
       dateTicks,
       hasEnvelope,
       plotBottom: HEIGHT - BOTTOM,
     };
-  }, [readings, width, measure.levelBands, rangeHours]);
+  }, [readings, width, measure.levelBands, rangeHours, HEIGHT]);
 
   if (!geometry) return null;
 
   const hovered = hoverIndex === null ? null : geometry.points[hoverIndex];
   const latest = geometry.points[geometry.points.length - 1];
-  const gradientId = `obs-area-${measure.id}`;
+  const lineGradientId = `obs-line-${measure.id}`;
+  // The line wears the band colour of the level it is passing through: a
+  // vertical gradient with hard stops at the zone boundaries (F3 blend).
+  const lineGradientStops = geometry.zones
+    .flatMap((zone) => [
+      { offset: zone.yTop / HEIGHT, color: ZONE_LINE[zone.key] },
+      { offset: zone.yBottom / HEIGHT, color: ZONE_LINE[zone.key] },
+    ])
+    // SVG clamps out-of-order stops to the running max, which would strand
+    // every band above the first one emitted — keep offsets ascending.
+    .sort((a, b) => a.offset - b.offset);
 
   const handlePointer = (event: React.PointerEvent<SVGSVGElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -260,10 +285,24 @@ export function ObservationChart({
         aria-hidden="true"
       >
         <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--river)" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="var(--river)" stopOpacity="0" />
-          </linearGradient>
+          {lineGradientStops.length > 0 ? (
+            <linearGradient
+              id={lineGradientId}
+              gradientUnits="userSpaceOnUse"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2={HEIGHT}
+            >
+              {lineGradientStops.map((stop, index) => (
+                <stop
+                  key={index}
+                  offset={`${(stop.offset * 100).toFixed(2)}%`}
+                  stopColor={stop.color}
+                />
+              ))}
+            </linearGradient>
+          ) : null}
         </defs>
 
         {geometry.zones.map((zone) => (
@@ -275,6 +314,7 @@ export function ObservationChart({
               y={zone.yTop}
               height={zone.yBottom - zone.yTop}
               fill={ZONE_FILL[zone.key]}
+              fillOpacity={ZONE_FILL_OPACITY[zone.key]}
             />
             {zone.yBottom - zone.yTop >= 18 ? (
               <text
@@ -311,16 +351,21 @@ export function ObservationChart({
           </g>
         ))}
 
-        {geometry.areaPath ? (
-          <path d={geometry.areaPath} fill={`url(#${gradientId})`} />
-        ) : null}
         {geometry.envelopePath ? (
           <path
             className="observation-chart2__envelope"
             d={geometry.envelopePath}
           />
         ) : null}
-        <path className="observation-chart2__line" d={geometry.linePath} />
+        <path
+          className="observation-chart2__line"
+          d={geometry.linePath}
+          stroke={
+            lineGradientStops.length > 0
+              ? `url(#${lineGradientId})`
+              : LINE_FALLBACK
+          }
+        />
 
         {/* date ticks */}
         {geometry.dateTicks.map((tick, index) => (

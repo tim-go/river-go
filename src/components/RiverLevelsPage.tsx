@@ -149,7 +149,11 @@ export function RiverLevelsPage({
         <div className="river-levels-page__charts">
           {observations.map((measure) => (
             <div className="river-levels-page__chart" key={measure.id}>
-              <ObservationCard measure={measure} rangeHours={range} />
+              <ObservationCard
+                measure={measure}
+                rangeHours={range}
+                chartHeight={330}
+              />
             </div>
           ))}
         </div>

@@ -15,12 +15,17 @@ import { ObservationChart } from "./ObservationChart";
 interface ObservationCardProps {
   measure: SectionObservationMeasure;
   rangeHours: ObservationRangeHours;
+  chartHeight?: number;
 }
 
 // Gauge reading + history chart for one observation measure. Extracted from the
 // section observation view so the river-first detail card can re-surface the
 // historical level chart (RIVERDISC-F7).
-export function ObservationCard({ measure, rangeHours }: ObservationCardProps) {
+export function ObservationCard({
+  measure,
+  rangeHours,
+  chartHeight,
+}: ObservationCardProps) {
   const rangeOption = getObservationRangeOption(rangeHours);
   const stats = getObservationStats(measure);
 
@@ -61,6 +66,7 @@ export function ObservationCard({ measure, rangeHours }: ObservationCardProps) {
       <ObservationChart
         measure={measure}
         rangeHours={rangeHours}
+        height={chartHeight}
         ariaLabel={`${rangeOption.chartLabel} ${observationParameterLabels[
           measure.parameter
         ].toLowerCase()} trend from ${formatObservationValue(
